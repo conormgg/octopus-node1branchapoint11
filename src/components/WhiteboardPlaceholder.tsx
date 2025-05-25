@@ -29,32 +29,27 @@ const WhiteboardPlaceholder: React.FC<WhiteboardPlaceholderProps> = ({
 
   return (
     <div 
-      className="flex flex-col h-full bg-white border-2 border-gray-200 rounded-lg shadow-sm hover:shadow-md transition-all duration-200"
+      className="flex flex-col h-full bg-white border-2 border-gray-200 rounded-lg shadow-sm hover:shadow-md transition-all duration-200 relative"
       style={{ 
         width: initialWidth ? `${initialWidth}px` : '100%',
         height: initialHeight ? `${initialHeight}px` : '100%'
       }}
     >
-      {/* Toolbar Area */}
-      <div className="flex items-center justify-between p-3 bg-gray-50 border-b border-gray-200 rounded-t-lg">
-        <div className="text-sm font-medium text-gray-700">
-          Toolbar for {id}
-        </div>
-        <button
-          onClick={handleMaximizeClick}
-          className="p-1 rounded hover:bg-gray-200 transition-colors duration-150"
-          title={isMaximized ? "Minimize" : "Maximize"}
-        >
-          {isMaximized ? (
-            <Minimize2 size={16} className="text-gray-600" />
-          ) : (
-            <Maximize2 size={16} className="text-gray-600" />
-          )}
-        </button>
-      </div>
+      {/* Maximize/Minimize Button - positioned in top-right corner */}
+      <button
+        onClick={handleMaximizeClick}
+        className="absolute top-3 right-3 z-10 p-2 rounded-lg bg-white/80 hover:bg-white border border-gray-200 shadow-sm transition-all duration-150"
+        title={isMaximized ? "Minimize" : "Maximize"}
+      >
+        {isMaximized ? (
+          <Minimize2 size={16} className="text-gray-600" />
+        ) : (
+          <Maximize2 size={16} className="text-gray-600" />
+        )}
+      </button>
       
       {/* Whiteboard Content Area */}
-      <div className="flex-1 flex items-center justify-center bg-gray-25 relative overflow-hidden">
+      <div className="flex-1 flex items-center justify-center bg-gray-25 relative overflow-hidden rounded-lg">
         <div className="text-center">
           <div className="w-16 h-16 mx-auto mb-4 bg-blue-100 rounded-full flex items-center justify-center">
             <div className="w-8 h-8 bg-blue-500 rounded"></div>
