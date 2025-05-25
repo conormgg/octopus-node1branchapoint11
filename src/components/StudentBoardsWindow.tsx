@@ -1,3 +1,4 @@
+
 import React, { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { Button } from '@/components/ui/button';
@@ -211,7 +212,8 @@ const StudentBoardsWindow: React.FC<StudentBoardsWindowProps> = ({
             </Button>
           </div>
           
-          <div className="flex items-center justify-between">
+          {/* Single line controls */}
+          <div className="flex items-center justify-between space-x-6">
             {/* Layout Selector */}
             <LayoutSelector
               availableLayouts={availableLayouts}
@@ -219,6 +221,7 @@ const StudentBoardsWindow: React.FC<StudentBoardsWindowProps> = ({
               onLayoutChange={onLayoutChange}
             />
             
+            {/* Student Count Display and Controls - all in one line */}
             <div className="flex items-center space-x-6">
               {/* Add Student Button */}
               <Button
@@ -232,7 +235,7 @@ const StudentBoardsWindow: React.FC<StudentBoardsWindowProps> = ({
                 <span>Add Student</span>
               </Button>
               
-              {/* Student Count Controls */}
+              {/* Student Count Controls - horizontal layout */}
               <div className="flex items-center space-x-3">
                 <div className="flex items-center space-x-2 px-3 py-2 bg-gray-50 rounded-lg">
                   <Users className="w-4 h-4 text-gray-600" />
