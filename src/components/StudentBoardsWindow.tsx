@@ -31,6 +31,7 @@ const StudentBoardsWindow: React.FC<StudentBoardsWindowProps> = ({
   const containerRef = useRef<HTMLDivElement | null>(null);
   const [isReady, setIsReady] = useState(false);
 
+  // Create and setup window only once
   useEffect(() => {
     console.log('Opening student boards window...');
     
@@ -143,7 +144,20 @@ const StudentBoardsWindow: React.FC<StudentBoardsWindowProps> = ({
       }
       setIsReady(false);
     };
-  }, [onClose]);
+  }, [onClose]); // Only recreate window when onClose changes
+
+  // Log prop changes for debugging
+  useEffect(() => {
+    console.log('Props changed in StudentBoardsWindow:', {
+      studentCount,
+      currentLayout: currentLayout?.name,
+      currentStudentBoards,
+      currentPage,
+      totalPages,
+      isReady,
+      hasContainer: !!containerRef.current
+    });
+  }, [studentCount, currentLayout, currentStudentBoards, currentPage, totalPages, isReady]);
 
   // Don't render portal until container is ready
   if (!containerRef.current || !isReady) {
