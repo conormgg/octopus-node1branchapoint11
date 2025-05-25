@@ -2,9 +2,10 @@
 import React, { useState } from 'react';
 import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from '@/components/ui/resizable';
 import WhiteboardPlaceholder from './WhiteboardPlaceholder';
-import { GraduationCap, Users, ChevronLeft, ChevronRight, Plus, Minus } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { calculateLayoutOptions, generateStudentBoards, getStudentBoardsForPage, LayoutOption } from '@/utils/layoutCalculator';
+import TeacherHeader from './TeacherHeader';
+import TeacherMainBoard from './TeacherMainBoard';
+import StudentBoardsGrid from './StudentBoardsGrid';
+import { calculateLayoutOptions, generateStudentBoards, getStudentBoardsForPage } from '@/utils/layoutCalculator';
 
 const TeacherView: React.FC = () => {
   const [maximizedBoard, setMaximizedBoard] = useState<string | null>(null);
@@ -78,141 +79,35 @@ const TeacherView: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-gray-100">
-      {/* Header */}
-      <div className="bg-white border-b border-gray-200 px-6 py-4">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center space-x-3">
-            <div className="w-8 h-8 bg-blue-500 rounded-lg flex items-center justify-center">
-              <GraduationCap className="w-5 h-5 text-white" />
-            </div>
-            <div>
-              <h1 className="text-xl font-semibold text-gray-900">Teacher Dashboard</h1>
-              <p className="text-sm text-gray-500">Collaborative Whiteboard Session</p>
-            </div>
-          </div>
-          
-          <div className="flex items-center space-x-4">
-            {/* Student Count Controls */}
-            <div className="flex items-center space-x-2 px-3 py-2 bg-gray-50 rounded-lg">
-              <Users className="w-4 h-4 text-gray-600" />
-              <span className="text-sm font-medium text-gray-700">Students:</span>
-              <div className="flex items-center space-x-1">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={decreaseStudentCount}
-                  disabled={studentCount <= 1}
-                  className="h-6 w-6 p-0"
-                >
-                  <Minus className="w-3 h-3" />
-                </Button>
-                <span className="text-sm font-bold text-gray-800 min-w-[1.5rem] text-center">
-                  {studentCount}
-                </span>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={increaseStudentCount}
-                  disabled={studentCount >= 8}
-                  className="h-6 w-6 p-0"
-                >
-                  <Plus className="w-3 h-3" />
-                </Button>
-              </div>
-            </div>
-
-            {/* Current Layout Info */}
-            <div className="flex items-center space-x-2 px-3 py-2 bg-gray-50 rounded-lg">
-              <span className="text-sm font-medium text-gray-700">
-                Layout: {currentLayout?.name || '2×2'} Grid
-              </span>
-            </div>
-
-            {/* View Type Badge */}
-            <div className="flex items-center space-x-2 px-3 py-2 bg-blue-50 rounded-lg">
-              <GraduationCap className="w-4 h-4 text-blue-600" />
-              <span className="text-sm font-medium text-blue-700">Teacher View</span>
-            </div>
-          </div>
-        </div>
-      </div>
+      <TeacherHeader
+        studentCount={studentCount}
+        currentLayout={currentLayout}
+        onIncreaseStudentCount={increaseStudentCount}
+        onDecreaseStudentCount={decreaseStudentCount}
+      />
 
       {/* Main Content */}
       <div className="h-[calc(100vh-5rem)] p-4">
         <ResizablePanelGroup direction="horizontal" className="rounded-lg overflow-hidden">
           {/* Left Pane - Teacher's Main Board */}
           <ResizablePanel defaultSize={60} minSize={40}>
-            <div className="h-full p-2">
-              <div className="mb-3">
-                <h2 className="text-lg font-semibold text-gray-800 flex items-center">
-                  <GraduationCap className="w-5 h-5 mr-2 text-blue-500" />
-                  Main Teaching Board
-                </h2>
-                <p className="text-sm text-gray-600">Your primary whiteboard for instruction</p>
-              </div>
-              <div className="h-[calc(100%-4rem)]">
-                <WhiteboardPlaceholder
-                  id="teacher-main"
-                  onMaximize={() => handleMaximize("teacher-main")}
-                />
-              </div>
-            </div>
+            <TeacherMainBoard onMaximize={handleMaximize} />
           </ResizablePanel>
 
           <ResizableHandle className="w-2 bg-gray-200 hover:bg-gray-300 transition-colors duration-150" />
 
           {/* Right Pane - Student Boards Grid */}
           <ResizablePanel defaultSize={40} minSize={30}>
-            <div className="h-full p-2">
-              <div className="mb-3">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <h2 className="text-lg font-semibold text-gray-800 flex items-center">
-                      <Users className="w-5 h-5 mr-2 text-green-500" />
-                      Student Boards ({studentCount} active)
-                    </h2>
-                    <p className="text-sm text-gray-600">
-                      {currentLayout?.description || 'Monitor and interact with student work'}
-                    </p>
-                  </div>
-                  {totalPages > 1 && (
-                    <div className="flex items-center space-x-2">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={handlePreviousPage}
-                        disabled={currentPage === 0}
-                      >
-                        <ChevronLeft className="w-4 h-4" />
-                      </Button>
-                      <span className="text-sm text-gray-600 px-2">
-                        Page {currentPage + 1} of {totalPages}
-                      </span>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={handleNextPage}
-                        disabled={currentPage === totalPages - 1}
-                      >
-                        <ChevronRight className="w-4 h-4" />
-                      </Button>
-                    </div>
-                  )}
-                </div>
-              </div>
-              <div className="h-[calc(100%-4rem)]">
-                <div className={`grid ${currentLayout?.gridClass || 'grid-cols-2'} gap-3 h-full`}>
-                  {currentStudentBoards.map((boardId) => (
-                    <div key={boardId} className="min-h-0">
-                      <WhiteboardPlaceholder
-                        id={boardId}
-                        onMaximize={() => handleMaximize(boardId)}
-                      />
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </div>
+            <StudentBoardsGrid
+              studentCount={studentCount}
+              currentLayout={currentLayout}
+              currentStudentBoards={currentStudentBoards}
+              currentPage={currentPage}
+              totalPages={totalPages}
+              onMaximize={handleMaximize}
+              onPreviousPage={handlePreviousPage}
+              onNextPage={handleNextPage}
+            />
           </ResizablePanel>
         </ResizablePanelGroup>
       </div>
