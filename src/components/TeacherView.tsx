@@ -4,11 +4,13 @@ import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from '@/componen
 import WhiteboardPlaceholder from './WhiteboardPlaceholder';
 import { GraduationCap, Users, ChevronLeft, ChevronRight, Plus, Minus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { calculateLayoutOptions, generateStudentBoards, getStudentBoardsForPage, LayoutOption } from '@/utils/layoutCalculator';
 
 const TeacherView: React.FC = () => {
   const [maximizedBoard, setMaximizedBoard] = useState<string | null>(null);
   const [currentPage, setCurrentPage] = useState(0);
   const [studentCount, setStudentCount] = useState(4);
+  const [selectedLayoutId, setSelectedLayoutId] = useState<string>('2x2'); // Default to 2x2
 
   const handleMaximize = (boardId: string) => {
     setMaximizedBoard(boardId);
@@ -22,6 +24,12 @@ const TeacherView: React.FC = () => {
     const clampedCount = Math.max(1, Math.min(8, newCount));
     setStudentCount(clampedCount);
     setCurrentPage(0); // Reset to first page when student count changes
+    
+    // Reset layout to first available option when student count changes
+    const availableLayouts = calculateLayoutOptions(clampedCount);
+    if (availableLayouts.length > 0) {
+      setSelectedLayoutId(availableLayouts[0].id);
+    }
   };
 
   const increaseStudentCount = () => {
@@ -32,21 +40,19 @@ const TeacherView: React.FC = () => {
     handleStudentCountChange(studentCount - 1);
   };
 
-  // Generate student board IDs based on count
-  const generateStudentBoards = (count: number) => {
-    return Array.from({ length: count }, (_, i) => 
-      `student-${String.fromCharCode(97 + i)}`
-    );
-  };
+  // Calculate layout options and current layout
+  const availableLayouts = calculateLayoutOptions(studentCount);
+  const currentLayout = availableLayouts.find(layout => layout.id === selectedLayoutId) || availableLayouts[0];
+  
+  // Generate student boards and get current page boards
+  const allStudentBoards = generateStudentBoards(studentCount);
+  const currentStudentBoards = getStudentBoardsForPage(
+    allStudentBoards, 
+    currentPage, 
+    currentLayout?.studentsPerPage || 4
+  );
 
-  // Define student board pages
-  const studentBoardPages = [
-    ['student-a', 'student-b', 'student-c', 'student-d'],
-    ['student-e', 'student-f', 'student-g', 'student-h']
-  ];
-
-  const currentStudentBoards = studentBoardPages[currentPage];
-  const totalPages = studentBoardPages.length;
+  const totalPages = currentLayout?.totalPages || 1;
 
   const handlePreviousPage = () => {
     setCurrentPage(prev => Math.max(0, prev - 1));
@@ -117,7 +123,9 @@ const TeacherView: React.FC = () => {
 
             {/* Current Layout Info */}
             <div className="flex items-center space-x-2 px-3 py-2 bg-gray-50 rounded-lg">
-              <span className="text-sm font-medium text-gray-700">Layout: 2x2 Grid</span>
+              <span className="text-sm font-medium text-gray-700">
+                Layout: {currentLayout?.name || '2×2'} Grid
+              </span>
             </div>
 
             {/* View Type Badge */}
@@ -163,33 +171,37 @@ const TeacherView: React.FC = () => {
                       <Users className="w-5 h-5 mr-2 text-green-500" />
                       Student Boards ({studentCount} active)
                     </h2>
-                    <p className="text-sm text-gray-600">Monitor and interact with student work</p>
+                    <p className="text-sm text-gray-600">
+                      {currentLayout?.description || 'Monitor and interact with student work'}
+                    </p>
                   </div>
-                  <div className="flex items-center space-x-2">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={handlePreviousPage}
-                      disabled={currentPage === 0}
-                    >
-                      <ChevronLeft className="w-4 h-4" />
-                    </Button>
-                    <span className="text-sm text-gray-600 px-2">
-                      Page {currentPage + 1} of {totalPages}
-                    </span>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={handleNextPage}
-                      disabled={currentPage === totalPages - 1}
-                    >
-                      <ChevronRight className="w-4 h-4" />
-                    </Button>
-                  </div>
+                  {totalPages > 1 && (
+                    <div className="flex items-center space-x-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={handlePreviousPage}
+                        disabled={currentPage === 0}
+                      >
+                        <ChevronLeft className="w-4 h-4" />
+                      </Button>
+                      <span className="text-sm text-gray-600 px-2">
+                        Page {currentPage + 1} of {totalPages}
+                      </span>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={handleNextPage}
+                        disabled={currentPage === totalPages - 1}
+                      >
+                        <ChevronRight className="w-4 h-4" />
+                      </Button>
+                    </div>
+                  )}
                 </div>
               </div>
               <div className="h-[calc(100%-4rem)]">
-                <div className="grid grid-cols-2 gap-3 h-full">
+                <div className={`grid ${currentLayout?.gridClass || 'grid-cols-2'} gap-3 h-full`}>
                   {currentStudentBoards.map((boardId) => (
                     <div key={boardId} className="min-h-0">
                       <WhiteboardPlaceholder
