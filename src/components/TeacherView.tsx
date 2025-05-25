@@ -2,10 +2,12 @@
 import React, { useState } from 'react';
 import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from '@/components/ui/resizable';
 import WhiteboardPlaceholder from './WhiteboardPlaceholder';
-import { GraduationCap, Users } from 'lucide-react';
+import { GraduationCap, Users, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Button } from '@/components/ui/button';
 
 const TeacherView: React.FC = () => {
   const [maximizedBoard, setMaximizedBoard] = useState<string | null>(null);
+  const [currentPage, setCurrentPage] = useState(0);
 
   const handleMaximize = (boardId: string) => {
     setMaximizedBoard(boardId);
@@ -15,8 +17,22 @@ const TeacherView: React.FC = () => {
     setMaximizedBoard(null);
   };
 
-  // Student board IDs for the 2x2 grid
-  const studentBoards = ['student-a', 'student-b', 'student-c', 'student-d'];
+  // Define student board pages
+  const studentBoardPages = [
+    ['student-a', 'student-b', 'student-c', 'student-d'],
+    ['student-e', 'student-f', 'student-g', 'student-h']
+  ];
+
+  const currentStudentBoards = studentBoardPages[currentPage];
+  const totalPages = studentBoardPages.length;
+
+  const handlePreviousPage = () => {
+    setCurrentPage(prev => Math.max(0, prev - 1));
+  };
+
+  const handleNextPage = () => {
+    setCurrentPage(prev => Math.min(totalPages - 1, prev + 1));
+  };
 
   if (maximizedBoard) {
     return (
@@ -81,15 +97,40 @@ const TeacherView: React.FC = () => {
           <ResizablePanel defaultSize={40} minSize={30}>
             <div className="h-full p-2">
               <div className="mb-3">
-                <h2 className="text-lg font-semibold text-gray-800 flex items-center">
-                  <Users className="w-5 h-5 mr-2 text-green-500" />
-                  Student Boards
-                </h2>
-                <p className="text-sm text-gray-600">Monitor and interact with student work</p>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h2 className="text-lg font-semibold text-gray-800 flex items-center">
+                      <Users className="w-5 h-5 mr-2 text-green-500" />
+                      Student Boards
+                    </h2>
+                    <p className="text-sm text-gray-600">Monitor and interact with student work</p>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={handlePreviousPage}
+                      disabled={currentPage === 0}
+                    >
+                      <ChevronLeft className="w-4 h-4" />
+                    </Button>
+                    <span className="text-sm text-gray-600 px-2">
+                      Page {currentPage + 1} of {totalPages}
+                    </span>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={handleNextPage}
+                      disabled={currentPage === totalPages - 1}
+                    >
+                      <ChevronRight className="w-4 h-4" />
+                    </Button>
+                  </div>
+                </div>
               </div>
               <div className="h-[calc(100%-4rem)]">
                 <div className="grid grid-cols-2 gap-3 h-full">
-                  {studentBoards.map((boardId) => (
+                  {currentStudentBoards.map((boardId) => (
                     <div key={boardId} className="min-h-0">
                       <WhiteboardPlaceholder
                         id={boardId}
