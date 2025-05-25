@@ -1,3 +1,4 @@
+
 import React, { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import StudentBoardsGrid from './StudentBoardsGrid';
@@ -187,8 +188,8 @@ const StudentBoardsWindow: React.FC<StudentBoardsWindowProps> = ({
   console.log('Rendering portal content', { studentCount, currentLayout, currentStudentBoards });
 
   return createPortal(
-    <div className="min-h-screen bg-gray-100 p-4">
-      <div className="mb-4">
+    <div className="min-h-screen bg-gray-100 p-4 flex flex-col">
+      <div className="mb-4 flex-shrink-0">
         <StudentBoardsWindowHeader
           studentCount={studentCount}
           currentLayoutName={currentLayout?.name}
@@ -203,7 +204,7 @@ const StudentBoardsWindow: React.FC<StudentBoardsWindowProps> = ({
         />
       </div>
       
-      <div className="h-[calc(100vh-10rem)]">
+      <div className="flex-1 min-h-0">
         <StudentBoardsGrid
           studentCount={studentCount}
           currentLayout={currentLayout}
