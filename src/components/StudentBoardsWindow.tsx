@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { Button } from '@/components/ui/button';
-import { Users, Plus, Minus, UserPlus, ChevronUp, ChevronDown } from 'lucide-react';
+import { Users, Plus, Minus, UserPlus } from 'lucide-react';
 import StudentBoardsGrid from './StudentBoardsGrid';
 import LayoutSelector from './LayoutSelector';
 import { LayoutOption } from '@/utils/layoutCalculator';
@@ -42,7 +42,6 @@ const StudentBoardsWindow: React.FC<StudentBoardsWindowProps> = ({
   const windowRef = useRef<Window | null>(null);
   const containerRef = useRef<HTMLDivElement | null>(null);
   const [isReady, setIsReady] = useState(false);
-  const [showOptionsBar, setShowOptionsBar] = useState(true);
 
   // Create and setup window only once - this should never re-run unless component unmounts
   useEffect(() => {
@@ -190,23 +189,9 @@ const StudentBoardsWindow: React.FC<StudentBoardsWindowProps> = ({
   console.log('Rendering portal content', { studentCount, currentLayout, currentStudentBoards });
 
   return createPortal(
-    <div className="min-h-screen bg-gray-100 flex flex-col">
-      {/* Toggle Button - Always visible */}
-      <div className="p-2 bg-white border-b border-gray-200 flex justify-center">
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={() => setShowOptionsBar(!showOptionsBar)}
-          className="flex items-center space-x-2"
-        >
-          {showOptionsBar ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
-          <span>{showOptionsBar ? 'Hide Controls' : 'Show Controls'}</span>
-        </Button>
-      </div>
-
-      {/* Options Bar */}
-      {showOptionsBar && (
-        <div className="p-4 bg-white border-b border-gray-200 shadow-sm">
+    <div className="min-h-screen bg-gray-100 p-4">
+      <div className="mb-4">
+        <div className="bg-white border-b border-gray-200 px-6 py-4 rounded-lg shadow-sm">
           <div className="flex items-center justify-between mb-3">
             <div>
               <h1 className="text-xl font-semibold text-gray-900">Student Boards Monitor</h1>
@@ -226,16 +211,13 @@ const StudentBoardsWindow: React.FC<StudentBoardsWindowProps> = ({
             </Button>
           </div>
           
-          <div className="flex items-center justify-between flex-wrap gap-4">
+          <div className="flex items-center justify-between">
             {/* Layout Selector */}
-            <div className="flex items-center space-x-2">
-              <span className="text-sm font-medium text-gray-700">Layout:</span>
-              <LayoutSelector
-                availableLayouts={availableLayouts}
-                selectedLayoutId={selectedLayoutId}
-                onLayoutChange={onLayoutChange}
-              />
-            </div>
+            <LayoutSelector
+              availableLayouts={availableLayouts}
+              selectedLayoutId={selectedLayoutId}
+              onLayoutChange={onLayoutChange}
+            />
             
             <div className="flex items-center space-x-6">
               {/* Add Student Button */}
@@ -281,10 +263,8 @@ const StudentBoardsWindow: React.FC<StudentBoardsWindowProps> = ({
             </div>
           </div>
         </div>
-      )}
-
-      {/* Main Content */}
-      <div className={`flex-1 p-4 ${showOptionsBar ? 'h-[calc(100vh-12rem)]' : 'h-[calc(100vh-4rem)]'}`}>
+      </div>
+      <div className="h-[calc(100vh-10rem)]">
         <StudentBoardsGrid
           studentCount={studentCount}
           currentLayout={currentLayout}
