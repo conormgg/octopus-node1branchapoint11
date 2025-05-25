@@ -1,5 +1,5 @@
 
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import StudentBoardsGrid from './StudentBoardsGrid';
 import { LayoutOption } from '@/utils/layoutCalculator';
@@ -29,6 +29,7 @@ const StudentBoardsWindow: React.FC<StudentBoardsWindowProps> = ({
 }) => {
   const windowRef = useRef<Window | null>(null);
   const containerRef = useRef<HTMLDivElement | null>(null);
+  const [isReady, setIsReady] = useState(false);
 
   useEffect(() => {
     console.log('Opening student boards window...');
@@ -91,23 +92,34 @@ const StudentBoardsWindow: React.FC<StudentBoardsWindowProps> = ({
             console.log(`Copied inline style ${index + 1}`);
           }
         });
+
+        // Set up container after styles are loaded
+        setupContainer();
       };
       
-      // Set body styles
-      newWindow.document.body.style.margin = '0';
-      newWindow.document.body.style.padding = '0';
-      newWindow.document.body.style.fontFamily = 'system-ui, -apple-system, sans-serif';
-      newWindow.document.body.style.backgroundColor = '#f3f4f6'; // gray-100
-      
-      // Create container div
-      const container = newWindow.document.createElement('div');
-      container.id = 'student-boards-container';
-      container.style.minHeight = '100vh';
-      container.style.width = '100%';
-      newWindow.document.body.appendChild(container);
-      containerRef.current = container;
-      
-      console.log('Container created and added to new window');
+      const setupContainer = () => {
+        // Set body styles
+        newWindow.document.body.style.margin = '0';
+        newWindow.document.body.style.padding = '0';
+        newWindow.document.body.style.fontFamily = 'system-ui, -apple-system, sans-serif';
+        newWindow.document.body.style.backgroundColor = '#f3f4f6'; // gray-100
+        
+        // Create container div
+        const container = newWindow.document.createElement('div');
+        container.id = 'student-boards-container';
+        container.style.minHeight = '100vh';
+        container.style.width = '100%';
+        newWindow.document.body.appendChild(container);
+        containerRef.current = container;
+        
+        console.log('Container created and added to new window');
+        
+        // Small delay to ensure DOM is ready, then set ready state
+        setTimeout(() => {
+          console.log('Setting ready state to true');
+          setIsReady(true);
+        }, 100);
+      };
       
       // Handle window close
       const handleBeforeUnload = () => {
@@ -129,11 +141,13 @@ const StudentBoardsWindow: React.FC<StudentBoardsWindowProps> = ({
       if (windowRef.current && !windowRef.current.closed) {
         windowRef.current.close();
       }
+      setIsReady(false);
     };
   }, [onClose]);
 
-  if (!containerRef.current) {
-    console.log('Container not ready yet');
+  // Don't render portal until container is ready
+  if (!containerRef.current || !isReady) {
+    console.log('Container or window not ready yet', { container: !!containerRef.current, isReady });
     return null;
   }
 
