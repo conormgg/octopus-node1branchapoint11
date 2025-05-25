@@ -23,7 +23,7 @@ const StudentBoardsWindowControls: React.FC<StudentBoardsWindowControlsProps> = 
   onDecreaseStudentCount,
 }) => {
   return (
-    <div className="flex items-center justify-between space-x-6 px-6 pb-4">
+    <div className="flex items-center justify-between px-6 pb-4">
       {/* Layout Selector */}
       <LayoutSelector
         availableLayouts={availableLayouts}
@@ -31,7 +31,7 @@ const StudentBoardsWindowControls: React.FC<StudentBoardsWindowControlsProps> = 
         onLayoutChange={onLayoutChange}
       />
       
-      {/* Student Count Display and Controls - all in one line */}
+      {/* All controls in a single horizontal line */}
       <div className="flex items-center space-x-6">
         {/* Add Student Button */}
         <Button
@@ -45,33 +45,32 @@ const StudentBoardsWindowControls: React.FC<StudentBoardsWindowControlsProps> = 
           <span>Add Student</span>
         </Button>
         
-        {/* Student Count Controls - horizontal layout */}
-        <div className="flex items-center space-x-3">
-          <div className="flex items-center space-x-2 px-3 py-2 bg-gray-50 rounded-lg">
-            <Users className="w-4 h-4 text-gray-600" />
-            <span className="text-sm font-medium text-gray-700">
-              {studentCount} Student{studentCount !== 1 ? 's' : ''}
-            </span>
-          </div>
-          
-          <div className="flex items-center space-x-1">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={onDecreaseStudentCount}
-              disabled={studentCount <= 1}
-            >
-              <Minus className="w-4 h-4" />
-            </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={onIncreaseStudentCount}
-              disabled={studentCount >= 8}
-            >
-              <Plus className="w-4 h-4" />
-            </Button>
-          </div>
+        {/* Student Count Display */}
+        <div className="flex items-center space-x-2 px-3 py-2 bg-gray-50 rounded-lg">
+          <Users className="w-4 h-4 text-gray-600" />
+          <span className="text-sm font-medium text-gray-700">
+            {studentCount} Student{studentCount !== 1 ? 's' : ''}
+          </span>
+        </div>
+        
+        {/* Plus/Minus Controls */}
+        <div className="flex items-center space-x-1">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={onDecreaseStudentCount}
+            disabled={studentCount <= 1}
+          >
+            <Minus className="w-4 h-4" />
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={onIncreaseStudentCount}
+            disabled={studentCount >= 8}
+          >
+            <Plus className="w-4 h-4" />
+          </Button>
         </div>
       </div>
     </div>
