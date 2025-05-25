@@ -2,20 +2,27 @@
 import React from 'react';
 import { GraduationCap, Users, Plus, Minus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import LayoutSelector from './LayoutSelector';
 import { LayoutOption } from '@/utils/layoutCalculator';
 
 interface TeacherHeaderProps {
   studentCount: number;
   currentLayout: LayoutOption | undefined;
+  availableLayouts: LayoutOption[];
+  selectedLayoutId: string;
   onIncreaseStudentCount: () => void;
   onDecreaseStudentCount: () => void;
+  onLayoutChange: (layoutId: string) => void;
 }
 
 const TeacherHeader: React.FC<TeacherHeaderProps> = ({
   studentCount,
   currentLayout,
+  availableLayouts,
+  selectedLayoutId,
   onIncreaseStudentCount,
   onDecreaseStudentCount,
+  onLayoutChange,
 }) => {
   return (
     <div className="bg-white border-b border-gray-200 px-6 py-4">
@@ -30,47 +37,41 @@ const TeacherHeader: React.FC<TeacherHeaderProps> = ({
           </div>
         </div>
         
-        <div className="flex items-center space-x-4">
+        <div className="flex items-center space-x-6">
+          {/* Layout Selector */}
+          <LayoutSelector
+            availableLayouts={availableLayouts}
+            selectedLayoutId={selectedLayoutId}
+            onLayoutChange={onLayoutChange}
+          />
+          
           {/* Student Count Controls */}
-          <div className="flex items-center space-x-2 px-3 py-2 bg-gray-50 rounded-lg">
-            <Users className="w-4 h-4 text-gray-600" />
-            <span className="text-sm font-medium text-gray-700">Students:</span>
+          <div className="flex items-center space-x-3">
+            <div className="flex items-center space-x-2 px-3 py-2 bg-gray-50 rounded-lg">
+              <Users className="w-4 h-4 text-gray-600" />
+              <span className="text-sm font-medium text-gray-700">
+                {studentCount} Student{studentCount !== 1 ? 's' : ''}
+              </span>
+            </div>
+            
             <div className="flex items-center space-x-1">
               <Button
                 variant="outline"
                 size="sm"
                 onClick={onDecreaseStudentCount}
                 disabled={studentCount <= 1}
-                className="h-6 w-6 p-0"
               >
-                <Minus className="w-3 h-3" />
+                <Minus className="w-4 h-4" />
               </Button>
-              <span className="text-sm font-bold text-gray-800 min-w-[1.5rem] text-center">
-                {studentCount}
-              </span>
               <Button
                 variant="outline"
                 size="sm"
                 onClick={onIncreaseStudentCount}
                 disabled={studentCount >= 8}
-                className="h-6 w-6 p-0"
               >
-                <Plus className="w-3 h-3" />
+                <Plus className="w-4 h-4" />
               </Button>
             </div>
-          </div>
-
-          {/* Current Layout Info */}
-          <div className="flex items-center space-x-2 px-3 py-2 bg-gray-50 rounded-lg">
-            <span className="text-sm font-medium text-gray-700">
-              Layout: {currentLayout?.name || '2×2'} Grid
-            </span>
-          </div>
-
-          {/* View Type Badge */}
-          <div className="flex items-center space-x-2 px-3 py-2 bg-blue-50 rounded-lg">
-            <GraduationCap className="w-4 h-4 text-blue-600" />
-            <span className="text-sm font-medium text-blue-700">Teacher View</span>
           </div>
         </div>
       </div>

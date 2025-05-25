@@ -26,6 +26,27 @@ const StudentBoardsGrid: React.FC<StudentBoardsGridProps> = ({
   onPreviousPage,
   onNextPage,
 }) => {
+  // Determine grid layout classes based on current layout
+  const getGridClasses = () => {
+    if (!currentLayout) return 'grid-cols-2';
+    
+    const baseClasses = `grid ${currentLayout.gridClass} gap-3 h-full`;
+    
+    // Add responsive classes and adjust for different layouts
+    switch (currentLayout.id) {
+      case '1x1':
+        return `${baseClasses} place-items-center`;
+      case '1x2':
+        return `${baseClasses} grid-rows-2`;
+      case '2x2':
+        return `${baseClasses} grid-rows-2`;
+      case '2x3':
+        return `${baseClasses} grid-rows-3`;
+      default:
+        return baseClasses;
+    }
+  };
+
   return (
     <div className="h-full p-2">
       <div className="mb-3">
@@ -65,9 +86,9 @@ const StudentBoardsGrid: React.FC<StudentBoardsGridProps> = ({
         </div>
       </div>
       <div className="h-[calc(100%-4rem)]">
-        <div className={`grid ${currentLayout?.gridClass || 'grid-cols-2'} gap-3 h-full`}>
+        <div className={getGridClasses()}>
           {currentStudentBoards.map((boardId) => (
-            <div key={boardId} className="min-h-0">
+            <div key={boardId} className="min-h-0 flex">
               <WhiteboardPlaceholder
                 id={boardId}
                 onMaximize={() => onMaximize(boardId)}

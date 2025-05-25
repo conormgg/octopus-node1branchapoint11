@@ -11,7 +11,7 @@ const TeacherView: React.FC = () => {
   const [maximizedBoard, setMaximizedBoard] = useState<string | null>(null);
   const [currentPage, setCurrentPage] = useState(0);
   const [studentCount, setStudentCount] = useState(4);
-  const [selectedLayoutId, setSelectedLayoutId] = useState<string>('2x2'); // Default to 2x2
+  const [selectedLayoutId, setSelectedLayoutId] = useState<string>('2x2');
 
   const handleMaximize = (boardId: string) => {
     setMaximizedBoard(boardId);
@@ -24,13 +24,18 @@ const TeacherView: React.FC = () => {
   const handleStudentCountChange = (newCount: number) => {
     const clampedCount = Math.max(1, Math.min(8, newCount));
     setStudentCount(clampedCount);
-    setCurrentPage(0); // Reset to first page when student count changes
+    setCurrentPage(0);
     
     // Reset layout to first available option when student count changes
     const availableLayouts = calculateLayoutOptions(clampedCount);
     if (availableLayouts.length > 0) {
       setSelectedLayoutId(availableLayouts[0].id);
     }
+  };
+
+  const handleLayoutChange = (layoutId: string) => {
+    setSelectedLayoutId(layoutId);
+    setCurrentPage(0); // Reset to first page when layout changes
   };
 
   const increaseStudentCount = () => {
@@ -82,8 +87,11 @@ const TeacherView: React.FC = () => {
       <TeacherHeader
         studentCount={studentCount}
         currentLayout={currentLayout}
+        availableLayouts={availableLayouts}
+        selectedLayoutId={selectedLayoutId}
         onIncreaseStudentCount={increaseStudentCount}
         onDecreaseStudentCount={decreaseStudentCount}
+        onLayoutChange={handleLayoutChange}
       />
 
       {/* Main Content */}
