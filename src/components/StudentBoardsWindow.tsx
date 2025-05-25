@@ -31,7 +31,7 @@ const StudentBoardsWindow: React.FC<StudentBoardsWindowProps> = ({
   const containerRef = useRef<HTMLDivElement | null>(null);
   const [isReady, setIsReady] = useState(false);
 
-  // Create and setup window only once
+  // Create and setup window only once - this should never re-run unless component unmounts
   useEffect(() => {
     console.log('Opening student boards window...');
     
@@ -144,7 +144,16 @@ const StudentBoardsWindow: React.FC<StudentBoardsWindowProps> = ({
       }
       setIsReady(false);
     };
-  }, [onClose]); // Only recreate window when onClose changes
+  }, []); // Empty dependency array - only run once when component mounts
+
+  // Handle cleanup when component unmounts
+  useEffect(() => {
+    return () => {
+      if (windowRef.current && !windowRef.current.closed) {
+        windowRef.current.close();
+      }
+    };
+  }, []);
 
   // Log prop changes for debugging
   useEffect(() => {
