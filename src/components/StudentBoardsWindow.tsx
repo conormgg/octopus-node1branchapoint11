@@ -1,9 +1,7 @@
-
 import React, { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import StudentBoardsGrid from './StudentBoardsGrid';
 import StudentBoardsWindowHeader from './StudentBoardsWindowHeader';
-import StudentBoardsWindowControls from './StudentBoardsWindowControls';
 import { LayoutOption } from '@/utils/layoutCalculator';
 
 interface StudentBoardsWindowProps {
@@ -196,16 +194,12 @@ const StudentBoardsWindow: React.FC<StudentBoardsWindowProps> = ({
           currentLayoutName={currentLayout?.name}
           currentPage={currentPage}
           totalPages={totalPages}
-          onClose={onClose}
-        />
-        
-        <StudentBoardsWindowControls
-          studentCount={studentCount}
           availableLayouts={availableLayouts}
           selectedLayoutId={selectedLayoutId}
           onLayoutChange={onLayoutChange}
           onIncreaseStudentCount={onIncreaseStudentCount}
           onDecreaseStudentCount={onDecreaseStudentCount}
+          onClose={onClose}
         />
       </div>
       
