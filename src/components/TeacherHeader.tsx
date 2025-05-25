@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { GraduationCap, Users, Plus, Minus } from 'lucide-react';
+import { GraduationCap, Users, Plus, Minus, UserPlus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import LayoutSelector from './LayoutSelector';
 import { LayoutOption } from '@/utils/layoutCalculator';
@@ -44,6 +44,18 @@ const TeacherHeader: React.FC<TeacherHeaderProps> = ({
             selectedLayoutId={selectedLayoutId}
             onLayoutChange={onLayoutChange}
           />
+          
+          {/* Add Student Button */}
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={onIncreaseStudentCount}
+            disabled={studentCount >= 8}
+            className="flex items-center space-x-2"
+          >
+            <UserPlus className="w-4 h-4" />
+            <span>Add Student</span>
+          </Button>
           
           {/* Student Count Controls */}
           <div className="flex items-center space-x-3">

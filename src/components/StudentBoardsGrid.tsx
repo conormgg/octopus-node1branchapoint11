@@ -3,8 +3,7 @@ import React from 'react';
 import { Users, ChevronLeft, ChevronRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import WhiteboardPlaceholder from './WhiteboardPlaceholder';
-import EmptySlot from './EmptySlot';
-import { LayoutOption, generateGridSlots } from '@/utils/layoutCalculator';
+import { LayoutOption, getStudentBoardsForPage } from '@/utils/layoutCalculator';
 
 interface StudentBoardsGridProps {
   studentCount: number;
@@ -15,7 +14,6 @@ interface StudentBoardsGridProps {
   onMaximize: (boardId: string) => void;
   onPreviousPage: () => void;
   onNextPage: () => void;
-  onAddStudent?: () => void;
 }
 
 const StudentBoardsGrid: React.FC<StudentBoardsGridProps> = ({
@@ -27,15 +25,14 @@ const StudentBoardsGrid: React.FC<StudentBoardsGridProps> = ({
   onMaximize,
   onPreviousPage,
   onNextPage,
-  onAddStudent,
 }) => {
-  // Generate grid slots with empty placeholders
+  // Generate student boards for current page (no empty slots)
   const allStudentBoards = Array.from({ length: studentCount }, (_, i) => 
     `student-${String.fromCharCode(97 + i)}`
   );
   
-  const gridSlots = currentLayout ? 
-    generateGridSlots(allStudentBoards, currentPage, currentLayout.studentsPerPage) : 
+  const displayBoards = currentLayout ? 
+    getStudentBoardsForPage(allStudentBoards, currentPage, currentLayout.studentsPerPage) : 
     currentStudentBoards;
 
   // Determine grid layout classes based on current layout
@@ -58,9 +55,6 @@ const StudentBoardsGrid: React.FC<StudentBoardsGridProps> = ({
         return baseClasses;
     }
   };
-
-  // Calculate if adding students is allowed
-  const canAddStudents = studentCount < 8;
 
   return (
     <div className="h-full p-2">
@@ -102,19 +96,12 @@ const StudentBoardsGrid: React.FC<StudentBoardsGridProps> = ({
       </div>
       <div className="h-[calc(100%-4rem)]">
         <div className={getGridClasses()}>
-          {gridSlots.map((boardId, index) => (
-            <div key={boardId || `empty-${index}`} className="min-h-0 flex">
-              {boardId ? (
-                <WhiteboardPlaceholder
-                  id={boardId}
-                  onMaximize={() => onMaximize(boardId)}
-                />
-              ) : (
-                <EmptySlot 
-                  onAddStudent={onAddStudent}
-                  isAddingAllowed={canAddStudents}
-                />
-              )}
+          {displayBoards.map((boardId) => (
+            <div key={boardId} className="min-h-0 flex">
+              <WhiteboardPlaceholder
+                id={boardId}
+                onMaximize={() => onMaximize(boardId)}
+              />
             </div>
           ))}
         </div>
