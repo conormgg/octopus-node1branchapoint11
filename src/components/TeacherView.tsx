@@ -5,6 +5,7 @@ import WhiteboardPlaceholder from './WhiteboardPlaceholder';
 import TeacherHeader from './TeacherHeader';
 import TeacherMainBoard from './TeacherMainBoard';
 import StudentBoardsGrid from './StudentBoardsGrid';
+import StudentBoardsWindow from './StudentBoardsWindow';
 import { calculateLayoutOptions, generateStudentBoards, getStudentBoardsForPage } from '@/utils/layoutCalculator';
 
 const TeacherView: React.FC = () => {
@@ -12,6 +13,7 @@ const TeacherView: React.FC = () => {
   const [currentPage, setCurrentPage] = useState(0);
   const [studentCount, setStudentCount] = useState(4);
   const [selectedLayoutId, setSelectedLayoutId] = useState<string>('2x2');
+  const [isSplitViewActive, setIsSplitViewActive] = useState(false);
 
   const handleMaximize = (boardId: string) => {
     setMaximizedBoard(boardId);
@@ -44,6 +46,14 @@ const TeacherView: React.FC = () => {
 
   const decreaseStudentCount = () => {
     handleStudentCountChange(studentCount - 1);
+  };
+
+  const handleToggleSplitView = () => {
+    setIsSplitViewActive(!isSplitViewActive);
+  };
+
+  const handleCloseSplitView = () => {
+    setIsSplitViewActive(false);
   };
 
   // Calculate layout options and current layout
@@ -92,32 +102,57 @@ const TeacherView: React.FC = () => {
         onIncreaseStudentCount={increaseStudentCount}
         onDecreaseStudentCount={decreaseStudentCount}
         onLayoutChange={handleLayoutChange}
+        onToggleSplitView={handleToggleSplitView}
+        isSplitViewActive={isSplitViewActive}
       />
+
+      {/* Split View Window */}
+      {isSplitViewActive && (
+        <StudentBoardsWindow
+          studentCount={studentCount}
+          currentLayout={currentLayout}
+          currentStudentBoards={currentStudentBoards}
+          currentPage={currentPage}
+          totalPages={totalPages}
+          onMaximize={handleMaximize}
+          onPreviousPage={handlePreviousPage}
+          onNextPage={handleNextPage}
+          onClose={handleCloseSplitView}
+        />
+      )}
 
       {/* Main Content */}
       <div className="h-[calc(100vh-5rem)] p-4">
-        <ResizablePanelGroup direction="horizontal" className="rounded-lg overflow-hidden">
-          {/* Left Pane - Teacher's Main Board */}
-          <ResizablePanel defaultSize={60} minSize={40}>
+        {isSplitViewActive ? (
+          // Single panel view - only teacher's board when split view is active
+          <div className="h-full">
             <TeacherMainBoard onMaximize={handleMaximize} />
-          </ResizablePanel>
+          </div>
+        ) : (
+          // Normal split panel view
+          <ResizablePanelGroup direction="horizontal" className="rounded-lg overflow-hidden">
+            {/* Left Pane - Teacher's Main Board */}
+            <ResizablePanel defaultSize={60} minSize={40}>
+              <TeacherMainBoard onMaximize={handleMaximize} />
+            </ResizablePanel>
 
-          <ResizableHandle className="w-2 bg-gray-200 hover:bg-gray-300 transition-colors duration-150" />
+            <ResizableHandle className="w-2 bg-gray-200 hover:bg-gray-300 transition-colors duration-150" />
 
-          {/* Right Pane - Student Boards Grid */}
-          <ResizablePanel defaultSize={40} minSize={30}>
-            <StudentBoardsGrid
-              studentCount={studentCount}
-              currentLayout={currentLayout}
-              currentStudentBoards={currentStudentBoards}
-              currentPage={currentPage}
-              totalPages={totalPages}
-              onMaximize={handleMaximize}
-              onPreviousPage={handlePreviousPage}
-              onNextPage={handleNextPage}
-            />
-          </ResizablePanel>
-        </ResizablePanelGroup>
+            {/* Right Pane - Student Boards Grid */}
+            <ResizablePanel defaultSize={40} minSize={30}>
+              <StudentBoardsGrid
+                studentCount={studentCount}
+                currentLayout={currentLayout}
+                currentStudentBoards={currentStudentBoards}
+                currentPage={currentPage}
+                totalPages={totalPages}
+                onMaximize={handleMaximize}
+                onPreviousPage={handlePreviousPage}
+                onNextPage={handleNextPage}
+              />
+            </ResizablePanel>
+          </ResizablePanelGroup>
+        )}
       </div>
     </div>
   );

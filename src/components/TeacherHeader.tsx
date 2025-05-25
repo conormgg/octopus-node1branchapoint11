@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { GraduationCap, Users, Plus, Minus, UserPlus } from 'lucide-react';
+import { GraduationCap, Users, Plus, Minus, UserPlus, Monitor } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import LayoutSelector from './LayoutSelector';
 import { LayoutOption } from '@/utils/layoutCalculator';
@@ -13,6 +13,8 @@ interface TeacherHeaderProps {
   onIncreaseStudentCount: () => void;
   onDecreaseStudentCount: () => void;
   onLayoutChange: (layoutId: string) => void;
+  onToggleSplitView?: () => void;
+  isSplitViewActive?: boolean;
 }
 
 const TeacherHeader: React.FC<TeacherHeaderProps> = ({
@@ -23,6 +25,8 @@ const TeacherHeader: React.FC<TeacherHeaderProps> = ({
   onIncreaseStudentCount,
   onDecreaseStudentCount,
   onLayoutChange,
+  onToggleSplitView,
+  isSplitViewActive = false,
 }) => {
   return (
     <div className="bg-white border-b border-gray-200 px-6 py-4">
@@ -44,6 +48,19 @@ const TeacherHeader: React.FC<TeacherHeaderProps> = ({
             selectedLayoutId={selectedLayoutId}
             onLayoutChange={onLayoutChange}
           />
+          
+          {/* Split View Button */}
+          {onToggleSplitView && (
+            <Button
+              variant={isSplitViewActive ? "default" : "outline"}
+              size="sm"
+              onClick={onToggleSplitView}
+              className="flex items-center space-x-2"
+            >
+              <Monitor className="w-4 h-4" />
+              <span>{isSplitViewActive ? 'Close Split View' : 'Split View'}</span>
+            </Button>
+          )}
           
           {/* Add Student Button */}
           <Button
