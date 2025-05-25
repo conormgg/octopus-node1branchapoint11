@@ -69,8 +69,8 @@ export const calculateLayoutOptions = (studentCount: number): LayoutOption[] => 
       });
     }
 
-    // 2x3 for 6-8 students
-    if (studentCount >= 6) {
+    // 2x3 for 5-8 students
+    if (studentCount >= 5) {
       const pages2x3 = Math.ceil(studentCount / 6);
       options.push({
         id: '2x3',
