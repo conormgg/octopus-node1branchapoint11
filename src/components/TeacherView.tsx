@@ -46,12 +46,6 @@ const TeacherView: React.FC = () => {
     handleStudentCountChange(studentCount - 1);
   };
 
-  const handleAddStudent = () => {
-    if (studentCount < 8) {
-      handleStudentCountChange(studentCount + 1);
-    }
-  };
-
   // Calculate layout options and current layout
   const availableLayouts = calculateLayoutOptions(studentCount);
   const currentLayout = availableLayouts.find(layout => layout.id === selectedLayoutId) || availableLayouts[0];
@@ -121,7 +115,6 @@ const TeacherView: React.FC = () => {
               onMaximize={handleMaximize}
               onPreviousPage={handlePreviousPage}
               onNextPage={handleNextPage}
-              onAddStudent={handleAddStudent}
             />
           </ResizablePanel>
         </ResizablePanelGroup>
