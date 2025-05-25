@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from '@/components/ui/resizable';
 import WhiteboardPlaceholder from './WhiteboardPlaceholder';
@@ -111,12 +110,17 @@ const TeacherView: React.FC = () => {
         <StudentBoardsWindow
           studentCount={studentCount}
           currentLayout={currentLayout}
+          availableLayouts={availableLayouts}
+          selectedLayoutId={selectedLayoutId}
           currentStudentBoards={currentStudentBoards}
           currentPage={currentPage}
           totalPages={totalPages}
           onMaximize={handleMaximize}
           onPreviousPage={handlePreviousPage}
           onNextPage={handleNextPage}
+          onLayoutChange={handleLayoutChange}
+          onIncreaseStudentCount={increaseStudentCount}
+          onDecreaseStudentCount={decreaseStudentCount}
           onClose={handleCloseSplitView}
         />
       )}

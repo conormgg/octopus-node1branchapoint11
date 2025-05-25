@@ -1,30 +1,42 @@
-
 import React, { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
+import { Button } from '@/components/ui/button';
+import { Users, Plus, Minus, UserPlus } from 'lucide-react';
 import StudentBoardsGrid from './StudentBoardsGrid';
+import LayoutSelector from './LayoutSelector';
 import { LayoutOption } from '@/utils/layoutCalculator';
 
 interface StudentBoardsWindowProps {
   studentCount: number;
   currentLayout: LayoutOption | undefined;
+  availableLayouts: LayoutOption[];
+  selectedLayoutId: string;
   currentStudentBoards: string[];
   currentPage: number;
   totalPages: number;
   onMaximize: (boardId: string) => void;
   onPreviousPage: () => void;
   onNextPage: () => void;
+  onLayoutChange: (layoutId: string) => void;
+  onIncreaseStudentCount: () => void;
+  onDecreaseStudentCount: () => void;
   onClose: () => void;
 }
 
 const StudentBoardsWindow: React.FC<StudentBoardsWindowProps> = ({
   studentCount,
   currentLayout,
+  availableLayouts,
+  selectedLayoutId,
   currentStudentBoards,
   currentPage,
   totalPages,
   onMaximize,
   onPreviousPage,
   onNextPage,
+  onLayoutChange,
+  onIncreaseStudentCount,
+  onDecreaseStudentCount,
   onClose,
 }) => {
   const windowRef = useRef<Window | null>(null);
@@ -180,15 +192,79 @@ const StudentBoardsWindow: React.FC<StudentBoardsWindowProps> = ({
     <div className="min-h-screen bg-gray-100 p-4">
       <div className="mb-4">
         <div className="bg-white border-b border-gray-200 px-6 py-4 rounded-lg shadow-sm">
-          <h1 className="text-xl font-semibold text-gray-900">Student Boards Monitor</h1>
-          <p className="text-sm text-gray-500">
-            Viewing {studentCount} student{studentCount !== 1 ? 's' : ''} - 
-            {currentLayout ? ` ${currentLayout.name} layout` : ''} - 
-            Page {currentPage + 1} of {totalPages}
-          </p>
+          <div className="flex items-center justify-between mb-3">
+            <div>
+              <h1 className="text-xl font-semibold text-gray-900">Student Boards Monitor</h1>
+              <p className="text-sm text-gray-500">
+                Viewing {studentCount} student{studentCount !== 1 ? 's' : ''} - 
+                {currentLayout ? ` ${currentLayout.name} layout` : ''} - 
+                Page {currentPage + 1} of {totalPages}
+              </p>
+            </div>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={onClose}
+              className="flex items-center space-x-2"
+            >
+              <span>Close Split View</span>
+            </Button>
+          </div>
+          
+          <div className="flex items-center justify-between">
+            {/* Layout Selector */}
+            <LayoutSelector
+              availableLayouts={availableLayouts}
+              selectedLayoutId={selectedLayoutId}
+              onLayoutChange={onLayoutChange}
+            />
+            
+            <div className="flex items-center space-x-6">
+              {/* Add Student Button */}
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={onIncreaseStudentCount}
+                disabled={studentCount >= 8}
+                className="flex items-center space-x-2"
+              >
+                <UserPlus className="w-4 h-4" />
+                <span>Add Student</span>
+              </Button>
+              
+              {/* Student Count Controls */}
+              <div className="flex items-center space-x-3">
+                <div className="flex items-center space-x-2 px-3 py-2 bg-gray-50 rounded-lg">
+                  <Users className="w-4 h-4 text-gray-600" />
+                  <span className="text-sm font-medium text-gray-700">
+                    {studentCount} Student{studentCount !== 1 ? 's' : ''}
+                  </span>
+                </div>
+                
+                <div className="flex items-center space-x-1">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={onDecreaseStudentCount}
+                    disabled={studentCount <= 1}
+                  >
+                    <Minus className="w-4 h-4" />
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={onIncreaseStudentCount}
+                    disabled={studentCount >= 8}
+                  >
+                    <Plus className="w-4 h-4" />
+                  </Button>
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
-      <div className="h-[calc(100vh-8rem)]">
+      <div className="h-[calc(100vh-10rem)]">
         <StudentBoardsGrid
           studentCount={studentCount}
           currentLayout={currentLayout}
