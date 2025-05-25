@@ -1,8 +1,8 @@
 
-import StudentView from '@/components/StudentView';
+import ViewSwitcher from '@/components/ViewSwitcher';
 
 const Index = () => {
-  return <StudentView />;
+  return <ViewSwitcher />;
 };
 
 export default Index;
