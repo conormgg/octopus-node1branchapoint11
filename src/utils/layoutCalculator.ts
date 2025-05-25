@@ -102,3 +102,19 @@ export const getStudentBoardsForPage = (
   const endIndex = Math.min(startIndex + studentsPerPage, studentBoards.length);
   return studentBoards.slice(startIndex, endIndex);
 };
+
+export const generateGridSlots = (
+  studentBoards: string[],
+  page: number,
+  studentsPerPage: number
+): (string | null)[] => {
+  const currentPageBoards = getStudentBoardsForPage(studentBoards, page, studentsPerPage);
+  const slots: (string | null)[] = [...currentPageBoards];
+  
+  // Fill remaining slots with null for empty placeholders
+  while (slots.length < studentsPerPage) {
+    slots.push(null);
+  }
+  
+  return slots;
+};
