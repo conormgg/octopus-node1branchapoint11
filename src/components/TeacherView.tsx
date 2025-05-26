@@ -1,8 +1,6 @@
 
 import React, { useState } from 'react';
 import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from '@/components/ui/resizable';
-import { EyeOff, Eye } from 'lucide-react';
-import { Button } from '@/components/ui/button';
 import WhiteboardPlaceholder from './WhiteboardPlaceholder';
 import TeacherHeader from './TeacherHeader';
 import TeacherMainBoard from './TeacherMainBoard';
@@ -19,7 +17,6 @@ const TeacherView: React.FC = () => {
   const [selectedLayoutId, setSelectedLayoutId] = useState<string>('2x2');
   const [isSplitViewActive, setIsSplitViewActive] = useState(false);
   const [gridOrientation, setGridOrientation] = useState<GridOrientation>('columns-first');
-  const [isMainViewHeadersHidden, setIsMainViewHeadersHidden] = useState(false);
 
   const handleMaximize = (boardId: string) => {
     setMaximizedBoard(boardId);
@@ -64,10 +61,6 @@ const TeacherView: React.FC = () => {
 
   const handleCloseSplitView = () => {
     setIsSplitViewActive(false);
-  };
-
-  const toggleMainViewHeaders = () => {
-    setIsMainViewHeadersHidden(prev => !prev);
   };
 
   // Calculate layout options and current layout
@@ -143,31 +136,18 @@ const TeacherView: React.FC = () => {
       )}
 
       {/* Main Content */}
-      <div className="h-[calc(100vh-5rem)] p-4 relative">
-        {/* Hide Controls Button */}
-        {!isSplitViewActive && (
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={toggleMainViewHeaders}
-            className="absolute top-2 right-2 z-10 flex items-center space-x-2"
-          >
-            {isMainViewHeadersHidden ? <Eye className="w-4 h-4" /> : <EyeOff className="w-4 h-4" />}
-            <span>{isMainViewHeadersHidden ? 'Show Controls' : 'Hide Controls'}</span>
-          </Button>
-        )}
-
+      <div className="h-[calc(100vh-5rem)] p-4">
         {isSplitViewActive ? (
           // Single panel view - only teacher's board when split view is active
           <div className="h-full">
-            <TeacherMainBoard onMaximize={handleMaximize} hideHeader={false} />
+            <TeacherMainBoard onMaximize={handleMaximize} />
           </div>
         ) : (
           // Normal split panel view
           <ResizablePanelGroup direction="horizontal" className="rounded-lg overflow-hidden">
             {/* Left Pane - Teacher's Main Board */}
             <ResizablePanel defaultSize={60} minSize={40}>
-              <TeacherMainBoard onMaximize={handleMaximize} hideHeader={isMainViewHeadersHidden} />
+              <TeacherMainBoard onMaximize={handleMaximize} />
             </ResizablePanel>
 
             <ResizableHandle className="w-2 bg-gray-200 hover:bg-gray-300 transition-colors duration-150" />
@@ -184,7 +164,6 @@ const TeacherView: React.FC = () => {
                 onMaximize={handleMaximize}
                 onPreviousPage={handlePreviousPage}
                 onNextPage={handleNextPage}
-                isHeaderCollapsed={isMainViewHeadersHidden}
               />
             </ResizablePanel>
           </ResizablePanelGroup>
