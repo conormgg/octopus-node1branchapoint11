@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from '@/components/ui/resizable';
 import WhiteboardPlaceholder from './WhiteboardPlaceholder';
@@ -7,12 +8,15 @@ import StudentBoardsGrid from './StudentBoardsGrid';
 import StudentBoardsWindow from './StudentBoardsWindow';
 import { calculateLayoutOptions, generateStudentBoards, getStudentBoardsForPage } from '@/utils/layoutCalculator';
 
+export type GridOrientation = 'columns-first' | 'rows-first';
+
 const TeacherView: React.FC = () => {
   const [maximizedBoard, setMaximizedBoard] = useState<string | null>(null);
   const [currentPage, setCurrentPage] = useState(0);
   const [studentCount, setStudentCount] = useState(4);
   const [selectedLayoutId, setSelectedLayoutId] = useState<string>('2x2');
   const [isSplitViewActive, setIsSplitViewActive] = useState(false);
+  const [gridOrientation, setGridOrientation] = useState<GridOrientation>('columns-first');
 
   const handleMaximize = (boardId: string) => {
     setMaximizedBoard(boardId);
@@ -37,6 +41,10 @@ const TeacherView: React.FC = () => {
   const handleLayoutChange = (layoutId: string) => {
     setSelectedLayoutId(layoutId);
     setCurrentPage(0); // Reset to first page when layout changes
+  };
+
+  const handleOrientationChange = (orientation: GridOrientation) => {
+    setGridOrientation(orientation);
   };
 
   const increaseStudentCount = () => {
@@ -115,10 +123,12 @@ const TeacherView: React.FC = () => {
           currentStudentBoards={currentStudentBoards}
           currentPage={currentPage}
           totalPages={totalPages}
+          gridOrientation={gridOrientation}
           onMaximize={handleMaximize}
           onPreviousPage={handlePreviousPage}
           onNextPage={handleNextPage}
           onLayoutChange={handleLayoutChange}
+          onOrientationChange={handleOrientationChange}
           onIncreaseStudentCount={increaseStudentCount}
           onDecreaseStudentCount={decreaseStudentCount}
           onClose={handleCloseSplitView}
@@ -150,6 +160,7 @@ const TeacherView: React.FC = () => {
                 currentStudentBoards={currentStudentBoards}
                 currentPage={currentPage}
                 totalPages={totalPages}
+                gridOrientation={gridOrientation}
                 onMaximize={handleMaximize}
                 onPreviousPage={handlePreviousPage}
                 onNextPage={handleNextPage}

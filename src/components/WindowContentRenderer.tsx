@@ -4,6 +4,7 @@ import { createPortal } from 'react-dom';
 import StudentBoardsGrid from './StudentBoardsGrid';
 import StudentBoardsWindowHeader from './StudentBoardsWindowHeader';
 import { LayoutOption } from '@/utils/layoutCalculator';
+import { GridOrientation } from './TeacherView';
 
 interface WindowContentRendererProps {
   container: HTMLDivElement;
@@ -14,10 +15,12 @@ interface WindowContentRendererProps {
   currentStudentBoards: string[];
   currentPage: number;
   totalPages: number;
+  gridOrientation: GridOrientation;
   onMaximize: (boardId: string) => void;
   onPreviousPage: () => void;
   onNextPage: () => void;
   onLayoutChange: (layoutId: string) => void;
+  onOrientationChange: (orientation: GridOrientation) => void;
   onIncreaseStudentCount: () => void;
   onDecreaseStudentCount: () => void;
   onClose: () => void;
@@ -32,10 +35,12 @@ const WindowContentRenderer: React.FC<WindowContentRendererProps> = ({
   currentStudentBoards,
   currentPage,
   totalPages,
+  gridOrientation,
   onMaximize,
   onPreviousPage,
   onNextPage,
   onLayoutChange,
+  onOrientationChange,
   onIncreaseStudentCount,
   onDecreaseStudentCount,
   onClose,
@@ -51,7 +56,9 @@ const WindowContentRenderer: React.FC<WindowContentRendererProps> = ({
         totalPages={totalPages}
         availableLayouts={availableLayouts}
         selectedLayoutId={selectedLayoutId}
+        gridOrientation={gridOrientation}
         onLayoutChange={onLayoutChange}
+        onOrientationChange={onOrientationChange}
         onIncreaseStudentCount={onIncreaseStudentCount}
         onDecreaseStudentCount={onDecreaseStudentCount}
         onClose={onClose}
@@ -64,6 +71,7 @@ const WindowContentRenderer: React.FC<WindowContentRendererProps> = ({
           currentStudentBoards={currentStudentBoards}
           currentPage={currentPage}
           totalPages={totalPages}
+          gridOrientation={gridOrientation}
           onMaximize={onMaximize}
           onPreviousPage={onPreviousPage}
           onNextPage={onNextPage}

@@ -3,7 +3,8 @@ import React from 'react';
 import { Users, ChevronLeft, ChevronRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import WhiteboardPlaceholder from './WhiteboardPlaceholder';
-import { LayoutOption, getStudentBoardsForPage } from '@/utils/layoutCalculator';
+import { LayoutOption, getStudentBoardsForPage, getOrientationAwareGridClasses } from '@/utils/layoutCalculator';
+import { GridOrientation } from './TeacherView';
 
 interface StudentBoardsGridProps {
   studentCount: number;
@@ -11,6 +12,7 @@ interface StudentBoardsGridProps {
   currentStudentBoards: string[];
   currentPage: number;
   totalPages: number;
+  gridOrientation?: GridOrientation;
   onMaximize: (boardId: string) => void;
   onPreviousPage: () => void;
   onNextPage: () => void;
@@ -22,6 +24,7 @@ const StudentBoardsGrid: React.FC<StudentBoardsGridProps> = ({
   currentStudentBoards,
   currentPage,
   totalPages,
+  gridOrientation = 'columns-first',
   onMaximize,
   onPreviousPage,
   onNextPage,
@@ -35,26 +38,10 @@ const StudentBoardsGrid: React.FC<StudentBoardsGridProps> = ({
     getStudentBoardsForPage(allStudentBoards, currentPage, currentLayout.studentsPerPage) : 
     currentStudentBoards;
 
-  // Determine grid layout classes based on current layout
-  const getGridClasses = () => {
-    if (!currentLayout) return 'grid-cols-2 grid-rows-2';
-    
-    const baseClasses = `grid ${currentLayout.gridClass} gap-4 h-full w-full`;
-    
-    // Add responsive classes and adjust for different layouts
-    switch (currentLayout.id) {
-      case '1x1':
-        return `${baseClasses} place-items-stretch`;
-      case '1x2':
-        return `${baseClasses} grid-rows-2`;
-      case '2x2':
-        return `${baseClasses} grid-rows-2`;
-      case '2x3':
-        return `${baseClasses} grid-rows-3`;
-      default:
-        return baseClasses;
-    }
-  };
+  // Get grid classes with orientation awareness
+  const gridClasses = currentLayout ? 
+    getOrientationAwareGridClasses(currentLayout, gridOrientation) : 
+    'grid-cols-2 grid-rows-2';
 
   return (
     <div className="h-full w-full flex flex-col p-4">
@@ -95,7 +82,7 @@ const StudentBoardsGrid: React.FC<StudentBoardsGridProps> = ({
         </div>
       </div>
       <div className="flex-1 min-h-0 w-full">
-        <div className={getGridClasses()}>
+        <div className={`grid ${gridClasses} gap-4 h-full w-full`}>
           {displayBoards.map((boardId) => (
             <div key={boardId} className="w-full h-full min-h-0">
               <WhiteboardPlaceholder

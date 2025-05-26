@@ -3,6 +3,7 @@ import React, { useEffect, useState } from 'react';
 import { useWindowManager } from './WindowManager';
 import WindowContentRenderer from './WindowContentRenderer';
 import { LayoutOption } from '@/utils/layoutCalculator';
+import { GridOrientation } from './TeacherView';
 
 interface StudentBoardsWindowProps {
   studentCount: number;
@@ -12,10 +13,12 @@ interface StudentBoardsWindowProps {
   currentStudentBoards: string[];
   currentPage: number;
   totalPages: number;
+  gridOrientation: GridOrientation;
   onMaximize: (boardId: string) => void;
   onPreviousPage: () => void;
   onNextPage: () => void;
   onLayoutChange: (layoutId: string) => void;
+  onOrientationChange: (orientation: GridOrientation) => void;
   onIncreaseStudentCount: () => void;
   onDecreaseStudentCount: () => void;
   onClose: () => void;
@@ -29,10 +32,12 @@ const StudentBoardsWindow: React.FC<StudentBoardsWindowProps> = ({
   currentStudentBoards,
   currentPage,
   totalPages,
+  gridOrientation,
   onMaximize,
   onPreviousPage,
   onNextPage,
   onLayoutChange,
+  onOrientationChange,
   onIncreaseStudentCount,
   onDecreaseStudentCount,
   onClose,
@@ -58,10 +63,11 @@ const StudentBoardsWindow: React.FC<StudentBoardsWindowProps> = ({
       currentStudentBoards,
       currentPage,
       totalPages,
+      gridOrientation,
       isReady,
       hasContainer: !!container
     });
-  }, [studentCount, currentLayout, currentStudentBoards, currentPage, totalPages, isReady, container]);
+  }, [studentCount, currentLayout, currentStudentBoards, currentPage, totalPages, gridOrientation, isReady, container]);
 
   // Don't render portal until container is ready
   if (!container || !isReady) {
@@ -79,10 +85,12 @@ const StudentBoardsWindow: React.FC<StudentBoardsWindowProps> = ({
       currentStudentBoards={currentStudentBoards}
       currentPage={currentPage}
       totalPages={totalPages}
+      gridOrientation={gridOrientation}
       onMaximize={onMaximize}
       onPreviousPage={onPreviousPage}
       onNextPage={onNextPage}
       onLayoutChange={onLayoutChange}
+      onOrientationChange={onOrientationChange}
       onIncreaseStudentCount={onIncreaseStudentCount}
       onDecreaseStudentCount={onDecreaseStudentCount}
       onClose={onClose}

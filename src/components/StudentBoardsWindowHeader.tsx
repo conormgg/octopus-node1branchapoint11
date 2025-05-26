@@ -1,9 +1,11 @@
 
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { Users, Plus, Minus, UserPlus, ChevronUp, ChevronDown } from 'lucide-react';
+import { Switch } from '@/components/ui/switch';
+import { Users, Plus, Minus, UserPlus, ChevronUp, ChevronDown, Columns2, Rows2 } from 'lucide-react';
 import LayoutSelector from './LayoutSelector';
 import { LayoutOption } from '@/utils/layoutCalculator';
+import { GridOrientation } from './TeacherView';
 
 interface StudentBoardsWindowHeaderProps {
   studentCount: number;
@@ -12,7 +14,9 @@ interface StudentBoardsWindowHeaderProps {
   totalPages: number;
   availableLayouts: LayoutOption[];
   selectedLayoutId: string;
+  gridOrientation: GridOrientation;
   onLayoutChange: (layoutId: string) => void;
+  onOrientationChange: (orientation: GridOrientation) => void;
   onIncreaseStudentCount: () => void;
   onDecreaseStudentCount: () => void;
   onClose: () => void;
@@ -25,7 +29,9 @@ const StudentBoardsWindowHeader: React.FC<StudentBoardsWindowHeaderProps> = ({
   totalPages,
   availableLayouts,
   selectedLayoutId,
+  gridOrientation,
   onLayoutChange,
+  onOrientationChange,
   onIncreaseStudentCount,
   onDecreaseStudentCount,
   onClose,
@@ -35,6 +41,10 @@ const StudentBoardsWindowHeader: React.FC<StudentBoardsWindowHeaderProps> = ({
 
   const toggleCollapse = () => {
     setIsCollapsed(!isCollapsed);
+  };
+
+  const handleOrientationToggle = () => {
+    onOrientationChange(gridOrientation === 'columns-first' ? 'rows-first' : 'columns-first');
   };
 
   const shouldShowHeader = !isCollapsed || isHovered;
@@ -80,6 +90,21 @@ const StudentBoardsWindowHeader: React.FC<StudentBoardsWindowHeaderProps> = ({
                 selectedLayoutId={selectedLayoutId}
                 onLayoutChange={onLayoutChange}
               />
+              
+              {/* Orientation Toggle */}
+              <div className="flex items-center space-x-2">
+                <div className="flex items-center space-x-2">
+                  <Columns2 className="w-4 h-4 text-gray-600" />
+                  <Switch
+                    checked={gridOrientation === 'rows-first'}
+                    onCheckedChange={handleOrientationToggle}
+                  />
+                  <Rows2 className="w-4 h-4 text-gray-600" />
+                </div>
+                <span className="text-sm text-gray-600">
+                  {gridOrientation === 'columns-first' ? 'Columns First' : 'Rows First'}
+                </span>
+              </div>
               
               {/* Add Student Button */}
               <Button

@@ -1,4 +1,3 @@
-
 export interface LayoutOption {
   id: string;
   name: string;
@@ -8,6 +7,8 @@ export interface LayoutOption {
   totalPages: number;
   icon: string; // lucide-react icon name
 }
+
+import { GridOrientation } from '@/components/TeacherView';
 
 export const calculateLayoutOptions = (studentCount: number): LayoutOption[] => {
   const options: LayoutOption[] = [];
@@ -85,6 +86,38 @@ export const calculateLayoutOptions = (studentCount: number): LayoutOption[] => 
   }
 
   return options;
+};
+
+export const getOrientationAwareGridClasses = (
+  layout: LayoutOption,
+  orientation: GridOrientation
+): string => {
+  const baseClasses = 'place-items-stretch';
+  
+  // Determine rows and columns based on layout
+  let rows: number;
+  let cols: number;
+  
+  switch (layout.id) {
+    case '1x1':
+      return `grid-cols-1 grid-rows-1 ${baseClasses}`;
+    case '1x2':
+      if (orientation === 'columns-first') {
+        return `grid-cols-1 grid-rows-2 ${baseClasses}`;
+      } else {
+        return `grid-cols-2 grid-rows-1 ${baseClasses}`;
+      }
+    case '2x2':
+      return `grid-cols-2 grid-rows-2 ${baseClasses}`;
+    case '2x3':
+      if (orientation === 'columns-first') {
+        return `grid-cols-2 grid-rows-3 ${baseClasses}`;
+      } else {
+        return `grid-cols-3 grid-rows-2 ${baseClasses}`;
+      }
+    default:
+      return `${layout.gridClass} ${baseClasses}`;
+  }
 };
 
 export const generateStudentBoards = (count: number): string[] => {
