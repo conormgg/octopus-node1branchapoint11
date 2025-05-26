@@ -118,9 +118,11 @@ const TeacherView: React.FC = () => {
         currentLayout={currentLayout}
         availableLayouts={availableLayouts}
         selectedLayoutId={selectedLayoutId}
+        gridOrientation={gridOrientation}
         onIncreaseStudentCount={increaseStudentCount}
         onDecreaseStudentCount={decreaseStudentCount}
         onLayoutChange={handleLayoutChange}
+        onOrientationChange={handleOrientationChange}
         onToggleSplitView={handleToggleSplitView}
         isSplitViewActive={isSplitViewActive}
         isCollapsed={isControlsCollapsed}

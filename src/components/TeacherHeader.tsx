@@ -1,18 +1,22 @@
 
 import React, { useState } from 'react';
-import { GraduationCap, Users, Plus, Minus, UserPlus, Monitor, ChevronUp, ChevronDown } from 'lucide-react';
+import { GraduationCap, Users, Plus, Minus, UserPlus, Monitor, ChevronUp, ChevronDown, Columns2, Rows2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 import LayoutSelector from './LayoutSelector';
 import { LayoutOption } from '@/utils/layoutCalculator';
+import { GridOrientation } from './TeacherView';
 
 interface TeacherHeaderProps {
   studentCount: number;
   currentLayout: LayoutOption | undefined;
   availableLayouts: LayoutOption[];
   selectedLayoutId: string;
+  gridOrientation: GridOrientation;
   onIncreaseStudentCount: () => void;
   onDecreaseStudentCount: () => void;
   onLayoutChange: (layoutId: string) => void;
+  onOrientationChange: (orientation: GridOrientation) => void;
   onToggleSplitView?: () => void;
   isSplitViewActive?: boolean;
   isCollapsed?: boolean;
@@ -24,9 +28,11 @@ const TeacherHeader: React.FC<TeacherHeaderProps> = ({
   currentLayout,
   availableLayouts,
   selectedLayoutId,
+  gridOrientation,
   onIncreaseStudentCount,
   onDecreaseStudentCount,
   onLayoutChange,
+  onOrientationChange,
   onToggleSplitView,
   isSplitViewActive = false,
   isCollapsed = false,
@@ -76,6 +82,36 @@ const TeacherHeader: React.FC<TeacherHeaderProps> = ({
                 selectedLayoutId={selectedLayoutId}
                 onLayoutChange={onLayoutChange}
               />
+
+              {/* Grid Orientation Toggle */}
+              {availableLayouts.length > 0 && (
+                <div className="flex items-center space-x-2">
+                  <span className="text-sm font-medium text-gray-700">Grid:</span>
+                  <ToggleGroup
+                    type="single"
+                    value={gridOrientation}
+                    onValueChange={(value) => value && onOrientationChange(value as GridOrientation)}
+                    className="border rounded-lg p-1"
+                  >
+                    <ToggleGroupItem
+                      value="columns-first"
+                      aria-label="Columns first"
+                      className="data-[state=on]:bg-blue-100 data-[state=on]:text-blue-700"
+                      title="Columns first"
+                    >
+                      <Columns2 className="w-4 h-4" />
+                    </ToggleGroupItem>
+                    <ToggleGroupItem
+                      value="rows-first"
+                      aria-label="Rows first"
+                      className="data-[state=on]:bg-blue-100 data-[state=on]:text-blue-700"
+                      title="Rows first"
+                    >
+                      <Rows2 className="w-4 h-4" />
+                    </ToggleGroupItem>
+                  </ToggleGroup>
+                </div>
+              )}
               
               {/* Split View Button */}
               {onToggleSplitView && (
