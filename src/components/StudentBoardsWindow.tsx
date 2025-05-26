@@ -48,6 +48,7 @@ const StudentBoardsWindow: React.FC<StudentBoardsWindowProps> = ({
   const [container, setContainer] = useState<HTMLDivElement | null>(null);
   const [isReady, setIsReady] = useState(false);
   const [maximizedBoard, setMaximizedBoard] = useState<string | null>(null);
+  const [isHeaderCollapsed, setIsHeaderCollapsed] = useState(false);
 
   const handleWindowReady = (newContainer: HTMLDivElement) => {
     setContainer(newContainer);
@@ -59,6 +60,10 @@ const StudentBoardsWindow: React.FC<StudentBoardsWindowProps> = ({
     onClose,
   });
 
+  const toggleHeaderCollapse = () => {
+    setIsHeaderCollapsed(prev => !prev);
+  };
+
   const handleMaximizeInWindow = (boardId: string) => {
     setMaximizedBoard(boardId);
   };
@@ -67,7 +72,6 @@ const StudentBoardsWindow: React.FC<StudentBoardsWindowProps> = ({
     setMaximizedBoard(null);
   };
 
-  // Log prop changes for debugging
   useEffect(() => {
     console.log('Props changed in StudentBoardsWindow:', {
       studentCount,
@@ -78,17 +82,16 @@ const StudentBoardsWindow: React.FC<StudentBoardsWindowProps> = ({
       gridOrientation,
       isReady,
       hasContainer: !!container,
-      maximizedBoard
+      maximizedBoard,
+      isHeaderCollapsed,
     });
-  }, [studentCount, currentLayout, currentStudentBoards, currentPage, totalPages, gridOrientation, isReady, container, maximizedBoard]);
+  }, [studentCount, currentLayout, currentStudentBoards, currentPage, totalPages, gridOrientation, isReady, container, maximizedBoard, isHeaderCollapsed]);
 
-  // Don't render portal until container is ready
   if (!container || !isReady) {
     console.log('Container or window not ready yet', { container: !!container, isReady });
     return null;
   }
 
-  // If a board is maximized in this window, show only that board
   if (maximizedBoard) {
     return createPortal(
       <div className="h-full w-full bg-gray-100 p-4">
@@ -117,6 +120,8 @@ const StudentBoardsWindow: React.FC<StudentBoardsWindowProps> = ({
         onIncreaseStudentCount={onIncreaseStudentCount}
         onDecreaseStudentCount={onDecreaseStudentCount}
         onClose={onClose}
+        isCollapsed={isHeaderCollapsed}
+        onToggleCollapse={toggleHeaderCollapse}
       />
       
       <div className="flex-1 min-h-0 mt-4">
@@ -130,6 +135,7 @@ const StudentBoardsWindow: React.FC<StudentBoardsWindowProps> = ({
           onMaximize={handleMaximizeInWindow}
           onPreviousPage={onPreviousPage}
           onNextPage={onNextPage}
+          isHeaderCollapsed={isHeaderCollapsed}
         />
       </div>
     </div>,

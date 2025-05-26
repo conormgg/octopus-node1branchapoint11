@@ -20,6 +20,8 @@ interface StudentBoardsWindowHeaderProps {
   onIncreaseStudentCount: () => void;
   onDecreaseStudentCount: () => void;
   onClose: () => void;
+  isCollapsed: boolean;
+  onToggleCollapse: () => void;
 }
 
 const StudentBoardsWindowHeader: React.FC<StudentBoardsWindowHeaderProps> = ({
@@ -35,13 +37,10 @@ const StudentBoardsWindowHeader: React.FC<StudentBoardsWindowHeaderProps> = ({
   onIncreaseStudentCount,
   onDecreaseStudentCount,
   onClose,
+  isCollapsed,
+  onToggleCollapse,
 }) => {
-  const [isCollapsed, setIsCollapsed] = useState(false);
   const [isHovered, setIsHovered] = useState(false);
-
-  const toggleCollapse = () => {
-    setIsCollapsed(!isCollapsed);
-  };
 
   const handleOrientationToggle = () => {
     onOrientationChange(gridOrientation === 'columns-first' ? 'rows-first' : 'columns-first');
@@ -51,7 +50,6 @@ const StudentBoardsWindowHeader: React.FC<StudentBoardsWindowHeaderProps> = ({
 
   return (
     <>
-      {/* Hover trigger zone - only visible when collapsed */}
       {isCollapsed && (
         <div 
           className="absolute top-0 left-0 right-0 h-4 z-50 bg-transparent"
@@ -60,7 +58,6 @@ const StudentBoardsWindowHeader: React.FC<StudentBoardsWindowHeaderProps> = ({
         />
       )}
       
-      {/* Header - slides down when shown */}
       <div 
         className={`bg-white border-b border-gray-200 rounded-lg shadow-sm transition-all duration-300 ease-in-out ${
           shouldShowHeader 
@@ -71,26 +68,24 @@ const StudentBoardsWindowHeader: React.FC<StudentBoardsWindowHeaderProps> = ({
         onMouseLeave={() => isCollapsed && setIsHovered(false)}
       >
         <div className="px-6 py-3 flex items-center justify-between">
-          {/* Left section - Title and status */}
           <div className="flex items-center space-x-4">
             <h1 className="text-xl font-semibold text-gray-900">Student Boards Monitor</h1>
-            <p className="text-sm text-gray-500">
-              {studentCount} student{studentCount !== 1 ? 's' : ''} - 
-              {currentLayoutName ? ` ${currentLayoutName} layout` : ''} - 
-              Page {currentPage + 1} of {totalPages}
-            </p>
+            {!isCollapsed && (
+              <p className="text-sm text-gray-500">
+                {studentCount} student{studentCount !== 1 ? 's' : ''} - 
+                {currentLayoutName ? ` ${currentLayoutName} layout` : ''} - 
+                Page {currentPage + 1} of {totalPages}
+              </p>
+            )}
           </div>
 
-          {/* Center section - Controls (always present) */}
           <div className="flex items-center space-x-6">
-            {/* Layout Selector */}
             <LayoutSelector
               availableLayouts={availableLayouts}
               selectedLayoutId={selectedLayoutId}
               onLayoutChange={onLayoutChange}
             />
             
-            {/* Orientation Toggle */}
             <div className="flex items-center space-x-2">
               <div className="flex items-center space-x-2">
                 <Columns2 className="w-4 h-4 text-gray-600" />
@@ -105,7 +100,6 @@ const StudentBoardsWindowHeader: React.FC<StudentBoardsWindowHeaderProps> = ({
               </span>
             </div>
             
-            {/* Add Student Button */}
             <Button
               variant="outline"
               size="sm"
@@ -117,7 +111,6 @@ const StudentBoardsWindowHeader: React.FC<StudentBoardsWindowHeaderProps> = ({
               <span>Add Student</span>
             </Button>
             
-            {/* Student Count Display */}
             <div className="flex items-center space-x-2 px-3 py-2 bg-gray-50 rounded-lg">
               <Users className="w-4 h-4 text-gray-600" />
               <span className="text-sm font-medium text-gray-700">
@@ -125,7 +118,6 @@ const StudentBoardsWindowHeader: React.FC<StudentBoardsWindowHeaderProps> = ({
               </span>
             </div>
             
-            {/* Plus/Minus Controls */}
             <div className="flex items-center space-x-1">
               <Button
                 variant="outline"
@@ -146,12 +138,11 @@ const StudentBoardsWindowHeader: React.FC<StudentBoardsWindowHeaderProps> = ({
             </div>
           </div>
           
-          {/* Right section - Action buttons */}
           <div className="flex items-center space-x-2">
             <Button
               variant="ghost"
               size="sm"
-              onClick={toggleCollapse}
+              onClick={onToggleCollapse}
               className="flex items-center space-x-1"
             >
               {isCollapsed ? (

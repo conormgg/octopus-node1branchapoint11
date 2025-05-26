@@ -12,10 +12,11 @@ interface StudentBoardsGridProps {
   currentStudentBoards: string[];
   currentPage: number;
   totalPages: number;
-  gridOrientation?: GridOrientation;
+  gridOrientation: GridOrientation;
   onMaximize: (boardId: string) => void;
   onPreviousPage: () => void;
   onNextPage: () => void;
+  isHeaderCollapsed?: boolean;
 }
 
 const StudentBoardsGrid: React.FC<StudentBoardsGridProps> = ({
@@ -24,12 +25,12 @@ const StudentBoardsGrid: React.FC<StudentBoardsGridProps> = ({
   currentStudentBoards,
   currentPage,
   totalPages,
-  gridOrientation = 'columns-first',
+  gridOrientation,
   onMaximize,
   onPreviousPage,
   onNextPage,
+  isHeaderCollapsed = false,
 }) => {
-  // Generate student boards for current page (no empty slots)
   const allStudentBoards = Array.from({ length: studentCount }, (_, i) => 
     `student-${String.fromCharCode(97 + i)}`
   );
@@ -38,49 +39,51 @@ const StudentBoardsGrid: React.FC<StudentBoardsGridProps> = ({
     getStudentBoardsForPage(allStudentBoards, currentPage, currentLayout.studentsPerPage) : 
     currentStudentBoards;
 
-  // Get grid classes with orientation awareness
   const gridClasses = currentLayout ? 
     getOrientationAwareGridClasses(currentLayout, gridOrientation) : 
     'grid-cols-2 grid-rows-2';
 
   return (
     <div className="h-full w-full flex flex-col p-4">
-      <div className="mb-4 flex-shrink-0">
-        <div className="flex items-center justify-between">
-          <div>
-            <h2 className="text-lg font-semibold text-gray-800 flex items-center">
-              <Users className="w-5 h-5 mr-2 text-green-500" />
-              Student Boards ({studentCount} active)
-            </h2>
-            <p className="text-sm text-gray-600">
-              {currentLayout?.description || 'Monitor and interact with student work'}
-            </p>
-          </div>
-          {totalPages > 1 && (
-            <div className="flex items-center space-x-2">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={onPreviousPage}
-                disabled={currentPage === 0}
-              >
-                <ChevronLeft className="w-4 h-4" />
-              </Button>
-              <span className="text-sm text-gray-600 px-2">
-                Page {currentPage + 1} of {totalPages}
-              </span>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={onNextPage}
-                disabled={currentPage === totalPages - 1}
-              >
-                <ChevronRight className="w-4 h-4" />
-              </Button>
+      {!isHeaderCollapsed && (
+        <div className="mb-4 flex-shrink-0">
+          <div className="flex items-center justify-between">
+            <div>
+              <h2 className="text-lg font-semibold text-gray-800 flex items-center">
+                <Users className="w-5 h-5 mr-2 text-green-500" />
+                Student Boards ({studentCount} active)
+              </h2>
+              <p className="text-sm text-gray-600">
+                {currentLayout?.description || 'Monitor and interact with student work'}
+              </p>
             </div>
-          )}
+            {totalPages > 1 && (
+              <div className="flex items-center space-x-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={onPreviousPage}
+                  disabled={currentPage === 0}
+                >
+                  <ChevronLeft className="w-4 h-4" />
+                </Button>
+                <span className="text-sm text-gray-600 px-2">
+                  Page {currentPage + 1} of {totalPages}
+                </span>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={onNextPage}
+                  disabled={currentPage === totalPages - 1}
+                >
+                  <ChevronRight className="w-4 h-4" />
+                </Button>
+              </div>
+            )}
+          </div>
         </div>
-      </div>
+      )}
+      
       <div className="flex-1 min-h-0 w-full">
         <div className={`grid ${gridClasses} gap-4 h-full w-full`}>
           {displayBoards.map((boardId) => (
