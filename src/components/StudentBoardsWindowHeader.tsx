@@ -38,9 +38,10 @@ const StudentBoardsWindowHeader: React.FC<StudentBoardsWindowHeaderProps> = ({
 
   return (
     <div className="bg-white border-b border-gray-200 rounded-lg shadow-sm transition-all duration-200 ease-in-out">
-      {/* Always visible header bar */}
+      {/* Single header bar */}
       <div className="px-6 py-3 flex items-center justify-between">
-        <div className="flex items-center space-x-3">
+        {/* Left section - Title and status */}
+        <div className="flex items-center space-x-4">
           <h1 className="text-xl font-semibold text-gray-900">Student Boards Monitor</h1>
           <p className="text-sm text-gray-500">
             {studentCount} student{studentCount !== 1 ? 's' : ''} - 
@@ -48,42 +49,10 @@ const StudentBoardsWindowHeader: React.FC<StudentBoardsWindowHeaderProps> = ({
             Page {currentPage + 1} of {totalPages}
           </p>
         </div>
-        
-        <div className="flex items-center space-x-2">
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={toggleCollapse}
-            className="flex items-center space-x-1"
-          >
-            {isCollapsed ? (
-              <>
-                <ChevronDown className="w-4 h-4" />
-                <span>Show Controls</span>
-              </>
-            ) : (
-              <>
-                <ChevronUp className="w-4 h-4" />
-                <span>Hide Controls</span>
-              </>
-            )}
-          </Button>
-          
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={onClose}
-            className="flex items-center space-x-2"
-          >
-            <span>Close Split View</span>
-          </Button>
-        </div>
-      </div>
 
-      {/* Collapsible controls section */}
-      {!isCollapsed && (
-        <div className="px-6 pb-4 border-t border-gray-100">
-          <div className="flex items-center justify-center space-x-6 pt-3">
+        {/* Center section - Controls (only when expanded) */}
+        {!isCollapsed && (
+          <div className="flex items-center space-x-6">
             {/* Layout Selector */}
             <LayoutSelector
               availableLayouts={availableLayouts}
@@ -131,8 +100,39 @@ const StudentBoardsWindowHeader: React.FC<StudentBoardsWindowHeaderProps> = ({
               </Button>
             </div>
           </div>
+        )}
+        
+        {/* Right section - Action buttons */}
+        <div className="flex items-center space-x-2">
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={toggleCollapse}
+            className="flex items-center space-x-1"
+          >
+            {isCollapsed ? (
+              <>
+                <ChevronDown className="w-4 h-4" />
+                <span>Show Controls</span>
+              </>
+            ) : (
+              <>
+                <ChevronUp className="w-4 h-4" />
+                <span>Hide Controls</span>
+              </>
+            )}
+          </Button>
+          
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={onClose}
+            className="flex items-center space-x-2"
+          >
+            <span>Close Split View</span>
+          </Button>
         </div>
-      )}
+      </div>
     </div>
   );
 };
