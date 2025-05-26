@@ -77,26 +77,38 @@ export const useWindowManager = ({ onWindowReady, onClose }: WindowManagerProps)
       };
       
       const setupContainer = () => {
-        // Set body styles
+        // Ensure html and body take full height and are ready for flex children
+        newWindow.document.documentElement.style.height = '100%';
+        newWindow.document.documentElement.style.margin = '0';
+        newWindow.document.documentElement.style.padding = '0';
+
+        newWindow.document.body.style.height = '100%';
         newWindow.document.body.style.margin = '0';
         newWindow.document.body.style.padding = '0';
         newWindow.document.body.style.fontFamily = 'system-ui, -apple-system, sans-serif';
         newWindow.document.body.style.backgroundColor = '#f3f4f6'; // gray-100
+        newWindow.document.body.style.display = 'flex';
+        newWindow.document.body.style.flexDirection = 'column';
         
-        // Create container div
+        // Create container div with proper flex setup
         const container = newWindow.document.createElement('div');
         container.id = 'student-boards-container';
-        container.style.minHeight = '100vh';
+        container.style.flex = '1'; // Make the container grow to fill the body
+        container.style.display = 'flex'; // Make it a flex container for its own children
+        container.style.flexDirection = 'column'; // Stack its children vertically
         container.style.width = '100%';
+        container.style.minHeight = '0'; // Important for nested flex containers
         newWindow.document.body.appendChild(container);
         containerRef.current = container;
         
-        console.log('Container created and added to new window');
+        console.log('Container created and added to new window with flex styles');
         
         // Small delay to ensure DOM is ready, then notify parent
         setTimeout(() => {
           console.log('Setting ready state to true');
-          onWindowReady(container);
+          if (containerRef.current) {
+            onWindowReady(containerRef.current);
+          }
         }, 100);
       };
       

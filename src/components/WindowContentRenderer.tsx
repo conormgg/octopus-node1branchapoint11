@@ -43,7 +43,7 @@ const WindowContentRenderer: React.FC<WindowContentRendererProps> = ({
   console.log('Rendering portal content', { studentCount, currentLayout, currentStudentBoards });
 
   return createPortal(
-    <div className="min-h-screen bg-gray-100 p-4 flex flex-col">
+    <div className="flex-1 bg-gray-100 p-4 flex flex-col min-h-0">
       <div className="mb-4 flex-shrink-0">
         <StudentBoardsWindowHeader
           studentCount={studentCount}
