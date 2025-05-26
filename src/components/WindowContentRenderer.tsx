@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useState } from 'react';
 import { createPortal } from 'react-dom';
 import StudentBoardsGrid from './StudentBoardsGrid';
 import StudentBoardsWindowHeader from './StudentBoardsWindowHeader';
@@ -45,6 +45,12 @@ const WindowContentRenderer: React.FC<WindowContentRendererProps> = ({
   onDecreaseStudentCount,
   onClose,
 }) => {
+  const [isHeaderCollapsed, setIsHeaderCollapsed] = useState(false);
+
+  const toggleHeaderCollapse = () => {
+    setIsHeaderCollapsed(prev => !prev);
+  };
+
   console.log('Rendering portal content', { studentCount, currentLayout, currentStudentBoards });
 
   return createPortal(
@@ -62,6 +68,8 @@ const WindowContentRenderer: React.FC<WindowContentRendererProps> = ({
         onIncreaseStudentCount={onIncreaseStudentCount}
         onDecreaseStudentCount={onDecreaseStudentCount}
         onClose={onClose}
+        isCollapsed={isHeaderCollapsed}
+        onToggleCollapse={toggleHeaderCollapse}
       />
       
       <div className="flex-1 min-h-0 mt-4">
@@ -75,6 +83,7 @@ const WindowContentRenderer: React.FC<WindowContentRendererProps> = ({
           onMaximize={onMaximize}
           onPreviousPage={onPreviousPage}
           onNextPage={onNextPage}
+          isHeaderCollapsed={isHeaderCollapsed}
         />
       </div>
     </div>,
