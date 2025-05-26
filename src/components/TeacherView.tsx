@@ -170,6 +170,7 @@ const TeacherView: React.FC = () => {
                 onMaximize={handleMaximize}
                 onPreviousPage={handlePreviousPage}
                 onNextPage={handleNextPage}
+                showHeaderControls={true}
               />
             </ResizablePanel>
           </ResizablePanelGroup>

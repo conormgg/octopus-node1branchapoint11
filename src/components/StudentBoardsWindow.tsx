@@ -135,6 +135,7 @@ const StudentBoardsWindow: React.FC<StudentBoardsWindowProps> = ({
           onPreviousPage={onPreviousPage}
           onNextPage={onNextPage}
           isHeaderCollapsed={isHeaderCollapsed}
+          showHeaderControls={false}
         />
       </div>
     </div>,
