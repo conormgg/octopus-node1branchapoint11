@@ -71,14 +71,16 @@ const StudentBoardsWindowHeader: React.FC<StudentBoardsWindowHeaderProps> = ({
         onMouseLeave={() => isCollapsed && setIsHovered(false)}
       >
         <div className="px-6 py-3 flex items-center justify-between">
-          {/* Left section - Title and status */}
+          {/* Left section - Title only when collapsed, full info when expanded */}
           <div className="flex items-center space-x-4">
             <h1 className="text-xl font-semibold text-gray-900">Student Boards Monitor</h1>
-            <p className="text-sm text-gray-500">
-              {studentCount} student{studentCount !== 1 ? 's' : ''} - 
-              {currentLayoutName ? ` ${currentLayoutName} layout` : ''} - 
-              Page {currentPage + 1} of {totalPages}
-            </p>
+            {!isCollapsed && (
+              <p className="text-sm text-gray-500">
+                {studentCount} student{studentCount !== 1 ? 's' : ''} - 
+                {currentLayoutName ? ` ${currentLayoutName} layout` : ''} - 
+                Page {currentPage + 1} of {totalPages}
+              </p>
+            )}
           </div>
 
           {/* Center section - Controls (always present) */}
