@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from '@/components/ui/resizable';
 import WhiteboardPlaceholder from './WhiteboardPlaceholder';
@@ -6,6 +5,8 @@ import TeacherHeader from './TeacherHeader';
 import TeacherMainBoard from './TeacherMainBoard';
 import StudentBoardsGrid from './StudentBoardsGrid';
 import StudentBoardsWindow from './StudentBoardsWindow';
+import PersistentPageNavigation from './PersistentPageNavigation';
+import { useKeyboardNavigation } from '@/hooks/useKeyboardNavigation';
 import { calculateLayoutOptions, generateStudentBoards, getStudentBoardsForPage } from '@/utils/layoutCalculator';
 
 export type GridOrientation = 'columns-first' | 'rows-first';
@@ -90,6 +91,15 @@ const TeacherView: React.FC = () => {
     setCurrentPage(prev => Math.min(totalPages - 1, prev + 1));
   };
 
+  // Add keyboard navigation
+  useKeyboardNavigation({
+    currentPage,
+    totalPages,
+    onPreviousPage: handlePreviousPage,
+    onNextPage: handleNextPage,
+    isEnabled: totalPages > 1,
+  });
+
   if (maximizedBoard) {
     return (
       <div className="min-h-screen bg-gray-100 p-4">
@@ -125,6 +135,15 @@ const TeacherView: React.FC = () => {
         isSplitViewActive={isSplitViewActive}
         isCollapsed={isControlsCollapsed}
         onToggleCollapse={handleToggleControlsCollapse}
+      />
+
+      {/* Persistent Page Navigation */}
+      <PersistentPageNavigation
+        currentPage={currentPage}
+        totalPages={totalPages}
+        onPreviousPage={handlePreviousPage}
+        onNextPage={handleNextPage}
+        isVisible={!isSplitViewActive}
       />
 
       {/* Split View Window */}

@@ -5,6 +5,8 @@ import { useWindowManager } from './WindowManager';
 import StudentBoardsGrid from './StudentBoardsGrid';
 import StudentBoardsWindowHeader from './StudentBoardsWindowHeader';
 import WhiteboardPlaceholder from './WhiteboardPlaceholder';
+import PersistentPageNavigation from './PersistentPageNavigation';
+import { useKeyboardNavigation } from '@/hooks/useKeyboardNavigation';
 import { LayoutOption } from '@/utils/layoutCalculator';
 import { GridOrientation } from './TeacherView';
 
@@ -60,6 +62,15 @@ const StudentBoardsWindow: React.FC<StudentBoardsWindowProps> = ({
     onClose,
   });
 
+  // Add keyboard navigation for the split view window
+  useKeyboardNavigation({
+    currentPage,
+    totalPages,
+    onPreviousPage,
+    onNextPage,
+    isEnabled: isReady && totalPages > 1,
+  });
+
   const toggleHeaderCollapse = () => {
     setIsHeaderCollapsed(prev => !prev);
   };
@@ -107,6 +118,15 @@ const StudentBoardsWindow: React.FC<StudentBoardsWindowProps> = ({
 
   return createPortal(
     <div className="flex-1 bg-gray-100 p-4 flex flex-col min-h-0 relative">
+      {/* Persistent Page Navigation for Split View */}
+      <PersistentPageNavigation
+        currentPage={currentPage}
+        totalPages={totalPages}
+        onPreviousPage={onPreviousPage}
+        onNextPage={onNextPage}
+        isVisible={true}
+      />
+
       <StudentBoardsWindowHeader
         studentCount={studentCount}
         currentLayoutName={currentLayout?.name}
