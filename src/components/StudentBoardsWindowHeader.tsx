@@ -81,72 +81,70 @@ const StudentBoardsWindowHeader: React.FC<StudentBoardsWindowHeaderProps> = ({
             </p>
           </div>
 
-          {/* Center section - Controls (only when expanded) */}
-          {!isCollapsed && (
-            <div className="flex items-center space-x-6">
-              {/* Layout Selector */}
-              <LayoutSelector
-                availableLayouts={availableLayouts}
-                selectedLayoutId={selectedLayoutId}
-                onLayoutChange={onLayoutChange}
-              />
-              
-              {/* Orientation Toggle */}
+          {/* Center section - Controls (always present) */}
+          <div className="flex items-center space-x-6">
+            {/* Layout Selector */}
+            <LayoutSelector
+              availableLayouts={availableLayouts}
+              selectedLayoutId={selectedLayoutId}
+              onLayoutChange={onLayoutChange}
+            />
+            
+            {/* Orientation Toggle */}
+            <div className="flex items-center space-x-2">
               <div className="flex items-center space-x-2">
-                <div className="flex items-center space-x-2">
-                  <Columns2 className="w-4 h-4 text-gray-600" />
-                  <Switch
-                    checked={gridOrientation === 'rows-first'}
-                    onCheckedChange={handleOrientationToggle}
-                  />
-                  <Rows2 className="w-4 h-4 text-gray-600" />
-                </div>
-                <span className="text-sm text-gray-600">
-                  {gridOrientation === 'columns-first' ? 'Columns First' : 'Rows First'}
-                </span>
+                <Columns2 className="w-4 h-4 text-gray-600" />
+                <Switch
+                  checked={gridOrientation === 'rows-first'}
+                  onCheckedChange={handleOrientationToggle}
+                />
+                <Rows2 className="w-4 h-4 text-gray-600" />
               </div>
-              
-              {/* Add Student Button */}
+              <span className="text-sm text-gray-600">
+                {gridOrientation === 'columns-first' ? 'Columns First' : 'Rows First'}
+              </span>
+            </div>
+            
+            {/* Add Student Button */}
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={onIncreaseStudentCount}
+              disabled={studentCount >= 8}
+              className="flex items-center space-x-2"
+            >
+              <UserPlus className="w-4 h-4" />
+              <span>Add Student</span>
+            </Button>
+            
+            {/* Student Count Display */}
+            <div className="flex items-center space-x-2 px-3 py-2 bg-gray-50 rounded-lg">
+              <Users className="w-4 h-4 text-gray-600" />
+              <span className="text-sm font-medium text-gray-700">
+                {studentCount} Student{studentCount !== 1 ? 's' : ''}
+              </span>
+            </div>
+            
+            {/* Plus/Minus Controls */}
+            <div className="flex items-center space-x-1">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={onDecreaseStudentCount}
+                disabled={studentCount <= 1}
+              >
+                <Minus className="w-4 h-4" />
+              </Button>
               <Button
                 variant="outline"
                 size="sm"
                 onClick={onIncreaseStudentCount}
                 disabled={studentCount >= 8}
-                className="flex items-center space-x-2"
               >
-                <UserPlus className="w-4 h-4" />
-                <span>Add Student</span>
+                <Plus className="w-4 h-4" />
               </Button>
-              
-              {/* Student Count Display */}
-              <div className="flex items-center space-x-2 px-3 py-2 bg-gray-50 rounded-lg">
-                <Users className="w-4 h-4 text-gray-600" />
-                <span className="text-sm font-medium text-gray-700">
-                  {studentCount} Student{studentCount !== 1 ? 's' : ''}
-                </span>
-              </div>
-              
-              {/* Plus/Minus Controls */}
-              <div className="flex items-center space-x-1">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={onDecreaseStudentCount}
-                  disabled={studentCount <= 1}
-                >
-                  <Minus className="w-4 h-4" />
-                </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={onIncreaseStudentCount}
-                  disabled={studentCount >= 8}
-                >
-                  <Plus className="w-4 h-4" />
-                </Button>
-              </div>
             </div>
-          )}
+          </div>
           
           {/* Right section - Action buttons */}
           <div className="flex items-center space-x-2">
