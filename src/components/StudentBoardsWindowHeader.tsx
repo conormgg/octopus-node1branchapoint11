@@ -40,7 +40,6 @@ const StudentBoardsWindowHeader: React.FC<StudentBoardsWindowHeaderProps> = ({
   const [isHovered, setIsHovered] = useState(false);
 
   const toggleCollapse = () => {
-    console.log('Toggle collapse clicked, current state:', isCollapsed);
     setIsCollapsed(!isCollapsed);
   };
 
@@ -49,14 +48,6 @@ const StudentBoardsWindowHeader: React.FC<StudentBoardsWindowHeaderProps> = ({
   };
 
   const shouldShowHeader = !isCollapsed || isHovered;
-  const shouldShowStatusText = !isCollapsed; // Status text should ONLY show when not collapsed
-
-  console.log('Header render state:', { 
-    isCollapsed, 
-    isHovered, 
-    shouldShowHeader, 
-    shouldShowStatusText 
-  });
 
   return (
     <>
@@ -64,14 +55,8 @@ const StudentBoardsWindowHeader: React.FC<StudentBoardsWindowHeaderProps> = ({
       {isCollapsed && (
         <div 
           className="absolute top-0 left-0 right-0 h-4 z-50 bg-transparent"
-          onMouseEnter={() => {
-            console.log('Hover trigger zone entered');
-            setIsHovered(true);
-          }}
-          onMouseLeave={() => {
-            console.log('Hover trigger zone left');
-            setIsHovered(false);
-          }}
+          onMouseEnter={() => setIsHovered(true)}
+          onMouseLeave={() => setIsHovered(false)}
         />
       )}
       
@@ -82,30 +67,18 @@ const StudentBoardsWindowHeader: React.FC<StudentBoardsWindowHeaderProps> = ({
             ? 'transform translate-y-0 opacity-100' 
             : 'transform -translate-y-full opacity-0 absolute top-0 left-0 right-0 z-40'
         }`}
-        onMouseEnter={() => {
-          if (isCollapsed) {
-            console.log('Header mouse enter while collapsed');
-            setIsHovered(true);
-          }
-        }}
-        onMouseLeave={() => {
-          if (isCollapsed) {
-            console.log('Header mouse leave while collapsed');
-            setIsHovered(false);
-          }
-        }}
+        onMouseEnter={() => isCollapsed && setIsHovered(true)}
+        onMouseLeave={() => isCollapsed && setIsHovered(false)}
       >
         <div className="px-6 py-3 flex items-center justify-between">
-          {/* Left section - Title only when collapsed, full info when expanded */}
+          {/* Left section - Title and status */}
           <div className="flex items-center space-x-4">
             <h1 className="text-xl font-semibold text-gray-900">Student Boards Monitor</h1>
-            {shouldShowStatusText && (
-              <p className="text-sm text-gray-500">
-                {studentCount} student{studentCount !== 1 ? 's' : ''} - 
-                {currentLayoutName ? ` ${currentLayoutName} layout` : ''} - 
-                Page {currentPage + 1} of {totalPages}
-              </p>
-            )}
+            <p className="text-sm text-gray-500">
+              {studentCount} student{studentCount !== 1 ? 's' : ''} - 
+              {currentLayoutName ? ` ${currentLayoutName} layout` : ''} - 
+              Page {currentPage + 1} of {totalPages}
+            </p>
           </div>
 
           {/* Center section - Controls (always present) */}
