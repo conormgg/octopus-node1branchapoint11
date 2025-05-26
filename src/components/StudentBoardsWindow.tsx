@@ -1,7 +1,10 @@
 
 import React, { useEffect, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { useWindowManager } from './WindowManager';
-import WindowContentRenderer from './WindowContentRenderer';
+import StudentBoardsGrid from './StudentBoardsGrid';
+import StudentBoardsWindowHeader from './StudentBoardsWindowHeader';
+import WhiteboardPlaceholder from './WhiteboardPlaceholder';
 import { LayoutOption } from '@/utils/layoutCalculator';
 import { GridOrientation } from './TeacherView';
 
@@ -44,6 +47,7 @@ const StudentBoardsWindow: React.FC<StudentBoardsWindowProps> = ({
 }) => {
   const [container, setContainer] = useState<HTMLDivElement | null>(null);
   const [isReady, setIsReady] = useState(false);
+  const [maximizedBoard, setMaximizedBoard] = useState<string | null>(null);
 
   const handleWindowReady = (newContainer: HTMLDivElement) => {
     setContainer(newContainer);
@@ -55,6 +59,14 @@ const StudentBoardsWindow: React.FC<StudentBoardsWindowProps> = ({
     onClose,
   });
 
+  const handleMaximizeInWindow = (boardId: string) => {
+    setMaximizedBoard(boardId);
+  };
+
+  const handleMinimizeInWindow = () => {
+    setMaximizedBoard(null);
+  };
+
   // Log prop changes for debugging
   useEffect(() => {
     console.log('Props changed in StudentBoardsWindow:', {
@@ -65,9 +77,10 @@ const StudentBoardsWindow: React.FC<StudentBoardsWindowProps> = ({
       totalPages,
       gridOrientation,
       isReady,
-      hasContainer: !!container
+      hasContainer: !!container,
+      maximizedBoard
     });
-  }, [studentCount, currentLayout, currentStudentBoards, currentPage, totalPages, gridOrientation, isReady, container]);
+  }, [studentCount, currentLayout, currentStudentBoards, currentPage, totalPages, gridOrientation, isReady, container, maximizedBoard]);
 
   // Don't render portal until container is ready
   if (!container || !isReady) {
@@ -75,26 +88,52 @@ const StudentBoardsWindow: React.FC<StudentBoardsWindowProps> = ({
     return null;
   }
 
-  return (
-    <WindowContentRenderer
-      container={container}
-      studentCount={studentCount}
-      currentLayout={currentLayout}
-      availableLayouts={availableLayouts}
-      selectedLayoutId={selectedLayoutId}
-      currentStudentBoards={currentStudentBoards}
-      currentPage={currentPage}
-      totalPages={totalPages}
-      gridOrientation={gridOrientation}
-      onMaximize={onMaximize}
-      onPreviousPage={onPreviousPage}
-      onNextPage={onNextPage}
-      onLayoutChange={onLayoutChange}
-      onOrientationChange={onOrientationChange}
-      onIncreaseStudentCount={onIncreaseStudentCount}
-      onDecreaseStudentCount={onDecreaseStudentCount}
-      onClose={onClose}
-    />
+  // If a board is maximized in this window, show only that board
+  if (maximizedBoard) {
+    return createPortal(
+      <div className="h-full w-full bg-gray-100 p-4">
+        <WhiteboardPlaceholder
+          id={maximizedBoard}
+          isMaximized={true}
+          onMinimize={handleMinimizeInWindow}
+        />
+      </div>,
+      container
+    );
+  }
+
+  return createPortal(
+    <div className="flex-1 bg-gray-100 p-4 flex flex-col min-h-0 relative">
+      <StudentBoardsWindowHeader
+        studentCount={studentCount}
+        currentLayoutName={currentLayout?.name}
+        currentPage={currentPage}
+        totalPages={totalPages}
+        availableLayouts={availableLayouts}
+        selectedLayoutId={selectedLayoutId}
+        gridOrientation={gridOrientation}
+        onLayoutChange={onLayoutChange}
+        onOrientationChange={onOrientationChange}
+        onIncreaseStudentCount={onIncreaseStudentCount}
+        onDecreaseStudentCount={onDecreaseStudentCount}
+        onClose={onClose}
+      />
+      
+      <div className="flex-1 min-h-0 mt-4">
+        <StudentBoardsGrid
+          studentCount={studentCount}
+          currentLayout={currentLayout}
+          currentStudentBoards={currentStudentBoards}
+          currentPage={currentPage}
+          totalPages={totalPages}
+          gridOrientation={gridOrientation}
+          onMaximize={handleMaximizeInWindow}
+          onPreviousPage={onPreviousPage}
+          onNextPage={onNextPage}
+        />
+      </div>
+    </div>,
+    container
   );
 };
 
