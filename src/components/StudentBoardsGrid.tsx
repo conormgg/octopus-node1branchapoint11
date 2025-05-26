@@ -4,7 +4,7 @@ import { Users, ChevronLeft, ChevronRight, RotateCcw, Grid } from 'lucide-react'
 import { Button } from '@/components/ui/button';
 import WhiteboardPlaceholder from './WhiteboardPlaceholder';
 import PersistentPageNavigation from './PersistentPageNavigation';
-import { LayoutOption } from '@/utils/layoutCalculator';
+import { LayoutOption, getOrientationAwareGridClasses } from '@/utils/layoutCalculator';
 import { GridOrientation } from './TeacherView';
 
 interface StudentBoardsGridProps {
@@ -35,9 +35,7 @@ const StudentBoardsGrid: React.FC<StudentBoardsGridProps> = ({
   const renderStudentGrid = () => {
     if (!currentLayout) return null;
 
-    const gridClass = gridOrientation === 'columns-first' 
-      ? `grid-cols-${currentLayout.cols} grid-rows-${currentLayout.rows}`
-      : `grid-rows-${currentLayout.rows} grid-cols-${currentLayout.cols}`;
+    const gridClass = getOrientationAwareGridClasses(currentLayout, gridOrientation);
 
     return (
       <div className={`grid ${gridClass} gap-3 h-full`}>
