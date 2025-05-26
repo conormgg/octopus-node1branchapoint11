@@ -74,13 +74,11 @@ const StudentBoardsWindowHeader: React.FC<StudentBoardsWindowHeaderProps> = ({
           {/* Left section - Title and status */}
           <div className="flex items-center space-x-4">
             <h1 className="text-xl font-semibold text-gray-900">Student Boards Monitor</h1>
-            {!isCollapsed && (
-              <p className="text-sm text-gray-500">
-                {studentCount} student{studentCount !== 1 ? 's' : ''} - 
-                {currentLayoutName ? ` ${currentLayoutName} layout` : ''} - 
-                Page {currentPage + 1} of {totalPages}
-              </p>
-            )}
+            <p className="text-sm text-gray-500">
+              {studentCount} student{studentCount !== 1 ? 's' : ''} - 
+              {currentLayoutName ? ` ${currentLayoutName} layout` : ''} - 
+              Page {currentPage + 1} of {totalPages}
+            </p>
           </div>
 
           {/* Center section - Controls (always present) */}
