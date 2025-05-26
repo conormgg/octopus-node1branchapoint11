@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from '@/components/ui/resizable';
 import WhiteboardPlaceholder from './WhiteboardPlaceholder';
@@ -16,7 +17,6 @@ const TeacherView: React.FC = () => {
   const [selectedLayoutId, setSelectedLayoutId] = useState<string>('2x2');
   const [isSplitViewActive, setIsSplitViewActive] = useState(false);
   const [gridOrientation, setGridOrientation] = useState<GridOrientation>('columns-first');
-  const [isHeaderCollapsed, setIsHeaderCollapsed] = useState(false);
 
   const handleMaximize = (boardId: string) => {
     setMaximizedBoard(boardId);
@@ -61,10 +61,6 @@ const TeacherView: React.FC = () => {
 
   const handleCloseSplitView = () => {
     setIsSplitViewActive(false);
-  };
-
-  const toggleHeaderCollapse = () => {
-    setIsHeaderCollapsed(prev => !prev);
   };
 
   // Calculate layout options and current layout
@@ -136,8 +132,6 @@ const TeacherView: React.FC = () => {
           onIncreaseStudentCount={increaseStudentCount}
           onDecreaseStudentCount={decreaseStudentCount}
           onClose={handleCloseSplitView}
-          isHeaderCollapsed={isHeaderCollapsed}
-          onToggleHeaderCollapse={toggleHeaderCollapse}
         />
       )}
 
@@ -170,7 +164,6 @@ const TeacherView: React.FC = () => {
                 onMaximize={handleMaximize}
                 onPreviousPage={handlePreviousPage}
                 onNextPage={handleNextPage}
-                showHeaderControls={true}
               />
             </ResizablePanel>
           </ResizablePanelGroup>

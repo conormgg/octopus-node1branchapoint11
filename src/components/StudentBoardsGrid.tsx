@@ -1,6 +1,6 @@
 
-import React, { useState } from 'react';
-import { Users, ChevronLeft, ChevronRight, ChevronUp, ChevronDown } from 'lucide-react';
+import React from 'react';
+import { Users, ChevronLeft, ChevronRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import WhiteboardPlaceholder from './WhiteboardPlaceholder';
 import { LayoutOption, getStudentBoardsForPage, getOrientationAwareGridClasses } from '@/utils/layoutCalculator';
@@ -17,7 +17,6 @@ interface StudentBoardsGridProps {
   onPreviousPage: () => void;
   onNextPage: () => void;
   isHeaderCollapsed?: boolean;
-  showHeaderControls?: boolean; // New prop to show/hide header controls
 }
 
 const StudentBoardsGrid: React.FC<StudentBoardsGridProps> = ({
@@ -30,21 +29,8 @@ const StudentBoardsGrid: React.FC<StudentBoardsGridProps> = ({
   onMaximize,
   onPreviousPage,
   onNextPage,
-  isHeaderCollapsed: externalIsHeaderCollapsed,
-  showHeaderControls = true,
+  isHeaderCollapsed = false,
 }) => {
-  // Internal state for header collapse when not controlled externally
-  const [internalIsHeaderCollapsed, setInternalIsHeaderCollapsed] = useState(false);
-  
-  // Use external state if provided, otherwise use internal state
-  const isHeaderCollapsed = externalIsHeaderCollapsed !== undefined ? externalIsHeaderCollapsed : internalIsHeaderCollapsed;
-  
-  const toggleHeaderCollapse = () => {
-    if (externalIsHeaderCollapsed === undefined) {
-      setInternalIsHeaderCollapsed(prev => !prev);
-    }
-  };
-
   const allStudentBoards = Array.from({ length: studentCount }, (_, i) => 
     `student-${String.fromCharCode(97 + i)}`
   );
@@ -71,59 +57,30 @@ const StudentBoardsGrid: React.FC<StudentBoardsGridProps> = ({
                 {currentLayout?.description || 'Monitor and interact with student work'}
               </p>
             </div>
-            
-            <div className="flex items-center space-x-2">
-              {totalPages > 1 && (
-                <div className="flex items-center space-x-2">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={onPreviousPage}
-                    disabled={currentPage === 0}
-                  >
-                    <ChevronLeft className="w-4 h-4" />
-                  </Button>
-                  <span className="text-sm text-gray-600 px-2">
-                    Page {currentPage + 1} of {totalPages}
-                  </span>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={onNextPage}
-                    disabled={currentPage === totalPages - 1}
-                  >
-                    <ChevronRight className="w-4 h-4" />
-                  </Button>
-                </div>
-              )}
-              
-              {showHeaderControls && externalIsHeaderCollapsed === undefined && (
+            {totalPages > 1 && (
+              <div className="flex items-center space-x-2">
                 <Button
-                  variant="ghost"
+                  variant="outline"
                   size="sm"
-                  onClick={toggleHeaderCollapse}
-                  className="flex items-center space-x-1"
+                  onClick={onPreviousPage}
+                  disabled={currentPage === 0}
                 >
-                  <ChevronUp className="w-4 h-4" />
-                  <span>Hide Controls</span>
+                  <ChevronLeft className="w-4 h-4" />
                 </Button>
-              )}
-            </div>
+                <span className="text-sm text-gray-600 px-2">
+                  Page {currentPage + 1} of {totalPages}
+                </span>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={onNextPage}
+                  disabled={currentPage === totalPages - 1}
+                >
+                  <ChevronRight className="w-4 h-4" />
+                </Button>
+              </div>
+            )}
           </div>
-        </div>
-      )}
-      
-      {isHeaderCollapsed && showHeaderControls && externalIsHeaderCollapsed === undefined && (
-        <div className="mb-2 flex justify-end">
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={toggleHeaderCollapse}
-            className="flex items-center space-x-1"
-          >
-            <ChevronDown className="w-4 h-4" />
-            <span>Show Controls</span>
-          </Button>
         </div>
       )}
       
