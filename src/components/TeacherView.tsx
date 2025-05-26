@@ -17,6 +17,7 @@ const TeacherView: React.FC = () => {
   const [selectedLayoutId, setSelectedLayoutId] = useState<string>('2x2');
   const [isSplitViewActive, setIsSplitViewActive] = useState(false);
   const [gridOrientation, setGridOrientation] = useState<GridOrientation>('columns-first');
+  const [isControlsCollapsed, setIsControlsCollapsed] = useState(false);
 
   const handleMaximize = (boardId: string) => {
     setMaximizedBoard(boardId);
@@ -63,6 +64,10 @@ const TeacherView: React.FC = () => {
     setIsSplitViewActive(false);
   };
 
+  const handleToggleControlsCollapse = () => {
+    setIsControlsCollapsed(!isControlsCollapsed);
+  };
+
   // Calculate layout options and current layout
   const availableLayouts = calculateLayoutOptions(studentCount);
   const currentLayout = availableLayouts.find(layout => layout.id === selectedLayoutId) || availableLayouts[0];
@@ -101,6 +106,13 @@ const TeacherView: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-gray-100">
+      {/* Hover zone for collapsed header */}
+      {isControlsCollapsed && (
+        <div 
+          className="absolute top-0 left-0 right-0 h-4 z-50 bg-transparent"
+        />
+      )}
+
       <TeacherHeader
         studentCount={studentCount}
         currentLayout={currentLayout}
@@ -111,6 +123,8 @@ const TeacherView: React.FC = () => {
         onLayoutChange={handleLayoutChange}
         onToggleSplitView={handleToggleSplitView}
         isSplitViewActive={isSplitViewActive}
+        isCollapsed={isControlsCollapsed}
+        onToggleCollapse={handleToggleControlsCollapse}
       />
 
       {/* Split View Window */}
@@ -136,18 +150,24 @@ const TeacherView: React.FC = () => {
       )}
 
       {/* Main Content */}
-      <div className="h-[calc(100vh-5rem)] p-4">
+      <div className={`${isControlsCollapsed ? 'h-screen' : 'h-[calc(100vh-5rem)]'} p-4`}>
         {isSplitViewActive ? (
           // Single panel view - only teacher's board when split view is active
           <div className="h-full">
-            <TeacherMainBoard onMaximize={handleMaximize} />
+            <TeacherMainBoard 
+              onMaximize={handleMaximize} 
+              isHeaderCollapsed={isControlsCollapsed}
+            />
           </div>
         ) : (
           // Normal split panel view
           <ResizablePanelGroup direction="horizontal" className="rounded-lg overflow-hidden">
             {/* Left Pane - Teacher's Main Board */}
             <ResizablePanel defaultSize={60} minSize={40}>
-              <TeacherMainBoard onMaximize={handleMaximize} />
+              <TeacherMainBoard 
+                onMaximize={handleMaximize} 
+                isHeaderCollapsed={isControlsCollapsed}
+              />
             </ResizablePanel>
 
             <ResizableHandle className="w-2 bg-gray-200 hover:bg-gray-300 transition-colors duration-150" />
@@ -164,6 +184,7 @@ const TeacherView: React.FC = () => {
                 onMaximize={handleMaximize}
                 onPreviousPage={handlePreviousPage}
                 onNextPage={handleNextPage}
+                isHeaderCollapsed={isControlsCollapsed}
               />
             </ResizablePanel>
           </ResizablePanelGroup>
