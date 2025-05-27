@@ -9,42 +9,205 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
-      whiteboard_objects: {
+      profiles: {
         Row: {
-          board_id: string
-          created_at: string
+          created_at: string | null
+          full_name: string | null
           id: string
-          object_data: Json
-          sender_id: string
-          timestamp: number | null
-          updated_at: string
+          role: string | null
+          updated_at: string | null
         }
         Insert: {
-          board_id: string
-          created_at?: string
-          id?: string
-          object_data: Json
-          sender_id: string
-          timestamp?: number | null
-          updated_at?: string
+          created_at?: string | null
+          full_name?: string | null
+          id: string
+          role?: string | null
+          updated_at?: string | null
         }
         Update: {
-          board_id?: string
-          created_at?: string
+          created_at?: string | null
+          full_name?: string | null
           id?: string
-          object_data?: Json
-          sender_id?: string
-          timestamp?: number | null
-          updated_at?: string
+          role?: string | null
+          updated_at?: string | null
         }
         Relationships: []
+      }
+      saved_class_students: {
+        Row: {
+          id: number
+          saved_class_id: number
+          student_email: string | null
+          student_name: string
+        }
+        Insert: {
+          id?: number
+          saved_class_id: number
+          student_email?: string | null
+          student_name: string
+        }
+        Update: {
+          id?: number
+          saved_class_id?: number
+          student_email?: string | null
+          student_name?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "saved_class_students_saved_class_id_fkey"
+            columns: ["saved_class_id"]
+            isOneToOne: false
+            referencedRelation: "saved_classes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      saved_classes: {
+        Row: {
+          class_name: string
+          created_at: string | null
+          id: number
+          teacher_id: string
+        }
+        Insert: {
+          class_name: string
+          created_at?: string | null
+          id?: number
+          teacher_id: string
+        }
+        Update: {
+          class_name?: string
+          created_at?: string | null
+          id?: number
+          teacher_id?: string
+        }
+        Relationships: []
+      }
+      session_participants: {
+        Row: {
+          assigned_board_suffix: string
+          id: number
+          joined_at: string | null
+          session_id: string
+          student_email: string | null
+          student_name: string
+        }
+        Insert: {
+          assigned_board_suffix: string
+          id?: number
+          joined_at?: string | null
+          session_id: string
+          student_email?: string | null
+          student_name: string
+        }
+        Update: {
+          assigned_board_suffix?: string
+          id?: number
+          joined_at?: string | null
+          session_id?: string
+          student_email?: string | null
+          student_name?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "session_participants_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "sessions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      sessions: {
+        Row: {
+          created_at: string | null
+          duration_minutes: number | null
+          id: string
+          last_activity_at: string | null
+          status: string | null
+          teacher_id: string
+          title: string
+          unique_url_slug: string
+        }
+        Insert: {
+          created_at?: string | null
+          duration_minutes?: number | null
+          id?: string
+          last_activity_at?: string | null
+          status?: string | null
+          teacher_id: string
+          title?: string
+          unique_url_slug: string
+        }
+        Update: {
+          created_at?: string | null
+          duration_minutes?: number | null
+          id?: string
+          last_activity_at?: string | null
+          status?: string | null
+          teacher_id?: string
+          title?: string
+          unique_url_slug?: string
+        }
+        Relationships: []
+      }
+      whiteboard_data: {
+        Row: {
+          action_type: string
+          board_id: string
+          created_at: string | null
+          id: string
+          object_data: Json
+          object_id: string
+          object_type: string | null
+          session_id: string
+          user_id: string | null
+        }
+        Insert: {
+          action_type: string
+          board_id: string
+          created_at?: string | null
+          id?: string
+          object_data: Json
+          object_id: string
+          object_type?: string | null
+          session_id: string
+          user_id?: string | null
+        }
+        Update: {
+          action_type?: string
+          board_id?: string
+          created_at?: string | null
+          id?: string
+          object_data?: Json
+          object_id?: string
+          object_type?: string | null
+          session_id?: string
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "whiteboard_data_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "sessions"
+            referencedColumns: ["id"]
+          },
+        ]
       }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      generate_unique_slug: {
+        Args: Record<PropertyKey, never>
+        Returns: string
+      }
+      update_session_activity: {
+        Args: { session_uuid: string }
+        Returns: undefined
+      }
     }
     Enums: {
       [_ in never]: never
