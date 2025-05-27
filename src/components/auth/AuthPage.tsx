@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
@@ -6,9 +5,10 @@ import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
 import { Eye, EyeOff, Loader2, UserCheck } from 'lucide-react';
+import { useDemoAuth } from '@/hooks/useDemoAuth';
 
 interface AuthPageProps {
-  onAuthSuccess: () => void;
+  onAuthSuccess?: () => void;
 }
 
 const AuthPage: React.FC<AuthPageProps> = ({ onAuthSuccess }) => {
@@ -19,20 +19,22 @@ const AuthPage: React.FC<AuthPageProps> = ({ onAuthSuccess }) => {
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
+  const { setDemoMode } = useDemoAuth();
 
   const handleTestLogin = async () => {
     setIsLoading(true);
     
     try {
-      // Since email auth is disabled, we'll simulate a successful login
-      // by directly calling the onAuthSuccess callback
+      // Enable demo mode
+      setDemoMode(true);
+      
       toast({
         title: "Demo Mode Active!",
         description: "You're now using the app in demo mode as a test teacher.",
       });
       
-      // Simulate successful authentication for demo purposes
-      onAuthSuccess();
+      // Navigate to dashboard (App.tsx will now recognize demo mode)
+      window.location.href = '/dashboard';
     } catch (error: any) {
       toast({
         title: "Demo Login Error",

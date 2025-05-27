@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
@@ -19,7 +18,7 @@ interface Session {
 }
 
 const TeacherDashboard: React.FC = () => {
-  const { user, signOut } = useAuth();
+  const { user, signOut, isDemoMode } = useAuth();
   const [activeSession, setActiveSession] = useState<Session | null>(null);
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [recentSessions, setRecentSessions] = useState<Session[]>([]);
@@ -32,6 +31,12 @@ const TeacherDashboard: React.FC = () => {
   }, [user]);
 
   const fetchRecentSessions = async () => {
+    // Skip fetching for demo mode since we don't have real data
+    if (isDemoMode) {
+      setRecentSessions([]);
+      return;
+    }
+    
     try {
       const { data, error } = await supabase
         .from('sessions')
@@ -151,7 +156,10 @@ const TeacherDashboard: React.FC = () => {
         <div className="mb-8 flex items-center justify-between">
           <div>
             <h1 className="text-3xl font-bold text-gray-900">Teacher Dashboard</h1>
-            <p className="text-gray-600">Welcome back, {user?.user_metadata?.full_name || user?.email}</p>
+            <p className="text-gray-600">
+              Welcome back, {isDemoMode ? 'Demo Teacher' : user?.user_metadata?.full_name || user?.email}
+              {isDemoMode && <span className="ml-2 text-blue-600 font-medium">(Demo Mode)</span>}
+            </p>
           </div>
           <Button variant="outline" onClick={signOut}>
             <LogOut className="h-4 w-4 mr-2" />

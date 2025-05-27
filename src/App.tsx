@@ -5,6 +5,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
+import { DemoAuthProvider } from "@/hooks/useDemoAuth";
 import AuthPage from "@/components/auth/AuthPage";
 import TeacherDashboard from "@/components/session/TeacherDashboard";
 import StudentJoinPage from "@/components/session/StudentJoinPage";
@@ -16,7 +17,7 @@ import { Loader2 } from "lucide-react";
 const queryClient = new QueryClient();
 
 const AuthenticatedApp = () => {
-  const { user, loading } = useAuth();
+  const { user, loading, isDemoMode } = useAuth();
 
   if (loading) {
     return (
@@ -35,15 +36,15 @@ const AuthenticatedApp = () => {
       <Route path="/session/:sessionSlug" element={<StudentJoinPage />} />
       <Route path="/session/:sessionSlug/student" element={<StudentSessionView />} />
       
-      {/* Teacher routes - require authentication */}
-      {user ? (
+      {/* Teacher routes - require authentication or demo mode */}
+      {(user || isDemoMode) ? (
         <>
           <Route path="/dashboard" element={<TeacherDashboard />} />
           <Route path="/" element={<Navigate to="/dashboard" replace />} />
         </>
       ) : (
         <>
-          <Route path="/auth" element={<AuthPage onAuthSuccess={() => window.location.href = '/dashboard'} />} />
+          <Route path="/auth" element={<AuthPage />} />
           <Route path="/dashboard" element={<Navigate to="/auth" replace />} />
           <Route path="/" element={<Index />} />
         </>
@@ -60,9 +61,11 @@ const App = () => (
     <TooltipProvider>
       <Toaster />
       <Sonner />
-      <BrowserRouter>
-        <AuthenticatedApp />
-      </BrowserRouter>
+      <DemoAuthProvider>
+        <BrowserRouter>
+          <AuthenticatedApp />
+        </BrowserRouter>
+      </DemoAuthProvider>
     </TooltipProvider>
   </QueryClientProvider>
 );
