@@ -1,185 +1,181 @@
+
 import React, { useState } from 'react';
+import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from '@/components/ui/resizable';
+import WhiteboardPlaceholder from './WhiteboardPlaceholder';
 import TeacherHeader from './TeacherHeader';
 import TeacherMainBoard from './TeacherMainBoard';
 import StudentBoardsGrid from './StudentBoardsGrid';
-import { WindowManager } from './WindowManager';
+import StudentBoardsWindow from './StudentBoardsWindow';
 import { calculateLayoutOptions, generateStudentBoards, getStudentBoardsForPage } from '@/utils/layoutCalculator';
-import type { LayoutOption } from '@/utils/layoutCalculator';
-import { useToast } from '@/hooks/use-toast';
-import { Settings, Copy, Check, ExternalLink } from 'lucide-react';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
-import { Button } from '@/components/ui/button';
 
 export type GridOrientation = 'columns-first' | 'rows-first';
 
-interface Session {
-  id: string;
-  title: string;
-  unique_url_slug: string;
-  status: string;
-}
-
-interface TeacherViewProps {
-  activeSession: Session;
-  onEndSession: () => void;
-  onSignOut: () => void;
-}
-
-const TeacherView: React.FC<TeacherViewProps> = ({ activeSession, onEndSession, onSignOut }) => {
-  const [studentCount, setStudentCount] = useState(4);
-  const [selectedLayoutId, setSelectedLayoutId] = useState('2x2');
-  const [gridOrientation, setGridOrientation] = useState<GridOrientation>('columns-first');
-  const [isSplitViewActive, setIsSplitViewActive] = useState(false);
-  const [isHeaderCollapsed, setIsHeaderCollapsed] = useState(false);
-  const [copied, setCopied] = useState(false);
+const TeacherView: React.FC = () => {
+  const [maximizedBoard, setMaximizedBoard] = useState<string | null>(null);
   const [currentPage, setCurrentPage] = useState(0);
-  const { toast } = useToast();
+  const [studentCount, setStudentCount] = useState(4);
+  const [selectedLayoutId, setSelectedLayoutId] = useState<string>('2x2');
+  const [isSplitViewActive, setIsSplitViewActive] = useState(false);
+  const [gridOrientation, setGridOrientation] = useState<GridOrientation>('columns-first');
+  const [isControlsCollapsed, setIsControlsCollapsed] = useState(false);
 
-  const availableLayouts: LayoutOption[] = calculateLayoutOptions(studentCount);
-  const currentLayout = availableLayouts.find(layout => layout.id === selectedLayoutId) || availableLayouts[0];
-  
-  const studentBoards = generateStudentBoards(studentCount);
-  const totalPages = currentLayout ? currentLayout.totalPages : 1;
-  const currentStudentBoards = currentLayout ? getStudentBoardsForPage(studentBoards, currentPage, currentLayout.studentsPerPage) : [];
-
-  const handleIncreaseStudentCount = () => {
-    if (studentCount < 8) {
-      setStudentCount(prev => prev + 1);
-    }
+  const handleMaximize = (boardId: string) => {
+    setMaximizedBoard(boardId);
   };
 
-  const handleDecreaseStudentCount = () => {
-    if (studentCount > 1) {
-      setStudentCount(prev => prev - 1);
+  const handleMinimize = () => {
+    setMaximizedBoard(null);
+  };
+
+  const handleStudentCountChange = (newCount: number) => {
+    const clampedCount = Math.max(1, Math.min(8, newCount));
+    setStudentCount(clampedCount);
+    setCurrentPage(0);
+    
+    // Reset layout to first available option when student count changes
+    const availableLayouts = calculateLayoutOptions(clampedCount);
+    if (availableLayouts.length > 0) {
+      setSelectedLayoutId(availableLayouts[0].id);
     }
   };
 
   const handleLayoutChange = (layoutId: string) => {
     setSelectedLayoutId(layoutId);
+    setCurrentPage(0); // Reset to first page when layout changes
   };
 
   const handleOrientationChange = (orientation: GridOrientation) => {
     setGridOrientation(orientation);
   };
 
-  const handleMaximize = (boardId: string) => {
-    console.log('Maximize board:', boardId);
-    // TODO: Implement maximize functionality
+  const increaseStudentCount = () => {
+    handleStudentCountChange(studentCount + 1);
   };
 
+  const decreaseStudentCount = () => {
+    handleStudentCountChange(studentCount - 1);
+  };
+
+  const handleToggleSplitView = () => {
+    setIsSplitViewActive(!isSplitViewActive);
+  };
+
+  const handleCloseSplitView = () => {
+    setIsSplitViewActive(false);
+  };
+
+  const handleToggleControlsCollapse = () => {
+    setIsControlsCollapsed(!isControlsCollapsed);
+  };
+
+  // Calculate layout options and current layout
+  const availableLayouts = calculateLayoutOptions(studentCount);
+  const currentLayout = availableLayouts.find(layout => layout.id === selectedLayoutId) || availableLayouts[0];
+  
+  // Generate student boards and get current page boards
+  const allStudentBoards = generateStudentBoards(studentCount);
+  const currentStudentBoards = getStudentBoardsForPage(
+    allStudentBoards, 
+    currentPage, 
+    currentLayout?.studentsPerPage || 4
+  );
+
+  const totalPages = currentLayout?.totalPages || 1;
+
   const handlePreviousPage = () => {
-    if (currentPage > 0) {
-      setCurrentPage(prev => prev - 1);
-    }
+    setCurrentPage(prev => Math.max(0, prev - 1));
   };
 
   const handleNextPage = () => {
-    if (currentPage < totalPages - 1) {
-      setCurrentPage(prev => prev + 1);
-    }
+    setCurrentPage(prev => Math.min(totalPages - 1, prev + 1));
   };
 
-  const copySessionUrl = async () => {
-    const sessionUrl = `${window.location.origin}/session/${activeSession.unique_url_slug}`;
-    
-    try {
-      await navigator.clipboard.writeText(sessionUrl);
-      setCopied(true);
-      toast({
-        title: "URL Copied!",
-        description: "Session URL has been copied to clipboard.",
-      });
-      setTimeout(() => setCopied(false), 2000);
-    } catch (error) {
-      toast({
-        title: "Copy Failed",
-        description: "Could not copy URL to clipboard.",
-        variant: "destructive",
-      });
-    }
-  };
-
-  const openSessionInNewWindow = () => {
-    const sessionUrl = `${window.location.origin}/session/${activeSession.unique_url_slug}`;
-    window.open(sessionUrl, '_blank');
-  };
-
-  // Session Options Dropdown Component
-  const SessionOptionsDropdown = () => (
-    <DropdownMenu>
-      <DropdownMenuTrigger asChild>
-        <Button variant="outline" size="sm" className="flex items-center gap-2">
-          <Settings className="h-4 w-4" />
-          Session Options
-        </Button>
-      </DropdownMenuTrigger>
-      <DropdownMenuContent className="w-80" align="end">
-        <DropdownMenuLabel>Student Access URL</DropdownMenuLabel>
-        <div className="px-2 py-1.5">
-          <p className="text-sm text-gray-600 mb-2">
-            Share this URL with your students to join the session
-          </p>
-          <div className="flex items-center gap-2 p-2 bg-gray-50 rounded border">
-            <code className="text-sm flex-1 break-all">
-              {`${window.location.origin}/session/${activeSession.unique_url_slug}`}
-            </code>
-          </div>
+  if (maximizedBoard) {
+    return (
+      <div className="min-h-screen bg-gray-100 p-4">
+        <div className="h-[calc(100vh-2rem)]">
+          <WhiteboardPlaceholder
+            id={maximizedBoard}
+            isMaximized={true}
+            onMinimize={handleMinimize}
+          />
         </div>
-        <DropdownMenuSeparator />
-        <DropdownMenuItem onClick={copySessionUrl}>
-          {copied ? <Check className="h-4 w-4 mr-2" /> : <Copy className="h-4 w-4 mr-2" />}
-          {copied ? 'Copied!' : 'Copy URL'}
-        </DropdownMenuItem>
-        <DropdownMenuItem onClick={openSessionInNewWindow}>
-          <ExternalLink className="h-4 w-4 mr-2" />
-          Open in New Window
-        </DropdownMenuItem>
-        <DropdownMenuSeparator />
-        <DropdownMenuItem onClick={onEndSession} className="text-red-600">
-          End Session
-        </DropdownMenuItem>
-      </DropdownMenuContent>
-    </DropdownMenu>
-  );
+      </div>
+    );
+  }
 
   return (
-    <div className="min-h-screen bg-gray-100 flex flex-col">
+    <div className="min-h-screen bg-gray-100">
+      {/* Hover zone for collapsed header */}
+      {isControlsCollapsed && (
+        <div 
+          className="absolute top-0 left-0 right-0 h-4 z-50 bg-transparent"
+        />
+      )}
+
       <TeacherHeader
         studentCount={studentCount}
         currentLayout={currentLayout}
         availableLayouts={availableLayouts}
         selectedLayoutId={selectedLayoutId}
         gridOrientation={gridOrientation}
-        onIncreaseStudentCount={handleIncreaseStudentCount}
-        onDecreaseStudentCount={handleDecreaseStudentCount}
+        onIncreaseStudentCount={increaseStudentCount}
+        onDecreaseStudentCount={decreaseStudentCount}
         onLayoutChange={handleLayoutChange}
         onOrientationChange={handleOrientationChange}
-        onToggleSplitView={() => setIsSplitViewActive(!isSplitViewActive)}
+        onToggleSplitView={handleToggleSplitView}
         isSplitViewActive={isSplitViewActive}
-        isCollapsed={isHeaderCollapsed}
-        onToggleCollapse={() => setIsHeaderCollapsed(!isHeaderCollapsed)}
-        sessionTitle={activeSession.title}
-        sessionId={activeSession.id}
-        sessionOptionsDropdown={<SessionOptionsDropdown />}
-        onSignOut={onSignOut}
+        isCollapsed={isControlsCollapsed}
+        onToggleCollapse={handleToggleControlsCollapse}
       />
-      
-      <div className="flex-1 flex">
+
+      {/* Split View Window */}
+      {isSplitViewActive && (
+        <StudentBoardsWindow
+          studentCount={studentCount}
+          currentLayout={currentLayout}
+          availableLayouts={availableLayouts}
+          selectedLayoutId={selectedLayoutId}
+          currentStudentBoards={currentStudentBoards}
+          currentPage={currentPage}
+          totalPages={totalPages}
+          gridOrientation={gridOrientation}
+          onMaximize={handleMaximize}
+          onPreviousPage={handlePreviousPage}
+          onNextPage={handleNextPage}
+          onLayoutChange={handleLayoutChange}
+          onOrientationChange={handleOrientationChange}
+          onIncreaseStudentCount={increaseStudentCount}
+          onDecreaseStudentCount={decreaseStudentCount}
+          onClose={handleCloseSplitView}
+        />
+      )}
+
+      {/* Main Content */}
+      <div className={`${isControlsCollapsed ? 'h-screen' : 'h-[calc(100vh-5rem)]'} p-4`}>
         {isSplitViewActive ? (
-          <WindowManager studentCount={studentCount} />
+          // Single panel view - only teacher's board when split view is active
+          <div className="h-full">
+            <TeacherMainBoard 
+              onMaximize={handleMaximize} 
+              isHeaderCollapsed={isControlsCollapsed}
+            />
+          </div>
         ) : (
-          <>
-            <div className="w-1/2 border-r border-gray-300">
-              <TeacherMainBoard onMaximize={handleMaximize} isHeaderCollapsed={isHeaderCollapsed} />
-            </div>
-            <div className="w-1/2">
+          // Normal split panel view
+          <ResizablePanelGroup direction="horizontal" className="rounded-lg overflow-hidden">
+            {/* Left Pane - Teacher's Main Board */}
+            <ResizablePanel defaultSize={60} minSize={40}>
+              <TeacherMainBoard 
+                onMaximize={handleMaximize} 
+                isHeaderCollapsed={isControlsCollapsed}
+              />
+            </ResizablePanel>
+
+            <ResizableHandle className="w-2 bg-gray-200 hover:bg-gray-300 transition-colors duration-150" />
+
+            {/* Right Pane - Student Boards Grid */}
+            <ResizablePanel defaultSize={40} minSize={30}>
               <StudentBoardsGrid
                 studentCount={studentCount}
                 currentLayout={currentLayout}
@@ -190,10 +186,10 @@ const TeacherView: React.FC<TeacherViewProps> = ({ activeSession, onEndSession, 
                 onMaximize={handleMaximize}
                 onPreviousPage={handlePreviousPage}
                 onNextPage={handleNextPage}
-                isHeaderCollapsed={isHeaderCollapsed}
+                isHeaderCollapsed={isControlsCollapsed}
               />
-            </div>
-          </>
+            </ResizablePanel>
+          </ResizablePanelGroup>
         )}
       </div>
     </div>

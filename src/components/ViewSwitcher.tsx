@@ -8,22 +8,6 @@ import StudentView from './StudentView';
 const ViewSwitcher: React.FC = () => {
   const [currentView, setCurrentView] = useState<'teacher' | 'student'>('teacher');
 
-  // Mock session data for demo purposes
-  const mockSession = {
-    id: 'demo-session-123',
-    title: 'Demo Math Class',
-    unique_url_slug: 'demo-session-abc123',
-    status: 'active'
-  };
-
-  const handleEndSession = () => {
-    console.log('Demo: Session ended');
-  };
-
-  const handleSignOut = () => {
-    console.log('Demo: Signed out');
-  };
-
   return (
     <div className="min-h-screen">
       {/* View Toggle Header */}
@@ -49,15 +33,7 @@ const ViewSwitcher: React.FC = () => {
       </div>
 
       {/* Current View */}
-      {currentView === 'teacher' ? (
-        <TeacherView 
-          activeSession={mockSession}
-          onEndSession={handleEndSession}
-          onSignOut={handleSignOut}
-        />
-      ) : (
-        <StudentView />
-      )}
+      {currentView === 'teacher' ? <TeacherView /> : <StudentView />}
     </div>
   );
 };

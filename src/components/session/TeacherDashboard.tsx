@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
@@ -7,7 +6,15 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { useToast } from '@/hooks/use-toast';
 import CreateSessionForm from './CreateSessionForm';
 import TeacherView from '../TeacherView';
-import { LogOut, Plus, History } from 'lucide-react';
+import { LogOut, Plus, History, Settings, Copy, Check, ExternalLink } from 'lucide-react';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 
 interface Session {
   id: string;
@@ -22,6 +29,7 @@ const TeacherDashboard: React.FC = () => {
   const [activeSession, setActiveSession] = useState<Session | null>(null);
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [recentSessions, setRecentSessions] = useState<Session[]>([]);
+  const [copied, setCopied] = useState(false);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -107,14 +115,85 @@ const TeacherDashboard: React.FC = () => {
     }
   };
 
+  const copySessionUrl = async () => {
+    if (!activeSession) return;
+    
+    const sessionUrl = `${window.location.origin}/session/${activeSession.unique_url_slug}`;
+    
+    try {
+      await navigator.clipboard.writeText(sessionUrl);
+      setCopied(true);
+      toast({
+        title: "URL Copied!",
+        description: "Session URL has been copied to clipboard.",
+      });
+      setTimeout(() => setCopied(false), 2000);
+    } catch (error) {
+      toast({
+        title: "Copy Failed",
+        description: "Could not copy URL to clipboard.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const openSessionInNewWindow = () => {
+    if (!activeSession) return;
+    
+    const sessionUrl = `${window.location.origin}/session/${activeSession.unique_url_slug}`;
+    window.open(sessionUrl, '_blank');
+  };
+
   if (activeSession) {
     return (
       <div className="min-h-screen bg-gray-100">
-        <TeacherView 
-          activeSession={activeSession}
-          onEndSession={handleEndSession}
-          onSignOut={signOut}
-        />
+        <div className="bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-between">
+          <div>
+            <h1 className="text-xl font-semibold">Active Session: {activeSession.title}</h1>
+            <p className="text-sm text-gray-600">Session ID: {activeSession.id}</p>
+          </div>
+          <div className="flex items-center gap-4">
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline" className="flex items-center gap-2">
+                  <Settings className="h-4 w-4" />
+                  Session Options
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent className="w-80" align="end">
+                <DropdownMenuLabel>Student Access URL</DropdownMenuLabel>
+                <div className="px-2 py-1.5">
+                  <p className="text-sm text-gray-600 mb-2">
+                    Share this URL with your students to join the session
+                  </p>
+                  <div className="flex items-center gap-2 p-2 bg-gray-50 rounded border">
+                    <code className="text-sm flex-1 break-all">
+                      {`${window.location.origin}/session/${activeSession.unique_url_slug}`}
+                    </code>
+                  </div>
+                </div>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onClick={copySessionUrl}>
+                  {copied ? <Check className="h-4 w-4 mr-2" /> : <Copy className="h-4 w-4 mr-2" />}
+                  {copied ? 'Copied!' : 'Copy URL'}
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={openSessionInNewWindow}>
+                  <ExternalLink className="h-4 w-4 mr-2" />
+                  Open in New Window
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onClick={handleEndSession} className="text-red-600">
+                  End Session
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+            <Button variant="outline" onClick={signOut}>
+              <LogOut className="h-4 w-4 mr-2" />
+              Sign Out
+            </Button>
+          </div>
+        </div>
+        <TeacherView />
       </div>
     );
   }

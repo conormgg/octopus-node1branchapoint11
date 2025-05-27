@@ -52,9 +52,9 @@ const StudentBoardsGrid: React.FC<StudentBoardsGridProps> = ({
   };
 
   return (
-    <div className="h-full p-2 flex flex-col">
+    <div className="h-full p-2 relative">
       {!isHeaderCollapsed && (
-        <div className="mb-3 flex-shrink-0">
+        <div className="mb-3">
           <div className="flex items-center justify-between">
             <div className="flex items-center">
               <h2 className="text-lg font-semibold text-gray-800 flex items-center">
@@ -100,7 +100,7 @@ const StudentBoardsGrid: React.FC<StudentBoardsGridProps> = ({
         </div>
       )}
       
-      <div className="flex-1 min-h-0 relative">
+      <div className={`${isHeaderCollapsed ? 'h-full' : 'h-[calc(100%-4rem)]'} relative`}>
         {renderStudentGrid()}
         
         <PersistentPageNavigation

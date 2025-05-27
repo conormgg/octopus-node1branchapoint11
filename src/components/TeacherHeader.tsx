@@ -1,6 +1,6 @@
 
 import React, { useState } from 'react';
-import { GraduationCap, Users, Plus, Minus, UserPlus, Monitor, ChevronUp, ChevronDown, Columns2, Rows2, LogOut } from 'lucide-react';
+import { GraduationCap, Users, Plus, Minus, UserPlus, Monitor, ChevronUp, ChevronDown, Columns2, Rows2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 import LayoutSelector from './LayoutSelector';
@@ -21,10 +21,6 @@ interface TeacherHeaderProps {
   isSplitViewActive?: boolean;
   isCollapsed?: boolean;
   onToggleCollapse?: () => void;
-  sessionTitle?: string;
-  sessionId?: string;
-  sessionOptionsDropdown?: React.ReactNode;
-  onSignOut?: () => void;
 }
 
 const TeacherHeader: React.FC<TeacherHeaderProps> = ({
@@ -41,10 +37,6 @@ const TeacherHeader: React.FC<TeacherHeaderProps> = ({
   isSplitViewActive = false,
   isCollapsed = false,
   onToggleCollapse,
-  sessionTitle,
-  sessionId,
-  sessionOptionsDropdown,
-  onSignOut,
 }) => {
   const [isHovered, setIsHovered] = useState(false);
 
@@ -76,21 +68,14 @@ const TeacherHeader: React.FC<TeacherHeaderProps> = ({
                 <GraduationCap className="w-5 h-5 text-white" />
               </div>
               <div>
-                <h1 className="text-xl font-semibold text-gray-900">
-                  {sessionTitle ? `Active Session: ${sessionTitle}` : 'Teacher Dashboard'}
-                </h1>
+                <h1 className="text-xl font-semibold text-gray-900">Teacher Dashboard</h1>
                 {!isCollapsed && (
-                  <p className="text-sm text-gray-500">
-                    {sessionId ? `Session ID: ${sessionId}` : 'Collaborative Whiteboard Session'}
-                  </p>
+                  <p className="text-sm text-gray-500">Collaborative Whiteboard Session</p>
                 )}
               </div>
             </div>
             
             <div className="flex items-center space-x-6">
-              {/* Session Options - only show if we have session data */}
-              {sessionOptionsDropdown}
-
               {/* Layout Selector */}
               <LayoutSelector
                 availableLayouts={availableLayouts}
@@ -181,14 +166,6 @@ const TeacherHeader: React.FC<TeacherHeaderProps> = ({
                   </Button>
                 </div>
               </div>
-
-              {/* Sign Out Button */}
-              {onSignOut && (
-                <Button variant="outline" size="sm" onClick={onSignOut}>
-                  <LogOut className="h-4 w-4 mr-2" />
-                  Sign Out
-                </Button>
-              )}
 
               {/* Hide Controls Button */}
               {onToggleCollapse && (

@@ -1,21 +1,14 @@
 
-import React, { useState, useEffect } from 'react';
-import { createPortal } from 'react-dom';
-import StudentBoardsGrid from './StudentBoardsGrid';
-import { calculateLayoutOptions, generateStudentBoards, getStudentBoardsForPage } from '@/utils/layoutCalculator';
-import type { LayoutOption } from '@/utils/layoutCalculator';
-import type { GridOrientation } from './TeacherView';
+import { useEffect, useRef } from 'react';
 
 interface WindowManagerProps {
-  studentCount: number;
-}
-
-export const useWindowManager = ({ onWindowReady, onClose }: {
   onWindowReady: (container: HTMLDivElement) => void;
   onClose: () => void;
-}) => {
-  const windowRef = React.useRef<Window | null>(null);
-  const containerRef = React.useRef<HTMLDivElement | null>(null);
+}
+
+export const useWindowManager = ({ onWindowReady, onClose }: WindowManagerProps) => {
+  const windowRef = useRef<Window | null>(null);
+  const containerRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
     console.log('Opening student boards window...');
@@ -152,69 +145,4 @@ export const useWindowManager = ({ onWindowReady, onClose }: {
   }, []);
 
   return { windowRef, containerRef };
-};
-
-export const WindowManager: React.FC<WindowManagerProps> = ({ studentCount }) => {
-  const [isWindowReady, setIsWindowReady] = useState(false);
-  const [windowContainer, setWindowContainer] = useState<HTMLDivElement | null>(null);
-  const [selectedLayoutId, setSelectedLayoutId] = useState('2x2');
-  const [gridOrientation, setGridOrientation] = useState<GridOrientation>('columns-first');
-  const [currentPage, setCurrentPage] = useState(0);
-
-  const availableLayouts: LayoutOption[] = calculateLayoutOptions(studentCount);
-  const currentLayout = availableLayouts.find(layout => layout.id === selectedLayoutId) || availableLayouts[0];
-  
-  const studentBoards = generateStudentBoards(studentCount);
-  const totalPages = currentLayout ? currentLayout.totalPages : 1;
-  const currentStudentBoards = currentLayout ? getStudentBoardsForPage(studentBoards, currentPage, currentLayout.studentsPerPage) : [];
-
-  const { windowRef } = useWindowManager({
-    onWindowReady: (container) => {
-      console.log('Window ready callback triggered');
-      setWindowContainer(container);
-      setIsWindowReady(true);
-    },
-    onClose: () => {
-      console.log('Window close callback triggered');
-      setIsWindowReady(false);
-      setWindowContainer(null);
-    }
-  });
-
-  const handleMaximize = (boardId: string) => {
-    console.log('Maximize board:', boardId);
-    // TODO: Implement maximize functionality
-  };
-
-  const handlePreviousPage = () => {
-    if (currentPage > 0) {
-      setCurrentPage(prev => prev - 1);
-    }
-  };
-
-  const handleNextPage = () => {
-    if (currentPage < totalPages - 1) {
-      setCurrentPage(prev => prev + 1);
-    }
-  };
-
-  if (!isWindowReady || !windowContainer) {
-    return null;
-  }
-
-  return createPortal(
-    <StudentBoardsGrid
-      studentCount={studentCount}
-      currentLayout={currentLayout}
-      currentStudentBoards={currentStudentBoards}
-      currentPage={currentPage}
-      totalPages={totalPages}
-      gridOrientation={gridOrientation}
-      onMaximize={handleMaximize}
-      onPreviousPage={handlePreviousPage}
-      onNextPage={handleNextPage}
-      isHeaderCollapsed={false}
-    />,
-    windowContainer
-  );
 };
