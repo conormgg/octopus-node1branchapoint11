@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
@@ -5,7 +6,6 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
 import CreateSessionForm from './CreateSessionForm';
-import SessionUrlDisplay from './SessionUrlDisplay';
 import TeacherView from '../TeacherView';
 import { LogOut, Plus, History } from 'lucide-react';
 
@@ -109,25 +109,11 @@ const TeacherDashboard: React.FC = () => {
 
   if (activeSession) {
     return (
-      <div className="min-h-screen bg-gray-100">
-        <div className="bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-between">
-          <div>
-            <h1 className="text-xl font-semibold">Active Session: {activeSession.title}</h1>
-            <p className="text-sm text-gray-600">Session ID: {activeSession.id}</p>
-          </div>
-          <div className="flex items-center gap-4">
-            <SessionUrlDisplay sessionSlug={activeSession.unique_url_slug} />
-            <Button variant="outline" onClick={handleEndSession}>
-              End Session
-            </Button>
-            <Button variant="outline" onClick={signOut}>
-              <LogOut className="h-4 w-4 mr-2" />
-              Sign Out
-            </Button>
-          </div>
-        </div>
-        <TeacherView />
-      </div>
+      <TeacherView
+        activeSession={activeSession}
+        onEndSession={handleEndSession}
+        onSignOut={signOut}
+      />
     );
   }
 

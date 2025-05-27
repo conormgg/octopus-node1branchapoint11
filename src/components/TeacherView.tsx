@@ -10,7 +10,25 @@ import { calculateLayoutOptions, generateStudentBoards, getStudentBoardsForPage 
 
 export type GridOrientation = 'columns-first' | 'rows-first';
 
-const TeacherView: React.FC = () => {
+interface Session {
+  id: string;
+  title: string;
+  unique_url_slug: string;
+  status: string;
+  created_at: string;
+}
+
+interface TeacherViewProps {
+  activeSession?: Session | null;
+  onEndSession?: () => void;
+  onSignOut?: () => void;
+}
+
+const TeacherView: React.FC<TeacherViewProps> = ({
+  activeSession,
+  onEndSession,
+  onSignOut,
+}) => {
   const [maximizedBoard, setMaximizedBoard] = useState<string | null>(null);
   const [currentPage, setCurrentPage] = useState(0);
   const [studentCount, setStudentCount] = useState(4);
@@ -127,6 +145,9 @@ const TeacherView: React.FC = () => {
         isSplitViewActive={isSplitViewActive}
         isCollapsed={isControlsCollapsed}
         onToggleCollapse={handleToggleControlsCollapse}
+        activeSession={activeSession}
+        onEndSession={onEndSession}
+        onSignOut={onSignOut}
       />
 
       {/* Split View Window */}
@@ -152,7 +173,7 @@ const TeacherView: React.FC = () => {
       )}
 
       {/* Main Content */}
-      <div className={`${isControlsCollapsed ? 'h-screen' : 'h-[calc(100vh-5rem)]'} p-4`}>
+      <div className={`flex-1 ${isControlsCollapsed ? 'h-screen' : 'h-[calc(100vh-5rem)]'} p-4`}>
         {isSplitViewActive ? (
           // Single panel view - only teacher's board when split view is active
           <div className="h-full">
