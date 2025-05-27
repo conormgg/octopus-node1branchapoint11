@@ -1,3 +1,4 @@
+
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -30,43 +31,43 @@ const AuthenticatedApp = () => {
   }
 
   return (
-    <Routes>
-      {/* Public routes for students to join sessions */}
-      <Route path="/session/:sessionSlug" element={<StudentJoinPage />} />
-      <Route path="/session/:sessionSlug/student" element={<StudentSessionView />} />
-      
-      {/* Teacher routes - require authentication or demo mode */}
-      {(user || isDemoMode) ? (
-        <>
-          <Route path="/dashboard" element={<TeacherDashboard />} />
-          <Route path="/auth" element={<Navigate to="/dashboard" replace />} />
-          <Route path="/" element={<Navigate to="/dashboard" replace />} />
-        </>
-      ) : (
-        <>
-          <Route path="/auth" element={<AuthPage />} />
-          <Route path="/dashboard" element={<Navigate to="/auth" replace />} />
-          <Route path="/" element={<Index />} />
-        </>
-      )}
-      
-      {/* Catch all other routes */}
-      <Route path="*" element={<NotFound />} />
-    </Routes>
+    <BrowserRouter>
+      <Routes>
+        {/* Public routes for students to join sessions */}
+        <Route path="/session/:sessionSlug" element={<StudentJoinPage />} />
+        <Route path="/session/:sessionSlug/student" element={<StudentSessionView />} />
+        
+        {/* Teacher routes - require authentication or demo mode */}
+        {(user || isDemoMode) ? (
+          <>
+            <Route path="/dashboard" element={<TeacherDashboard />} />
+            <Route path="/auth" element={<Navigate to="/dashboard" replace />} />
+            <Route path="/" element={<Navigate to="/dashboard" replace />} />
+          </>
+        ) : (
+          <>
+            <Route path="/auth" element={<AuthPage />} />
+            <Route path="/dashboard" element={<Navigate to="/auth" replace />} />
+            <Route path="/" element={<Index />} />
+          </>
+        )}
+        
+        {/* Catch all other routes */}
+        <Route path="*" element={<NotFound />} />
+      </Routes>
+    </BrowserRouter>
   );
 };
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
-    <TooltipProvider>
-      <Toaster />
-      <Sonner />
-      <DemoAuthProvider>
-        <BrowserRouter>
-          <AuthenticatedApp />
-        </BrowserRouter>
-      </DemoAuthProvider>
-    </TooltipProvider>
+    <DemoAuthProvider>
+      <TooltipProvider>
+        <Toaster />
+        <Sonner />
+        <AuthenticatedApp />
+      </TooltipProvider>
+    </DemoAuthProvider>
   </QueryClientProvider>
 );
 
