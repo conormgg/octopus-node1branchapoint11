@@ -1,10 +1,9 @@
-
 import React, { useState } from 'react';
 import TeacherHeader from './TeacherHeader';
 import TeacherMainBoard from './TeacherMainBoard';
 import StudentBoardsGrid from './StudentBoardsGrid';
 import { WindowManager } from './WindowManager';
-import { calculateLayouts } from '@/utils/layoutCalculator';
+import { calculateLayoutOptions, generateStudentBoards, getStudentBoardsForPage } from '@/utils/layoutCalculator';
 import type { LayoutOption } from '@/utils/layoutCalculator';
 import { useToast } from '@/hooks/use-toast';
 import { Settings, Copy, Check, ExternalLink } from 'lucide-react';
@@ -40,9 +39,15 @@ const TeacherView: React.FC<TeacherViewProps> = ({ activeSession, onEndSession, 
   const [isSplitViewActive, setIsSplitViewActive] = useState(false);
   const [isHeaderCollapsed, setIsHeaderCollapsed] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [currentPage, setCurrentPage] = useState(0);
   const { toast } = useToast();
 
-  const availableLayouts: LayoutOption[] = calculateLayouts(studentCount);
+  const availableLayouts: LayoutOption[] = calculateLayoutOptions(studentCount);
+  const currentLayout = availableLayouts.find(layout => layout.id === selectedLayoutId) || availableLayouts[0];
+  
+  const studentBoards = generateStudentBoards(studentCount);
+  const totalPages = currentLayout ? currentLayout.totalPages : 1;
+  const currentStudentBoards = currentLayout ? getStudentBoardsForPage(studentBoards, currentPage, currentLayout.studentsPerPage) : [];
 
   const handleIncreaseStudentCount = () => {
     if (studentCount < 8) {
@@ -64,7 +69,22 @@ const TeacherView: React.FC<TeacherViewProps> = ({ activeSession, onEndSession, 
     setGridOrientation(orientation);
   };
 
-  const currentLayout = availableLayouts.find(layout => layout.id === selectedLayoutId);
+  const handleMaximize = (boardId: string) => {
+    console.log('Maximize board:', boardId);
+    // TODO: Implement maximize functionality
+  };
+
+  const handlePreviousPage = () => {
+    if (currentPage > 0) {
+      setCurrentPage(prev => prev - 1);
+    }
+  };
+
+  const handleNextPage = () => {
+    if (currentPage < totalPages - 1) {
+      setCurrentPage(prev => prev + 1);
+    }
+  };
 
   const copySessionUrl = async () => {
     const sessionUrl = `${window.location.origin}/session/${activeSession.unique_url_slug}`;
@@ -157,13 +177,20 @@ const TeacherView: React.FC<TeacherViewProps> = ({ activeSession, onEndSession, 
         ) : (
           <div className="flex h-[calc(100vh-80px)]">
             <div className="w-1/2 border-r border-gray-300">
-              <TeacherMainBoard />
+              <TeacherMainBoard onMaximize={handleMaximize} isHeaderCollapsed={isHeaderCollapsed} />
             </div>
             <div className="w-1/2">
               <StudentBoardsGrid
                 studentCount={studentCount}
-                layout={currentLayout}
-                orientation={gridOrientation}
+                currentLayout={currentLayout}
+                currentStudentBoards={currentStudentBoards}
+                currentPage={currentPage}
+                totalPages={totalPages}
+                gridOrientation={gridOrientation}
+                onMaximize={handleMaximize}
+                onPreviousPage={handlePreviousPage}
+                onNextPage={handleNextPage}
+                isHeaderCollapsed={isHeaderCollapsed}
               />
             </div>
           </div>
