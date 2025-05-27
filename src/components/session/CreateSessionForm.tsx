@@ -1,11 +1,13 @@
 import React, { useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
+import { useClassTemplates } from '@/hooks/useClassTemplates';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
-import { Plus, Minus, Users, Clock } from 'lucide-react';
+import { Plus, Minus, Users, Clock, Save, Download, BookOpen } from 'lucide-react';
 
 interface Student {
   name: string;
@@ -18,10 +20,14 @@ interface CreateSessionFormProps {
 
 const CreateSessionForm: React.FC<CreateSessionFormProps> = ({ onSessionCreated }) => {
   const { user } = useAuth();
+  const { templates, saveTemplate, loadTemplate } = useClassTemplates();
   const [title, setTitle] = useState('');
   const [duration, setDuration] = useState<number | ''>('');
   const [students, setStudents] = useState<Student[]>([{ name: '', email: '' }]);
   const [isLoading, setIsLoading] = useState(false);
+  const [selectedTemplateId, setSelectedTemplateId] = useState<string>('');
+  const [templateName, setTemplateName] = useState('');
+  const [showSaveTemplate, setShowSaveTemplate] = useState(false);
   const { toast } = useToast();
 
   const addStudent = () => {
@@ -41,6 +47,46 @@ const CreateSessionForm: React.FC<CreateSessionFormProps> = ({ onSessionCreated 
       i === index ? { ...student, [field]: value } : student
     );
     setStudents(updatedStudents);
+  };
+
+  const handleLoadTemplate = () => {
+    if (!selectedTemplateId) return;
+    
+    const templateStudents = loadTemplate(parseInt(selectedTemplateId));
+    if (templateStudents.length > 0) {
+      setStudents(templateStudents);
+      toast({
+        title: "Template Loaded",
+        description: `Loaded ${templateStudents.length} students from template.`,
+      });
+    }
+  };
+
+  const handleSaveTemplate = async () => {
+    if (!templateName.trim()) {
+      toast({
+        title: "Template Name Required",
+        description: "Please enter a name for the template.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const validStudents = students.filter(student => student.name.trim());
+    if (validStudents.length === 0) {
+      toast({
+        title: "No Students to Save",
+        description: "Please add at least one student before saving a template.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const success = await saveTemplate(templateName.trim(), validStudents);
+    if (success) {
+      setTemplateName('');
+      setShowSaveTemplate(false);
+    }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -112,6 +158,8 @@ const CreateSessionForm: React.FC<CreateSessionFormProps> = ({ onSessionCreated 
     }
   };
 
+  const hasValidStudents = students.some(student => student.name.trim());
+
   return (
     <Card className="w-full max-w-2xl mx-auto">
       <CardHeader>
@@ -125,6 +173,43 @@ const CreateSessionForm: React.FC<CreateSessionFormProps> = ({ onSessionCreated 
       </CardHeader>
       <CardContent>
         <form onSubmit={handleSubmit} className="space-y-6">
+          {/* Load from Template Section */}
+          {templates.length > 0 && (
+            <Card className="border-dashed">
+              <CardHeader className="pb-4">
+                <CardTitle className="text-sm flex items-center gap-2">
+                  <BookOpen className="h-4 w-4" />
+                  Load from Class Template
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                <div className="flex gap-2">
+                  <Select value={selectedTemplateId} onValueChange={setSelectedTemplateId}>
+                    <SelectTrigger className="flex-1">
+                      <SelectValue placeholder="Select a class template" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {templates.map((template) => (
+                        <SelectItem key={template.id} value={template.id.toString()}>
+                          {template.class_name} ({template.students.length} students)
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <Button 
+                    type="button" 
+                    variant="outline" 
+                    onClick={handleLoadTemplate}
+                    disabled={!selectedTemplateId}
+                  >
+                    <Download className="h-4 w-4 mr-1" />
+                    Load
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
           <div className="space-y-2">
             <label htmlFor="title" className="text-sm font-medium">
               Session Title
@@ -201,6 +286,58 @@ const CreateSessionForm: React.FC<CreateSessionFormProps> = ({ onSessionCreated 
               ))}
             </div>
           </div>
+
+          {/* Save as Template Section */}
+          {hasValidStudents && (
+            <Card className="border-dashed">
+              <CardHeader className="pb-4">
+                <CardTitle className="text-sm flex items-center gap-2">
+                  <Save className="h-4 w-4" />
+                  Save as Class Template
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                {!showSaveTemplate ? (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setShowSaveTemplate(true)}
+                  >
+                    Save Current Student List as Template
+                  </Button>
+                ) : (
+                  <div className="flex gap-2">
+                    <Input
+                      placeholder="Template name (e.g., Math Class Period 3)"
+                      value={templateName}
+                      onChange={(e) => setTemplateName(e.target.value)}
+                    />
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={handleSaveTemplate}
+                      disabled={!templateName.trim()}
+                    >
+                      Save
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => {
+                        setShowSaveTemplate(false);
+                        setTemplateName('');
+                      }}
+                    >
+                      Cancel
+                    </Button>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          )}
 
           <Button type="submit" className="w-full" disabled={isLoading}>
             {isLoading ? 'Creating Session...' : 'Start Session'}
