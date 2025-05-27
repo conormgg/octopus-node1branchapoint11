@@ -24,53 +24,19 @@ const AuthPage: React.FC<AuthPageProps> = ({ onAuthSuccess }) => {
     setIsLoading(true);
     
     try {
-      // Try to sign in with test account, if it doesn't exist, create it
-      const testEmail = 'test@teacher.demo';
-      const testPassword = 'testpassword123';
-      
-      let { error } = await supabase.auth.signInWithPassword({
-        email: testEmail,
-        password: testPassword,
-      });
-      
-      // If login failed, try to create the test account
-      if (error) {
-        const { error: signUpError } = await supabase.auth.signUp({
-          email: testEmail,
-          password: testPassword,
-          options: {
-            data: {
-              full_name: 'Test Teacher',
-              role: 'teacher'
-            }
-          }
-        });
-        
-        if (signUpError) {
-          throw signUpError;
-        }
-        
-        // Now try to sign in again
-        const { error: retryError } = await supabase.auth.signInWithPassword({
-          email: testEmail,
-          password: testPassword,
-        });
-        
-        if (retryError) {
-          throw retryError;
-        }
-      }
-      
+      // Since email auth is disabled, we'll simulate a successful login
+      // by directly calling the onAuthSuccess callback
       toast({
-        title: "Welcome!",
-        description: "You're now signed in as a test teacher.",
+        title: "Demo Mode Active!",
+        description: "You're now using the app in demo mode as a test teacher.",
       });
       
+      // Simulate successful authentication for demo purposes
       onAuthSuccess();
     } catch (error: any) {
       toast({
-        title: "Test Login Error",
-        description: error.message,
+        title: "Demo Login Error",
+        description: "Unable to start demo mode. Please contact support.",
         variant: "destructive",
       });
     } finally {
@@ -117,11 +83,19 @@ const AuthPage: React.FC<AuthPageProps> = ({ onAuthSuccess }) => {
       
       onAuthSuccess();
     } catch (error: any) {
-      toast({
-        title: "Authentication Error",
-        description: error.message,
-        variant: "destructive",
-      });
+      if (error.message.includes('Email signups are disabled') || error.message.includes('Email logins are disabled')) {
+        toast({
+          title: "Authentication Unavailable",
+          description: "Email authentication is currently disabled. Please use the demo mode above to explore the app.",
+          variant: "destructive",
+        });
+      } else {
+        toast({
+          title: "Authentication Error",
+          description: error.message,
+          variant: "destructive",
+        });
+      }
     } finally {
       setIsLoading(false);
     }
@@ -149,7 +123,7 @@ const AuthPage: React.FC<AuthPageProps> = ({ onAuthSuccess }) => {
               <span className="font-medium text-blue-900">Quick Demo Access</span>
             </div>
             <p className="text-sm text-blue-700 mb-3">
-              Skip the signup process and try the app immediately with a test account.
+              Explore the app immediately in demo mode - no signup required!
             </p>
             <Button 
               onClick={handleTestLogin} 
@@ -158,7 +132,7 @@ const AuthPage: React.FC<AuthPageProps> = ({ onAuthSuccess }) => {
               className="w-full border-blue-300 text-blue-700 hover:bg-blue-100"
             >
               {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              Continue as Test Teacher
+              Continue in Demo Mode
             </Button>
           </div>
 
