@@ -1,13 +1,14 @@
-
 import React, { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
+import { useClassTemplates } from '@/hooks/useClassTemplates';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
 import CreateSessionForm from './CreateSessionForm';
+import ClassTemplatesPage from './ClassTemplatesPage';
 import TeacherView from '../TeacherView';
-import { LogOut, Plus, History } from 'lucide-react';
+import { LogOut, Plus, History, BookOpen } from 'lucide-react';
 
 interface Session {
   id: string;
@@ -17,10 +18,13 @@ interface Session {
   created_at: string;
 }
 
+type DashboardView = 'main' | 'create-session' | 'templates';
+
 const TeacherDashboard: React.FC = () => {
   const { user, signOut, isDemoMode } = useAuth();
+  const { templates } = useClassTemplates();
   const [activeSession, setActiveSession] = useState<Session | null>(null);
-  const [showCreateForm, setShowCreateForm] = useState(false);
+  const [currentView, setCurrentView] = useState<DashboardView>('main');
   const [recentSessions, setRecentSessions] = useState<Session[]>([]);
   const { toast } = useToast();
 
@@ -63,7 +67,7 @@ const TeacherDashboard: React.FC = () => {
       if (error) throw error;
       
       setActiveSession(data);
-      setShowCreateForm(false);
+      setCurrentView('main');
       fetchRecentSessions();
     } catch (error: any) {
       toast({
@@ -117,12 +121,12 @@ const TeacherDashboard: React.FC = () => {
     );
   }
 
-  if (showCreateForm) {
+  if (currentView === 'create-session') {
     return (
       <div className="min-h-screen bg-gray-50 py-8">
         <div className="max-w-4xl mx-auto px-4">
           <div className="mb-6 flex items-center justify-between">
-            <Button variant="outline" onClick={() => setShowCreateForm(false)}>
+            <Button variant="outline" onClick={() => setCurrentView('main')}>
               ← Back to Dashboard
             </Button>
             <Button variant="outline" onClick={signOut}>
@@ -133,6 +137,12 @@ const TeacherDashboard: React.FC = () => {
           <CreateSessionForm onSessionCreated={handleSessionCreated} />
         </div>
       </div>
+    );
+  }
+
+  if (currentView === 'templates') {
+    return (
+      <ClassTemplatesPage onBack={() => setCurrentView('main')} />
     );
   }
 
@@ -153,7 +163,7 @@ const TeacherDashboard: React.FC = () => {
           </Button>
         </div>
 
-        <div className="grid gap-6 md:grid-cols-2">
+        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
@@ -165,8 +175,25 @@ const TeacherDashboard: React.FC = () => {
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <Button onClick={() => setShowCreateForm(true)} className="w-full">
+              <Button onClick={() => setCurrentView('create-session')} className="w-full">
                 Create New Session
+              </Button>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <BookOpen className="h-5 w-5" />
+                Class Templates
+              </CardTitle>
+              <CardDescription>
+                Manage your saved class templates ({templates.length})
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <Button onClick={() => setCurrentView('templates')} className="w-full" variant="outline">
+                Manage Templates
               </Button>
             </CardContent>
           </Card>
