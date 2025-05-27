@@ -8,7 +8,7 @@ export const useAuth = () => {
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
-  const { isDemoMode, demoUser } = useDemoAuth();
+  const { isDemoMode, demoUser, setDemoMode } = useDemoAuth();
 
   useEffect(() => {
     // Set up auth state listener FIRST
@@ -31,6 +31,12 @@ export const useAuth = () => {
   }, []);
 
   const signOut = async () => {
+    // Clear demo mode first if active
+    if (isDemoMode) {
+      setDemoMode(false);
+    }
+    
+    // Then sign out from Supabase
     const { error } = await supabase.auth.signOut();
     if (error) {
       console.error('Error signing out:', error);
