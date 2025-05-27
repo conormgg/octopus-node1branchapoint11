@@ -1,5 +1,5 @@
 
-import { createContext, useContext, useState, ReactNode } from 'react';
+import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 
 interface DemoAuthContextType {
   isDemoMode: boolean;
@@ -17,7 +17,10 @@ interface DemoAuthContextType {
 const DemoAuthContext = createContext<DemoAuthContextType | undefined>(undefined);
 
 export const DemoAuthProvider = ({ children }: { children: ReactNode }) => {
-  const [isDemoMode, setIsDemoMode] = useState(false);
+  const [isDemoMode, setIsDemoMode] = useState(() => {
+    // Initialize from localStorage to persist across page reloads
+    return localStorage.getItem('demoMode') === 'true';
+  });
 
   const demoUser = isDemoMode ? {
     id: 'demo-teacher-id',
@@ -30,6 +33,12 @@ export const DemoAuthProvider = ({ children }: { children: ReactNode }) => {
 
   const setDemoMode = (enabled: boolean) => {
     setIsDemoMode(enabled);
+    // Persist to localStorage
+    if (enabled) {
+      localStorage.setItem('demoMode', 'true');
+    } else {
+      localStorage.removeItem('demoMode');
+    }
   };
 
   return (

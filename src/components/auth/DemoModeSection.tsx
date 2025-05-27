@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { UserCheck, Loader2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useDemoAuth } from '@/hooks/useDemoAuth';
+import { useNavigate } from 'react-router-dom';
 
 interface DemoModeSectionProps {
   isLoading: boolean;
@@ -13,6 +14,7 @@ interface DemoModeSectionProps {
 const DemoModeSection: React.FC<DemoModeSectionProps> = ({ isLoading, onLoadingChange }) => {
   const { toast } = useToast();
   const { setDemoMode } = useDemoAuth();
+  const navigate = useNavigate();
 
   const handleTestLogin = async () => {
     onLoadingChange(true);
@@ -26,8 +28,8 @@ const DemoModeSection: React.FC<DemoModeSectionProps> = ({ isLoading, onLoadingC
         description: "You're now using the app in demo mode as a test teacher.",
       });
       
-      // Navigate to dashboard (App.tsx will now recognize demo mode)
-      window.location.href = '/dashboard';
+      // Navigate to dashboard using React Router
+      navigate('/dashboard');
     } catch (error: any) {
       toast({
         title: "Demo Login Error",
