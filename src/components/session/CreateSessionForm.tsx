@@ -1,6 +1,6 @@
-
 import React, { useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/hooks/useAuth';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -17,6 +17,7 @@ interface CreateSessionFormProps {
 }
 
 const CreateSessionForm: React.FC<CreateSessionFormProps> = ({ onSessionCreated }) => {
+  const { user } = useAuth();
   const [title, setTitle] = useState('');
   const [duration, setDuration] = useState<number | ''>('');
   const [students, setStudents] = useState<Student[]>([{ name: '', email: '' }]);
@@ -44,6 +45,16 @@ const CreateSessionForm: React.FC<CreateSessionFormProps> = ({ onSessionCreated 
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    if (!user) {
+      toast({
+        title: "Authentication Error",
+        description: "You must be logged in to create a session.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     setIsLoading(true);
 
     try {
@@ -57,6 +68,7 @@ const CreateSessionForm: React.FC<CreateSessionFormProps> = ({ onSessionCreated 
       const { data: sessionData, error: sessionError } = await supabase
         .from('sessions')
         .insert({
+          teacher_id: user.id,
           title: title || 'Untitled Session',
           duration_minutes: duration || null,
           unique_url_slug: slugData,
