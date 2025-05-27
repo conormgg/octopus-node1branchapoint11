@@ -1,8 +1,9 @@
+
 import React, { useState } from 'react';
 import TeacherHeader from './TeacherHeader';
 import TeacherMainBoard from './TeacherMainBoard';
 import StudentBoardsGrid from './StudentBoardsGrid';
-import { WindowManager } from './WindowManager';
+import WindowManager from './WindowManager';
 import { calculateLayoutOptions, generateStudentBoards, getStudentBoardsForPage } from '@/utils/layoutCalculator';
 import type { LayoutOption } from '@/utils/layoutCalculator';
 import { useToast } from '@/hooks/use-toast';
@@ -150,7 +151,7 @@ const TeacherView: React.FC<TeacherViewProps> = ({ activeSession, onEndSession, 
   );
 
   return (
-    <div className="min-h-screen bg-gray-100">
+    <div className="min-h-screen bg-gray-100 flex flex-col">
       <TeacherHeader
         studentCount={studentCount}
         currentLayout={currentLayout}
@@ -171,11 +172,11 @@ const TeacherView: React.FC<TeacherViewProps> = ({ activeSession, onEndSession, 
         onSignOut={onSignOut}
       />
       
-      <div className={`transition-all duration-300 ${isHeaderCollapsed ? 'pt-0' : 'pt-0'}`}>
+      <div className="flex-1 flex">
         {isSplitViewActive ? (
           <WindowManager studentCount={studentCount} />
         ) : (
-          <div className="flex h-[calc(100vh-80px)]">
+          <>
             <div className="w-1/2 border-r border-gray-300">
               <TeacherMainBoard onMaximize={handleMaximize} isHeaderCollapsed={isHeaderCollapsed} />
             </div>
@@ -193,7 +194,7 @@ const TeacherView: React.FC<TeacherViewProps> = ({ activeSession, onEndSession, 
                 isHeaderCollapsed={isHeaderCollapsed}
               />
             </div>
-          </div>
+          </>
         )}
       </div>
     </div>
