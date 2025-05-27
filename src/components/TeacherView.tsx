@@ -1,9 +1,8 @@
-
 import React, { useState } from 'react';
 import TeacherHeader from './TeacherHeader';
 import TeacherMainBoard from './TeacherMainBoard';
 import StudentBoardsGrid from './StudentBoardsGrid';
-import WindowManager from './WindowManager';
+import { WindowManager } from './WindowManager';
 import { calculateLayoutOptions, generateStudentBoards, getStudentBoardsForPage } from '@/utils/layoutCalculator';
 import type { LayoutOption } from '@/utils/layoutCalculator';
 import { useToast } from '@/hooks/use-toast';
