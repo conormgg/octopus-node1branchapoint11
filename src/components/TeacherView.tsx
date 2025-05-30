@@ -12,7 +12,7 @@ import { supabase } from '@/integrations/supabase/client';
 export type GridOrientation = 'columns-first' | 'rows-first';
 
 interface SessionStudent {
-  id: string;
+  id: number;
   student_name: string;
   student_email?: string;
   assigned_board_suffix: string;
@@ -68,7 +68,7 @@ const TeacherView: React.FC<TeacherViewProps> = ({
 
     try {
       const { data, error } = await supabase
-        .from('session_students')
+        .from('session_participants')
         .select('*')
         .eq('session_id', activeSession.id)
         .order('assigned_board_suffix');
@@ -96,7 +96,7 @@ const TeacherView: React.FC<TeacherViewProps> = ({
     
     // Create mock student data for UI testing
     const mockStudents: SessionStudent[] = Array.from({ length: clampedCount }, (_, i) => ({
-      id: `mock-student-${i}`,
+      id: i + 1,
       student_name: `Student ${String.fromCharCode(65 + i)}`,
       assigned_board_suffix: String.fromCharCode(65 + i),
     }));
