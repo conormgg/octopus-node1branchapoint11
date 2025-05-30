@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from '@/components/ui/resizable';
 import WhiteboardPlaceholder from './WhiteboardPlaceholder';
 import TeacherHeader from './TeacherHeader';
@@ -7,8 +7,16 @@ import TeacherMainBoard from './TeacherMainBoard';
 import StudentBoardsGrid from './StudentBoardsGrid';
 import StudentBoardsWindow from './StudentBoardsWindow';
 import { calculateLayoutOptions, generateStudentBoards, getStudentBoardsForPage } from '@/utils/layoutCalculator';
+import { supabase } from '@/integrations/supabase/client';
 
 export type GridOrientation = 'columns-first' | 'rows-first';
+
+interface SessionStudent {
+  id: string;
+  student_name: string;
+  student_email?: string;
+  assigned_board_suffix: string;
+}
 
 interface Session {
   id: string;
@@ -31,11 +39,47 @@ const TeacherView: React.FC<TeacherViewProps> = ({
 }) => {
   const [maximizedBoard, setMaximizedBoard] = useState<string | null>(null);
   const [currentPage, setCurrentPage] = useState(0);
-  const [studentCount, setStudentCount] = useState(4);
+  const [sessionStudents, setSessionStudents] = useState<SessionStudent[]>([]);
   const [selectedLayoutId, setSelectedLayoutId] = useState<string>('2x2');
   const [isSplitViewActive, setIsSplitViewActive] = useState(false);
   const [gridOrientation, setGridOrientation] = useState<GridOrientation>('columns-first');
   const [isControlsCollapsed, setIsControlsCollapsed] = useState(false);
+
+  // Get actual student count from session data
+  const studentCount = sessionStudents.length;
+
+  useEffect(() => {
+    if (activeSession) {
+      fetchSessionStudents();
+    }
+  }, [activeSession]);
+
+  useEffect(() => {
+    // Reset layout to first available option when student count changes
+    const availableLayouts = calculateLayoutOptions(studentCount);
+    if (availableLayouts.length > 0 && studentCount > 0) {
+      setSelectedLayoutId(availableLayouts[0].id);
+    }
+    setCurrentPage(0);
+  }, [studentCount]);
+
+  const fetchSessionStudents = async () => {
+    if (!activeSession) return;
+
+    try {
+      const { data, error } = await supabase
+        .from('session_students')
+        .select('*')
+        .eq('session_id', activeSession.id)
+        .order('assigned_board_suffix');
+
+      if (error) throw error;
+      setSessionStudents(data || []);
+    } catch (error) {
+      console.error('Error fetching session students:', error);
+      setSessionStudents([]);
+    }
+  };
 
   const handleMaximize = (boardId: string) => {
     setMaximizedBoard(boardId);
@@ -46,15 +90,19 @@ const TeacherView: React.FC<TeacherViewProps> = ({
   };
 
   const handleStudentCountChange = (newCount: number) => {
+    // For now, this creates a simulation of students for UI testing
+    // In real implementation, this would add/remove students from the session
     const clampedCount = Math.max(1, Math.min(8, newCount));
-    setStudentCount(clampedCount);
-    setCurrentPage(0);
     
-    // Reset layout to first available option when student count changes
-    const availableLayouts = calculateLayoutOptions(clampedCount);
-    if (availableLayouts.length > 0) {
-      setSelectedLayoutId(availableLayouts[0].id);
-    }
+    // Create mock student data for UI testing
+    const mockStudents: SessionStudent[] = Array.from({ length: clampedCount }, (_, i) => ({
+      id: `mock-student-${i}`,
+      student_name: `Student ${String.fromCharCode(65 + i)}`,
+      assigned_board_suffix: String.fromCharCode(65 + i),
+    }));
+    
+    setSessionStudents(mockStudents);
+    setCurrentPage(0);
   };
 
   const handleLayoutChange = (layoutId: string) => {
