@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
@@ -55,16 +54,30 @@ const CreateSessionForm: React.FC<CreateSessionFormProps> = ({ onSessionCreated 
     
     if (templateId) {
       const template = templates.find(t => t.id === parseInt(templateId));
-      if (template && template.students.length > 0) {
-        const templateStudents = template.students.map(student => ({
-          name: student.student_name,
-          email: student.student_email || '',
-        }));
-        setStudents(templateStudents);
-        toast({
-          title: "Template Loaded",
-          description: `Loaded ${templateStudents.length} students from template.`,
-        });
+      if (template) {
+        // Set the title to the template's class name
+        setTitle(template.class_name);
+        
+        // Set a default duration (you can adjust this as needed)
+        setDuration(60);
+        
+        // Populate students if any exist
+        if (template.students.length > 0) {
+          const templateStudents = template.students.map(student => ({
+            name: student.student_name,
+            email: student.student_email || '',
+          }));
+          setStudents(templateStudents);
+          toast({
+            title: "Template Loaded",
+            description: `Loaded "${template.class_name}" with ${templateStudents.length} students.`,
+          });
+        } else {
+          toast({
+            title: "Template Loaded",
+            description: `Loaded "${template.class_name}".`,
+          });
+        }
       }
     }
   };
