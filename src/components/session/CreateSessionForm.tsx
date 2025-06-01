@@ -58,8 +58,8 @@ const CreateSessionForm: React.FC<CreateSessionFormProps> = ({ onSessionCreated 
         // Set the title to the template's class name
         setTitle(template.class_name);
         
-        // Set a default duration (you can adjust this as needed)
-        setDuration(60);
+        // Set the duration from the template, or leave empty if not saved
+        setDuration(template.duration_minutes || '');
         
         // Populate students if any exist
         if (template.students.length > 0) {
@@ -102,7 +102,7 @@ const CreateSessionForm: React.FC<CreateSessionFormProps> = ({ onSessionCreated 
       return;
     }
 
-    const success = await saveTemplate(templateName.trim(), validStudents);
+    const success = await saveTemplate(templateName.trim(), validStudents, duration);
     if (success) {
       setTemplateName('');
       setShowSaveTemplate(false);

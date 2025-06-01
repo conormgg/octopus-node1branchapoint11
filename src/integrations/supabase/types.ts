@@ -66,18 +66,21 @@ export type Database = {
         Row: {
           class_name: string
           created_at: string | null
+          duration_minutes: number | null
           id: number
           teacher_id: string
         }
         Insert: {
           class_name: string
           created_at?: string | null
+          duration_minutes?: number | null
           id?: number
           teacher_id: string
         }
         Update: {
           class_name?: string
           created_at?: string | null
+          duration_minutes?: number | null
           id?: number
           teacher_id?: string
         }

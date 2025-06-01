@@ -7,6 +7,7 @@ import { useToast } from '@/hooks/use-toast';
 interface ClassTemplate {
   id: number;
   class_name: string;
+  duration_minutes: number | null;
   created_at: string;
   students: Array<{
     student_name: string;
@@ -38,6 +39,7 @@ export const useClassTemplates = () => {
         .select(`
           id,
           class_name,
+          duration_minutes,
           created_at,
           saved_class_students (
             student_name,
@@ -67,7 +69,7 @@ export const useClassTemplates = () => {
     }
   };
 
-  const saveTemplate = async (templateName: string, students: Student[]) => {
+  const saveTemplate = async (templateName: string, students: Student[], duration?: number | '') => {
     if (isDemoMode || !user) {
       toast({
         title: "Demo Mode",
@@ -84,6 +86,7 @@ export const useClassTemplates = () => {
         .insert({
           teacher_id: user.id,
           class_name: templateName,
+          duration_minutes: duration && duration !== '' ? Number(duration) : null,
         })
         .select()
         .single();
