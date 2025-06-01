@@ -1,118 +1,31 @@
 
-import React, { useState, useEffect } from 'react';
-import { supabase } from '@/integrations/supabase/client';
+import React, { useState } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { useClassTemplates } from '@/hooks/useClassTemplates';
+import { useSessionManagement } from '@/hooks/useSessionManagement';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { useToast } from '@/hooks/use-toast';
 import CreateSessionForm from './CreateSessionForm';
 import ClassTemplatesPage from './ClassTemplatesPage';
 import TeacherView from '../TeacherView';
 import { LogOut, Plus, History, BookOpen } from 'lucide-react';
-
-interface Session {
-  id: string;
-  title: string;
-  unique_url_slug: string;
-  status: string;
-  created_at: string;
-}
 
 type DashboardView = 'main' | 'create-session' | 'templates';
 
 const TeacherDashboard: React.FC = () => {
   const { user, signOut, isDemoMode } = useAuth();
   const { templates } = useClassTemplates();
-  const [activeSession, setActiveSession] = useState<Session | null>(null);
   const [currentView, setCurrentView] = useState<DashboardView>('main');
-  const [recentSessions, setRecentSessions] = useState<Session[]>([]);
-  const [showUrlModal, setShowUrlModal] = useState(false);
-  const { toast } = useToast();
 
-  useEffect(() => {
-    if (user) {
-      fetchRecentSessions();
-    }
-  }, [user]);
-
-  const fetchRecentSessions = async () => {
-    // Skip fetching for demo mode since we don't have real data
-    if (isDemoMode) {
-      setRecentSessions([]);
-      return;
-    }
-    
-    try {
-      const { data, error } = await supabase
-        .from('sessions')
-        .select('*')
-        .eq('teacher_id', user?.id)
-        .order('created_at', { ascending: false })
-        .limit(5);
-
-      if (error) throw error;
-      setRecentSessions(data || []);
-    } catch (error: any) {
-      console.error('Error fetching sessions:', error);
-    }
-  };
-
-  const handleSessionCreated = async (sessionId: string) => {
-    try {
-      const { data, error } = await supabase
-        .from('sessions')
-        .select('*')
-        .eq('id', sessionId)
-        .single();
-
-      if (error) throw error;
-      
-      setActiveSession(data);
-      setCurrentView('main');
-      setShowUrlModal(true); // Show the URL modal for newly created sessions
-      fetchRecentSessions();
-    } catch (error: any) {
-      toast({
-        title: "Error Loading Session",
-        description: error.message,
-        variant: "destructive",
-      });
-    }
-  };
-
-  const handleEndSession = async () => {
-    if (!activeSession) return;
-
-    try {
-      const { error } = await supabase
-        .from('sessions')
-        .update({ status: 'ended_by_teacher' })
-        .eq('id', activeSession.id);
-
-      if (error) throw error;
-
-      toast({
-        title: "Session Ended",
-        description: "The session has been ended successfully.",
-      });
-
-      setActiveSession(null);
-      fetchRecentSessions();
-    } catch (error: any) {
-      toast({
-        title: "Error Ending Session",
-        description: error.message,
-        variant: "destructive",
-      });
-    }
-  };
-
-  const resumeSession = (session: Session) => {
-    if (session.status === 'active') {
-      setActiveSession(session);
-    }
-  };
+  const {
+    activeSession,
+    recentSessions,
+    showUrlModal,
+    handleSessionCreated,
+    handleEndSession,
+    resumeSession,
+    handleCloseUrlModal,
+  } = useSessionManagement(user, isDemoMode);
 
   if (activeSession) {
     return (
