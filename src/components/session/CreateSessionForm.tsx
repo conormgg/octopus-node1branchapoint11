@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
@@ -26,8 +27,6 @@ const CreateSessionForm: React.FC<CreateSessionFormProps> = ({ onSessionCreated 
   const [students, setStudents] = useState<Student[]>([{ name: '', email: '' }]);
   const [isLoading, setIsLoading] = useState(false);
   const [selectedTemplateId, setSelectedTemplateId] = useState<string>('');
-  const [templateName, setTemplateName] = useState('');
-  const [showSaveTemplate, setShowSaveTemplate] = useState(false);
   const { toast } = useToast();
 
   const addStudent = () => {
@@ -83,10 +82,10 @@ const CreateSessionForm: React.FC<CreateSessionFormProps> = ({ onSessionCreated 
   };
 
   const handleSaveTemplate = async () => {
-    if (!templateName.trim()) {
+    if (!title.trim()) {
       toast({
-        title: "Template Name Required",
-        description: "Please enter a name for the template.",
+        title: "Session Title Required",
+        description: "Please enter a session title before saving as template.",
         variant: "destructive",
       });
       return;
@@ -102,11 +101,7 @@ const CreateSessionForm: React.FC<CreateSessionFormProps> = ({ onSessionCreated 
       return;
     }
 
-    const success = await saveTemplate(templateName.trim(), validStudents, duration);
-    if (success) {
-      setTemplateName('');
-      setShowSaveTemplate(false);
-    }
+    await saveTemplate(title.trim(), validStudents, duration);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -297,55 +292,19 @@ const CreateSessionForm: React.FC<CreateSessionFormProps> = ({ onSessionCreated 
           </div>
 
           {/* Save as Template Section */}
-          {hasValidStudents && (
-            <Card className="border-dashed">
-              <CardHeader className="pb-4">
-                <CardTitle className="text-sm flex items-center gap-2">
-                  <Save className="h-4 w-4" />
-                  Save as Class Template
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-3">
-                {!showSaveTemplate ? (
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setShowSaveTemplate(true)}
-                  >
-                    Save Current Student List as Template
-                  </Button>
-                ) : (
-                  <div className="flex gap-2">
-                    <Input
-                      placeholder="Template name (e.g., Math Class Period 3)"
-                      value={templateName}
-                      onChange={(e) => setTemplateName(e.target.value)}
-                    />
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      onClick={handleSaveTemplate}
-                      disabled={!templateName.trim()}
-                    >
-                      Save
-                    </Button>
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => {
-                        setShowSaveTemplate(false);
-                        setTemplateName('');
-                      }}
-                    >
-                      Cancel
-                    </Button>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
+          {hasValidStudents && title.trim() && (
+            <div className="flex justify-center">
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={handleSaveTemplate}
+                className="flex items-center gap-2"
+              >
+                <Save className="h-4 w-4" />
+                Save
+              </Button>
+            </div>
           )}
 
           <Button type="submit" className="w-full" disabled={isLoading}>
