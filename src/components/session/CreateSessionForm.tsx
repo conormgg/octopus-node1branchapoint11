@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
@@ -7,7 +8,7 @@ import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
-import { Plus, Minus, Users, Clock, Save, Download, BookOpen } from 'lucide-react';
+import { Plus, Minus, Users, Clock, Save, BookOpen } from 'lucide-react';
 
 interface Student {
   name: string;
@@ -20,7 +21,7 @@ interface CreateSessionFormProps {
 
 const CreateSessionForm: React.FC<CreateSessionFormProps> = ({ onSessionCreated }) => {
   const { user } = useAuth();
-  const { templates, saveTemplate, loadTemplate } = useClassTemplates();
+  const { templates, saveTemplate } = useClassTemplates();
   const [title, setTitle] = useState('');
   const [duration, setDuration] = useState<number | ''>('');
   const [students, setStudents] = useState<Student[]>([{ name: '', email: '' }]);
@@ -49,16 +50,22 @@ const CreateSessionForm: React.FC<CreateSessionFormProps> = ({ onSessionCreated 
     setStudents(updatedStudents);
   };
 
-  const handleLoadTemplate = () => {
-    if (!selectedTemplateId) return;
+  const handleTemplateSelect = (templateId: string) => {
+    setSelectedTemplateId(templateId);
     
-    const templateStudents = loadTemplate(parseInt(selectedTemplateId));
-    if (templateStudents.length > 0) {
-      setStudents(templateStudents);
-      toast({
-        title: "Template Loaded",
-        description: `Loaded ${templateStudents.length} students from template.`,
-      });
+    if (templateId) {
+      const template = templates.find(t => t.id === parseInt(templateId));
+      if (template && template.students.length > 0) {
+        const templateStudents = template.students.map(student => ({
+          name: student.student_name,
+          email: student.student_email || '',
+        }));
+        setStudents(templateStudents);
+        toast({
+          title: "Template Loaded",
+          description: `Loaded ${templateStudents.length} students from template.`,
+        });
+      }
     }
   };
 
@@ -173,39 +180,28 @@ const CreateSessionForm: React.FC<CreateSessionFormProps> = ({ onSessionCreated 
       </CardHeader>
       <CardContent>
         <form onSubmit={handleSubmit} className="space-y-6">
-          {/* Load from Template Section */}
+          {/* Saved Classes Section */}
           {templates.length > 0 && (
             <Card className="border-dashed">
               <CardHeader className="pb-4">
                 <CardTitle className="text-sm flex items-center gap-2">
                   <BookOpen className="h-4 w-4" />
-                  Load from Class Template
+                  Saved Classes
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-3">
-                <div className="flex gap-2">
-                  <Select value={selectedTemplateId} onValueChange={setSelectedTemplateId}>
-                    <SelectTrigger className="flex-1">
-                      <SelectValue placeholder="Select a class template" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {templates.map((template) => (
-                        <SelectItem key={template.id} value={template.id.toString()}>
-                          {template.class_name} ({template.students.length} students)
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  <Button 
-                    type="button" 
-                    variant="outline" 
-                    onClick={handleLoadTemplate}
-                    disabled={!selectedTemplateId}
-                  >
-                    <Download className="h-4 w-4 mr-1" />
-                    Load
-                  </Button>
-                </div>
+                <Select value={selectedTemplateId} onValueChange={handleTemplateSelect}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select a saved class" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {templates.map((template) => (
+                      <SelectItem key={template.id} value={template.id.toString()}>
+                        {template.class_name} ({template.students.length} students)
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </CardContent>
             </Card>
           )}
