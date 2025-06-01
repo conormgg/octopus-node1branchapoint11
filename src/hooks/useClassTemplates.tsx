@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
@@ -85,7 +86,7 @@ export const useClassTemplates = () => {
         .insert({
           teacher_id: user.id,
           class_name: templateName,
-          duration_minutes: duration && duration !== '' ? Number(duration) : null,
+          duration_minutes: duration && typeof duration === 'number' ? duration : null,
         })
         .select()
         .single();
