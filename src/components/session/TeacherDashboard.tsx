@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
@@ -26,6 +27,7 @@ const TeacherDashboard: React.FC = () => {
   const [activeSession, setActiveSession] = useState<Session | null>(null);
   const [currentView, setCurrentView] = useState<DashboardView>('main');
   const [recentSessions, setRecentSessions] = useState<Session[]>([]);
+  const [showUrlModal, setShowUrlModal] = useState(false);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -68,6 +70,7 @@ const TeacherDashboard: React.FC = () => {
       
       setActiveSession(data);
       setCurrentView('main');
+      setShowUrlModal(true); // Show the URL modal for newly created sessions
       fetchRecentSessions();
     } catch (error: any) {
       toast({
@@ -117,6 +120,7 @@ const TeacherDashboard: React.FC = () => {
         activeSession={activeSession}
         onEndSession={handleEndSession}
         onSignOut={signOut}
+        showUrlModal={showUrlModal}
       />
     );
   }

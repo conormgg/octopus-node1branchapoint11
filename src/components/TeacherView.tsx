@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from '@/components/ui/resizable';
 import WhiteboardPlaceholder from './WhiteboardPlaceholder';
@@ -6,6 +5,7 @@ import TeacherHeader from './TeacherHeader';
 import TeacherMainBoard from './TeacherMainBoard';
 import StudentBoardsGrid from './StudentBoardsGrid';
 import StudentBoardsWindow from './StudentBoardsWindow';
+import SessionUrlModal from './session/SessionUrlModal';
 import { calculateLayoutOptions, generateStudentBoards, getStudentBoardsForPage } from '@/utils/layoutCalculator';
 import { supabase } from '@/integrations/supabase/client';
 
@@ -30,12 +30,14 @@ interface TeacherViewProps {
   activeSession?: Session | null;
   onEndSession?: () => void;
   onSignOut?: () => void;
+  showUrlModal?: boolean;
 }
 
 const TeacherView: React.FC<TeacherViewProps> = ({
   activeSession,
   onEndSession,
   onSignOut,
+  showUrlModal = false,
 }) => {
   const [maximizedBoard, setMaximizedBoard] = useState<string | null>(null);
   const [currentPage, setCurrentPage] = useState(0);
@@ -44,6 +46,7 @@ const TeacherView: React.FC<TeacherViewProps> = ({
   const [isSplitViewActive, setIsSplitViewActive] = useState(false);
   const [gridOrientation, setGridOrientation] = useState<GridOrientation>('columns-first');
   const [isControlsCollapsed, setIsControlsCollapsed] = useState(false);
+  const [isUrlModalOpen, setIsUrlModalOpen] = useState(showUrlModal);
 
   // Get actual student count from session data
   const studentCount = sessionStudents.length;
@@ -53,6 +56,10 @@ const TeacherView: React.FC<TeacherViewProps> = ({
       fetchSessionStudents();
     }
   }, [activeSession]);
+
+  useEffect(() => {
+    setIsUrlModalOpen(showUrlModal);
+  }, [showUrlModal]);
 
   useEffect(() => {
     // Reset layout to first available option when student count changes
@@ -134,6 +141,10 @@ const TeacherView: React.FC<TeacherViewProps> = ({
     setIsControlsCollapsed(!isControlsCollapsed);
   };
 
+  const handleCloseUrlModal = () => {
+    setIsUrlModalOpen(false);
+  };
+
   // Calculate layout options and current layout
   const availableLayouts = calculateLayoutOptions(studentCount);
   const currentLayout = availableLayouts.find(layout => layout.id === selectedLayoutId) || availableLayouts[0];
@@ -172,6 +183,16 @@ const TeacherView: React.FC<TeacherViewProps> = ({
 
   return (
     <div className="min-h-screen bg-gray-100">
+      {/* Session URL Modal */}
+      {activeSession && (
+        <SessionUrlModal
+          isOpen={isUrlModalOpen}
+          onClose={handleCloseUrlModal}
+          sessionSlug={activeSession.unique_url_slug}
+          sessionTitle={activeSession.title}
+        />
+      )}
+
       {/* Hover zone for collapsed header */}
       {isControlsCollapsed && (
         <div 
