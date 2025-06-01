@@ -4,11 +4,12 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { useClassTemplates } from '@/hooks/useClassTemplates';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
-import { Plus, Minus, Users, Clock, Save, BookOpen } from 'lucide-react';
+import { Users } from 'lucide-react';
+import SavedClassesSection from './SavedClassesSection';
+import SessionFormFields from './SessionFormFields';
+import StudentListSection from './StudentListSection';
 
 interface Student {
   name: string;
@@ -54,13 +55,9 @@ const CreateSessionForm: React.FC<CreateSessionFormProps> = ({ onSessionCreated 
     if (templateId) {
       const template = templates.find(t => t.id === parseInt(templateId));
       if (template) {
-        // Set the title to the template's class name
         setTitle(template.class_name);
-        
-        // Set the duration from the template, or leave empty if not saved
         setDuration(template.duration_minutes || '');
         
-        // Populate students if any exist
         if (template.students.length > 0) {
           const templateStudents = template.students.map(student => ({
             name: student.student_name,
@@ -174,6 +171,7 @@ const CreateSessionForm: React.FC<CreateSessionFormProps> = ({ onSessionCreated 
   };
 
   const hasValidStudents = students.some(student => student.name.trim());
+  const showSaveButton = hasValidStudents && title.trim();
 
   return (
     <Card className="w-full max-w-2xl mx-auto">
@@ -188,124 +186,27 @@ const CreateSessionForm: React.FC<CreateSessionFormProps> = ({ onSessionCreated 
       </CardHeader>
       <CardContent>
         <form onSubmit={handleSubmit} className="space-y-6">
-          {/* Saved Classes Section */}
-          {templates.length > 0 && (
-            <Card className="border-dashed">
-              <CardHeader className="pb-4">
-                <CardTitle className="text-sm flex items-center gap-2">
-                  <BookOpen className="h-4 w-4" />
-                  Saved Classes
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-3">
-                <Select value={selectedTemplateId} onValueChange={handleTemplateSelect}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select a saved class" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {templates.map((template) => (
-                      <SelectItem key={template.id} value={template.id.toString()}>
-                        {template.class_name} ({template.students.length} students)
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </CardContent>
-            </Card>
-          )}
+          <SavedClassesSection
+            templates={templates}
+            selectedTemplateId={selectedTemplateId}
+            onTemplateSelect={handleTemplateSelect}
+          />
 
-          <div className="space-y-2">
-            <label htmlFor="title" className="text-sm font-medium">
-              Session Title
-            </label>
-            <Input
-              id="title"
-              type="text"
-              placeholder="Enter session title"
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
-            />
-          </div>
+          <SessionFormFields
+            title={title}
+            duration={duration}
+            onTitleChange={setTitle}
+            onDurationChange={setDuration}
+          />
 
-          <div className="space-y-2">
-            <label htmlFor="duration" className="text-sm font-medium flex items-center gap-2">
-              <Clock className="h-4 w-4" />
-              Duration (minutes, optional)
-            </label>
-            <Input
-              id="duration"
-              type="number"
-              placeholder="e.g., 60"
-              value={duration}
-              onChange={(e) => setDuration(e.target.value ? parseInt(e.target.value) : '')}
-              min="1"
-              max="300"
-            />
-          </div>
-
-          <div className="space-y-4">
-            <div className="flex items-center justify-between">
-              <label className="text-sm font-medium">Students</label>
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                onClick={addStudent}
-                disabled={students.length >= 8}
-              >
-                <Plus className="h-4 w-4 mr-1" />
-                Add Student
-              </Button>
-            </div>
-
-            <div className="space-y-3">
-              {students.map((student, index) => (
-                <div key={index} className="flex gap-2 items-center">
-                  <div className="flex-1">
-                    <Input
-                      placeholder="Student name (required)"
-                      value={student.name}
-                      onChange={(e) => updateStudent(index, 'name', e.target.value)}
-                      required
-                    />
-                  </div>
-                  <div className="flex-1">
-                    <Input
-                      type="email"
-                      placeholder="Email (optional)"
-                      value={student.email}
-                      onChange={(e) => updateStudent(index, 'email', e.target.value)}
-                    />
-                  </div>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    onClick={() => removeStudent(index)}
-                    disabled={students.length === 1}
-                  >
-                    <Minus className="h-4 w-4" />
-                  </Button>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          {/* Save as Template Section */}
-          {hasValidStudents && title.trim() && (
-            <div className="flex justify-center">
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                onClick={handleSaveTemplate}
-                className="flex items-center gap-2"
-              >
-                <Save className="h-4 w-4" />
-                Save
-              </Button>
-            </div>
-          )}
+          <StudentListSection
+            students={students}
+            onAddStudent={addStudent}
+            onRemoveStudent={removeStudent}
+            onUpdateStudent={updateStudent}
+            onSaveTemplate={handleSaveTemplate}
+            showSaveButton={showSaveButton}
+          />
 
           <Button type="submit" className="w-full" disabled={isLoading}>
             {isLoading ? 'Creating Session...' : 'Start Session'}
