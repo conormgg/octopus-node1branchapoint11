@@ -171,7 +171,7 @@ const CreateSessionForm: React.FC<CreateSessionFormProps> = ({ onSessionCreated 
   };
 
   const hasValidStudents = students.some(student => student.name.trim());
-  const showSaveButton = hasValidStudents && title.trim();
+  const showSaveButton = Boolean(hasValidStudents && title.trim());
 
   return (
     <Card className="w-full max-w-2xl mx-auto">
