@@ -6,9 +6,6 @@ import { useTemplateActions } from './useTemplateActions';
 import { useTemplateChangeDetection } from './useTemplateChangeDetection';
 import { useTemplateButtonState } from './useTemplateButtonState';
 import { useTemplateOperations } from './useTemplateOperations';
-import { useTemplateSelection } from './useTemplateSelection';
-import { useTemplateClearance } from './useTemplateClearance';
-import { useTemplateKeyboardShortcuts } from './useTemplateKeyboardShortcuts';
 import { Student, OriginalTemplateData } from './types';
 
 interface UseTemplateStateProps {
@@ -31,25 +28,13 @@ export const useTemplateState = ({
   resetForm,
 }: UseTemplateStateProps) => {
   const { templates, deleteTemplate, isLoading } = useClassTemplates();
+  const [selectedTemplateId, setSelectedTemplateId] = useState<string>('');
   const [originalTemplateData, setOriginalTemplateData] = useState<OriginalTemplateData | null>(null);
-  const [isClearedTemplate, setIsClearedTemplate] = useState(false);
   const { toast } = useToast();
   const templateActions = useTemplateActions();
 
-  // Template selection hook
-  const {
-    selectedTemplateId,
-    loadedTemplate,
-    handleTemplateSelect,
-    setSelectedTemplateId,
-  } = useTemplateSelection({
-    templates,
-    setTitle,
-    setDuration,
-    setStudents,
-    setOriginalTemplateData,
-    setIsClearedTemplate,
-  });
+  // Template state tracking
+  const loadedTemplate = templates.find(t => t.id.toString() === selectedTemplateId);
 
   // Change detection
   const { hasUnsavedChanges } = useTemplateChangeDetection({
@@ -64,7 +49,6 @@ export const useTemplateState = ({
     students,
     originalTemplateData,
     hasUnsavedChanges,
-    isClearedTemplate,
   });
 
   // Template operations
@@ -76,24 +60,44 @@ export const useTemplateState = ({
     setOriginalTemplateData,
   });
 
-  // Template clearance hook
-  const { handleClearTemplate, confirmClearTemplate } = useTemplateClearance({
-    title,
-    duration,
-    students,
-    originalTemplateData,
-    setSelectedTemplateId,
-    setOriginalTemplateData,
-    setIsClearedTemplate,
-    openClearTemplateDialog: templateActions.openClearTemplateDialog,
-  });
+  const handleTemplateSelect = (templateId: string) => {
+    setSelectedTemplateId(templateId);
+    
+    if (templateId) {
+      const template = templates.find(t => t.id === parseInt(templateId));
+      if (template) {
+        const templateTitle = template.class_name;
+        const templateDuration = template.duration_minutes || '';
+        const templateStudents = template.students.length > 0 
+          ? template.students.map(student => ({
+              name: student.student_name,
+              email: student.student_email || '',
+            }))
+          : [{ name: '', email: '' }];
 
-  // Keyboard shortcuts
-  useTemplateKeyboardShortcuts({
-    originalTemplateData,
-    isClearedTemplate,
-    handleClearTemplate,
-  });
+        // Set form data
+        setTitle(templateTitle);
+        setDuration(templateDuration);
+        setStudents(templateStudents);
+
+        // Store original template data for change detection
+        setOriginalTemplateData({
+          id: template.id,
+          title: templateTitle,
+          duration: templateDuration,
+          students: templateStudents,
+        });
+
+        toast({
+          title: "Template Loaded",
+          description: `Loaded "${template.class_name}"${template.students.length > 0 ? ` with ${template.students.length} students` : ''}.`,
+        });
+      }
+    } else {
+      // Clear template data when no template is selected
+      setOriginalTemplateData(null);
+    }
+  };
 
   const handleEditTemplate = (template: any) => {
     toast({
@@ -118,7 +122,6 @@ export const useTemplateState = ({
     if (success && selectedTemplateId === templateActions.actionState.templateId.toString()) {
       setSelectedTemplateId('');
       setOriginalTemplateData(null);
-      setIsClearedTemplate(false);
       resetForm();
     }
   };
@@ -144,9 +147,6 @@ export const useTemplateState = ({
       case 'saveAsNew':
         confirmSaveAsNew();
         break;
-      case 'clearTemplate':
-        confirmClearTemplate();
-        break;
     }
   };
 
@@ -158,10 +158,8 @@ export const useTemplateState = ({
     loadedTemplate,
     hasUnsavedChanges,
     showSaveAsNewOption,
-    isClearedTemplate,
     templateActions,
     handleTemplateSelect,
-    handleClearTemplate,
     handleEditTemplate,
     handleDeleteTemplate,
     handleSaveTemplate,

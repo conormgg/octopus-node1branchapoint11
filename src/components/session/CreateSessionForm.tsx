@@ -25,7 +25,6 @@ const CreateSessionForm: React.FC<CreateSessionFormProps> = ({ onSessionCreated 
     loadedTemplate,
     hasUnsavedChanges,
     showSaveAsNewOption,
-    isClearedTemplate,
     templatesLoading,
     templateActions,
     setTitle,
@@ -34,7 +33,6 @@ const CreateSessionForm: React.FC<CreateSessionFormProps> = ({ onSessionCreated 
     removeStudent,
     updateStudent,
     handleTemplateSelect,
-    handleClearTemplate,
     handleEditTemplate,
     handleDeleteTemplate,
     handleSaveTemplate,
@@ -56,11 +54,6 @@ const CreateSessionForm: React.FC<CreateSessionFormProps> = ({ onSessionCreated 
           </CardTitle>
           <CardDescription>
             Set up a new collaborative whiteboard session for your class
-            {loadedTemplate && !isClearedTemplate && (
-              <div className="text-xs text-muted-foreground mt-1">
-                Tip: Press Ctrl+Shift+C to clear template connection
-              </div>
-            )}
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -69,12 +62,10 @@ const CreateSessionForm: React.FC<CreateSessionFormProps> = ({ onSessionCreated 
               templates={templates}
               selectedTemplateId={selectedTemplateId}
               onTemplateSelect={handleTemplateSelect}
-              onClearTemplate={handleClearTemplate}
               onEditTemplate={handleEditTemplate}
               onDeleteTemplate={handleDeleteTemplate}
               isLoading={templatesLoading}
               hasUnsavedChanges={hasUnsavedChanges}
-              isClearedTemplate={isClearedTemplate}
             />
 
             <SessionFormFields
