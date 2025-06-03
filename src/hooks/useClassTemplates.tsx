@@ -129,6 +129,42 @@ export const useClassTemplates = () => {
     }
   };
 
+  const deleteTemplate = async (templateId: number, templateName: string) => {
+    if (isDemoMode || !user) {
+      toast({
+        title: "Demo Mode",
+        description: "Template deletion is not available in demo mode.",
+        variant: "destructive",
+      });
+      return false;
+    }
+
+    try {
+      const { error } = await supabase
+        .from('saved_classes')
+        .delete()
+        .eq('id', templateId)
+        .eq('teacher_id', user.id); // Ensure user can only delete their own templates
+
+      if (error) throw error;
+
+      toast({
+        title: "Template Deleted!",
+        description: `Class template "${templateName}" has been deleted successfully.`,
+      });
+
+      fetchTemplates(); // Refresh the templates list
+      return true;
+    } catch (error: any) {
+      toast({
+        title: "Error Deleting Template",
+        description: error.message,
+        variant: "destructive",
+      });
+      return false;
+    }
+  };
+
   const loadTemplate = (templateId: number): Student[] => {
     const template = templates.find(t => t.id === templateId);
     if (!template) return [];
@@ -147,6 +183,7 @@ export const useClassTemplates = () => {
     templates,
     isLoading,
     saveTemplate,
+    deleteTemplate,
     loadTemplate,
     refreshTemplates: fetchTemplates,
   };

@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
@@ -21,7 +22,7 @@ interface CreateSessionFormProps {
 
 const CreateSessionForm: React.FC<CreateSessionFormProps> = ({ onSessionCreated }) => {
   const { user } = useAuth();
-  const { templates, saveTemplate } = useClassTemplates();
+  const { templates, saveTemplate, deleteTemplate } = useClassTemplates();
   const [title, setTitle] = useState('');
   const [duration, setDuration] = useState<number | ''>('');
   const [students, setStudents] = useState<Student[]>([{ name: '', email: '' }]);
@@ -84,11 +85,19 @@ const CreateSessionForm: React.FC<CreateSessionFormProps> = ({ onSessionCreated 
     });
   };
 
-  const handleDeleteTemplate = (template: any) => {
-    toast({
-      title: "Delete Template",
-      description: `Delete functionality for "${template.class_name}" will be implemented soon.`,
-    });
+  const handleDeleteTemplate = async (template: any) => {
+    const confirmDelete = window.confirm(
+      `Are you sure you want to delete the template "${template.class_name}"? This action cannot be undone.`
+    );
+    
+    if (confirmDelete) {
+      const success = await deleteTemplate(template.id, template.class_name);
+      
+      // If the deleted template was currently selected, clear the selection
+      if (success && selectedTemplateId === template.id.toString()) {
+        setSelectedTemplateId('');
+      }
+    }
   };
 
   const handleSaveTemplate = async () => {
