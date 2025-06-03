@@ -1,9 +1,12 @@
 
-import { useState, useMemo } from 'react';
+import { useState } from 'react';
 import { useClassTemplates } from '@/hooks/useClassTemplates';
 import { useToast } from '@/hooks/use-toast';
 import { useTemplateActions } from './useTemplateActions';
-import { Student, OriginalTemplateData, TemplateButtonState } from './types';
+import { useTemplateChangeDetection } from './useTemplateChangeDetection';
+import { useTemplateButtonState } from './useTemplateButtonState';
+import { useTemplateOperations } from './useTemplateOperations';
+import { Student, OriginalTemplateData } from './types';
 
 interface UseTemplateStateProps {
   title: string;
@@ -24,63 +27,38 @@ export const useTemplateState = ({
   setStudents,
   resetForm,
 }: UseTemplateStateProps) => {
-  const { templates, saveTemplate, updateTemplate, deleteTemplate, isLoading } = useClassTemplates();
+  const { templates, deleteTemplate, isLoading } = useClassTemplates();
   const [selectedTemplateId, setSelectedTemplateId] = useState<string>('');
   const [originalTemplateData, setOriginalTemplateData] = useState<OriginalTemplateData | null>(null);
   const { toast } = useToast();
   const templateActions = useTemplateActions();
 
   // Template state tracking
-  const isTemplateLoaded = Boolean(originalTemplateData);
   const loadedTemplate = templates.find(t => t.id.toString() === selectedTemplateId);
 
-  // Change detection logic
-  const hasUnsavedChanges = useMemo(() => {
-    if (!originalTemplateData) return false;
+  // Change detection
+  const { hasUnsavedChanges } = useTemplateChangeDetection({
+    title,
+    duration,
+    students,
+    originalTemplateData,
+  });
 
-    // Check if title changed
-    if (title !== originalTemplateData.title) return true;
+  // Button state logic
+  const { templateButtonState, showSaveAsNewOption, isTemplateLoaded } = useTemplateButtonState({
+    students,
+    originalTemplateData,
+    hasUnsavedChanges,
+  });
 
-    // Check if duration changed
-    if (duration !== originalTemplateData.duration) return true;
-
-    // Check if students changed (length)
-    if (students.length !== originalTemplateData.students.length) return true;
-
-    // Check if any student data changed
-    for (let i = 0; i < students.length; i++) {
-      const current = students[i];
-      const original = originalTemplateData.students[i];
-      
-      if (!original) return true;
-      if (current.name !== original.name || current.email !== original.email) {
-        return true;
-      }
-    }
-
-    return false;
-  }, [title, duration, students, originalTemplateData]);
-
-  // Enhanced button state logic with "Save as New" option
-  const templateButtonState = useMemo((): TemplateButtonState => {
-    const hasValidStudents = students.some(student => student.name.trim());
-    
-    if (!isTemplateLoaded) {
-      // No template loaded - show save button if there are valid students
-      return hasValidStudents ? 'save' : 'none';
-    }
-
-    if (hasUnsavedChanges) {
-      // Template loaded with changes - show update button and save as new option
-      return 'update';
-    }
-
-    // Template loaded without changes - hide buttons
-    return 'none';
-  }, [isTemplateLoaded, hasUnsavedChanges, students]);
-
-  // Show "Save as New" option when template is loaded and has changes
-  const showSaveAsNewOption = isTemplateLoaded && hasUnsavedChanges;
+  // Template operations
+  const { handleSaveTemplate, confirmUpdateTemplate, confirmSaveAsNew } = useTemplateOperations({
+    originalTemplateData,
+    title,
+    duration,
+    students,
+    setOriginalTemplateData,
+  });
 
   const handleTemplateSelect = (templateId: string) => {
     setSelectedTemplateId(templateId);
@@ -148,101 +126,14 @@ export const useTemplateState = ({
     }
   };
 
-  const handleSaveTemplate = async () => {
-    if (!title.trim()) {
-      toast({
-        title: "Session Title Required",
-        description: "Please enter a session title before saving as template.",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    const validStudents = students.filter(student => student.name.trim());
-    if (validStudents.length === 0) {
-      toast({
-        title: "No Students to Save",
-        description: "Please add at least one student before saving a template.",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    await saveTemplate(title.trim(), validStudents, duration);
-  };
-
   const handleUpdateTemplate = async () => {
     if (!originalTemplateData) return;
     
     templateActions.openUpdateDialog(originalTemplateData.id, originalTemplateData.title);
   };
 
-  const confirmUpdateTemplate = async () => {
-    if (!originalTemplateData) return;
-
-    if (!title.trim()) {
-      toast({
-        title: "Session Title Required",
-        description: "Please enter a session title before updating template.",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    const validStudents = students.filter(student => student.name.trim());
-    if (validStudents.length === 0) {
-      toast({
-        title: "No Students to Save",
-        description: "Please add at least one student before updating template.",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    const success = await updateTemplate(
-      originalTemplateData.id,
-      title.trim(),
-      validStudents,
-      duration
-    );
-
-    if (success) {
-      // Update the original template data to reflect the new state
-      setOriginalTemplateData({
-        id: originalTemplateData.id,
-        title: title.trim(),
-        duration,
-        students: validStudents,
-      });
-    }
-  };
-
   const handleSaveAsNew = () => {
     templateActions.openSaveAsNewDialog(title);
-  };
-
-  const confirmSaveAsNew = async () => {
-    if (!title.trim()) {
-      toast({
-        title: "Session Title Required",
-        description: "Please enter a session title before saving as new template.",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    const validStudents = students.filter(student => student.name.trim());
-    if (validStudents.length === 0) {
-      toast({
-        title: "No Students to Save",
-        description: "Please add at least one student before saving a template.",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    // Save as new template (don't update original template data)
-    await saveTemplate(title.trim(), validStudents, duration);
   };
 
   const handleConfirmAction = () => {
