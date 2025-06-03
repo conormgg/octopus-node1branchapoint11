@@ -3,7 +3,7 @@ import { useState } from 'react';
 import { useToast } from '@/hooks/use-toast';
 
 export interface TemplateActionState {
-  type: 'delete' | 'update' | 'saveAsNew' | 'clear' | null;
+  type: 'delete' | 'update' | 'saveAsNew' | null;
   templateId?: number;
   templateName?: string;
 }
@@ -22,10 +22,6 @@ export const useTemplateActions = () => {
 
   const openSaveAsNewDialog = (templateName: string) => {
     setActionState({ type: 'saveAsNew', templateName });
-  };
-
-  const openClearDialog = () => {
-    setActionState({ type: 'clear' });
   };
 
   const closeDialog = () => {
@@ -55,13 +51,6 @@ export const useTemplateActions = () => {
           confirmLabel: 'Save as New',
           variant: 'default' as const,
         };
-      case 'clear':
-        return {
-          title: 'Clear Template',
-          description: 'This will clear the template association but keep your current form data. You can then save this as a new template if desired.',
-          confirmLabel: 'Clear Template',
-          variant: 'default' as const,
-        };
       default:
         return null;
     }
@@ -72,7 +61,6 @@ export const useTemplateActions = () => {
     openDeleteDialog,
     openUpdateDialog,
     openSaveAsNewDialog,
-    openClearDialog,
     closeDialog,
     getDialogProps,
   };
