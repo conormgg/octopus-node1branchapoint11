@@ -25,6 +25,7 @@ const CreateSessionForm: React.FC<CreateSessionFormProps> = ({ onSessionCreated 
     loadedTemplate,
     hasUnsavedChanges,
     showSaveAsNewOption,
+    isClearedTemplate,
     templatesLoading,
     templateActions,
     setTitle,
@@ -68,6 +69,7 @@ const CreateSessionForm: React.FC<CreateSessionFormProps> = ({ onSessionCreated 
               onDeleteTemplate={handleDeleteTemplate}
               isLoading={templatesLoading}
               hasUnsavedChanges={hasUnsavedChanges}
+              isClearedTemplate={isClearedTemplate}
             />
 
             <SessionFormFields

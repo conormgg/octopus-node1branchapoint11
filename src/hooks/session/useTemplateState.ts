@@ -30,6 +30,7 @@ export const useTemplateState = ({
   const { templates, deleteTemplate, isLoading } = useClassTemplates();
   const [selectedTemplateId, setSelectedTemplateId] = useState<string>('');
   const [originalTemplateData, setOriginalTemplateData] = useState<OriginalTemplateData | null>(null);
+  const [isClearedTemplate, setIsClearedTemplate] = useState(false);
   const { toast } = useToast();
   const templateActions = useTemplateActions();
 
@@ -49,6 +50,7 @@ export const useTemplateState = ({
     students,
     originalTemplateData,
     hasUnsavedChanges,
+    isClearedTemplate,
   });
 
   // Template operations
@@ -62,6 +64,7 @@ export const useTemplateState = ({
 
   const handleTemplateSelect = (templateId: string) => {
     setSelectedTemplateId(templateId);
+    setIsClearedTemplate(false);
     
     if (templateId) {
       const template = templates.find(t => t.id === parseInt(templateId));
@@ -96,16 +99,19 @@ export const useTemplateState = ({
     } else {
       // Clear template data when no template is selected
       setOriginalTemplateData(null);
+      setIsClearedTemplate(false);
     }
   };
 
   const handleClearTemplate = () => {
     setSelectedTemplateId('');
     setOriginalTemplateData(null);
+    setIsClearedTemplate(true);
     
     toast({
       title: "Template Cleared",
-      description: "Form data preserved. You can now save this as a new template.",
+      description: "Working with a copy of the template data. You can now save this as a new template.",
+      variant: "default",
     });
   };
 
@@ -132,6 +138,7 @@ export const useTemplateState = ({
     if (success && selectedTemplateId === templateActions.actionState.templateId.toString()) {
       setSelectedTemplateId('');
       setOriginalTemplateData(null);
+      setIsClearedTemplate(false);
       resetForm();
     }
   };
@@ -168,6 +175,7 @@ export const useTemplateState = ({
     loadedTemplate,
     hasUnsavedChanges,
     showSaveAsNewOption,
+    isClearedTemplate,
     templateActions,
     handleTemplateSelect,
     handleClearTemplate,
