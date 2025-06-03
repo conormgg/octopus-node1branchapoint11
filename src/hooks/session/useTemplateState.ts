@@ -59,13 +59,13 @@ export const useTemplateState = ({
     return false;
   }, [title, duration, students, originalTemplateData]);
 
-  // Button state logic with proper typing
+  // Updated button state logic to handle three states properly
   const templateButtonState = useMemo((): TemplateButtonState => {
+    const hasValidStudents = students.some(student => student.name.trim());
+    
     if (!isTemplateLoaded) {
-      // No template loaded - show save button if form is valid
-      const hasValidStudents = students.some(student => student.name.trim());
-      const showSaveButton = Boolean(hasValidStudents && title.trim());
-      return showSaveButton ? 'save' : 'none';
+      // No template loaded - show save button if there are valid students
+      return hasValidStudents ? 'save' : 'none';
     }
 
     if (hasUnsavedChanges) {
@@ -75,7 +75,7 @@ export const useTemplateState = ({
 
     // Template loaded without changes - hide buttons
     return 'none';
-  }, [isTemplateLoaded, hasUnsavedChanges, students, title]);
+  }, [isTemplateLoaded, hasUnsavedChanges, students]);
 
   const handleTemplateSelect = (templateId: string) => {
     setSelectedTemplateId(templateId);
