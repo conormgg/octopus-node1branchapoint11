@@ -16,6 +16,8 @@ interface OriginalTemplateData {
   students: Student[];
 }
 
+type TemplateButtonState = 'save' | 'update' | 'none';
+
 export const useCreateSessionForm = (onSessionCreated: (sessionId: string) => void) => {
   const { user } = useAuth();
   const { templates, saveTemplate, updateTemplate, deleteTemplate } = useClassTemplates();
@@ -58,8 +60,8 @@ export const useCreateSessionForm = (onSessionCreated: (sessionId: string) => vo
     return false;
   }, [title, duration, students, originalTemplateData]);
 
-  // Button state logic
-  const templateButtonState = useMemo(() => {
+  // Button state logic with proper typing
+  const templateButtonState = useMemo((): TemplateButtonState => {
     if (!isTemplateLoaded) {
       // No template loaded - show save button if form is valid
       const hasValidStudents = students.some(student => student.name.trim());
