@@ -1,4 +1,5 @@
-import { useState, useCallback } from 'react';
+
+import { useState, useCallback, useEffect } from 'react';
 import { useClassTemplates } from '@/hooks/useClassTemplates';
 import { useToast } from '@/hooks/use-toast';
 import { useTemplateActions } from './useTemplateActions';
@@ -203,7 +204,7 @@ export const useTemplateState = ({
   }, [originalTemplateData, isClearedTemplate, handleClearTemplate]);
 
   // Register keyboard shortcut
-  React.useEffect(() => {
+  useEffect(() => {
     document.addEventListener('keydown', handleKeyboardShortcut);
     return () => {
       document.removeEventListener('keydown', handleKeyboardShortcut);
