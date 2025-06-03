@@ -4,6 +4,8 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuTrigger, DropdownMenuItem, DropdownMenuSeparator } from '@/components/ui/dropdown-menu';
 import { BookOpen, Edit, Trash2, ChevronDown } from 'lucide-react';
+import { Skeleton } from '@/components/ui/skeleton';
+import { Badge } from '@/components/ui/badge';
 
 interface ClassTemplate {
   id: number;
@@ -22,6 +24,8 @@ interface SavedClassesSectionProps {
   onTemplateSelect: (templateId: string) => void;
   onEditTemplate?: (template: ClassTemplate) => void;
   onDeleteTemplate?: (template: ClassTemplate) => void;
+  isLoading?: boolean;
+  hasUnsavedChanges?: boolean;
 }
 
 const SavedClassesSection: React.FC<SavedClassesSectionProps> = ({
@@ -30,7 +34,25 @@ const SavedClassesSection: React.FC<SavedClassesSectionProps> = ({
   onTemplateSelect,
   onEditTemplate,
   onDeleteTemplate,
+  isLoading = false,
+  hasUnsavedChanges = false,
 }) => {
+  if (isLoading) {
+    return (
+      <Card className="border-dashed">
+        <CardHeader className="pb-4">
+          <CardTitle className="text-sm flex items-center gap-2">
+            <BookOpen className="h-4 w-4" />
+            Saved Classes
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          <Skeleton className="h-10 w-full" />
+        </CardContent>
+      </Card>
+    );
+  }
+
   if (templates.length === 0) return null;
 
   const selectedTemplate = templates.find(t => t.id.toString() === selectedTemplateId);
@@ -41,12 +63,20 @@ const SavedClassesSection: React.FC<SavedClassesSectionProps> = ({
         <CardTitle className="text-sm flex items-center gap-2">
           <BookOpen className="h-4 w-4" />
           Saved Classes
+          {hasUnsavedChanges && selectedTemplate && (
+            <Badge variant="outline" className="text-xs text-orange-600 border-orange-200">
+              Unsaved Changes
+            </Badge>
+          )}
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-3">
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <Button variant="outline" className="w-full justify-between">
+            <Button 
+              variant="outline" 
+              className={`w-full justify-between ${hasUnsavedChanges && selectedTemplate ? 'border-orange-200 bg-orange-50' : ''}`}
+            >
               {selectedTemplate 
                 ? `${selectedTemplate.class_name} (${selectedTemplate.students.length} students)`
                 : "Select a saved class"

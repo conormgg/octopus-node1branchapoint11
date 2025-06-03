@@ -37,6 +37,7 @@ export const useCreateSessionForm = (onSessionCreated: (sessionId: string) => vo
     templateButtonState: templateState.templateButtonState,
     loadedTemplate: templateState.loadedTemplate,
     hasUnsavedChanges: templateState.hasUnsavedChanges,
+    templatesLoading: templateState.templates.length === 0, // Simplified loading check
     
     // Template actions
     handleTemplateSelect: templateState.handleTemplateSelect,

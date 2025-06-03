@@ -1,4 +1,3 @@
-
 import { useState, useMemo } from 'react';
 import { useClassTemplates } from '@/hooks/useClassTemplates';
 import { useToast } from '@/hooks/use-toast';
@@ -23,7 +22,7 @@ export const useTemplateState = ({
   setStudents,
   resetForm,
 }: UseTemplateStateProps) => {
-  const { templates, saveTemplate, updateTemplate, deleteTemplate } = useClassTemplates();
+  const { templates, saveTemplate, updateTemplate, deleteTemplate, isLoading } = useClassTemplates();
   const [selectedTemplateId, setSelectedTemplateId] = useState<string>('');
   const [originalTemplateData, setOriginalTemplateData] = useState<OriginalTemplateData | null>(null);
   const { toast } = useToast();
@@ -205,6 +204,7 @@ export const useTemplateState = ({
 
   return {
     templates,
+    isLoading,
     selectedTemplateId,
     templateButtonState,
     loadedTemplate,
