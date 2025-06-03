@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { useClassTemplates } from '@/hooks/useClassTemplates';
 import { useToast } from '@/hooks/use-toast';
@@ -6,6 +5,8 @@ import { useTemplateActions } from './useTemplateActions';
 import { useTemplateChangeDetection } from './useTemplateChangeDetection';
 import { useTemplateButtonState } from './useTemplateButtonState';
 import { useTemplateOperations } from './useTemplateOperations';
+import { useFormDataDetection } from './useFormDataDetection';
+import { useCompleteReset } from './useCompleteReset';
 import { Student, OriginalTemplateData } from './types';
 
 interface UseTemplateStateProps {
@@ -49,6 +50,21 @@ export const useTemplateState = ({
     students,
     originalTemplateData,
     hasUnsavedChanges,
+  });
+
+  // Form data detection for reset button
+  const { shouldShowResetButton } = useFormDataDetection({
+    title,
+    duration,
+    students,
+    selectedTemplateId,
+  });
+
+  // Complete reset functionality
+  const { handleCompleteReset } = useCompleteReset({
+    setSelectedTemplateId,
+    setOriginalTemplateData,
+    resetForm,
   });
 
   // Template operations
@@ -158,6 +174,7 @@ export const useTemplateState = ({
     loadedTemplate,
     hasUnsavedChanges,
     showSaveAsNewOption,
+    shouldShowResetButton,
     templateActions,
     handleTemplateSelect,
     handleEditTemplate,
@@ -166,5 +183,6 @@ export const useTemplateState = ({
     handleUpdateTemplate,
     handleSaveAsNew,
     handleConfirmAction,
+    handleCompleteReset,
   };
 };
