@@ -45,7 +45,7 @@ export const useTemplateState = ({
   });
 
   // Button state logic
-  const { templateButtonState, showSaveAsNewOption, isTemplateLoaded } = useTemplateButtonState({
+  const { templateButtonState, showSaveAsNewOption, isTemplateLoaded, shouldConfirmClear } = useTemplateButtonState({
     students,
     originalTemplateData,
     hasUnsavedChanges,
@@ -99,14 +99,22 @@ export const useTemplateState = ({
     }
   };
 
-  const handleClearTemplate = () => {
+  const performClearTemplate = () => {
     setSelectedTemplateId('');
     setOriginalTemplateData(null);
     
     toast({
       title: "Template Cleared",
-      description: "Form data preserved. You can now save this as a new template.",
+      description: "Working with current data. You can now save this as a new template.",
     });
+  };
+
+  const handleClearTemplate = () => {
+    if (shouldConfirmClear) {
+      templateActions.openClearDialog();
+    } else {
+      performClearTemplate();
+    }
   };
 
   const handleEditTemplate = (template: any) => {
@@ -157,8 +165,14 @@ export const useTemplateState = ({
       case 'saveAsNew':
         confirmSaveAsNew();
         break;
+      case 'clear':
+        performClearTemplate();
+        break;
     }
   };
+
+  // Determine if we're in a "cleared template" state
+  const isClearedTemplate = !originalTemplateData && (title.trim() || students.some(s => s.name.trim()));
 
   return {
     templates,
@@ -168,6 +182,7 @@ export const useTemplateState = ({
     loadedTemplate,
     hasUnsavedChanges,
     showSaveAsNewOption,
+    isClearedTemplate,
     templateActions,
     handleTemplateSelect,
     handleClearTemplate,

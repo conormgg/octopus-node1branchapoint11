@@ -38,6 +38,7 @@ export const useCreateSessionForm = (onSessionCreated: (sessionId: string) => vo
     loadedTemplate: templateState.loadedTemplate,
     hasUnsavedChanges: templateState.hasUnsavedChanges,
     showSaveAsNewOption: templateState.showSaveAsNewOption,
+    isClearedTemplate: templateState.isClearedTemplate,
     templatesLoading: templateState.templates.length === 0,
     templateActions: templateState.templateActions,
     
