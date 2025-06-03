@@ -1,11 +1,14 @@
 
-import { useState, useCallback, useEffect } from 'react';
+import { useState } from 'react';
 import { useClassTemplates } from '@/hooks/useClassTemplates';
 import { useToast } from '@/hooks/use-toast';
 import { useTemplateActions } from './useTemplateActions';
 import { useTemplateChangeDetection } from './useTemplateChangeDetection';
 import { useTemplateButtonState } from './useTemplateButtonState';
 import { useTemplateOperations } from './useTemplateOperations';
+import { useTemplateSelection } from './useTemplateSelection';
+import { useTemplateClearance } from './useTemplateClearance';
+import { useTemplateKeyboardShortcuts } from './useTemplateKeyboardShortcuts';
 import { Student, OriginalTemplateData } from './types';
 
 interface UseTemplateStateProps {
@@ -28,14 +31,25 @@ export const useTemplateState = ({
   resetForm,
 }: UseTemplateStateProps) => {
   const { templates, deleteTemplate, isLoading } = useClassTemplates();
-  const [selectedTemplateId, setSelectedTemplateId] = useState<string>('');
   const [originalTemplateData, setOriginalTemplateData] = useState<OriginalTemplateData | null>(null);
   const [isClearedTemplate, setIsClearedTemplate] = useState(false);
   const { toast } = useToast();
   const templateActions = useTemplateActions();
 
-  // Template state tracking
-  const loadedTemplate = templates.find(t => t.id.toString() === selectedTemplateId);
+  // Template selection hook
+  const {
+    selectedTemplateId,
+    loadedTemplate,
+    handleTemplateSelect,
+    setSelectedTemplateId,
+  } = useTemplateSelection({
+    templates,
+    setTitle,
+    setDuration,
+    setStudents,
+    setOriginalTemplateData,
+    setIsClearedTemplate,
+  });
 
   // Change detection
   const { hasUnsavedChanges } = useTemplateChangeDetection({
@@ -62,80 +76,24 @@ export const useTemplateState = ({
     setOriginalTemplateData,
   });
 
-  // Check if form has significant data worth confirming before clearing
-  const hasSignificantData = useCallback(() => {
-    const validStudents = students.filter(student => student.name.trim()).length;
-    const hasTitle = title.trim().length > 0;
-    const hasDuration = duration !== '';
-    
-    return validStudents > 1 || hasTitle || hasDuration;
-  }, [title, duration, students]);
+  // Template clearance hook
+  const { handleClearTemplate, confirmClearTemplate } = useTemplateClearance({
+    title,
+    duration,
+    students,
+    originalTemplateData,
+    setSelectedTemplateId,
+    setOriginalTemplateData,
+    setIsClearedTemplate,
+    openClearTemplateDialog: templateActions.openClearTemplateDialog,
+  });
 
-  const handleTemplateSelect = (templateId: string) => {
-    setSelectedTemplateId(templateId);
-    setIsClearedTemplate(false);
-    
-    if (templateId) {
-      const template = templates.find(t => t.id === parseInt(templateId));
-      if (template) {
-        const templateTitle = template.class_name;
-        const templateDuration = template.duration_minutes || '';
-        const templateStudents = template.students.length > 0 
-          ? template.students.map(student => ({
-              name: student.student_name,
-              email: student.student_email || '',
-            }))
-          : [{ name: '', email: '' }];
-
-        // Set form data
-        setTitle(templateTitle);
-        setDuration(templateDuration);
-        setStudents(templateStudents);
-
-        // Store original template data for change detection
-        setOriginalTemplateData({
-          id: template.id,
-          title: templateTitle,
-          duration: templateDuration,
-          students: templateStudents,
-        });
-
-        toast({
-          title: "Template Loaded",
-          description: `Loaded "${template.class_name}"${template.students.length > 0 ? ` with ${template.students.length} students` : ''}.`,
-        });
-      }
-    } else {
-      // Clear template data when no template is selected
-      setOriginalTemplateData(null);
-      setIsClearedTemplate(false);
-    }
-  };
-
-  const handleClearTemplate = () => {
-    if (!originalTemplateData) return;
-
-    // If there are unsaved changes and significant data, show confirmation dialog
-    if (hasUnsavedChanges && hasSignificantData()) {
-      templateActions.openClearTemplateDialog(originalTemplateData.title);
-      return;
-    }
-
-    // Otherwise, clear immediately
-    confirmClearTemplate();
-  };
-
-  const confirmClearTemplate = () => {
-    setSelectedTemplateId('');
-    setOriginalTemplateData(null);
-    setIsClearedTemplate(true);
-    
-    toast({
-      title: "Template Cleared",
-      description: "Working with a copy of the template data. You can now save this as a new template.",
-      variant: "default",
-    });
-  };
+  // Keyboard shortcuts
+  useTemplateKeyboardShortcuts({
+    originalTemplateData,
+    isClearedTemplate,
+    handleClearTemplate,
+  });
 
   const handleEditTemplate = (template: any) => {
     toast({
@@ -191,25 +149,6 @@ export const useTemplateState = ({
         break;
     }
   };
-
-  // Keyboard shortcut handler
-  const handleKeyboardShortcut = useCallback((event: KeyboardEvent) => {
-    // Ctrl/Cmd + Shift + C to clear template
-    if ((event.ctrlKey || event.metaKey) && event.shiftKey && event.key === 'C') {
-      if (originalTemplateData && !isClearedTemplate) {
-        event.preventDefault();
-        handleClearTemplate();
-      }
-    }
-  }, [originalTemplateData, isClearedTemplate, handleClearTemplate]);
-
-  // Register keyboard shortcut
-  useEffect(() => {
-    document.addEventListener('keydown', handleKeyboardShortcut);
-    return () => {
-      document.removeEventListener('keydown', handleKeyboardShortcut);
-    };
-  }, [handleKeyboardShortcut]);
 
   return {
     templates,
