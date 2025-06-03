@@ -51,34 +51,34 @@ const SavedClassesSection: React.FC<SavedClassesSectionProps> = ({
               <SelectItem 
                 key={template.id} 
                 value={template.id.toString()}
-                className="cursor-pointer"
+                className="cursor-pointer relative"
               >
-                <div className="flex items-center justify-between w-full pr-2">
-                  <span className="flex-1">{template.class_name} ({template.students.length} students)</span>
-                  <div className="flex items-center gap-2 ml-4">
+                <div className="flex items-center justify-between w-full min-w-0">
+                  <span className="truncate mr-8">{template.class_name} ({template.students.length} students)</span>
+                  <div className="flex items-center gap-1 ml-auto absolute right-2">
                     <Button
                       variant="outline"
                       size="sm"
-                      className="h-8 w-8 p-0"
+                      className="h-6 w-6 p-0"
                       onClick={(e) => {
                         e.preventDefault();
                         e.stopPropagation();
                         onEditTemplate?.(template);
                       }}
                     >
-                      <Edit className="h-4 w-4" />
+                      <Edit className="h-3 w-3" />
                     </Button>
                     <Button
                       variant="outline"
                       size="sm"
-                      className="h-8 w-8 p-0"
+                      className="h-6 w-6 p-0"
                       onClick={(e) => {
                         e.preventDefault();
                         e.stopPropagation();
                         onDeleteTemplate?.(template);
                       }}
                     >
-                      <Trash2 className="h-4 w-4" />
+                      <Trash2 className="h-3 w-3" />
                     </Button>
                   </div>
                 </div>
