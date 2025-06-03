@@ -2,7 +2,7 @@
 import React from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Plus, Minus, Save } from 'lucide-react';
+import { Plus, Minus, Save, RotateCcw } from 'lucide-react';
 
 interface Student {
   name: string;
@@ -15,7 +15,9 @@ interface StudentListSectionProps {
   onRemoveStudent: (index: number) => void;
   onUpdateStudent: (index: number, field: keyof Student, value: string) => void;
   onSaveTemplate: () => void;
-  showSaveButton: boolean;
+  onUpdateTemplate?: () => void;
+  templateButtonState: 'save' | 'update' | 'none';
+  loadedTemplateName?: string;
 }
 
 const StudentListSection: React.FC<StudentListSectionProps> = ({
@@ -24,7 +26,9 @@ const StudentListSection: React.FC<StudentListSectionProps> = ({
   onRemoveStudent,
   onUpdateStudent,
   onSaveTemplate,
-  showSaveButton,
+  onUpdateTemplate,
+  templateButtonState,
+  loadedTemplateName,
 }) => {
   return (
     <>
@@ -76,19 +80,34 @@ const StudentListSection: React.FC<StudentListSectionProps> = ({
         </div>
       </div>
 
-      {/* Save Template Section */}
-      {showSaveButton && (
+      {/* Template Action Buttons */}
+      {templateButtonState !== 'none' && (
         <div className="flex justify-center">
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            onClick={onSaveTemplate}
-            className="flex items-center gap-2"
-          >
-            <Save className="h-4 w-4" />
-            Save
-          </Button>
+          {templateButtonState === 'save' && (
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={onSaveTemplate}
+              className="flex items-center gap-2"
+            >
+              <Save className="h-4 w-4" />
+              Save as Template
+            </Button>
+          )}
+
+          {templateButtonState === 'update' && onUpdateTemplate && (
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={onUpdateTemplate}
+              className="flex items-center gap-2"
+            >
+              <RotateCcw className="h-4 w-4" />
+              Update {loadedTemplateName && `"${loadedTemplateName}"`}
+            </Button>
+          )}
         </div>
       )}
     </>

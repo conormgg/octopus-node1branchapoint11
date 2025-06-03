@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
@@ -129,6 +128,70 @@ export const useClassTemplates = () => {
     }
   };
 
+  const updateTemplate = async (templateId: number, templateName: string, students: Student[], duration?: number | '') => {
+    if (isDemoMode || !user) {
+      toast({
+        title: "Demo Mode",
+        description: "Template updating is not available in demo mode.",
+        variant: "destructive",
+      });
+      return false;
+    }
+
+    try {
+      // Update the template
+      const { error: templateError } = await supabase
+        .from('saved_classes')
+        .update({
+          class_name: templateName,
+          duration_minutes: duration && typeof duration === 'number' ? duration : null,
+        })
+        .eq('id', templateId)
+        .eq('teacher_id', user.id); // Ensure user can only update their own templates
+
+      if (templateError) throw templateError;
+
+      // Delete existing students for this template
+      const { error: deleteError } = await supabase
+        .from('saved_class_students')
+        .delete()
+        .eq('saved_class_id', templateId);
+
+      if (deleteError) throw deleteError;
+
+      // Add updated students to the template
+      const validStudents = students.filter(student => student.name.trim());
+      if (validStudents.length > 0) {
+        const studentsToInsert = validStudents.map(student => ({
+          saved_class_id: templateId,
+          student_name: student.name.trim(),
+          student_email: student.email.trim() || null,
+        }));
+
+        const { error: studentsError } = await supabase
+          .from('saved_class_students')
+          .insert(studentsToInsert);
+
+        if (studentsError) throw studentsError;
+      }
+
+      toast({
+        title: "Template Updated!",
+        description: `Class template "${templateName}" has been updated successfully.`,
+      });
+
+      fetchTemplates(); // Refresh the templates list
+      return true;
+    } catch (error: any) {
+      toast({
+        title: "Error Updating Template",
+        description: error.message,
+        variant: "destructive",
+      });
+      return false;
+    }
+  };
+
   const deleteTemplate = async (templateId: number, templateName: string) => {
     if (isDemoMode || !user) {
       toast({
@@ -183,6 +246,7 @@ export const useClassTemplates = () => {
     templates,
     isLoading,
     saveTemplate,
+    updateTemplate,
     deleteTemplate,
     loadTemplate,
     refreshTemplates: fetchTemplates,

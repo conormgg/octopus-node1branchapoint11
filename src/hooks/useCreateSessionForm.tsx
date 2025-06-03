@@ -1,5 +1,4 @@
-
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { useClassTemplates } from '@/hooks/useClassTemplates';
@@ -10,15 +9,72 @@ interface Student {
   email: string;
 }
 
+interface OriginalTemplateData {
+  id: number;
+  title: string;
+  duration: number | '';
+  students: Student[];
+}
+
 export const useCreateSessionForm = (onSessionCreated: (sessionId: string) => void) => {
   const { user } = useAuth();
-  const { templates, saveTemplate, deleteTemplate } = useClassTemplates();
+  const { templates, saveTemplate, updateTemplate, deleteTemplate } = useClassTemplates();
   const [title, setTitle] = useState('');
   const [duration, setDuration] = useState<number | ''>('');
   const [students, setStudents] = useState<Student[]>([{ name: '', email: '' }]);
   const [isLoading, setIsLoading] = useState(false);
   const [selectedTemplateId, setSelectedTemplateId] = useState<string>('');
+  const [originalTemplateData, setOriginalTemplateData] = useState<OriginalTemplateData | null>(null);
   const { toast } = useToast();
+
+  // Template state tracking
+  const isTemplateLoaded = Boolean(originalTemplateData);
+  const loadedTemplate = templates.find(t => t.id.toString() === selectedTemplateId);
+
+  // Change detection logic
+  const hasUnsavedChanges = useMemo(() => {
+    if (!originalTemplateData) return false;
+
+    // Check if title changed
+    if (title !== originalTemplateData.title) return true;
+
+    // Check if duration changed
+    if (duration !== originalTemplateData.duration) return true;
+
+    // Check if students changed (length)
+    if (students.length !== originalTemplateData.students.length) return true;
+
+    // Check if any student data changed
+    for (let i = 0; i < students.length; i++) {
+      const current = students[i];
+      const original = originalTemplateData.students[i];
+      
+      if (!original) return true;
+      if (current.name !== original.name || current.email !== original.email) {
+        return true;
+      }
+    }
+
+    return false;
+  }, [title, duration, students, originalTemplateData]);
+
+  // Button state logic
+  const templateButtonState = useMemo(() => {
+    if (!isTemplateLoaded) {
+      // No template loaded - show save button if form is valid
+      const hasValidStudents = students.some(student => student.name.trim());
+      const showSaveButton = Boolean(hasValidStudents && title.trim());
+      return showSaveButton ? 'save' : 'none';
+    }
+
+    if (hasUnsavedChanges) {
+      // Template loaded with changes - show update button
+      return 'update';
+    }
+
+    // Template loaded without changes - hide buttons
+    return 'none';
+  }, [isTemplateLoaded, hasUnsavedChanges, students, title]);
 
   const addStudent = () => {
     if (students.length < 8) {
@@ -45,26 +101,36 @@ export const useCreateSessionForm = (onSessionCreated: (sessionId: string) => vo
     if (templateId) {
       const template = templates.find(t => t.id === parseInt(templateId));
       if (template) {
-        setTitle(template.class_name);
-        setDuration(template.duration_minutes || '');
-        
-        if (template.students.length > 0) {
-          const templateStudents = template.students.map(student => ({
-            name: student.student_name,
-            email: student.student_email || '',
-          }));
-          setStudents(templateStudents);
-          toast({
-            title: "Template Loaded",
-            description: `Loaded "${template.class_name}" with ${templateStudents.length} students.`,
-          });
-        } else {
-          toast({
-            title: "Template Loaded",
-            description: `Loaded "${template.class_name}".`,
-          });
-        }
+        const templateTitle = template.class_name;
+        const templateDuration = template.duration_minutes || '';
+        const templateStudents = template.students.length > 0 
+          ? template.students.map(student => ({
+              name: student.student_name,
+              email: student.student_email || '',
+            }))
+          : [{ name: '', email: '' }];
+
+        // Set form data
+        setTitle(templateTitle);
+        setDuration(templateDuration);
+        setStudents(templateStudents);
+
+        // Store original template data for change detection
+        setOriginalTemplateData({
+          id: template.id,
+          title: templateTitle,
+          duration: templateDuration,
+          students: templateStudents,
+        });
+
+        toast({
+          title: "Template Loaded",
+          description: `Loaded "${template.class_name}"${template.students.length > 0 ? ` with ${template.students.length} students` : ''}.`,
+        });
       }
+    } else {
+      // Clear template data when no template is selected
+      setOriginalTemplateData(null);
     }
   };
 
@@ -83,9 +149,13 @@ export const useCreateSessionForm = (onSessionCreated: (sessionId: string) => vo
     if (confirmDelete) {
       const success = await deleteTemplate(template.id, template.class_name);
       
-      // If the deleted template was currently selected, clear the selection
+      // If the deleted template was currently selected, clear the selection and reset form
       if (success && selectedTemplateId === template.id.toString()) {
         setSelectedTemplateId('');
+        setOriginalTemplateData(null);
+        setTitle('');
+        setDuration('');
+        setStudents([{ name: '', email: '' }]);
       }
     }
   };
@@ -111,6 +181,46 @@ export const useCreateSessionForm = (onSessionCreated: (sessionId: string) => vo
     }
 
     await saveTemplate(title.trim(), validStudents, duration);
+  };
+
+  const handleUpdateTemplate = async () => {
+    if (!originalTemplateData) return;
+
+    if (!title.trim()) {
+      toast({
+        title: "Session Title Required",
+        description: "Please enter a session title before updating template.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const validStudents = students.filter(student => student.name.trim());
+    if (validStudents.length === 0) {
+      toast({
+        title: "No Students to Save",
+        description: "Please add at least one student before updating template.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const success = await updateTemplate(
+      originalTemplateData.id,
+      title.trim(),
+      validStudents,
+      duration
+    );
+
+    if (success) {
+      // Update the original template data to reflect the new state
+      setOriginalTemplateData({
+        id: originalTemplateData.id,
+        title: title.trim(),
+        duration,
+        students: validStudents,
+      });
+    }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -182,9 +292,6 @@ export const useCreateSessionForm = (onSessionCreated: (sessionId: string) => vo
     }
   };
 
-  const hasValidStudents = students.some(student => student.name.trim());
-  const showSaveButton = Boolean(hasValidStudents && title.trim());
-
   return {
     // State
     title,
@@ -193,8 +300,9 @@ export const useCreateSessionForm = (onSessionCreated: (sessionId: string) => vo
     isLoading,
     selectedTemplateId,
     templates,
-    hasValidStudents,
-    showSaveButton,
+    templateButtonState,
+    loadedTemplate,
+    hasUnsavedChanges,
     
     // Setters
     setTitle,
@@ -208,6 +316,7 @@ export const useCreateSessionForm = (onSessionCreated: (sessionId: string) => vo
     handleEditTemplate,
     handleDeleteTemplate,
     handleSaveTemplate,
+    handleUpdateTemplate,
     handleSubmit,
   };
 };

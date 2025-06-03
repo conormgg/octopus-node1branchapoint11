@@ -20,7 +20,8 @@ const CreateSessionForm: React.FC<CreateSessionFormProps> = ({ onSessionCreated 
     isLoading,
     selectedTemplateId,
     templates,
-    showSaveButton,
+    templateButtonState,
+    loadedTemplate,
     setTitle,
     setDuration,
     addStudent,
@@ -30,6 +31,7 @@ const CreateSessionForm: React.FC<CreateSessionFormProps> = ({ onSessionCreated 
     handleEditTemplate,
     handleDeleteTemplate,
     handleSaveTemplate,
+    handleUpdateTemplate,
     handleSubmit,
   } = useCreateSessionForm(onSessionCreated);
 
@@ -67,7 +69,9 @@ const CreateSessionForm: React.FC<CreateSessionFormProps> = ({ onSessionCreated 
             onRemoveStudent={removeStudent}
             onUpdateStudent={updateStudent}
             onSaveTemplate={handleSaveTemplate}
-            showSaveButton={showSaveButton}
+            onUpdateTemplate={handleUpdateTemplate}
+            templateButtonState={templateButtonState}
+            loadedTemplateName={loadedTemplate?.class_name}
           />
 
           <Button type="submit" className="w-full" disabled={isLoading}>
