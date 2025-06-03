@@ -1,6 +1,8 @@
+
 import { useState, useMemo } from 'react';
 import { useClassTemplates } from '@/hooks/useClassTemplates';
 import { useToast } from '@/hooks/use-toast';
+import { useTemplateActions } from './useTemplateActions';
 import { Student, OriginalTemplateData, TemplateButtonState } from './types';
 
 interface UseTemplateStateProps {
@@ -26,6 +28,7 @@ export const useTemplateState = ({
   const [selectedTemplateId, setSelectedTemplateId] = useState<string>('');
   const [originalTemplateData, setOriginalTemplateData] = useState<OriginalTemplateData | null>(null);
   const { toast } = useToast();
+  const templateActions = useTemplateActions();
 
   // Template state tracking
   const isTemplateLoaded = Boolean(originalTemplateData);
@@ -58,7 +61,7 @@ export const useTemplateState = ({
     return false;
   }, [title, duration, students, originalTemplateData]);
 
-  // Updated button state logic to handle three states properly
+  // Enhanced button state logic with "Save as New" option
   const templateButtonState = useMemo((): TemplateButtonState => {
     const hasValidStudents = students.some(student => student.name.trim());
     
@@ -68,13 +71,16 @@ export const useTemplateState = ({
     }
 
     if (hasUnsavedChanges) {
-      // Template loaded with changes - show update button
+      // Template loaded with changes - show update button and save as new option
       return 'update';
     }
 
     // Template loaded without changes - hide buttons
     return 'none';
   }, [isTemplateLoaded, hasUnsavedChanges, students]);
+
+  // Show "Save as New" option when template is loaded and has changes
+  const showSaveAsNewOption = isTemplateLoaded && hasUnsavedChanges;
 
   const handleTemplateSelect = (templateId: string) => {
     setSelectedTemplateId(templateId);
@@ -123,19 +129,22 @@ export const useTemplateState = ({
   };
 
   const handleDeleteTemplate = async (template: any) => {
-    const confirmDelete = window.confirm(
-      `Are you sure you want to delete the template "${template.class_name}"? This action cannot be undone.`
+    templateActions.openDeleteDialog(template.id, template.class_name);
+  };
+
+  const confirmDeleteTemplate = async () => {
+    if (!templateActions.actionState.templateId) return;
+    
+    const success = await deleteTemplate(
+      templateActions.actionState.templateId, 
+      templateActions.actionState.templateName || ''
     );
     
-    if (confirmDelete) {
-      const success = await deleteTemplate(template.id, template.class_name);
-      
-      // If the deleted template was currently selected, clear the selection and reset form
-      if (success && selectedTemplateId === template.id.toString()) {
-        setSelectedTemplateId('');
-        setOriginalTemplateData(null);
-        resetForm();
-      }
+    // If the deleted template was currently selected, clear the selection and reset form
+    if (success && selectedTemplateId === templateActions.actionState.templateId.toString()) {
+      setSelectedTemplateId('');
+      setOriginalTemplateData(null);
+      resetForm();
     }
   };
 
@@ -163,6 +172,12 @@ export const useTemplateState = ({
   };
 
   const handleUpdateTemplate = async () => {
+    if (!originalTemplateData) return;
+    
+    templateActions.openUpdateDialog(originalTemplateData.id, originalTemplateData.title);
+  };
+
+  const confirmUpdateTemplate = async () => {
     if (!originalTemplateData) return;
 
     if (!title.trim()) {
@@ -202,6 +217,48 @@ export const useTemplateState = ({
     }
   };
 
+  const handleSaveAsNew = () => {
+    templateActions.openSaveAsNewDialog(title);
+  };
+
+  const confirmSaveAsNew = async () => {
+    if (!title.trim()) {
+      toast({
+        title: "Session Title Required",
+        description: "Please enter a session title before saving as new template.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const validStudents = students.filter(student => student.name.trim());
+    if (validStudents.length === 0) {
+      toast({
+        title: "No Students to Save",
+        description: "Please add at least one student before saving a template.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Save as new template (don't update original template data)
+    await saveTemplate(title.trim(), validStudents, duration);
+  };
+
+  const handleConfirmAction = () => {
+    switch (templateActions.actionState.type) {
+      case 'delete':
+        confirmDeleteTemplate();
+        break;
+      case 'update':
+        confirmUpdateTemplate();
+        break;
+      case 'saveAsNew':
+        confirmSaveAsNew();
+        break;
+    }
+  };
+
   return {
     templates,
     isLoading,
@@ -209,10 +266,14 @@ export const useTemplateState = ({
     templateButtonState,
     loadedTemplate,
     hasUnsavedChanges,
+    showSaveAsNewOption,
+    templateActions,
     handleTemplateSelect,
     handleEditTemplate,
     handleDeleteTemplate,
     handleSaveTemplate,
     handleUpdateTemplate,
+    handleSaveAsNew,
+    handleConfirmAction,
   };
 };
