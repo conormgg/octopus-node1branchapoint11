@@ -1,9 +1,9 @@
 
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Button } from '@/components/ui/button';
-import { BookOpen, Edit, Trash2 } from 'lucide-react';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuTrigger, DropdownMenuItem, DropdownMenuSeparator } from '@/components/ui/dropdown-menu';
+import { BookOpen, Edit, Trash2, ChevronDown } from 'lucide-react';
 
 interface ClassTemplate {
   id: number;
@@ -33,6 +33,8 @@ const SavedClassesSection: React.FC<SavedClassesSectionProps> = ({
 }) => {
   if (templates.length === 0) return null;
 
+  const selectedTemplate = templates.find(t => t.id.toString() === selectedTemplateId);
+
   return (
     <Card className="border-dashed">
       <CardHeader className="pb-4">
@@ -42,50 +44,63 @@ const SavedClassesSection: React.FC<SavedClassesSectionProps> = ({
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-3">
-        <Select value={selectedTemplateId} onValueChange={onTemplateSelect}>
-          <SelectTrigger>
-            <SelectValue placeholder="Select a saved class" />
-          </SelectTrigger>
-          <SelectContent className="bg-white z-50">
-            {templates.map((template) => (
-              <SelectItem 
-                key={template.id} 
-                value={template.id.toString()}
-                className="cursor-pointer relative"
-              >
-                <div className="flex items-center justify-between w-full min-w-0">
-                  <span className="truncate mr-8">{template.class_name} ({template.students.length} students)</span>
-                  <div className="flex items-center gap-1 ml-auto absolute right-2">
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="outline" className="w-full justify-between">
+              {selectedTemplate 
+                ? `${selectedTemplate.class_name} (${selectedTemplate.students.length} students)`
+                : "Select a saved class"
+              }
+              <ChevronDown className="h-4 w-4 opacity-50" />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent className="w-full min-w-[var(--radix-dropdown-menu-trigger-width)] max-w-md">
+            {templates.map((template, index) => (
+              <React.Fragment key={template.id}>
+                <DropdownMenuItem
+                  className="flex items-center justify-between cursor-pointer p-3"
+                  onSelect={() => onTemplateSelect(template.id.toString())}
+                >
+                  <div className="flex-1 min-w-0">
+                    <div className="font-medium truncate">{template.class_name}</div>
+                    <div className="text-sm text-muted-foreground">
+                      {template.students.length} students
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-1 ml-3 flex-shrink-0">
                     <Button
                       variant="outline"
                       size="sm"
-                      className="h-6 w-6 p-0"
+                      className="h-8 w-8 p-0"
                       onClick={(e) => {
                         e.preventDefault();
                         e.stopPropagation();
                         onEditTemplate?.(template);
                       }}
+                      onSelect={(e) => e.preventDefault()}
                     >
                       <Edit className="h-3 w-3" />
                     </Button>
                     <Button
                       variant="outline"
                       size="sm"
-                      className="h-6 w-6 p-0"
+                      className="h-8 w-8 p-0"
                       onClick={(e) => {
                         e.preventDefault();
                         e.stopPropagation();
                         onDeleteTemplate?.(template);
                       }}
+                      onSelect={(e) => e.preventDefault()}
                     >
                       <Trash2 className="h-3 w-3" />
                     </Button>
                   </div>
-                </div>
-              </SelectItem>
+                </DropdownMenuItem>
+                {index < templates.length - 1 && <DropdownMenuSeparator />}
+              </React.Fragment>
             ))}
-          </SelectContent>
-        </Select>
+          </DropdownMenuContent>
+        </DropdownMenu>
       </CardContent>
     </Card>
   );
