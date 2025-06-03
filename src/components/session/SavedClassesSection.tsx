@@ -3,7 +3,7 @@ import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuTrigger, DropdownMenuItem, DropdownMenuSeparator } from '@/components/ui/dropdown-menu';
-import { BookOpen, Edit, Trash2, ChevronDown } from 'lucide-react';
+import { BookOpen, Edit, Trash2, ChevronDown, X } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Badge } from '@/components/ui/badge';
 
@@ -22,6 +22,7 @@ interface SavedClassesSectionProps {
   templates: ClassTemplate[];
   selectedTemplateId: string;
   onTemplateSelect: (templateId: string) => void;
+  onClearTemplate?: () => void;
   onEditTemplate?: (template: ClassTemplate) => void;
   onDeleteTemplate?: (template: ClassTemplate) => void;
   isLoading?: boolean;
@@ -32,6 +33,7 @@ const SavedClassesSection: React.FC<SavedClassesSectionProps> = ({
   templates,
   selectedTemplateId,
   onTemplateSelect,
+  onClearTemplate,
   onEditTemplate,
   onDeleteTemplate,
   isLoading = false,
@@ -131,6 +133,18 @@ const SavedClassesSection: React.FC<SavedClassesSectionProps> = ({
             ))}
           </DropdownMenuContent>
         </DropdownMenu>
+        
+        {selectedTemplate && (
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={onClearTemplate}
+            className="w-full text-muted-foreground hover:text-foreground"
+          >
+            <X className="h-4 w-4 mr-2" />
+            Clear Template
+          </Button>
+        )}
       </CardContent>
     </Card>
   );

@@ -1,3 +1,4 @@
+
 import { useFormState } from './session/useFormState';
 import { useTemplateState } from './session/useTemplateState';
 import { useSessionCreation } from './session/useSessionCreation';
@@ -42,6 +43,7 @@ export const useCreateSessionForm = (onSessionCreated: (sessionId: string) => vo
     
     // Template actions
     handleTemplateSelect: templateState.handleTemplateSelect,
+    handleClearTemplate: templateState.handleClearTemplate,
     handleEditTemplate: templateState.handleEditTemplate,
     handleDeleteTemplate: templateState.handleDeleteTemplate,
     handleSaveTemplate: templateState.handleSaveTemplate,

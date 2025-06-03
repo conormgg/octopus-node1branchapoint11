@@ -99,6 +99,16 @@ export const useTemplateState = ({
     }
   };
 
+  const handleClearTemplate = () => {
+    setSelectedTemplateId('');
+    setOriginalTemplateData(null);
+    
+    toast({
+      title: "Template Cleared",
+      description: "Form data preserved. You can now save this as a new template.",
+    });
+  };
+
   const handleEditTemplate = (template: any) => {
     toast({
       title: "Edit Template",
@@ -160,6 +170,7 @@ export const useTemplateState = ({
     showSaveAsNewOption,
     templateActions,
     handleTemplateSelect,
+    handleClearTemplate,
     handleEditTemplate,
     handleDeleteTemplate,
     handleSaveTemplate,

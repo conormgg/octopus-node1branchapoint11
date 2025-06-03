@@ -33,6 +33,7 @@ const CreateSessionForm: React.FC<CreateSessionFormProps> = ({ onSessionCreated 
     removeStudent,
     updateStudent,
     handleTemplateSelect,
+    handleClearTemplate,
     handleEditTemplate,
     handleDeleteTemplate,
     handleSaveTemplate,
@@ -62,6 +63,7 @@ const CreateSessionForm: React.FC<CreateSessionFormProps> = ({ onSessionCreated 
               templates={templates}
               selectedTemplateId={selectedTemplateId}
               onTemplateSelect={handleTemplateSelect}
+              onClearTemplate={handleClearTemplate}
               onEditTemplate={handleEditTemplate}
               onDeleteTemplate={handleDeleteTemplate}
               isLoading={templatesLoading}
