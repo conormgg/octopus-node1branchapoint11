@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
@@ -76,6 +75,20 @@ const CreateSessionForm: React.FC<CreateSessionFormProps> = ({ onSessionCreated 
         }
       }
     }
+  };
+
+  const handleEditTemplate = (template: any) => {
+    toast({
+      title: "Edit Template",
+      description: `Editing functionality for "${template.class_name}" will be implemented soon.`,
+    });
+  };
+
+  const handleDeleteTemplate = (template: any) => {
+    toast({
+      title: "Delete Template",
+      description: `Delete functionality for "${template.class_name}" will be implemented soon.`,
+    });
   };
 
   const handleSaveTemplate = async () => {
@@ -190,6 +203,8 @@ const CreateSessionForm: React.FC<CreateSessionFormProps> = ({ onSessionCreated 
             templates={templates}
             selectedTemplateId={selectedTemplateId}
             onTemplateSelect={handleTemplateSelect}
+            onEditTemplate={handleEditTemplate}
+            onDeleteTemplate={handleDeleteTemplate}
           />
 
           <SessionFormFields
