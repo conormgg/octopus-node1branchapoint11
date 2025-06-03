@@ -1,5 +1,4 @@
-
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
 import { useClassTemplates } from '@/hooks/useClassTemplates';
 import { useToast } from '@/hooks/use-toast';
 import { useTemplateActions } from './useTemplateActions';
@@ -62,6 +61,15 @@ export const useTemplateState = ({
     setOriginalTemplateData,
   });
 
+  // Check if form has significant data worth confirming before clearing
+  const hasSignificantData = useCallback(() => {
+    const validStudents = students.filter(student => student.name.trim()).length;
+    const hasTitle = title.trim().length > 0;
+    const hasDuration = duration !== '';
+    
+    return validStudents > 1 || hasTitle || hasDuration;
+  }, [title, duration, students]);
+
   const handleTemplateSelect = (templateId: string) => {
     setSelectedTemplateId(templateId);
     setIsClearedTemplate(false);
@@ -104,6 +112,19 @@ export const useTemplateState = ({
   };
 
   const handleClearTemplate = () => {
+    if (!originalTemplateData) return;
+
+    // If there are unsaved changes and significant data, show confirmation dialog
+    if (hasUnsavedChanges && hasSignificantData()) {
+      templateActions.openClearTemplateDialog(originalTemplateData.title);
+      return;
+    }
+
+    // Otherwise, clear immediately
+    confirmClearTemplate();
+  };
+
+  const confirmClearTemplate = () => {
     setSelectedTemplateId('');
     setOriginalTemplateData(null);
     setIsClearedTemplate(true);
@@ -164,8 +185,30 @@ export const useTemplateState = ({
       case 'saveAsNew':
         confirmSaveAsNew();
         break;
+      case 'clearTemplate':
+        confirmClearTemplate();
+        break;
     }
   };
+
+  // Keyboard shortcut handler
+  const handleKeyboardShortcut = useCallback((event: KeyboardEvent) => {
+    // Ctrl/Cmd + Shift + C to clear template
+    if ((event.ctrlKey || event.metaKey) && event.shiftKey && event.key === 'C') {
+      if (originalTemplateData && !isClearedTemplate) {
+        event.preventDefault();
+        handleClearTemplate();
+      }
+    }
+  }, [originalTemplateData, isClearedTemplate, handleClearTemplate]);
+
+  // Register keyboard shortcut
+  React.useEffect(() => {
+    document.addEventListener('keydown', handleKeyboardShortcut);
+    return () => {
+      document.removeEventListener('keydown', handleKeyboardShortcut);
+    };
+  }, [handleKeyboardShortcut]);
 
   return {
     templates,

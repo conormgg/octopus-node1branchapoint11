@@ -160,6 +160,7 @@ const SavedClassesSection: React.FC<SavedClassesSectionProps> = ({
             size="sm"
             onClick={onClearTemplate}
             className="w-full text-muted-foreground hover:text-foreground border-dashed"
+            title="Clear template connection (Ctrl+Shift+C)"
           >
             <X className="h-4 w-4 mr-2" />
             Clear Template (Keep Data)
@@ -168,7 +169,8 @@ const SavedClassesSection: React.FC<SavedClassesSectionProps> = ({
 
         {isClearedTemplate && (
           <div className="text-xs text-blue-600 bg-blue-50 p-2 rounded border border-blue-200">
-            You're working with a copy of the template data. Any changes can be saved as a new template.
+            <div className="font-medium mb-1">Working with template copy</div>
+            <div>You're working with a copy of the template data. Any changes can be saved as a new template.</div>
           </div>
         )}
       </CardContent>

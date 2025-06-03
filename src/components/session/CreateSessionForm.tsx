@@ -56,6 +56,11 @@ const CreateSessionForm: React.FC<CreateSessionFormProps> = ({ onSessionCreated 
           </CardTitle>
           <CardDescription>
             Set up a new collaborative whiteboard session for your class
+            {loadedTemplate && !isClearedTemplate && (
+              <div className="text-xs text-muted-foreground mt-1">
+                Tip: Press Ctrl+Shift+C to clear template connection
+              </div>
+            )}
           </CardDescription>
         </CardHeader>
         <CardContent>

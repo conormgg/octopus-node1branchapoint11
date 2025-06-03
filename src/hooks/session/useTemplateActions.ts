@@ -3,7 +3,7 @@ import { useState } from 'react';
 import { useToast } from '@/hooks/use-toast';
 
 export interface TemplateActionState {
-  type: 'delete' | 'update' | 'saveAsNew' | null;
+  type: 'delete' | 'update' | 'saveAsNew' | 'clearTemplate' | null;
   templateId?: number;
   templateName?: string;
 }
@@ -22,6 +22,10 @@ export const useTemplateActions = () => {
 
   const openSaveAsNewDialog = (templateName: string) => {
     setActionState({ type: 'saveAsNew', templateName });
+  };
+
+  const openClearTemplateDialog = (templateName: string) => {
+    setActionState({ type: 'clearTemplate', templateName });
   };
 
   const closeDialog = () => {
@@ -51,6 +55,13 @@ export const useTemplateActions = () => {
           confirmLabel: 'Save as New',
           variant: 'default' as const,
         };
+      case 'clearTemplate':
+        return {
+          title: 'Clear Template',
+          description: `You have unsaved changes to "${actionState.templateName}". Clearing the template will keep your current data but disconnect it from the template. You can save it as a new template later.`,
+          confirmLabel: 'Clear Template',
+          variant: 'default' as const,
+        };
       default:
         return null;
     }
@@ -61,6 +72,7 @@ export const useTemplateActions = () => {
     openDeleteDialog,
     openUpdateDialog,
     openSaveAsNewDialog,
+    openClearTemplateDialog,
     closeDialog,
     getDialogProps,
   };
