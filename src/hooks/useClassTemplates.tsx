@@ -10,7 +10,7 @@ export const useClassTemplates = () => {
   const { templates, isLoading, loadTemplate, refreshTemplates } = useTemplateData(user, isDemoMode);
   const { toast } = useToast();
 
-  const saveTemplate = async (templateName: string, students: Student[], duration?: number | '') => {
+  const saveTemplate = async (templateName: string, students: Student[], duration?: number | ''): Promise<ClassTemplate | null> => {
     if (isDemoMode || !user) {
       toast({
         title: "Demo Mode",
@@ -57,7 +57,7 @@ export const useClassTemplates = () => {
       });
 
       const refreshedTemplatesList = await refreshTemplates();
-      return refreshedTemplatesList.find(t => t.id === templateData.id);
+      return refreshedTemplatesList.find(t => t.id === templateData.id) || null;
     } catch (error: any) {
       toast({
         title: "Error Saving Template",
@@ -68,7 +68,12 @@ export const useClassTemplates = () => {
     }
   };
 
-  const updateTemplate = async (templateId: number, templateName: string, students: Student[], duration?: number | '') => {
+  const updateTemplate = async (
+    templateId: number, 
+    templateName: string, 
+    students: Student[], 
+    duration?: number | ''
+  ): Promise<{ success: boolean, updatedTemplate?: ClassTemplate, refreshedTemplates?: ClassTemplate[] }> => {
     if (isDemoMode || !user) {
       toast({
         title: "Demo Mode",
@@ -119,7 +124,8 @@ export const useClassTemplates = () => {
 
       const refreshedTemplatesList = await refreshTemplates();
       const updatedTemplate = refreshedTemplatesList.find(t => t.id === templateId);
-      return { success: true, updatedTemplate };
+      
+      return { success: true, updatedTemplate, refreshedTemplates: refreshedTemplatesList };
     } catch (error: any) {
       toast({
         title: "Error Updating Template",

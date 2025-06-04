@@ -33,12 +33,10 @@ export const useTemplateOperations = ({
 
     const validStudents = students.filter(student => student.name.trim());
     if (validStudents.length === 0) {
-      // Allow empty if original was also empty and no other changes
       if (originalTemplateData && 
           originalTemplateData.students.every(s => !s.name.trim()) && 
           title.trim() === originalTemplateData.title && 
           duration === originalTemplateData.duration) {
-        // Template is identical to an empty original template, allow update
         return true;
       } else {
         toast({
@@ -61,13 +59,17 @@ export const useTemplateOperations = ({
     return newTemplate || null;
   };
 
-  const updateTemplate = async (): Promise<{ success: boolean, updatedTemplate?: ClassTemplate }> => {
+  const updateTemplate = async (): Promise<{ 
+    success: boolean, 
+    updatedTemplate?: ClassTemplate, 
+    refreshedTemplates?: ClassTemplate[]
+  }> => {
     if (!originalTemplateData) return { success: false };
     if (!validateTemplateData()) return { success: false };
 
     const validStudents = students.filter(student => student.name.trim());
 
-    const { success, updatedTemplate } = await updateTemplateInDb(
+    const { success, updatedTemplate, refreshedTemplates } = await updateTemplateInDb(
       originalTemplateData.id,
       title.trim(),
       validStudents,
@@ -75,7 +77,6 @@ export const useTemplateOperations = ({
     );
 
     if (success && updatedTemplate) {
-      // Use the definitive updatedTemplate from DB to set originalTemplateData
       const templateStudentsFromDb = updatedTemplate.students.map(s => ({ 
         name: s.student_name, 
         email: s.student_email || '' 
@@ -88,7 +89,6 @@ export const useTemplateOperations = ({
         students: templateStudentsFromDb.length > 0 ? templateStudentsFromDb : [{ name: '', email: '' }],
       });
     } else if (success) {
-      // Fallback: update was successful but we didn't get the template object back
       setOriginalTemplateData({
         id: originalTemplateData.id,
         title: title.trim(),
@@ -97,7 +97,7 @@ export const useTemplateOperations = ({
       });
     }
 
-    return { success, updatedTemplate: updatedTemplate as ClassTemplate | undefined };
+    return { success, updatedTemplate: updatedTemplate as ClassTemplate | undefined, refreshedTemplates };
   };
 
   const saveAsNew = async (): Promise<ClassTemplate | null> => {

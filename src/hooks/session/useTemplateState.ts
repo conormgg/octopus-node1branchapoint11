@@ -1,5 +1,4 @@
-
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useClassTemplates } from '@/hooks/useClassTemplates';
 import { useTemplateChangeDetection } from './useTemplateChangeDetection';
 import { useTemplateButtonState } from './useTemplateButtonState';
@@ -29,18 +28,35 @@ export const useTemplateState = ({
   setStudents,
   resetForm,
 }: UseTemplateStateProps) => {
-  const { templates, deleteTemplate, isLoading: templatesLoading } = useClassTemplates();
+  const { 
+    templates: initialTemplatesFromHook,
+    deleteTemplate, 
+    isLoading: templatesLoadingFromHook,
+    refreshTemplates: refreshTemplatesViaClassHook
+  } = useClassTemplates();
+  
+  const [currentTemplates, setCurrentTemplates] = useState<ClassTemplate[]>(initialTemplatesFromHook);
+  const [isLoading, setIsLoading] = useState(templatesLoadingFromHook);
   const [selectedTemplateId, setSelectedTemplateId] = useState<string>('');
   const [originalTemplateData, setOriginalTemplateData] = useState<OriginalTemplateData | null>(null);
   const { toast } = useToast();
   const templateActions = useTemplateActions();
+
+  // Keep currentTemplates in sync with the hook's templates
+  useEffect(() => {
+    setCurrentTemplates(initialTemplatesFromHook);
+  }, [initialTemplatesFromHook]);
+  
+  useEffect(() => {
+    setIsLoading(templatesLoadingFromHook);
+  }, [templatesLoadingFromHook]);
 
   // Template selection logic
   const handleTemplateSelect = (templateId: string) => {
     setSelectedTemplateId(templateId);
     
     if (templateId) {
-      const template = templates.find(t => t.id === parseInt(templateId));
+      const template = currentTemplates.find(t => t.id === parseInt(templateId));
       if (template) {
         const templateTitle = template.class_name;
         const templateDuration = template.duration_minutes || '';
@@ -81,7 +97,7 @@ export const useTemplateState = ({
   };
 
   // Template state tracking
-  const loadedTemplate = templates.find(t => t.id.toString() === selectedTemplateId);
+  const loadedTemplate = currentTemplates.find(t => t.id.toString() === selectedTemplateId);
 
   // Change detection
   const { hasUnsavedChanges } = useTemplateChangeDetection({
@@ -155,23 +171,27 @@ export const useTemplateState = ({
             templateIdToActOn,
             templateActions.actionState.templateName || ''
           );
-          if (deleteSuccess && selectedTemplateId === templateIdToActOn.toString()) {
-            clearSelection();
-            resetForm();
+          if (deleteSuccess) {
+            const refreshedAfterDelete = await refreshTemplatesViaClassHook();
+            setCurrentTemplates(refreshedAfterDelete);
+            if (selectedTemplateId === templateIdToActOn.toString()) {
+              clearSelection();
+              resetForm();
+            }
           }
         }
         break;
       case 'update':
-        const { success: updateSuccess, updatedTemplate } = await performUpdateTemplate();
+        const { success: updateSuccess, updatedTemplate, refreshedTemplates } = await performUpdateTemplate();
 
-        if (updateSuccess && updatedTemplate) {
-          // Sync form state directly from updatedTemplate to avoid stale data
+        if (updateSuccess && updatedTemplate && refreshedTemplates) {
+          setCurrentTemplates(refreshedTemplates);
+
           const formStudents: Student[] = updatedTemplate.students.map(s => ({
             name: s.student_name,
             email: s.student_email || '',
           }));
           
-          // Ensure form has at least one empty student field if DB returns an empty list
           if (formStudents.length === 0 && updatedTemplate.students.length === 0) {
             formStudents.push({ name: '', email: '' });
           }
@@ -179,6 +199,13 @@ export const useTemplateState = ({
           setTitle(updatedTemplate.class_name);
           setDuration(updatedTemplate.duration_minutes || '');
           setStudents(formStudents);
+          
+          setOriginalTemplateData({
+            id: updatedTemplate.id,
+            title: updatedTemplate.class_name,
+            duration: updatedTemplate.duration_minutes || '',
+            students: formStudents,
+          });
           setSelectedTemplateId(updatedTemplate.id.toString());
 
           toast({
@@ -190,6 +217,8 @@ export const useTemplateState = ({
       case 'saveAsNew':
         const newTemplate = await performSaveAsNew();
         if (newTemplate) {
+          const refreshedAfterSaveNew = await refreshTemplatesViaClassHook();
+          setCurrentTemplates(refreshedAfterSaveNew);
           handleTemplateSelect(newTemplate.id.toString());
         }
         break;
@@ -197,8 +226,8 @@ export const useTemplateState = ({
   };
 
   return {
-    templates,
-    isLoading: templatesLoading,
+    templates: currentTemplates,
+    isLoading,
     selectedTemplateId,
     templateButtonState,
     loadedTemplate,
@@ -211,6 +240,8 @@ export const useTemplateState = ({
     handleSaveTemplate: async () => {
       const newSavedTemplate = await performSaveTemplate();
       if (newSavedTemplate) {
+        const refreshedAfterSave = await refreshTemplatesViaClassHook();
+        setCurrentTemplates(refreshedAfterSave);
         handleTemplateSelect(newSavedTemplate.id.toString());
       }
     },
