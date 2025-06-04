@@ -21,14 +21,14 @@ export const useTemplateOperations = ({
   const { saveTemplate: saveTemplateToDb, updateTemplate: updateTemplateInDb } = useClassTemplates();
   const { toast } = useToast();
 
-  const handleSaveTemplate = async (): Promise<ClassTemplate | null> => {
+  const validateTemplateData = () => {
     if (!title.trim()) {
       toast({
         title: "Session Title Required",
-        description: "Please enter a session title before saving as template.",
+        description: "Please enter a session title before saving template.",
         variant: "destructive",
       });
-      return null;
+      return false;
     }
 
     const validStudents = students.filter(student => student.name.trim());
@@ -38,35 +38,25 @@ export const useTemplateOperations = ({
         description: "Please add at least one student before saving a template.",
         variant: "destructive",
       });
-      return null;
+      return false;
     }
 
+    return true;
+  };
+
+  const saveTemplate = async (): Promise<ClassTemplate | null> => {
+    if (!validateTemplateData()) return null;
+
+    const validStudents = students.filter(student => student.name.trim());
     const newTemplate = await saveTemplateToDb(title.trim(), validStudents, duration);
     return newTemplate || null;
   };
 
-  const confirmUpdateTemplate = async (): Promise<{ success: boolean, updatedTemplate?: ClassTemplate }> => {
+  const updateTemplate = async (): Promise<{ success: boolean, updatedTemplate?: ClassTemplate }> => {
     if (!originalTemplateData) return { success: false };
-
-    if (!title.trim()) {
-      toast({
-        title: "Session Title Required",
-        description: "Please enter a session title before updating template.",
-        variant: "destructive",
-      });
-      return { success: false };
-    }
+    if (!validateTemplateData()) return { success: false };
 
     const validStudents = students.filter(student => student.name.trim());
-    if (validStudents.length === 0) {
-      toast({
-        title: "No Students to Save",
-        description: "Please add at least one student before updating template.",
-        variant: "destructive",
-      });
-      return { success: false };
-    }
-
     const { success, updatedTemplate } = await updateTemplateInDb(
       originalTemplateData.id,
       title.trim(),
@@ -98,33 +88,17 @@ export const useTemplateOperations = ({
     return { success, updatedTemplate };
   };
 
-  const confirmSaveAsNew = async (): Promise<ClassTemplate | null> => {
-    if (!title.trim()) {
-      toast({
-        title: "Session Title Required",
-        description: "Please enter a session title before saving as new template.",
-        variant: "destructive",
-      });
-      return null;
-    }
+  const saveAsNew = async (): Promise<ClassTemplate | null> => {
+    if (!validateTemplateData()) return null;
 
     const validStudents = students.filter(student => student.name.trim());
-    if (validStudents.length === 0) {
-      toast({
-        title: "No Students to Save",
-        description: "Please add at least one student before saving a template.",
-        variant: "destructive",
-      });
-      return null;
-    }
-
     const newTemplate = await saveTemplateToDb(title.trim(), validStudents, duration);
     return newTemplate || null;
   };
 
   return {
-    handleSaveTemplate,
-    confirmUpdateTemplate,
-    confirmSaveAsNew,
+    saveTemplate,
+    updateTemplate,
+    saveAsNew,
   };
 };

@@ -30,12 +30,7 @@ export const useTemplateOperationHandlers = ({
   const { deleteTemplate } = useClassTemplates();
   const templateActions = useTemplateActions();
 
-  // Template operations
-  const { 
-    handleSaveTemplate: performSaveTemplateOperation, 
-    confirmUpdateTemplate: performUpdateTemplateOperation, 
-    confirmSaveAsNew: performSaveAsNewOperation 
-  } = useTemplateOperations({
+  const templateOperations = useTemplateOperations({
     originalTemplateData,
     title,
     duration,
@@ -48,7 +43,7 @@ export const useTemplateOperationHandlers = ({
   };
 
   const handleSaveTemplate = async () => {
-    const newTemplate = await performSaveTemplateOperation();
+    const newTemplate = await templateOperations.saveTemplate();
     if (newTemplate) {
       handleTemplateSelect(newTemplate.id.toString());
     }
@@ -62,7 +57,6 @@ export const useTemplateOperationHandlers = ({
       templateActions.actionState.templateName || ''
     );
     
-    // If the deleted template was currently selected, clear the selection and reset form
     if (success && selectedTemplateId === templateActions.actionState.templateId.toString()) {
       clearSelection();
       resetForm();
@@ -71,7 +65,6 @@ export const useTemplateOperationHandlers = ({
 
   const handleUpdateTemplate = async () => {
     if (!originalTemplateData) return;
-    
     templateActions.openUpdateDialog(originalTemplateData.id, originalTemplateData.title);
   };
 
@@ -93,7 +86,7 @@ export const useTemplateOperationHandlers = ({
         }
         break;
       case 'update':
-        const { success: updateSuccess, updatedTemplate } = await performUpdateTemplateOperation();
+        const { success: updateSuccess, updatedTemplate } = await templateOperations.updateTemplate();
         if (updateSuccess && updatedTemplate) {
           handleTemplateSelect(updatedTemplate.id.toString());
         } else if (updateSuccess && currentSelectedTemplateIdState) {
@@ -101,7 +94,7 @@ export const useTemplateOperationHandlers = ({
         }
         break;
       case 'saveAsNew':
-        const newTemplate = await performSaveAsNewOperation();
+        const newTemplate = await templateOperations.saveAsNew();
         if (newTemplate) {
           handleTemplateSelect(newTemplate.id.toString());
         }

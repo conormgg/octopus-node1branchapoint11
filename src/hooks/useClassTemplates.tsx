@@ -1,40 +1,169 @@
 
 import { useAuth } from '@/hooks/useAuth';
 import { useTemplateData } from './templates/useTemplateData';
-import { useTemplateOperations } from './templates/useTemplateOperations';
 import { ClassTemplate, Student } from './templates/types';
+import { supabase } from '@/integrations/supabase/client';
+import { useToast } from '@/hooks/use-toast';
 
 export const useClassTemplates = () => {
   const { user, isDemoMode } = useAuth();
   const { templates, isLoading, loadTemplate, refreshTemplates } = useTemplateData(user, isDemoMode);
-  const { saveTemplate: saveTemplateOperation, updateTemplate: updateTemplateOperation, deleteTemplate: deleteTemplateOperation } = useTemplateOperations();
+  const { toast } = useToast();
 
   const saveTemplate = async (templateName: string, students: Student[], duration?: number | '') => {
-    const newTemplateId = await saveTemplateOperation(user, isDemoMode, templateName, students, duration);
-    let newTemplateData: ClassTemplate | undefined = undefined;
-    if (newTemplateId) {
-      const refreshedTemplatesList = await refreshTemplates();
-      newTemplateData = refreshedTemplatesList.find(t => t.id === newTemplateId);
+    if (isDemoMode || !user) {
+      toast({
+        title: "Demo Mode",
+        description: "Template saving is not available in demo mode.",
+        variant: "destructive",
+      });
+      return null;
     }
-    return newTemplateData;
+
+    try {
+      const { data: templateData, error: templateError } = await supabase
+        .from('saved_classes')
+        .insert({
+          teacher_id: user.id,
+          class_name: templateName,
+          duration_minutes: duration && typeof duration === 'number' ? duration : null,
+        })
+        .select()
+        .single();
+
+      if (templateError) throw templateError;
+
+      if (students.length > 0) {
+        const studentsToInsert = students
+          .filter(student => student.name.trim())
+          .map(student => ({
+            saved_class_id: templateData.id,
+            student_name: student.name.trim(),
+            student_email: student.email.trim() || null,
+          }));
+
+        if (studentsToInsert.length > 0) {
+          const { error: studentsError } = await supabase
+            .from('saved_class_students')
+            .insert(studentsToInsert);
+
+          if (studentsError) throw studentsError;
+        }
+      }
+
+      toast({
+        title: "Template Saved!",
+        description: `Class template "${templateName}" has been saved successfully.`,
+      });
+
+      const refreshedTemplatesList = await refreshTemplates();
+      return refreshedTemplatesList.find(t => t.id === templateData.id);
+    } catch (error: any) {
+      toast({
+        title: "Error Saving Template",
+        description: error.message,
+        variant: "destructive",
+      });
+      return null;
+    }
   };
 
   const updateTemplate = async (templateId: number, templateName: string, students: Student[], duration?: number | '') => {
-    const success = await updateTemplateOperation(user, isDemoMode, templateId, templateName, students, duration);
-    let updatedTemplateData: ClassTemplate | undefined = undefined;
-    if (success) {
-      const refreshedTemplatesList = await refreshTemplates();
-      updatedTemplateData = refreshedTemplatesList.find(t => t.id === templateId);
+    if (isDemoMode || !user) {
+      toast({
+        title: "Demo Mode",
+        description: "Template updating is not available in demo mode.",
+        variant: "destructive",
+      });
+      return { success: false };
     }
-    return { success, updatedTemplate: updatedTemplateData };
+
+    try {
+      const { error: templateError } = await supabase
+        .from('saved_classes')
+        .update({
+          class_name: templateName,
+          duration_minutes: duration && typeof duration === 'number' ? duration : null,
+        })
+        .eq('id', templateId)
+        .eq('teacher_id', user.id);
+
+      if (templateError) throw templateError;
+
+      const { error: deleteError } = await supabase
+        .from('saved_class_students')
+        .delete()
+        .eq('saved_class_id', templateId);
+
+      if (deleteError) throw deleteError;
+
+      const validStudents = students.filter(student => student.name.trim());
+      if (validStudents.length > 0) {
+        const studentsToInsert = validStudents.map(student => ({
+          saved_class_id: templateId,
+          student_name: student.name.trim(),
+          student_email: student.email.trim() || null,
+        }));
+
+        const { error: studentsError } = await supabase
+          .from('saved_class_students')
+          .insert(studentsToInsert);
+
+        if (studentsError) throw studentsError;
+      }
+
+      toast({
+        title: "Template Updated!",
+        description: `Class template "${templateName}" has been updated successfully.`,
+      });
+
+      const refreshedTemplatesList = await refreshTemplates();
+      const updatedTemplate = refreshedTemplatesList.find(t => t.id === templateId);
+      return { success: true, updatedTemplate };
+    } catch (error: any) {
+      toast({
+        title: "Error Updating Template",
+        description: error.message,
+        variant: "destructive",
+      });
+      return { success: false };
+    }
   };
 
   const deleteTemplate = async (templateId: number, templateName: string) => {
-    const success = await deleteTemplateOperation(user, isDemoMode, templateId, templateName);
-    if (success) {
-      await refreshTemplates();
+    if (isDemoMode || !user) {
+      toast({
+        title: "Demo Mode",
+        description: "Template deletion is not available in demo mode.",
+        variant: "destructive",
+      });
+      return false;
     }
-    return success;
+
+    try {
+      const { error } = await supabase
+        .from('saved_classes')
+        .delete()
+        .eq('id', templateId)
+        .eq('teacher_id', user.id);
+
+      if (error) throw error;
+
+      toast({
+        title: "Template Deleted!",
+        description: `Class template "${templateName}" has been deleted successfully.`,
+      });
+
+      await refreshTemplates();
+      return true;
+    } catch (error: any) {
+      toast({
+        title: "Error Deleting Template",
+        description: error.message,
+        variant: "destructive",
+      });
+      return false;
+    }
   };
 
   return {
