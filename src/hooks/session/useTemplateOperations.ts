@@ -1,7 +1,7 @@
 
 import { useToast } from '@/hooks/use-toast';
 import { useClassTemplates } from '@/hooks/useClassTemplates';
-import { Student, OriginalTemplateData } from './types';
+import { Student, OriginalTemplateData, ClassTemplate } from './types';
 
 interface UseTemplateOperationsProps {
   originalTemplateData: OriginalTemplateData | null;
@@ -9,7 +9,6 @@ interface UseTemplateOperationsProps {
   duration: number | '';
   students: Student[];
   setOriginalTemplateData: (data: OriginalTemplateData | null) => void;
-  onTemplateUpdated?: (templateId: string) => void;
 }
 
 export const useTemplateOperations = ({
@@ -18,12 +17,11 @@ export const useTemplateOperations = ({
   duration,
   students,
   setOriginalTemplateData,
-  onTemplateUpdated,
 }: UseTemplateOperationsProps) => {
   const { saveTemplate: saveTemplateToDb, updateTemplate: updateTemplateInDb } = useClassTemplates();
   const { toast } = useToast();
 
-  const handleSaveTemplate = async (): Promise<number | null> => {
+  const handleSaveTemplate = async (): Promise<ClassTemplate | null> => {
     if (!title.trim()) {
       toast({
         title: "Session Title Required",
@@ -43,11 +41,12 @@ export const useTemplateOperations = ({
       return null;
     }
 
-    return await saveTemplateToDb(title.trim(), validStudents, duration);
+    const newTemplate = await saveTemplateToDb(title.trim(), validStudents, duration);
+    return newTemplate || null;
   };
 
-  const confirmUpdateTemplate = async (): Promise<boolean> => {
-    if (!originalTemplateData) return false;
+  const confirmUpdateTemplate = async (): Promise<{ success: boolean, updatedTemplate?: ClassTemplate }> => {
+    if (!originalTemplateData) return { success: false };
 
     if (!title.trim()) {
       toast({
@@ -55,7 +54,7 @@ export const useTemplateOperations = ({
         description: "Please enter a session title before updating template.",
         variant: "destructive",
       });
-      return false;
+      return { success: false };
     }
 
     const validStudents = students.filter(student => student.name.trim());
@@ -65,30 +64,41 @@ export const useTemplateOperations = ({
         description: "Please add at least one student before updating template.",
         variant: "destructive",
       });
-      return false;
+      return { success: false };
     }
 
-    const success = await updateTemplateInDb(
+    const { success, updatedTemplate } = await updateTemplateInDb(
       originalTemplateData.id,
       title.trim(),
       validStudents,
       duration
     );
 
-    if (success) {
-      // Update the original template data to reflect the new state
+    if (success && updatedTemplate) {
+      const templateStudentsFromDb = updatedTemplate.students.map(s => ({ 
+        name: s.student_name, 
+        email: s.student_email || '' 
+      }));
+      
+      setOriginalTemplateData({
+        id: updatedTemplate.id,
+        title: updatedTemplate.class_name,
+        duration: updatedTemplate.duration_minutes || '',
+        students: templateStudentsFromDb.length > 0 ? templateStudentsFromDb : [{ name: '', email: '' }],
+      });
+    } else if (success) {
       setOriginalTemplateData({
         id: originalTemplateData.id,
         title: title.trim(),
         duration,
-        students: validStudents,
+        students: validStudents.length > 0 ? validStudents : [{ name: '', email: '' }],
       });
     }
 
-    return success;
+    return { success, updatedTemplate };
   };
 
-  const confirmSaveAsNew = async (): Promise<number | null> => {
+  const confirmSaveAsNew = async (): Promise<ClassTemplate | null> => {
     if (!title.trim()) {
       toast({
         title: "Session Title Required",
@@ -108,8 +118,8 @@ export const useTemplateOperations = ({
       return null;
     }
 
-    // Save as new template and return the new ID
-    return await saveTemplateToDb(title.trim(), validStudents, duration);
+    const newTemplate = await saveTemplateToDb(title.trim(), validStudents, duration);
+    return newTemplate || null;
   };
 
   return {

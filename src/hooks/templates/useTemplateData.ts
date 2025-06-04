@@ -6,14 +6,14 @@ import { ClassTemplate, Student } from './types';
 
 export const useTemplateData = (user: any, isDemoMode: boolean) => {
   const [templates, setTemplates] = useState<ClassTemplate[]>([]);
-  const [isLoading, setIsLoading] = useState(true); // Start with true for initial load
+  const [isLoading, setIsLoading] = useState(true);
   const { toast } = useToast();
 
-  const fetchTemplates = async () => {
+  const fetchTemplates = async (): Promise<ClassTemplate[]> => {
     if (isDemoMode || !user) {
       setTemplates([]);
       setIsLoading(false);
-      return;
+      return [];
     }
 
     setIsLoading(true);
@@ -35,12 +35,13 @@ export const useTemplateData = (user: any, isDemoMode: boolean) => {
 
       if (error) throw error;
 
-      const formattedTemplates = templateData?.map(template => ({
+      const formattedTemplates: ClassTemplate[] = templateData?.map(template => ({
         ...template,
         students: template.saved_class_students || []
       })) || [];
 
       setTemplates(formattedTemplates);
+      return formattedTemplates;
     } catch (error: any) {
       console.error('Error fetching templates:', error);
       toast({
@@ -48,6 +49,8 @@ export const useTemplateData = (user: any, isDemoMode: boolean) => {
         description: error.message,
         variant: "destructive",
       });
+      setTemplates([]);
+      return [];
     } finally {
       setIsLoading(false);
     }
@@ -71,6 +74,6 @@ export const useTemplateData = (user: any, isDemoMode: boolean) => {
     templates,
     isLoading,
     loadTemplate,
-    refreshTemplates: fetchTemplates, // Return the async function directly
+    refreshTemplates: fetchTemplates,
   };
 };

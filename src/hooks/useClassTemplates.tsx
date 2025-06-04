@@ -2,7 +2,7 @@
 import { useAuth } from '@/hooks/useAuth';
 import { useTemplateData } from './templates/useTemplateData';
 import { useTemplateOperations } from './templates/useTemplateOperations';
-import { Student } from './templates/types';
+import { ClassTemplate, Student } from './templates/types';
 
 export const useClassTemplates = () => {
   const { user, isDemoMode } = useAuth();
@@ -10,19 +10,23 @@ export const useClassTemplates = () => {
   const { saveTemplate: saveTemplateOperation, updateTemplate: updateTemplateOperation, deleteTemplate: deleteTemplateOperation } = useTemplateOperations();
 
   const saveTemplate = async (templateName: string, students: Student[], duration?: number | '') => {
-    const result = await saveTemplateOperation(user, isDemoMode, templateName, students, duration);
-    if (result) {
-      await refreshTemplates();
+    const newTemplateId = await saveTemplateOperation(user, isDemoMode, templateName, students, duration);
+    let newTemplateData: ClassTemplate | undefined = undefined;
+    if (newTemplateId) {
+      const refreshedTemplatesList = await refreshTemplates();
+      newTemplateData = refreshedTemplatesList.find(t => t.id === newTemplateId);
     }
-    return result;
+    return newTemplateData;
   };
 
   const updateTemplate = async (templateId: number, templateName: string, students: Student[], duration?: number | '') => {
     const success = await updateTemplateOperation(user, isDemoMode, templateId, templateName, students, duration);
+    let updatedTemplateData: ClassTemplate | undefined = undefined;
     if (success) {
-      await refreshTemplates(); // Wait for refresh to complete
+      const refreshedTemplatesList = await refreshTemplates();
+      updatedTemplateData = refreshedTemplatesList.find(t => t.id === templateId);
     }
-    return success;
+    return { success, updatedTemplate: updatedTemplateData };
   };
 
   const deleteTemplate = async (templateId: number, templateName: string) => {
