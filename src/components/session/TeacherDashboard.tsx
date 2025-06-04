@@ -1,4 +1,5 @@
-import React, { useState, useEffect } from 'react';
+
+import React, { useState } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { useClassTemplates } from '@/hooks/useClassTemplates';
 import { useSessionManagement } from '@/hooks/useSessionManagement';
@@ -13,9 +14,8 @@ type DashboardView = 'main' | 'create-session' | 'templates';
 
 const TeacherDashboard: React.FC = () => {
   const { user, signOut, isDemoMode } = useAuth();
-  const { templates, refreshTemplates } = useClassTemplates();
+  const { templates } = useClassTemplates();
   const [currentView, setCurrentView] = useState<DashboardView>('main');
-  const [refreshKey, setRefreshKey] = useState(0);
 
   const {
     activeSession,
@@ -26,14 +26,6 @@ const TeacherDashboard: React.FC = () => {
     resumeSession,
     handleCloseUrlModal,
   } = useSessionManagement(user, isDemoMode);
-
-  // Refresh templates when returning from templates page
-  useEffect(() => {
-    if (currentView === 'create-session') {
-      refreshTemplates();
-      setRefreshKey(prev => prev + 1);
-    }
-  }, [currentView, refreshTemplates]);
 
   if (activeSession) {
     return (
@@ -59,7 +51,7 @@ const TeacherDashboard: React.FC = () => {
               Sign Out
             </Button>
           </div>
-          <CreateSessionForm key={refreshKey} onSessionCreated={handleSessionCreated} />
+          <CreateSessionForm onSessionCreated={handleSessionCreated} />
         </div>
       </div>
     );

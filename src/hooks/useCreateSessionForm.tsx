@@ -5,17 +5,7 @@ import { useSessionCreation } from './session/useSessionCreation';
 
 export const useCreateSessionForm = (onSessionCreated: (sessionId: string) => void) => {
   const formState = useFormState();
-  
-  const templateState = useTemplateState({
-    title: formState.title,
-    duration: formState.duration,
-    students: formState.students,
-    setTitle: formState.setTitle,
-    setDuration: formState.setDuration,
-    setStudents: formState.setStudents,
-    resetForm: formState.resetForm,
-  });
-  
+  const templateState = useTemplateState(formState);
   const sessionCreation = useSessionCreation({
     title: formState.title,
     duration: formState.duration,
@@ -49,7 +39,7 @@ export const useCreateSessionForm = (onSessionCreated: (sessionId: string) => vo
     hasUnsavedChanges: templateState.hasUnsavedChanges,
     showSaveAsNewOption: templateState.showSaveAsNewOption,
     shouldShowResetButton: templateState.shouldShowResetButton,
-    templatesLoading: templateState.isLoading,
+    templatesLoading: templateState.templates.length === 0,
     templateActions: templateState.templateActions,
     
     // Template actions
