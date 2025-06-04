@@ -6,7 +6,7 @@ import { ClassTemplate, Student } from './types';
 
 export const useTemplateData = (user: any, isDemoMode: boolean) => {
   const [templates, setTemplates] = useState<ClassTemplate[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(true); // Start with true for initial load
   const { toast } = useToast();
 
   const fetchTemplates = async () => {
@@ -71,6 +71,6 @@ export const useTemplateData = (user: any, isDemoMode: boolean) => {
     templates,
     isLoading,
     loadTemplate,
-    refreshTemplates: fetchTemplates,
+    refreshTemplates: fetchTemplates, // Return the async function directly
   };
 };
