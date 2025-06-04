@@ -9,6 +9,7 @@ interface UseTemplateOperationsProps {
   duration: number | '';
   students: Student[];
   setOriginalTemplateData: (data: OriginalTemplateData | null) => void;
+  onTemplateReselect?: (templateId: string) => void;
 }
 
 export const useTemplateOperations = ({
@@ -17,6 +18,7 @@ export const useTemplateOperations = ({
   duration,
   students,
   setOriginalTemplateData,
+  onTemplateReselect,
 }: UseTemplateOperationsProps) => {
   const { saveTemplate: saveTemplateToDb, updateTemplate: updateTemplateInDb } = useClassTemplates();
   const { toast } = useToast();
@@ -81,6 +83,11 @@ export const useTemplateOperations = ({
         duration,
         students: validStudents,
       });
+
+      // Force re-selection to refresh the UI immediately
+      if (onTemplateReselect) {
+        onTemplateReselect(originalTemplateData.id.toString());
+      }
     }
   };
 
