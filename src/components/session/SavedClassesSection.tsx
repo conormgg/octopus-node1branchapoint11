@@ -3,7 +3,7 @@ import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuTrigger, DropdownMenuItem, DropdownMenuSeparator } from '@/components/ui/dropdown-menu';
-import { BookOpen, Edit, Trash2, ChevronDown, RotateCcw } from 'lucide-react';
+import { BookOpen, Trash2, ChevronDown, RotateCcw } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Badge } from '@/components/ui/badge';
 
@@ -22,7 +22,6 @@ interface SavedClassesSectionProps {
   templates: ClassTemplate[];
   selectedTemplateId: string;
   onTemplateSelect: (templateId: string) => void;
-  onEditTemplate?: (template: ClassTemplate) => void;
   onDeleteTemplate?: (template: ClassTemplate) => void;
   onCompleteReset?: () => void;
   isLoading?: boolean;
@@ -34,7 +33,6 @@ const SavedClassesSection: React.FC<SavedClassesSectionProps> = ({
   templates,
   selectedTemplateId,
   onTemplateSelect,
-  onEditTemplate,
   onDeleteTemplate,
   onCompleteReset,
   isLoading = false,
@@ -103,19 +101,6 @@ const SavedClassesSection: React.FC<SavedClassesSectionProps> = ({
                       </div>
                     </div>
                     <div className="flex items-center gap-1 ml-3 flex-shrink-0">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className="h-8 w-8 p-0"
-                        onClick={(e) => {
-                          e.preventDefault();
-                          e.stopPropagation();
-                          onEditTemplate?.(template);
-                        }}
-                        onSelect={(e) => e.preventDefault()}
-                      >
-                        <Edit className="h-3 w-3" />
-                      </Button>
                       <Button
                         variant="outline"
                         size="sm"
