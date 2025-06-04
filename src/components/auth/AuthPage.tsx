@@ -1,16 +1,10 @@
 
-import React, { useState } from 'react';
+import React from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import DemoModeSection from './DemoModeSection';
 import AuthForm from './AuthForm';
 
-interface AuthPageProps {
-  onAuthSuccess?: () => void;
-}
-
-const AuthPage: React.FC<AuthPageProps> = ({ onAuthSuccess }) => {
-  const [isLoading, setIsLoading] = useState(false);
-
+const AuthPage: React.FC = () => {
   return (
     <div className="min-h-screen bg-gray-50 flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
       <Card className="w-full max-w-md">
@@ -24,10 +18,7 @@ const AuthPage: React.FC<AuthPageProps> = ({ onAuthSuccess }) => {
         </CardHeader>
         <CardContent className="space-y-4">
           {/* Demo Mode Section */}
-          <DemoModeSection 
-            isLoading={isLoading} 
-            onLoadingChange={setIsLoading} 
-          />
+          <DemoModeSection />
 
           <div className="relative">
             <div className="absolute inset-0 flex items-center">
@@ -39,7 +30,7 @@ const AuthPage: React.FC<AuthPageProps> = ({ onAuthSuccess }) => {
           </div>
 
           {/* Authentication Form */}
-          <AuthForm onAuthSuccess={onAuthSuccess} />
+          <AuthForm />
         </CardContent>
       </Card>
     </div>

@@ -1,23 +1,19 @@
 
-import React from 'react';
+import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { UserCheck, Loader2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useDemoAuth } from '@/hooks/useDemoAuth';
 import { useNavigate } from 'react-router-dom';
 
-interface DemoModeSectionProps {
-  isLoading: boolean;
-  onLoadingChange: (loading: boolean) => void;
-}
-
-const DemoModeSection: React.FC<DemoModeSectionProps> = ({ isLoading, onLoadingChange }) => {
+const DemoModeSection: React.FC = () => {
+  const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
   const { setDemoMode } = useDemoAuth();
   const navigate = useNavigate();
 
   const handleTestLogin = async () => {
-    onLoadingChange(true);
+    setIsLoading(true);
     
     try {
       // Enable demo mode
@@ -28,7 +24,7 @@ const DemoModeSection: React.FC<DemoModeSectionProps> = ({ isLoading, onLoadingC
         description: "You're now using the app in demo mode as a test teacher.",
       });
       
-      // Navigate to dashboard using React Router
+      // Navigate to dashboard
       navigate('/dashboard');
     } catch (error: any) {
       toast({
@@ -37,7 +33,7 @@ const DemoModeSection: React.FC<DemoModeSectionProps> = ({ isLoading, onLoadingC
         variant: "destructive",
       });
     } finally {
-      onLoadingChange(false);
+      setIsLoading(false);
     }
   };
 

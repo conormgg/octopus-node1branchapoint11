@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
 import { Eye, EyeOff, Loader2 } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 
 interface AuthFormProps {
   onAuthSuccess?: () => void;
@@ -18,6 +19,7 @@ const AuthForm: React.FC<AuthFormProps> = ({ onAuthSuccess }) => {
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
+  const navigate = useNavigate();
 
   const handleAuth = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -56,7 +58,9 @@ const AuthForm: React.FC<AuthFormProps> = ({ onAuthSuccess }) => {
         });
       }
       
+      // Navigate to dashboard on success
       onAuthSuccess?.();
+      navigate('/dashboard');
     } catch (error: any) {
       if (error.message.includes('Email signups are disabled') || error.message.includes('Email logins are disabled')) {
         toast({
