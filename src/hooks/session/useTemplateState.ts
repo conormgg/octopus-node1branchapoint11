@@ -1,14 +1,12 @@
 
-import { useState } from 'react';
 import { useClassTemplates } from '@/hooks/useClassTemplates';
-import { useToast } from '@/hooks/use-toast';
-import { useTemplateActions } from './useTemplateActions';
 import { useTemplateChangeDetection } from './useTemplateChangeDetection';
 import { useTemplateButtonState } from './useTemplateButtonState';
-import { useTemplateOperations } from './useTemplateOperations';
 import { useFormDataDetection } from './useFormDataDetection';
 import { useCompleteReset } from './useCompleteReset';
-import { Student, OriginalTemplateData } from './types';
+import { useTemplateSelection } from './useTemplateSelection';
+import { useTemplateOperationHandlers } from './useTemplateOperationHandlers';
+import { Student } from './types';
 
 interface UseTemplateStateProps {
   title: string;
@@ -29,11 +27,22 @@ export const useTemplateState = ({
   setStudents,
   resetForm,
 }: UseTemplateStateProps) => {
-  const { templates, deleteTemplate, isLoading } = useClassTemplates();
-  const [selectedTemplateId, setSelectedTemplateId] = useState<string>('');
-  const [originalTemplateData, setOriginalTemplateData] = useState<OriginalTemplateData | null>(null);
-  const { toast } = useToast();
-  const templateActions = useTemplateActions();
+  const { templates, isLoading } = useClassTemplates();
+
+  // Template selection logic
+  const {
+    selectedTemplateId,
+    originalTemplateData,
+    setOriginalTemplateData,
+    handleTemplateSelect,
+    clearSelection,
+  } = useTemplateSelection({
+    templates,
+    setTitle,
+    setDuration,
+    setStudents,
+    resetForm,
+  });
 
   // Template state tracking
   const loadedTemplate = templates.find(t => t.id.toString() === selectedTemplateId);
@@ -63,135 +72,33 @@ export const useTemplateState = ({
 
   // Complete reset functionality
   const { handleCompleteReset } = useCompleteReset({
-    setSelectedTemplateId,
+    setSelectedTemplateId: (id: string) => {
+      clearSelection();
+      if (id) handleTemplateSelect(id);
+    },
     setOriginalTemplateData,
     resetForm,
   });
 
-  const handleTemplateSelect = (templateId: string) => {
-    setSelectedTemplateId(templateId);
-    
-    if (templateId) {
-      const template = templates.find(t => t.id === parseInt(templateId));
-      if (template) {
-        const templateTitle = template.class_name;
-        const templateDuration = template.duration_minutes || '';
-        const templateStudents = template.students.length > 0 
-          ? template.students.map(student => ({
-              name: student.student_name,
-              email: student.student_email || '',
-            }))
-          : [{ name: '', email: '' }];
-
-        // Set form data
-        setTitle(templateTitle);
-        setDuration(templateDuration);
-        setStudents(templateStudents);
-
-        // Store original template data for change detection
-        setOriginalTemplateData({
-          id: template.id,
-          title: templateTitle,
-          duration: templateDuration,
-          students: templateStudents,
-        });
-
-        toast({
-          title: "Template Loaded",
-          description: `Loaded "${template.class_name}"${template.students.length > 0 ? ` with ${template.students.length} students` : ''}.`,
-        });
-      } else {
-        // If template not found (e.g., after deletion), clear state
-        setOriginalTemplateData(null);
-        if (selectedTemplateId === templateId) {
-          resetForm();
-        }
-      }
-    } else {
-      // Clear template data when no template is selected
-      setOriginalTemplateData(null);
-    }
-  };
-
-  // Template operations
-  const { 
-    handleSaveTemplate: performSaveTemplateOperation, 
-    confirmUpdateTemplate: performUpdateTemplateOperation, 
-    confirmSaveAsNew: performSaveAsNewOperation 
-  } = useTemplateOperations({
-    originalTemplateData,
+  // Template operation handlers
+  const {
+    templateActions,
+    handleDeleteTemplate,
+    handleSaveTemplate,
+    handleUpdateTemplate,
+    handleSaveAsNew,
+    handleConfirmAction,
+  } = useTemplateOperationHandlers({
     title,
     duration,
     students,
+    originalTemplateData,
+    selectedTemplateId,
     setOriginalTemplateData,
+    handleTemplateSelect,
+    clearSelection,
+    resetForm,
   });
-
-  const handleDeleteTemplate = async (template: any) => {
-    templateActions.openDeleteDialog(template.id, template.class_name);
-  };
-
-  const handleSaveTemplate = async () => {
-    const newTemplate = await performSaveTemplateOperation();
-    if (newTemplate) {
-      handleTemplateSelect(newTemplate.id.toString());
-    }
-  };
-
-  const confirmDeleteTemplate = async () => {
-    if (!templateActions.actionState.templateId) return;
-    
-    const success = await deleteTemplate(
-      templateActions.actionState.templateId, 
-      templateActions.actionState.templateName || ''
-    );
-    
-    // If the deleted template was currently selected, clear the selection and reset form
-    if (success && selectedTemplateId === templateActions.actionState.templateId.toString()) {
-      setSelectedTemplateId('');
-      setOriginalTemplateData(null);
-      resetForm();
-    }
-  };
-
-  const handleUpdateTemplate = async () => {
-    if (!originalTemplateData) return;
-    
-    templateActions.openUpdateDialog(originalTemplateData.id, originalTemplateData.title);
-  };
-
-  const handleSaveAsNew = () => {
-    templateActions.openSaveAsNewDialog(title);
-  };
-
-  const handleConfirmAction = async () => {
-    const actionType = templateActions.actionState.type;
-    const templateIdToActOn = templateActions.actionState.templateId;
-    const currentSelectedTemplateIdState = selectedTemplateId;
-
-    templateActions.closeDialog();
-
-    switch (actionType) {
-      case 'delete':
-        if (templateIdToActOn) {
-          await confirmDeleteTemplate();
-        }
-        break;
-      case 'update':
-        const { success: updateSuccess, updatedTemplate } = await performUpdateTemplateOperation();
-        if (updateSuccess && updatedTemplate) {
-          handleTemplateSelect(updatedTemplate.id.toString());
-        } else if (updateSuccess && currentSelectedTemplateIdState) {
-          handleTemplateSelect(currentSelectedTemplateIdState);
-        }
-        break;
-      case 'saveAsNew':
-        const newTemplate = await performSaveAsNewOperation();
-        if (newTemplate) {
-          handleTemplateSelect(newTemplate.id.toString());
-        }
-        break;
-    }
-  };
 
   return {
     templates,
