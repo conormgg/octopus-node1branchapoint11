@@ -4,6 +4,7 @@ import { useTemplateData } from './templates/useTemplateData';
 import { ClassTemplate, Student } from './templates/types';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
+import { validateStudents } from './session/utils';
 
 export const useClassTemplates = () => {
   const { user, isDemoMode } = useAuth();
@@ -34,15 +35,15 @@ export const useClassTemplates = () => {
       if (templateError) throw templateError;
 
       if (students.length > 0) {
-        const studentsToInsert = students
-          .filter(student => student.name.trim())
-          .map(student => ({
+        const validStudents = validateStudents(students);
+
+        if (validStudents.length > 0) {
+          const studentsToInsert = validStudents.map(student => ({
             saved_class_id: templateData.id,
             student_name: student.name.trim(),
             student_email: student.email.trim() || null,
           }));
 
-        if (studentsToInsert.length > 0) {
           const { error: studentsError } = await supabase
             .from('saved_class_students')
             .insert(studentsToInsert);
@@ -102,7 +103,7 @@ export const useClassTemplates = () => {
 
       if (deleteError) throw deleteError;
 
-      const validStudents = students.filter(student => student.name.trim());
+      const validStudents = validateStudents(students);
       if (validStudents.length > 0) {
         const studentsToInsert = validStudents.map(student => ({
           saved_class_id: templateId,

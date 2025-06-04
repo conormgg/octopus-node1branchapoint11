@@ -1,7 +1,7 @@
-
 import { useToast } from '@/hooks/use-toast';
 import { useClassTemplates } from '@/hooks/useClassTemplates';
 import { Student, OriginalTemplateData, ClassTemplate } from './types';
+import { validateStudents, mapTemplateStudents } from './utils';
 
 interface UseTemplateOperationsProps {
   originalTemplateData: OriginalTemplateData | null;
@@ -31,7 +31,7 @@ export const useTemplateOperations = ({
       return false;
     }
 
-    const validStudents = students.filter(student => student.name.trim());
+    const validStudents = validateStudents(students);
     if (validStudents.length === 0) {
       if (originalTemplateData && 
           originalTemplateData.students.every(s => !s.name.trim()) && 
@@ -54,7 +54,7 @@ export const useTemplateOperations = ({
   const saveTemplate = async (): Promise<ClassTemplate | null> => {
     if (!validateTemplateData()) return null;
 
-    const validStudents = students.filter(student => student.name.trim());
+    const validStudents = validateStudents(students);
     const newTemplate = await saveTemplateToDb(title.trim(), validStudents, duration);
     return newTemplate || null;
   };
@@ -67,7 +67,7 @@ export const useTemplateOperations = ({
     if (!originalTemplateData) return { success: false };
     if (!validateTemplateData()) return { success: false };
 
-    const validStudents = students.filter(student => student.name.trim());
+    const validStudents = validateStudents(students);
 
     const { success, updatedTemplate, refreshedTemplates } = await updateTemplateInDb(
       originalTemplateData.id,
@@ -77,16 +77,13 @@ export const useTemplateOperations = ({
     );
 
     if (success && updatedTemplate) {
-      const templateStudentsFromDb = updatedTemplate.students.map(s => ({ 
-        name: s.student_name, 
-        email: s.student_email || '' 
-      }));
+      const templateStudentsFromDb = mapTemplateStudents(updatedTemplate.students);
       
       setOriginalTemplateData({
         id: updatedTemplate.id,
         title: updatedTemplate.class_name,
         duration: updatedTemplate.duration_minutes || '',
-        students: templateStudentsFromDb.length > 0 ? templateStudentsFromDb : [{ name: '', email: '' }],
+        students: templateStudentsFromDb,
       });
     } else if (success) {
       setOriginalTemplateData({
@@ -103,7 +100,7 @@ export const useTemplateOperations = ({
   const saveAsNew = async (): Promise<ClassTemplate | null> => {
     if (!validateTemplateData()) return null;
 
-    const validStudents = students.filter(student => student.name.trim());
+    const validStudents = validateStudents(students);
     const newTemplate = await saveTemplateToDb(title.trim(), validStudents, duration);
     return newTemplate || null;
   };

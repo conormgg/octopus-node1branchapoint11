@@ -8,6 +8,7 @@ import { useTemplateOperations } from './useTemplateOperations';
 import { useTemplateActions } from './useTemplateActions';
 import { useToast } from '@/hooks/use-toast';
 import { Student, OriginalTemplateData, ClassTemplate } from './types';
+import { mapTemplateStudents } from './utils';
 
 interface UseTemplateStateProps {
   title: string;
@@ -60,12 +61,7 @@ export const useTemplateState = ({
       if (template) {
         const templateTitle = template.class_name;
         const templateDuration = template.duration_minutes || '';
-        const templateStudentsForm: Student[] = template.students.length > 0 
-          ? template.students.map(student => ({
-              name: student.student_name,
-              email: student.student_email || '',
-            }))
-          : [{ name: '', email: '' }];
+        const templateStudentsForm = mapTemplateStudents(template.students);
 
         setTitle(templateTitle);
         setDuration(templateDuration);
@@ -187,14 +183,7 @@ export const useTemplateState = ({
         if (updateSuccess && updatedTemplate && refreshedTemplates) {
           setCurrentTemplates(refreshedTemplates);
 
-          const formStudents: Student[] = updatedTemplate.students.map(s => ({
-            name: s.student_name,
-            email: s.student_email || '',
-          }));
-          
-          if (formStudents.length === 0 && updatedTemplate.students.length === 0) {
-            formStudents.push({ name: '', email: '' });
-          }
+          const formStudents = mapTemplateStudents(updatedTemplate.students);
 
           setTitle(updatedTemplate.class_name);
           setDuration(updatedTemplate.duration_minutes || '');
