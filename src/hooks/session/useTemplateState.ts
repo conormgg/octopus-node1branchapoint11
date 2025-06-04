@@ -68,15 +68,6 @@ export const useTemplateState = ({
     resetForm,
   });
 
-  // Template operations
-  const { handleSaveTemplate, confirmUpdateTemplate, confirmSaveAsNew } = useTemplateOperations({
-    originalTemplateData,
-    title,
-    duration,
-    students,
-    setOriginalTemplateData,
-  });
-
   const handleTemplateSelect = (templateId: string) => {
     setSelectedTemplateId(templateId);
     
@@ -115,6 +106,16 @@ export const useTemplateState = ({
       setOriginalTemplateData(null);
     }
   };
+
+  // Template operations with re-selection callback
+  const { handleSaveTemplate, confirmUpdateTemplate, confirmSaveAsNew } = useTemplateOperations({
+    originalTemplateData,
+    title,
+    duration,
+    students,
+    setOriginalTemplateData,
+    onTemplateUpdated: handleTemplateSelect,
+  });
 
   const handleDeleteTemplate = async (template: any) => {
     templateActions.openDeleteDialog(template.id, template.class_name);
