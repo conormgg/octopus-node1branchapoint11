@@ -44,6 +44,7 @@ export const useCreateSessionForm = (onSessionCreated: (sessionId: string) => vo
     
     // Template actions
     handleTemplateSelect: templateState.handleTemplateSelect,
+    handleEditTemplate: templateState.handleEditTemplate,
     handleDeleteTemplate: templateState.handleDeleteTemplate,
     handleSaveTemplate: templateState.handleSaveTemplate,
     handleUpdateTemplate: templateState.handleUpdateTemplate,

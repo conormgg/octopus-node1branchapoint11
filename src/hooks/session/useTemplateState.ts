@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { useClassTemplates } from '@/hooks/useClassTemplates';
 import { useToast } from '@/hooks/use-toast';
@@ -116,6 +115,13 @@ export const useTemplateState = ({
     }
   };
 
+  const handleEditTemplate = (template: any) => {
+    toast({
+      title: "Edit Template",
+      description: `Editing functionality for "${template.class_name}" will be implemented soon.`,
+    });
+  };
+
   const handleDeleteTemplate = async (template: any) => {
     templateActions.openDeleteDialog(template.id, template.class_name);
   };
@@ -171,6 +177,7 @@ export const useTemplateState = ({
     shouldShowResetButton,
     templateActions,
     handleTemplateSelect,
+    handleEditTemplate,
     handleDeleteTemplate,
     handleSaveTemplate,
     handleUpdateTemplate,
