@@ -12,7 +12,7 @@ export const useClassTemplates = () => {
   const saveTemplate = async (templateName: string, students: Student[], duration?: number | '') => {
     const result = await saveTemplateOperation(user, isDemoMode, templateName, students, duration);
     if (result) {
-      refreshTemplates();
+      await refreshTemplates();
     }
     return result;
   };
@@ -20,7 +20,7 @@ export const useClassTemplates = () => {
   const updateTemplate = async (templateId: number, templateName: string, students: Student[], duration?: number | '') => {
     const success = await updateTemplateOperation(user, isDemoMode, templateId, templateName, students, duration);
     if (success) {
-      refreshTemplates();
+      await refreshTemplates(); // Wait for refresh to complete
     }
     return success;
   };
@@ -28,7 +28,7 @@ export const useClassTemplates = () => {
   const deleteTemplate = async (templateId: number, templateName: string) => {
     const success = await deleteTemplateOperation(user, isDemoMode, templateId, templateName);
     if (success) {
-      refreshTemplates();
+      await refreshTemplates();
     }
     return success;
   };

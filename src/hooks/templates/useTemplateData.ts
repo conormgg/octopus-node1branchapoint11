@@ -71,6 +71,6 @@ export const useTemplateData = (user: any, isDemoMode: boolean) => {
     templates,
     isLoading,
     loadTemplate,
-    refreshTemplates: fetchTemplates,
+    refreshTemplates: fetchTemplates, // Return the async function directly
   };
 };
