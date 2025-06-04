@@ -9,22 +9,19 @@ export const useFormState = () => {
   const [isLoading, setIsLoading] = useState(false);
 
   const addStudent = () => {
-    if (students.length < 8) {
-      setStudents([...students, { name: '', email: '' }]);
-    }
+    setStudents([...students, { name: '', email: '' }]);
   };
 
   const removeStudent = (index: number) => {
-    if (students.length > 1) {
-      setStudents(students.filter((_, i) => i !== index));
-    }
+    setStudents(students.filter((_, i) => i !== index));
   };
 
-  const updateStudent = (index: number, field: keyof Student, value: string) => {
-    const updatedStudents = students.map((student, i) =>
-      i === index ? { ...student, [field]: value } : student
+  const updateStudent = (index: number, field: 'name' | 'email', value: string) => {
+    setStudents(
+      students.map((student, i) =>
+        i === index ? { ...student, [field]: value } : student
+      )
     );
-    setStudents(updatedStudents);
   };
 
   const resetForm = () => {
