@@ -23,14 +23,14 @@ export const useTemplateOperations = ({
   const { saveTemplate: saveTemplateToDb, updateTemplate: updateTemplateInDb } = useClassTemplates();
   const { toast } = useToast();
 
-  const handleSaveTemplate = async () => {
+  const handleSaveTemplate = async (): Promise<number | null> => {
     if (!title.trim()) {
       toast({
         title: "Session Title Required",
         description: "Please enter a session title before saving as template.",
         variant: "destructive",
       });
-      return;
+      return null;
     }
 
     const validStudents = students.filter(student => student.name.trim());
@@ -40,14 +40,14 @@ export const useTemplateOperations = ({
         description: "Please add at least one student before saving a template.",
         variant: "destructive",
       });
-      return;
+      return null;
     }
 
-    await saveTemplateToDb(title.trim(), validStudents, duration);
+    return await saveTemplateToDb(title.trim(), validStudents, duration);
   };
 
-  const confirmUpdateTemplate = async () => {
-    if (!originalTemplateData) return;
+  const confirmUpdateTemplate = async (): Promise<boolean> => {
+    if (!originalTemplateData) return false;
 
     if (!title.trim()) {
       toast({
@@ -55,7 +55,7 @@ export const useTemplateOperations = ({
         description: "Please enter a session title before updating template.",
         variant: "destructive",
       });
-      return;
+      return false;
     }
 
     const validStudents = students.filter(student => student.name.trim());
@@ -65,7 +65,7 @@ export const useTemplateOperations = ({
         description: "Please add at least one student before updating template.",
         variant: "destructive",
       });
-      return;
+      return false;
     }
 
     const success = await updateTemplateInDb(
@@ -83,20 +83,19 @@ export const useTemplateOperations = ({
         duration,
         students: validStudents,
       });
-
-      // Remove the onTemplateUpdated call to prevent race condition
-      // The template refresh in useClassTemplates.tsx will handle updating the dropdown
     }
+
+    return success;
   };
 
-  const confirmSaveAsNew = async () => {
+  const confirmSaveAsNew = async (): Promise<number | null> => {
     if (!title.trim()) {
       toast({
         title: "Session Title Required",
         description: "Please enter a session title before saving as new template.",
         variant: "destructive",
       });
-      return;
+      return null;
     }
 
     const validStudents = students.filter(student => student.name.trim());
@@ -106,11 +105,11 @@ export const useTemplateOperations = ({
         description: "Please add at least one student before saving a template.",
         variant: "destructive",
       });
-      return;
+      return null;
     }
 
-    // Save as new template (don't update original template data)
-    await saveTemplateToDb(title.trim(), validStudents, duration);
+    // Save as new template and return the new ID
+    return await saveTemplateToDb(title.trim(), validStudents, duration);
   };
 
   return {
