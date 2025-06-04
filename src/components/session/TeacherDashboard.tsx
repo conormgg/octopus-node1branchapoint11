@@ -1,20 +1,17 @@
 
 import React, { useState } from 'react';
 import { useAuth } from '@/hooks/useAuth';
-import { useClassTemplates } from '@/hooks/useClassTemplates';
 import { useSessionManagement } from '@/hooks/useSessionManagement';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import CreateSessionForm from './CreateSessionForm';
-import ClassTemplatesPage from './ClassTemplatesPage';
 import TeacherView from '../TeacherView';
-import { LogOut, Plus, History, BookOpen } from 'lucide-react';
+import { LogOut, Plus, History } from 'lucide-react';
 
-type DashboardView = 'main' | 'create-session' | 'templates';
+type DashboardView = 'main' | 'create-session';
 
 const TeacherDashboard: React.FC = () => {
   const { user, signOut, isDemoMode } = useAuth();
-  const { templates } = useClassTemplates();
   const [currentView, setCurrentView] = useState<DashboardView>('main');
 
   const {
@@ -57,12 +54,6 @@ const TeacherDashboard: React.FC = () => {
     );
   }
 
-  if (currentView === 'templates') {
-    return (
-      <ClassTemplatesPage onBack={() => setCurrentView('main')} />
-    );
-  }
-
   return (
     <div className="min-h-screen bg-gray-50 py-8">
       <div className="max-w-4xl mx-auto px-4">
@@ -80,7 +71,7 @@ const TeacherDashboard: React.FC = () => {
           </Button>
         </div>
 
-        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+        <div className="grid gap-6 md:grid-cols-2">
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
@@ -94,23 +85,6 @@ const TeacherDashboard: React.FC = () => {
             <CardContent>
               <Button onClick={() => setCurrentView('create-session')} className="w-full">
                 Create New Session
-              </Button>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <BookOpen className="h-5 w-5" />
-                Class Templates
-              </CardTitle>
-              <CardDescription>
-                Manage your saved class templates ({templates.length})
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <Button onClick={() => setCurrentView('templates')} className="w-full" variant="outline">
-                Manage Templates
               </Button>
             </CardContent>
           </Card>
