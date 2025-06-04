@@ -31,15 +31,51 @@ export const useAuth = () => {
   }, []);
 
   const signOut = async () => {
-    // Clear demo mode first if active
-    if (isDemoMode) {
+    try {
+      // Clear demo mode first if active
+      if (isDemoMode) {
+        setDemoMode(false);
+      }
+      
+      // Force clear local auth state immediately
+      setSession(null);
+      setUser(null);
+      
+      // Clear all auth-related localStorage data
+      try {
+        localStorage.removeItem('supabase.auth.token');
+        localStorage.removeItem('sb-igzgxtjkaaabziccoofe-auth-token');
+        // Clear any other potential auth keys
+        Object.keys(localStorage).forEach(key => {
+          if (key.includes('supabase') || key.includes('auth')) {
+            localStorage.removeItem(key);
+          }
+        });
+      } catch (localStorageError) {
+        console.warn('Could not clear localStorage:', localStorageError);
+      }
+      
+      // Attempt to sign out from Supabase (but don't fail if session doesn't exist)
+      try {
+        const { error } = await supabase.auth.signOut();
+        if (error && error.message !== "Session not found") {
+          console.error('Error signing out:', error);
+        }
+      } catch (supabaseError) {
+        // If Supabase sign out fails, still proceed with local cleanup
+        console.warn('Supabase sign out failed, but local state cleared:', supabaseError);
+      }
+      
+      // Force refresh the page to ensure clean state
+      window.location.href = '/auth';
+      
+    } catch (error) {
+      console.error('Sign out error:', error);
+      // Even if there's an error, force clear local state and redirect
+      setSession(null);
+      setUser(null);
       setDemoMode(false);
-    }
-    
-    // Then sign out from Supabase
-    const { error } = await supabase.auth.signOut();
-    if (error) {
-      console.error('Error signing out:', error);
+      window.location.href = '/auth';
     }
   };
 
