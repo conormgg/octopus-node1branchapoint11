@@ -84,10 +84,8 @@ export const useTemplateOperations = ({
         students: validStudents,
       });
 
-      // Force template re-selection to refresh the dropdown immediately
-      if (onTemplateUpdated) {
-        onTemplateUpdated(originalTemplateData.id.toString());
-      }
+      // Remove the onTemplateUpdated call to prevent race condition
+      // The template refresh in useClassTemplates.tsx will handle updating the dropdown
     }
   };
 
