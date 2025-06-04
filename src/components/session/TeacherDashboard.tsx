@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { useSessionManagement } from '@/hooks/useSessionManagement';
 import { Button } from '@/components/ui/button';
@@ -8,11 +8,8 @@ import CreateSessionForm from './CreateSessionForm';
 import TeacherView from '../TeacherView';
 import { LogOut, Plus, History } from 'lucide-react';
 
-type DashboardView = 'main' | 'create-session';
-
 const TeacherDashboard: React.FC = () => {
   const { user, signOut, isDemoMode } = useAuth();
-  const [currentView, setCurrentView] = useState<DashboardView>('main');
 
   const {
     activeSession,
@@ -35,28 +32,9 @@ const TeacherDashboard: React.FC = () => {
     );
   }
 
-  if (currentView === 'create-session') {
-    return (
-      <div className="min-h-screen bg-gray-50 py-8">
-        <div className="max-w-4xl mx-auto px-4">
-          <div className="mb-6 flex items-center justify-between">
-            <Button variant="outline" onClick={() => setCurrentView('main')}>
-              ← Back to Dashboard
-            </Button>
-            <Button variant="outline" onClick={signOut}>
-              <LogOut className="h-4 w-4 mr-2" />
-              Sign Out
-            </Button>
-          </div>
-          <CreateSessionForm onSessionCreated={handleSessionCreated} />
-        </div>
-      </div>
-    );
-  }
-
   return (
     <div className="min-h-screen bg-gray-50 py-8">
-      <div className="max-w-4xl mx-auto px-4">
+      <div className="max-w-6xl mx-auto px-4">
         <div className="mb-8 flex items-center justify-between">
           <div>
             <h1 className="text-3xl font-bold text-gray-900">Teacher Dashboard</h1>
@@ -71,74 +49,65 @@ const TeacherDashboard: React.FC = () => {
           </Button>
         </div>
 
-        <div className="grid gap-6 md:grid-cols-2">
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Plus className="h-5 w-5" />
-                Start New Session
-              </CardTitle>
-              <CardDescription>
-                Create a new collaborative whiteboard session for your class
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <Button onClick={() => setCurrentView('create-session')} className="w-full">
-                Create New Session
-              </Button>
-            </CardContent>
-          </Card>
+        <div className="grid gap-6 lg:grid-cols-3">
+          {/* Create New Session - Now contains the full form */}
+          <div className="lg:col-span-2">
+            <CreateSessionForm onSessionCreated={handleSessionCreated} />
+          </div>
 
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <History className="h-5 w-5" />
-                Recent Sessions
-              </CardTitle>
-              <CardDescription>
-                Your recent whiteboard sessions
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              {recentSessions.length > 0 ? (
-                <div className="space-y-2">
-                  {recentSessions.map((session) => (
-                    <div
-                      key={session.id}
-                      className="flex items-center justify-between p-3 border rounded-lg"
-                    >
-                      <div>
-                        <p className="font-medium">{session.title}</p>
-                        <p className="text-sm text-gray-500">
-                          {new Date(session.created_at).toLocaleDateString()}
-                        </p>
+          {/* Recent Sessions */}
+          <div>
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <History className="h-5 w-5" />
+                  Recent Sessions
+                </CardTitle>
+                <CardDescription>
+                  Your recent whiteboard sessions
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                {recentSessions.length > 0 ? (
+                  <div className="space-y-2">
+                    {recentSessions.map((session) => (
+                      <div
+                        key={session.id}
+                        className="flex items-center justify-between p-3 border rounded-lg"
+                      >
+                        <div>
+                          <p className="font-medium">{session.title}</p>
+                          <p className="text-sm text-gray-500">
+                            {new Date(session.created_at).toLocaleDateString()}
+                          </p>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <span className={`px-2 py-1 rounded-full text-xs ${
+                            session.status === 'active' 
+                              ? 'bg-green-100 text-green-800' 
+                              : 'bg-gray-100 text-gray-800'
+                          }`}>
+                            {session.status}
+                          </span>
+                          {session.status === 'active' && (
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => resumeSession(session)}
+                            >
+                              Resume
+                            </Button>
+                          )}
+                        </div>
                       </div>
-                      <div className="flex items-center gap-2">
-                        <span className={`px-2 py-1 rounded-full text-xs ${
-                          session.status === 'active' 
-                            ? 'bg-green-100 text-green-800' 
-                            : 'bg-gray-100 text-gray-800'
-                        }`}>
-                          {session.status}
-                        </span>
-                        {session.status === 'active' && (
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={() => resumeSession(session)}
-                          >
-                            Resume
-                          </Button>
-                        )}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <p className="text-gray-500 text-sm">No recent sessions</p>
-              )}
-            </CardContent>
-          </Card>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-gray-500 text-sm">No recent sessions</p>
+                )}
+              </CardContent>
+            </Card>
+          </div>
         </div>
       </div>
     </div>
