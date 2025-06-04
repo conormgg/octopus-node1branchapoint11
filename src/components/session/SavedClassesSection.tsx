@@ -55,6 +55,7 @@ const SavedClassesSection: React.FC<SavedClassesSectionProps> = ({
     );
   }
 
+  // Show the component if there are templates OR if reset button should be shown
   if (templates.length === 0 && !shouldShowResetButton) return null;
 
   const selectedTemplate = templates.find(t => t.id.toString() === selectedTemplateId);
