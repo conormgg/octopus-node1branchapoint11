@@ -49,10 +49,14 @@ const Whiteboard: React.FC<WhiteboardProps> = ({
       backgroundColor: '#ffffff',
     });
 
-    // Initialize drawing mode
+    // Enable drawing mode first
     canvas.isDrawingMode = true;
-    canvas.freeDrawingBrush.width = 2;
-    canvas.freeDrawingBrush.color = '#000000';
+    
+    // Now safely set brush properties
+    if (canvas.freeDrawingBrush) {
+      canvas.freeDrawingBrush.width = 2;
+      canvas.freeDrawingBrush.color = '#000000';
+    }
 
     fabricCanvasRef.current = canvas;
 
@@ -67,15 +71,16 @@ const Whiteboard: React.FC<WhiteboardProps> = ({
     if (!fabricCanvasRef.current) return;
 
     const canvas = fabricCanvasRef.current;
+    canvas.isDrawingMode = true;
     
-    if (activeTool === 'pen') {
-      canvas.isDrawingMode = true;
-      canvas.freeDrawingBrush.width = 2;
-      canvas.freeDrawingBrush.color = '#000000';
-    } else if (activeTool === 'eraser') {
-      canvas.isDrawingMode = true;
-      canvas.freeDrawingBrush.width = 10;
-      canvas.freeDrawingBrush.color = '#ffffff'; // White color to "erase"
+    if (canvas.freeDrawingBrush) {
+      if (activeTool === 'pen') {
+        canvas.freeDrawingBrush.width = 2;
+        canvas.freeDrawingBrush.color = '#000000';
+      } else if (activeTool === 'eraser') {
+        canvas.freeDrawingBrush.width = 10;
+        canvas.freeDrawingBrush.color = '#ffffff'; // White color to "erase"
+      }
     }
   }, [activeTool]);
 
