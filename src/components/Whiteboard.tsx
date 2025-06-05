@@ -2,6 +2,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { Canvas as FabricCanvas } from 'fabric';
 import { Maximize2, Minimize2 } from 'lucide-react';
+import WhiteboardToolbar from './WhiteboardToolbar';
 
 interface WhiteboardProps {
   id: string;
@@ -24,6 +25,7 @@ const Whiteboard: React.FC<WhiteboardProps> = ({
   const fabricCanvasRef = useRef<FabricCanvas | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const [canvasSize, setCanvasSize] = useState({ width: 800, height: 600 });
+  const [activeTool, setActiveTool] = useState<'pen' | 'eraser'>('pen');
 
   const handleMaximizeClick = () => {
     if (isMaximized && onMinimize) {
@@ -31,6 +33,10 @@ const Whiteboard: React.FC<WhiteboardProps> = ({
     } else if (!isMaximized && onMaximize) {
       onMaximize();
     }
+  };
+
+  const handleToolChange = (tool: 'pen' | 'eraser') => {
+    setActiveTool(tool);
   };
 
   // Initialize canvas
@@ -43,6 +49,11 @@ const Whiteboard: React.FC<WhiteboardProps> = ({
       backgroundColor: '#ffffff',
     });
 
+    // Initialize drawing mode
+    canvas.isDrawingMode = true;
+    canvas.freeDrawingBrush.width = 2;
+    canvas.freeDrawingBrush.color = '#000000';
+
     fabricCanvasRef.current = canvas;
 
     return () => {
@@ -51,13 +62,30 @@ const Whiteboard: React.FC<WhiteboardProps> = ({
     };
   }, [canvasSize]);
 
+  // Handle tool changes
+  useEffect(() => {
+    if (!fabricCanvasRef.current) return;
+
+    const canvas = fabricCanvasRef.current;
+    
+    if (activeTool === 'pen') {
+      canvas.isDrawingMode = true;
+      canvas.freeDrawingBrush.width = 2;
+      canvas.freeDrawingBrush.color = '#000000';
+    } else if (activeTool === 'eraser') {
+      canvas.isDrawingMode = true;
+      canvas.freeDrawingBrush.width = 10;
+      canvas.freeDrawingBrush.color = '#ffffff'; // White color to "erase"
+    }
+  }, [activeTool]);
+
   // Handle container resize
   useEffect(() => {
     const handleResize = () => {
       if (!containerRef.current) return;
 
       const containerRect = containerRef.current.getBoundingClientRect();
-      const newWidth = Math.max(300, containerRect.width - 16); // Account for padding
+      const newWidth = Math.max(300, containerRect.width - 16);
       const newHeight = Math.max(200, containerRect.height - 16);
 
       if (newWidth !== canvasSize.width || newHeight !== canvasSize.height) {
@@ -70,7 +98,6 @@ const Whiteboard: React.FC<WhiteboardProps> = ({
       resizeObserver.observe(containerRef.current);
     }
 
-    // Initial size calculation
     handleResize();
 
     return () => {
@@ -98,6 +125,12 @@ const Whiteboard: React.FC<WhiteboardProps> = ({
         height: initialHeight ? `${initialHeight}px` : '100%'
       }}
     >
+      {/* Toolbar */}
+      <WhiteboardToolbar 
+        activeTool={activeTool}
+        onToolChange={handleToolChange}
+      />
+
       {/* Maximize/Minimize Button */}
       <button
         onClick={handleMaximizeClick}
