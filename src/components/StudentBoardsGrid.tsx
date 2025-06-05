@@ -2,7 +2,7 @@
 import React from 'react';
 import { Users, ChevronLeft, ChevronRight, RotateCcw, Grid } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import Whiteboard from './Whiteboard';
+import WhiteboardPlaceholder from './WhiteboardPlaceholder';
 import PersistentPageNavigation from './PersistentPageNavigation';
 import { LayoutOption, getOrientationAwareGridClasses } from '@/utils/layoutCalculator';
 import { GridOrientation } from './TeacherView';
@@ -41,7 +41,7 @@ const StudentBoardsGrid: React.FC<StudentBoardsGridProps> = ({
       <div className={`grid ${gridClass} gap-3 h-full`}>
         {currentStudentBoards.map((boardId) => (
           <div key={boardId} className="min-h-0">
-            <Whiteboard
+            <WhiteboardPlaceholder
               id={boardId}
               onMaximize={() => onMaximize(boardId)}
             />

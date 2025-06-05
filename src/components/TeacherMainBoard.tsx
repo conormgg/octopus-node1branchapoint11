@@ -1,7 +1,7 @@
 
 import React from 'react';
 import { GraduationCap } from 'lucide-react';
-import Whiteboard from './Whiteboard';
+import WhiteboardPlaceholder from './WhiteboardPlaceholder';
 
 interface TeacherMainBoardProps {
   onMaximize: (boardId: string) => void;
@@ -24,7 +24,7 @@ const TeacherMainBoard: React.FC<TeacherMainBoardProps> = ({
         </div>
       )}
       <div className={`${isHeaderCollapsed ? 'h-full' : 'h-[calc(100%-4rem)]'}`}>
-        <Whiteboard
+        <WhiteboardPlaceholder
           id="teacher-main"
           onMaximize={() => onMaximize("teacher-main")}
         />

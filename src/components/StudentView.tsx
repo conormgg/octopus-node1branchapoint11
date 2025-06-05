@@ -1,7 +1,7 @@
 
 import React, { useState } from 'react';
 import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from '@/components/ui/resizable';
-import Whiteboard from './Whiteboard';
+import WhiteboardPlaceholder from './WhiteboardPlaceholder';
 import { GraduationCap, User } from 'lucide-react';
 
 const StudentView: React.FC = () => {
@@ -19,7 +19,7 @@ const StudentView: React.FC = () => {
     return (
       <div className="min-h-screen bg-gray-100 p-4">
         <div className="h-[calc(100vh-2rem)]">
-          <Whiteboard
+          <WhiteboardPlaceholder
             id={maximizedBoard}
             isMaximized={true}
             onMinimize={handleMinimize}
@@ -64,7 +64,7 @@ const StudentView: React.FC = () => {
                 <p className="text-sm text-gray-600">Shared content from your instructor</p>
               </div>
               <div className="h-[calc(100%-4rem)]">
-                <Whiteboard
+                <WhiteboardPlaceholder
                   id="student-shared-teacher"
                   onMaximize={() => handleMaximize("student-shared-teacher")}
                 />
@@ -85,7 +85,7 @@ const StudentView: React.FC = () => {
                 <p className="text-sm text-gray-600">Your private workspace for notes and practice</p>
               </div>
               <div className="h-[calc(100%-4rem)]">
-                <Whiteboard
+                <WhiteboardPlaceholder
                   id="student-personal"
                   onMaximize={() => handleMaximize("student-personal")}
                 />
