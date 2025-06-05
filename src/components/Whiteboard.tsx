@@ -39,7 +39,21 @@ const Whiteboard: React.FC<WhiteboardProps> = ({
     setActiveTool(tool);
   };
 
-  // Initialize canvas
+  const applyDrawingSettings = (canvas: FabricCanvas, tool: 'pen' | 'eraser') => {
+    canvas.isDrawingMode = true;
+    
+    if (canvas.freeDrawingBrush) {
+      if (tool === 'pen') {
+        canvas.freeDrawingBrush.width = 2;
+        canvas.freeDrawingBrush.color = '#000000';
+      } else if (tool === 'eraser') {
+        canvas.freeDrawingBrush.width = 10;
+        canvas.freeDrawingBrush.color = '#ffffff';
+      }
+    }
+  };
+
+  // Initialize canvas only once
   useEffect(() => {
     if (!canvasRef.current) return;
 
@@ -49,14 +63,8 @@ const Whiteboard: React.FC<WhiteboardProps> = ({
       backgroundColor: '#ffffff',
     });
 
-    // Enable drawing mode first
-    canvas.isDrawingMode = true;
-    
-    // Now safely set brush properties
-    if (canvas.freeDrawingBrush) {
-      canvas.freeDrawingBrush.width = 2;
-      canvas.freeDrawingBrush.color = '#000000';
-    }
+    // Apply initial drawing settings
+    applyDrawingSettings(canvas, activeTool);
 
     fabricCanvasRef.current = canvas;
 
@@ -64,27 +72,15 @@ const Whiteboard: React.FC<WhiteboardProps> = ({
       canvas.dispose();
       fabricCanvasRef.current = null;
     };
-  }, [canvasSize]);
+  }, []); // Remove canvasSize dependency to prevent recreation
 
   // Handle tool changes
   useEffect(() => {
     if (!fabricCanvasRef.current) return;
-
-    const canvas = fabricCanvasRef.current;
-    canvas.isDrawingMode = true;
-    
-    if (canvas.freeDrawingBrush) {
-      if (activeTool === 'pen') {
-        canvas.freeDrawingBrush.width = 2;
-        canvas.freeDrawingBrush.color = '#000000';
-      } else if (activeTool === 'eraser') {
-        canvas.freeDrawingBrush.width = 10;
-        canvas.freeDrawingBrush.color = '#ffffff'; // White color to "erase"
-      }
-    }
+    applyDrawingSettings(fabricCanvasRef.current, activeTool);
   }, [activeTool]);
 
-  // Handle container resize
+  // Handle container resize without recreating canvas
   useEffect(() => {
     const handleResize = () => {
       if (!containerRef.current) return;
@@ -93,9 +89,12 @@ const Whiteboard: React.FC<WhiteboardProps> = ({
       const newWidth = Math.max(300, containerRect.width - 16);
       const newHeight = Math.max(200, containerRect.height - 16);
 
-      if (newWidth !== canvasSize.width || newHeight !== canvasSize.height) {
-        setCanvasSize({ width: newWidth, height: newHeight });
-      }
+      setCanvasSize(prev => {
+        if (newWidth === prev.width && newHeight === prev.height) {
+          return prev;
+        }
+        return { width: newWidth, height: newHeight };
+      });
     };
 
     const resizeObserver = new ResizeObserver(handleResize);
@@ -108,18 +107,22 @@ const Whiteboard: React.FC<WhiteboardProps> = ({
     return () => {
       resizeObserver.disconnect();
     };
-  }, [canvasSize]);
+  }, []); // Remove canvasSize dependency to prevent loop
 
-  // Update canvas size when canvasSize changes
+  // Update canvas dimensions when size changes
   useEffect(() => {
     if (fabricCanvasRef.current) {
       fabricCanvasRef.current.setDimensions({
         width: canvasSize.width,
         height: canvasSize.height,
       });
+      
+      // Reapply drawing settings after dimension change
+      applyDrawingSettings(fabricCanvasRef.current, activeTool);
+      
       fabricCanvasRef.current.renderAll();
     }
-  }, [canvasSize]);
+  }, [canvasSize, activeTool]);
 
   return (
     <div 
@@ -154,7 +157,11 @@ const Whiteboard: React.FC<WhiteboardProps> = ({
         <canvas 
           ref={canvasRef}
           className="border border-gray-300 rounded"
-          style={{ maxWidth: '100%', maxHeight: '100%' }}
+          style={{ 
+            maxWidth: '100%', 
+            maxHeight: '100%',
+            touchAction: 'none' // Prevent touch scrolling on canvas
+          }}
         />
       </div>
       
