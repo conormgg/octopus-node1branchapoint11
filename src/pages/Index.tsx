@@ -11,12 +11,19 @@ const Index = () => {
       <div className="container mx-auto px-4 py-16">
         {/* Hero Section */}
         <div className="text-center mb-16">
+          <div className="flex justify-center mb-6">
+            <img 
+              src="/lovable-uploads/8d339d8d-4a15-4ff8-972e-536337cd1258.png" 
+              alt="OctoPi Ink Logo" 
+              className="h-24 w-auto"
+            />
+          </div>
           <h1 className="text-5xl font-bold text-gray-900 mb-6">
-            Collaborative Whiteboard
+            OctoPi Ink
           </h1>
           <p className="text-xl text-gray-600 mb-8 max-w-3xl mx-auto">
             Create interactive whiteboard sessions for your classroom. 
-            Real-time collaboration between teachers and up to 8 students.
+            Real-time collaboration between teachers and up to 8 students with OctoPi Ink.
           </p>
           <div className="flex gap-4 justify-center">
             <Button asChild size="lg">
@@ -81,7 +88,7 @@ const Index = () => {
 
         {/* How It Works */}
         <div className="bg-white rounded-lg p-8 shadow-lg">
-          <h2 className="text-3xl font-bold text-center mb-8">How It Works</h2>
+          <h2 className="text-3xl font-bold text-center mb-8">How OctoPi Ink Works</h2>
           <div className="grid md:grid-cols-3 gap-8">
             <div className="text-center">
               <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
@@ -117,7 +124,7 @@ const Index = () => {
 
         {/* CTA */}
         <div className="text-center mt-16">
-          <h2 className="text-3xl font-bold mb-4">Ready to Start Teaching?</h2>
+          <h2 className="text-3xl font-bold mb-4">Ready to Start Teaching with OctoPi Ink?</h2>
           <p className="text-lg text-gray-600 mb-8">
             Join thousands of educators using our collaborative whiteboard platform.
           </p>

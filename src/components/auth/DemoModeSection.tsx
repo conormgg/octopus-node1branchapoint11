@@ -21,7 +21,7 @@ const DemoModeSection: React.FC = () => {
       
       toast({
         title: "Demo Mode Active!",
-        description: "You're now using the app in demo mode as a test teacher.",
+        description: "You're now using OctoPi Ink in demo mode as a test teacher.",
       });
       
       // Navigate to dashboard
@@ -44,7 +44,7 @@ const DemoModeSection: React.FC = () => {
         <span className="font-medium text-blue-900">Quick Demo Access</span>
       </div>
       <p className="text-sm text-blue-700 mb-3">
-        Explore the app immediately in demo mode - no signup required!
+        Explore OctoPi Ink immediately in demo mode - no signup required!
       </p>
       <Button 
         onClick={handleTestLogin} 

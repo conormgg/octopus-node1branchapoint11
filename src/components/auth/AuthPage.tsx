@@ -8,11 +8,18 @@ const AuthPage: React.FC = () => {
   return (
     <div className="min-h-screen bg-gray-50 flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
       <Card className="w-full max-w-md">
-        <CardHeader className="space-y-1">
-          <CardTitle className="text-2xl text-center">
-            Welcome to Collaborative Whiteboard
+        <CardHeader className="space-y-1 text-center">
+          <div className="flex justify-center mb-4">
+            <img 
+              src="/lovable-uploads/8d339d8d-4a15-4ff8-972e-536337cd1258.png" 
+              alt="OctoPi Ink Logo" 
+              className="h-20 w-auto"
+            />
+          </div>
+          <CardTitle className="text-2xl">
+            Welcome to OctoPi Ink
           </CardTitle>
-          <CardDescription className="text-center">
+          <CardDescription>
             Sign in to your teacher account or try the demo
           </CardDescription>
         </CardHeader>

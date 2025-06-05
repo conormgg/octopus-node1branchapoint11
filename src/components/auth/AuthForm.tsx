@@ -7,11 +7,7 @@ import { useToast } from '@/hooks/use-toast';
 import { Eye, EyeOff, Loader2 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
-interface AuthFormProps {
-  onAuthSuccess?: () => void;
-}
-
-const AuthForm: React.FC<AuthFormProps> = ({ onAuthSuccess }) => {
+const AuthForm: React.FC = () => {
   const [isLogin, setIsLogin] = useState(true);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -35,7 +31,7 @@ const AuthForm: React.FC<AuthFormProps> = ({ onAuthSuccess }) => {
         if (error) throw error;
         
         toast({
-          title: "Welcome back!",
+          title: "Welcome back to OctoPi Ink!",
           description: "You have successfully logged in.",
         });
       } else {
@@ -53,19 +49,18 @@ const AuthForm: React.FC<AuthFormProps> = ({ onAuthSuccess }) => {
         if (error) throw error;
         
         toast({
-          title: "Account created!",
-          description: "Welcome to the Collaborative Whiteboard platform.",
+          title: "Welcome to OctoPi Ink!",
+          description: "Your account has been created successfully.",
         });
       }
       
       // Navigate to dashboard on success
-      onAuthSuccess?.();
       navigate('/dashboard');
     } catch (error: any) {
       if (error.message.includes('Email signups are disabled') || error.message.includes('Email logins are disabled')) {
         toast({
           title: "Authentication Unavailable",
-          description: "Email authentication is currently disabled. Please use the demo mode above to explore the app.",
+          description: "Email authentication is currently disabled. Please use the demo mode above to explore OctoPi Ink.",
           variant: "destructive",
         });
       } else {

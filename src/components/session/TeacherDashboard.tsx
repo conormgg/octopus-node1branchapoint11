@@ -36,12 +36,19 @@ const TeacherDashboard: React.FC = () => {
     <div className="min-h-screen bg-gray-50 py-8">
       <div className="max-w-6xl mx-auto px-4">
         <div className="mb-8 flex items-center justify-between">
-          <div>
-            <h1 className="text-3xl font-bold text-gray-900">Teacher Dashboard</h1>
-            <p className="text-gray-600">
-              Welcome back, {isDemoMode ? 'Demo Teacher' : user?.user_metadata?.full_name || user?.email}
-              {isDemoMode && <span className="ml-2 text-blue-600 font-medium">(Demo Mode)</span>}
-            </p>
+          <div className="flex items-center gap-4">
+            <img 
+              src="/lovable-uploads/8d339d8d-4a15-4ff8-972e-536337cd1258.png" 
+              alt="OctoPi Ink Logo" 
+              className="h-12 w-auto"
+            />
+            <div>
+              <h1 className="text-3xl font-bold text-gray-900">OctoPi Ink Dashboard</h1>
+              <p className="text-gray-600">
+                Welcome back, {isDemoMode ? 'Demo Teacher' : user?.user_metadata?.full_name || user?.email}
+                {isDemoMode && <span className="ml-2 text-blue-600 font-medium">(Demo Mode)</span>}
+              </p>
+            </div>
           </div>
           <Button variant="outline" onClick={signOut}>
             <LogOut className="h-4 w-4 mr-2" />
