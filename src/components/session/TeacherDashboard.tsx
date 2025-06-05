@@ -38,9 +38,13 @@ const TeacherDashboard: React.FC = () => {
         <div className="mb-8 flex items-center justify-between">
           <div className="flex items-center gap-4">
             <img 
-              src="/lovable-uploads/8d339d8d-4a15-4ff8-972e-536337cd1258.png" 
+              src="/lovable-uploads/f4ab9f72-4fe6-4e31-ba50-b5075c707b19.png" 
               alt="OctoPi Ink Logo" 
               className="h-12 w-auto"
+              onError={(e) => {
+                console.error('Logo failed to load');
+                e.currentTarget.style.display = 'none';
+              }}
             />
             <div>
               <h1 className="text-3xl font-bold text-gray-900">OctoPi Ink Dashboard</h1>

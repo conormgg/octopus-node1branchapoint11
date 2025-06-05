@@ -11,9 +11,13 @@ const AuthPage: React.FC = () => {
         <CardHeader className="space-y-1 text-center">
           <div className="flex justify-center mb-4">
             <img 
-              src="/lovable-uploads/8d339d8d-4a15-4ff8-972e-536337cd1258.png" 
+              src="/lovable-uploads/f4ab9f72-4fe6-4e31-ba50-b5075c707b19.png" 
               alt="OctoPi Ink Logo" 
               className="h-20 w-auto"
+              onError={(e) => {
+                console.error('Logo failed to load');
+                e.currentTarget.style.display = 'none';
+              }}
             />
           </div>
           <CardTitle className="text-2xl">
