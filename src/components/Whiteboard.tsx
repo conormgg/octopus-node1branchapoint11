@@ -1,4 +1,3 @@
-
 import React, { useEffect, useRef, useState } from 'react';
 import { Canvas as FabricCanvas } from 'fabric';
 import { Maximize2, Minimize2 } from 'lucide-react';
@@ -26,6 +25,8 @@ const Whiteboard: React.FC<WhiteboardProps> = ({
   const containerRef = useRef<HTMLDivElement>(null);
   const [canvasSize, setCanvasSize] = useState({ width: 800, height: 600 });
   const [activeTool, setActiveTool] = useState<'pen' | 'eraser'>('pen');
+  const [strokeWidth, setStrokeWidth] = useState(2);
+  const [strokeColor, setStrokeColor] = useState('#000000');
 
   const handleMaximizeClick = () => {
     if (isMaximized && onMinimize) {
@@ -39,15 +40,34 @@ const Whiteboard: React.FC<WhiteboardProps> = ({
     setActiveTool(tool);
   };
 
+  const handleStrokeWidthChange = (width: number) => {
+    setStrokeWidth(width);
+  };
+
+  const handleColorChange = (color: string) => {
+    setStrokeColor(color);
+  };
+
+  const handleClear = () => {
+    if (!fabricCanvasRef.current) return;
+    
+    fabricCanvasRef.current.clear();
+    fabricCanvasRef.current.backgroundColor = '#ffffff';
+    fabricCanvasRef.current.renderAll();
+    
+    // Reapply drawing settings after clearing
+    applyDrawingSettings(fabricCanvasRef.current, activeTool);
+  };
+
   const applyDrawingSettings = (canvas: FabricCanvas, tool: 'pen' | 'eraser') => {
     canvas.isDrawingMode = true;
     
     if (canvas.freeDrawingBrush) {
       if (tool === 'pen') {
-        canvas.freeDrawingBrush.width = 2;
-        canvas.freeDrawingBrush.color = '#000000';
+        canvas.freeDrawingBrush.width = strokeWidth;
+        canvas.freeDrawingBrush.color = strokeColor;
       } else if (tool === 'eraser') {
-        canvas.freeDrawingBrush.width = 10;
+        canvas.freeDrawingBrush.width = strokeWidth * 2; // Make eraser wider
         canvas.freeDrawingBrush.color = '#ffffff';
       }
     }
@@ -74,11 +94,11 @@ const Whiteboard: React.FC<WhiteboardProps> = ({
     };
   }, []); // Remove canvasSize dependency to prevent recreation
 
-  // Handle tool changes
+  // Handle tool and settings changes
   useEffect(() => {
     if (!fabricCanvasRef.current) return;
     applyDrawingSettings(fabricCanvasRef.current, activeTool);
-  }, [activeTool]);
+  }, [activeTool, strokeWidth, strokeColor]);
 
   // Handle container resize without recreating canvas
   useEffect(() => {
@@ -133,10 +153,15 @@ const Whiteboard: React.FC<WhiteboardProps> = ({
         height: initialHeight ? `${initialHeight}px` : '100%'
       }}
     >
-      {/* Toolbar */}
+      {/* Enhanced Toolbar */}
       <WhiteboardToolbar 
         activeTool={activeTool}
+        strokeWidth={strokeWidth}
+        strokeColor={strokeColor}
         onToolChange={handleToolChange}
+        onStrokeWidthChange={handleStrokeWidthChange}
+        onColorChange={handleColorChange}
+        onClear={handleClear}
       />
 
       {/* Maximize/Minimize Button */}
