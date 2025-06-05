@@ -11,7 +11,7 @@ const AuthPage: React.FC = () => {
         <CardHeader className="space-y-1 text-center">
           <div className="flex justify-center mb-4">
             <img 
-              src="/lovable-uploads/f4ab9f72-4fe6-4e31-ba50-b5075c707b19.png" 
+              src="/lovable-uploads/48e6b925-cc0f-4179-a7c9-2a393e857ac4.png" 
               alt="OctoPi Ink Logo" 
               className="h-20 w-auto"
               onError={(e) => {

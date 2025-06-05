@@ -13,18 +13,15 @@ const Index = () => {
         <div className="text-center mb-16">
           <div className="flex justify-center mb-6">
             <img 
-              src="/lovable-uploads/f4ab9f72-4fe6-4e31-ba50-b5075c707b19.png" 
+              src="/lovable-uploads/48e6b925-cc0f-4179-a7c9-2a393e857ac4.png" 
               alt="OctoPi Ink Logo" 
-              className="h-24 w-auto"
+              className="h-32 w-auto"
               onError={(e) => {
                 console.error('Logo failed to load');
                 e.currentTarget.style.display = 'none';
               }}
             />
           </div>
-          <h1 className="text-5xl font-bold text-gray-900 mb-6">
-            OctoPi Ink
-          </h1>
           <p className="text-xl text-gray-600 mb-8 max-w-3xl mx-auto">
             Create interactive whiteboard sessions for your classroom. 
             Real-time collaboration between teachers and up to 8 students with OctoPi Ink.
