@@ -1,5 +1,5 @@
 
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback, useEffect, useRef } from 'react';
 import { WhiteboardState, Tool, LineObject } from '@/types/whiteboard';
 import { SyncConfig } from '@/types/sync';
 import { useDrawingState } from './useDrawingState';
@@ -12,6 +12,9 @@ import { serializeDrawOperation, serializeEraseOperation } from '@/utils/operati
 
 export const useSharedWhiteboardState = (syncConfig?: SyncConfig, whiteboardId?: string) => {
   const { getWhiteboardState, updateWhiteboardState } = useWhiteboardStateContext();
+  
+  // Track lines before erasing to detect what was erased
+  const linesBeforeErasingRef = useRef<LineObject[]>([]);
   
   // Initialize state with shared state if available
   const [state, setState] = useState<WhiteboardState>(() => {
@@ -79,30 +82,42 @@ export const useSharedWhiteboardState = (syncConfig?: SyncConfig, whiteboardId?:
 
   // Eraser operations with sync
   const {
-    startErasing,
+    startErasing: baseStartErasing,
     continueErasing,
     stopErasing: baseStopErasing
   } = useEraserState(state, setState, addToHistory);
 
+  const startErasing = useCallback((x: number, y: number) => {
+    if (!state.isDrawing) {
+      // Store the current lines before erasing starts
+      linesBeforeErasingRef.current = [...state.lines];
+    }
+    baseStartErasing(x, y);
+  }, [state.lines, state.isDrawing, baseStartErasing]);
+
   const stopErasing = useCallback(() => {
     if (!state.isDrawing) return;
 
-    // Get the current lines before stopping erasing
-    const linesBefore = [...state.lines];
-    
     baseStopErasing();
     
     // Sync the erased lines if we're not in receive-only mode
     if (sendOperation && !isApplyingRemoteOperation.current) {
-      // Find the IDs of lines that were erased
-      const erasedLineIds = linesBefore
+      // Find the IDs of lines that were erased by comparing with the lines before erasing
+      const erasedLineIds = linesBeforeErasingRef.current
         .filter(line => !state.lines.some(l => l.id === line.id))
         .map(line => line.id);
+      
+      console.log('Lines before erasing:', linesBeforeErasingRef.current.length);
+      console.log('Lines after erasing:', state.lines.length);
+      console.log('Erased line IDs:', erasedLineIds);
       
       if (erasedLineIds.length > 0) {
         sendOperation(serializeEraseOperation(erasedLineIds));
       }
     }
+    
+    // Clear the reference
+    linesBeforeErasingRef.current = [];
   }, [state.isDrawing, state.lines, baseStopErasing, sendOperation, isApplyingRemoteOperation]);
 
   // Tool change
