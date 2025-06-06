@@ -1,0 +1,61 @@
+import React from 'react';
+import WhiteboardCanvas from './WhiteboardCanvas';
+import MovableToolbar from './MovableToolbar';
+import { useSyncWhiteboardState } from '@/hooks/useSyncWhiteboardState';
+import { SyncConfig } from '@/types/sync';
+
+interface SyncWhiteboardProps {
+  syncConfig?: SyncConfig;
+  width: number;
+  height: number;
+}
+
+export const SyncWhiteboard: React.FC<SyncWhiteboardProps> = ({
+  syncConfig,
+  width,
+  height
+}) => {
+  const whiteboardState = useSyncWhiteboardState(syncConfig);
+  const isReadOnly = whiteboardState.isReadOnly;
+
+  const handleStrokeWidthChange = (width: number) => {
+    whiteboardState.setStrokeWidth(width);
+  };
+
+  return (
+    <div className="relative w-full h-full">
+      {/* Sync status indicator */}
+      {syncConfig && (
+        <div className="absolute top-2 right-2 z-20 flex items-center space-x-2 text-sm">
+          <div 
+            className={`w-3 h-3 rounded-full ${whiteboardState.syncState?.isConnected ? 'bg-green-500' : 'bg-red-500'}`}
+          />
+          <span className="text-gray-700">
+            {whiteboardState.syncState?.isConnected ? 'Connected' : 'Disconnected'}
+          </span>
+          {whiteboardState.syncState?.isReceiveOnly && (
+            <span className="bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded">Read Only</span>
+          )}
+        </div>
+      )}
+
+      <WhiteboardCanvas
+        width={width}
+        height={height}
+        whiteboardState={whiteboardState}
+        isReadOnly={isReadOnly}
+      />
+      <MovableToolbar
+        currentTool={whiteboardState.state.currentTool}
+        currentStrokeWidth={whiteboardState.state.currentStrokeWidth}
+        canUndo={whiteboardState.canUndo}
+        canRedo={whiteboardState.canRedo}
+        onToolChange={whiteboardState.setTool}
+        onStrokeWidthChange={handleStrokeWidthChange}
+        onUndo={whiteboardState.undo}
+        onRedo={whiteboardState.redo}
+        isReadOnly={isReadOnly}
+      />
+    </div>
+  );
+};
