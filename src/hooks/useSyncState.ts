@@ -27,11 +27,13 @@ export const useSyncState = (
       sender_id: config.senderId
     };
 
-    // Send to Supabase
+    console.log('Sending operation to Supabase:', fullOperation);
+
+    // Send to Supabase - ensure we're using the correct action_type
     supabase
       .from('whiteboard_data')
       .insert({
-        action_type: fullOperation.operation_type,
+        action_type: fullOperation.operation_type, // This should be 'draw' or 'erase'
         board_id: fullOperation.whiteboard_id,
         object_data: fullOperation.data,
         object_id: `${fullOperation.operation_type}_${Date.now()}`,
@@ -41,12 +43,15 @@ export const useSyncState = (
       .then(({ error }) => {
         if (error) {
           console.error('Error sending operation:', error);
+          console.error('Operation that failed:', fullOperation);
           // Add to pending operations for retry
           pendingOperationsRef.current.push(fullOperation);
           setSyncState(prev => ({
             ...prev,
             pendingOperations: [...prev.pendingOperations, fullOperation]
           }));
+        } else {
+          console.log('Operation sent successfully');
         }
       });
 
@@ -66,6 +71,7 @@ export const useSyncState = (
           filter: `board_id=eq.${config.whiteboardId}`
         },
         (payload) => {
+          console.log('Received operation from Supabase:', payload);
           const data = payload.new as any;
           
           // Don't process our own operations
