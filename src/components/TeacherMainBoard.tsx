@@ -7,12 +7,14 @@ interface TeacherMainBoardProps {
   onMaximize: (boardId: string) => void;
   isHeaderCollapsed?: boolean;
   sessionId: string;
+  senderId: string;
 }
 
 const TeacherMainBoard: React.FC<TeacherMainBoardProps> = ({ 
   onMaximize, 
   isHeaderCollapsed = false,
-  sessionId
+  sessionId,
+  senderId
 }) => {
   return (
     <div className="h-full p-2">
@@ -30,6 +32,7 @@ const TeacherMainBoard: React.FC<TeacherMainBoardProps> = ({
           id="teacher-main"
           onMaximize={() => onMaximize("teacher-main")}
           sessionId={sessionId}
+          senderId={senderId}
         />
       </div>
     </div>

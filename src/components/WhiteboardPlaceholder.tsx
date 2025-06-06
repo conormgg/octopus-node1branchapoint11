@@ -14,6 +14,7 @@ interface WhiteboardPlaceholderProps {
   onMinimize?: () => void;
   isTeacher?: boolean;
   sessionId?: string;
+  senderId?: string;
 }
 
 const WhiteboardPlaceholder: React.FC<WhiteboardPlaceholderProps> = ({
@@ -24,7 +25,8 @@ const WhiteboardPlaceholder: React.FC<WhiteboardPlaceholderProps> = ({
   onMaximize,
   onMinimize,
   isTeacher = false,
-  sessionId
+  sessionId,
+  senderId
 }) => {
   const [dimensions, setDimensions] = useState({ width: 0, height: 0 });
   const containerRef = React.useRef<HTMLDivElement>(null);
@@ -57,9 +59,10 @@ const WhiteboardPlaceholder: React.FC<WhiteboardPlaceholderProps> = ({
 
     // Teacher's main board -> broadcasts to students
     if (boardId === "teacher-main") {
+      if (!senderId) return undefined; // Don't create config without a senderId
       return {
         whiteboardId: `session-${sessionId}-main`,
-        senderId: `teacher-${sessionId}`,
+        senderId: senderId,
         sessionId: sessionId,
         isReceiveOnly: false,
       };
