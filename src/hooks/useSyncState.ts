@@ -66,7 +66,7 @@ export const useSyncState = (
   }, [sessionId]);
 
   // Send operation with retry logic
-  const sendOperation = useCallback((operation: Omit<WhiteboardOperation, 'id' | 'timestamp' | 'sender_id'>) => {
+  const sendOperation = useCallback(async (operation: Omit<WhiteboardOperation, 'id' | 'timestamp' | 'sender_id'>) => {
     if (syncState.isReceiveOnly) return null;
 
     const fullOperation: WhiteboardOperation = {
@@ -76,48 +76,47 @@ export const useSyncState = (
       sender_id: config.senderId
     };
 
-    // Immediate attempt
-    supabase
-      .from('whiteboard_data')
-      .insert({
-        action_type: fullOperation.operation_type,
-        board_id: fullOperation.whiteboard_id,
-        object_data: fullOperation.data,
-        object_id: `${fullOperation.operation_type}_${Date.now()}`,
-        session_id: sessionId,
-        user_id: fullOperation.sender_id
-      })
-      .then(({ error }) => {
-        if (error) {
-          console.error('Error sending operation:', error);
-          // Add to pending operations for retry
-          pendingOperationsRef.current.push(fullOperation);
-          setSyncState(prev => ({
-            ...prev,
-            pendingOperations: [...prev.pendingOperations, fullOperation]
-          }));
-          
-          // Start retry process if not already running
-          if (!retryTimeoutRef.current) {
-            retryTimeoutRef.current = setTimeout(retryPendingOperations, RETRY_DELAY);
-          }
-        } else {
-          // Success - update last sync timestamp
-          setSyncState(prev => ({
-            ...prev,
-            lastSyncTimestamp: Date.now()
-          }));
-        }
-      })
-      .catch((networkError) => {
-        console.error('Network error sending operation:', networkError);
+    try {
+      const { error } = await supabase
+        .from('whiteboard_data')
+        .insert({
+          action_type: fullOperation.operation_type,
+          board_id: fullOperation.whiteboard_id,
+          object_data: fullOperation.data,
+          object_id: `${fullOperation.operation_type}_${Date.now()}`,
+          session_id: sessionId,
+          user_id: fullOperation.sender_id
+        });
+
+      if (error) {
+        console.error('Error sending operation:', error);
+        // Add to pending operations for retry
         pendingOperationsRef.current.push(fullOperation);
         setSyncState(prev => ({
           ...prev,
-          pendingOperations: [...prev.pendingOperations, fullOperation],
-          isConnected: false
+          pendingOperations: [...prev.pendingOperations, fullOperation]
         }));
-      });
+        
+        // Start retry process if not already running
+        if (!retryTimeoutRef.current) {
+          retryTimeoutRef.current = setTimeout(retryPendingOperations, RETRY_DELAY);
+        }
+      } else {
+        // Success - update last sync timestamp
+        setSyncState(prev => ({
+          ...prev,
+          lastSyncTimestamp: Date.now()
+        }));
+      }
+    } catch (networkError) {
+      console.error('Network error sending operation:', networkError);
+      pendingOperationsRef.current.push(fullOperation);
+      setSyncState(prev => ({
+        ...prev,
+        pendingOperations: [...prev.pendingOperations, fullOperation],
+        isConnected: false
+      }));
+    }
 
     return fullOperation;
   }, [config.whiteboardId, config.senderId, syncState.isReceiveOnly, sessionId, retryPendingOperations]);
