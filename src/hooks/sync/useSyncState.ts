@@ -1,5 +1,5 @@
 
-import { useState } from 'react';
+import React, { useState } from 'react';
 import { WhiteboardOperation, SyncConfig, SyncState } from '@/types/sync';
 import { useRetryLogic } from './useRetryLogic';
 import { useOperationSender } from './useOperationSender';
