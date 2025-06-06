@@ -29,14 +29,14 @@ export const useSyncState = (
 
     console.log('Sending operation to Supabase:', fullOperation);
 
-    // Send to Supabase - ensure we're using the correct action_type
+    // Send to Supabase - the action_type now correctly accepts 'draw' and 'erase'
     supabase
       .from('whiteboard_data')
       .insert({
-        action_type: fullOperation.operation_type, // This should be 'draw' or 'erase'
+        action_type: fullOperation.operation_type, // 'draw' or 'erase' - now allowed by constraint
         board_id: fullOperation.whiteboard_id,
         object_data: fullOperation.data,
-        object_id: `${fullOperation.operation_type}_${Date.now()}`,
+        object_id: `${fullOperation.operation_type}_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
         session_id: config.sessionId,
         user_id: fullOperation.sender_id
       })
@@ -52,14 +52,34 @@ export const useSyncState = (
           }));
         } else {
           console.log('Operation sent successfully');
+          // Remove from pending operations if it was there
+          setSyncState(prev => ({
+            ...prev,
+            pendingOperations: prev.pendingOperations.filter(op => op !== fullOperation)
+          }));
         }
       });
 
     return fullOperation;
   }, [config.whiteboardId, config.senderId, config.sessionId, syncState.isReceiveOnly]);
 
+  // Retry pending operations
+  const retryPendingOperations = useCallback(() => {
+    if (pendingOperationsRef.current.length === 0) return;
+
+    console.log(`Retrying ${pendingOperationsRef.current.length} pending operations`);
+    const operationsToRetry = [...pendingOperationsRef.current];
+    pendingOperationsRef.current = [];
+
+    operationsToRetry.forEach(operation => {
+      sendOperation(operation);
+    });
+  }, [sendOperation]);
+
   // Set up real-time subscription
   useEffect(() => {
+    console.log(`Setting up realtime subscription for whiteboard: ${config.whiteboardId}`);
+    
     const channel = supabase
       .channel(`whiteboard-${config.whiteboardId}`)
       .on(
@@ -75,7 +95,10 @@ export const useSyncState = (
           const data = payload.new as any;
           
           // Don't process our own operations
-          if (data.user_id === config.senderId) return;
+          if (data.user_id === config.senderId) {
+            console.log('Ignoring own operation');
+            return;
+          }
           
           // Convert to our internal operation format
           const operation: WhiteboardOperation = {
@@ -86,20 +109,28 @@ export const useSyncState = (
             data: data.object_data
           };
           
+          console.log('Processing remote operation:', operation);
           onReceiveOperation(operation);
         }
       )
-      .subscribe();
+      .subscribe((status) => {
+        console.log('Subscription status:', status);
+        setSyncState(prev => ({
+          ...prev,
+          isConnected: status === 'SUBSCRIBED'
+        }));
 
-    setSyncState(prev => ({
-      ...prev,
-      isConnected: true
-    }));
+        // Retry pending operations when we reconnect
+        if (status === 'SUBSCRIBED') {
+          retryPendingOperations();
+        }
+      });
 
     return () => {
+      console.log('Cleaning up realtime subscription');
       supabase.removeChannel(channel);
     };
-  }, [config.whiteboardId, config.senderId, onReceiveOperation]);
+  }, [config.whiteboardId, config.senderId, onReceiveOperation, retryPendingOperations]);
 
   return {
     syncState,
