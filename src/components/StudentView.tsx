@@ -4,7 +4,11 @@ import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from '@/componen
 import WhiteboardPlaceholder from './WhiteboardPlaceholder';
 import { GraduationCap, User } from 'lucide-react';
 
-const StudentView: React.FC = () => {
+interface StudentViewProps {
+  sessionId: string;
+}
+
+const StudentView: React.FC<StudentViewProps> = ({ sessionId }) => {
   const [maximizedBoard, setMaximizedBoard] = useState<string | null>(null);
 
   const handleMaximize = (boardId: string) => {
@@ -23,6 +27,7 @@ const StudentView: React.FC = () => {
             id={maximizedBoard}
             isMaximized={true}
             onMinimize={handleMinimize}
+            sessionId={sessionId}
           />
         </div>
       </div>
@@ -67,6 +72,7 @@ const StudentView: React.FC = () => {
                 <WhiteboardPlaceholder
                   id="student-shared-teacher"
                   onMaximize={() => handleMaximize("student-shared-teacher")}
+                  sessionId={sessionId}
                 />
               </div>
             </div>
@@ -88,6 +94,7 @@ const StudentView: React.FC = () => {
                 <WhiteboardPlaceholder
                   id="student-personal"
                   onMaximize={() => handleMaximize("student-personal")}
+                  sessionId={sessionId}
                 />
               </div>
             </div>

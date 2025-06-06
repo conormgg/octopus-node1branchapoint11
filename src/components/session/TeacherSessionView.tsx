@@ -95,6 +95,7 @@ const TeacherSessionView: React.FC<TeacherSessionViewProps> = ({
             id={maximizedBoard}
             isMaximized={true}
             onMinimize={onMinimize}
+            sessionId={activeSession.id}
           />
         </div>
       </div>
@@ -159,6 +160,7 @@ const TeacherSessionView: React.FC<TeacherSessionViewProps> = ({
             <TeacherMainBoard 
               onMaximize={onMaximize} 
               isHeaderCollapsed={isControlsCollapsed}
+              sessionId={activeSession.id}
             />
           </div>
         ) : (
@@ -169,6 +171,7 @@ const TeacherSessionView: React.FC<TeacherSessionViewProps> = ({
               <TeacherMainBoard 
                 onMaximize={onMaximize} 
                 isHeaderCollapsed={isControlsCollapsed}
+                sessionId={activeSession.id}
               />
             </ResizablePanel>
 

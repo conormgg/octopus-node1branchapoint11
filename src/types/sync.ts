@@ -1,3 +1,4 @@
+
 import { LineObject } from './whiteboard';
 
 export type OperationType = 'draw' | 'erase';
@@ -21,6 +22,7 @@ export interface EraseOperationData {
 export interface SyncConfig {
   whiteboardId: string;
   senderId: string;
+  sessionId: string;
   isReceiveOnly?: boolean;
 }
 

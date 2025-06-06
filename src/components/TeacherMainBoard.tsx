@@ -6,11 +6,13 @@ import WhiteboardPlaceholder from './WhiteboardPlaceholder';
 interface TeacherMainBoardProps {
   onMaximize: (boardId: string) => void;
   isHeaderCollapsed?: boolean;
+  sessionId: string;
 }
 
 const TeacherMainBoard: React.FC<TeacherMainBoardProps> = ({ 
   onMaximize, 
-  isHeaderCollapsed = false 
+  isHeaderCollapsed = false,
+  sessionId
 }) => {
   return (
     <div className="h-full p-2">
@@ -27,6 +29,7 @@ const TeacherMainBoard: React.FC<TeacherMainBoardProps> = ({
         <WhiteboardPlaceholder
           id="teacher-main"
           onMaximize={() => onMaximize("teacher-main")}
+          sessionId={sessionId}
         />
       </div>
     </div>

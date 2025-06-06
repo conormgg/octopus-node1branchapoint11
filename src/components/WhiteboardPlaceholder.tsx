@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Maximize2, Minimize2 } from 'lucide-react';
 import Whiteboard from './Whiteboard';
@@ -12,6 +13,7 @@ interface WhiteboardPlaceholderProps {
   onMaximize?: () => void;
   onMinimize?: () => void;
   isTeacher?: boolean;
+  sessionId?: string;
 }
 
 const WhiteboardPlaceholder: React.FC<WhiteboardPlaceholderProps> = ({
@@ -21,7 +23,8 @@ const WhiteboardPlaceholder: React.FC<WhiteboardPlaceholderProps> = ({
   isMaximized = false,
   onMaximize,
   onMinimize,
-  isTeacher = false
+  isTeacher = false,
+  sessionId
 }) => {
   const [dimensions, setDimensions] = useState({ width: 0, height: 0 });
   const containerRef = React.useRef<HTMLDivElement>(null);
@@ -49,28 +52,36 @@ const WhiteboardPlaceholder: React.FC<WhiteboardPlaceholderProps> = ({
     }
   };
 
-  // Determine if this is a teacher or student board
-  const isTeacherBoard = id === 'teacher-main';
-  const isStudentSharedBoard = id === 'student-shared-teacher';
+  const getSyncConfig = (boardId: string): SyncConfig | undefined => {
+    if (!sessionId) return undefined;
 
-  // Create sync config based on board type
-  let syncConfig: SyncConfig | undefined;
-  
-  if (isTeacherBoard) {
-    // Teacher's main board - broadcasts to students
-    syncConfig = {
-      whiteboardId: 'teacher1',
-      senderId: 'teacher',
-      isReceiveOnly: false
-    };
-  } else if (isStudentSharedBoard) {
-    // Student's shared board - receives from teacher
-    syncConfig = {
-      whiteboardId: 'teacher1',
-      senderId: 'student',
-      isReceiveOnly: true
-    };
-  }
+    // Teacher's main board -> broadcasts to students
+    if (boardId === "teacher-main") {
+      return {
+        whiteboardId: `session-${sessionId}-main`,
+        senderId: `teacher-${sessionId}`,
+        sessionId: sessionId,
+        isReceiveOnly: false,
+      };
+    }
+    
+    // Student's view of teacher's board -> receives only
+    if (boardId === "student-shared-teacher") {
+      return {
+        whiteboardId: `session-${sessionId}-main`,
+        senderId: `student-listener-${sessionId}`,
+        sessionId: sessionId,
+        isReceiveOnly: true,
+      };
+    }
+
+    // You can add logic for individual student boards here later
+    // e.g., if (boardId.startsWith('student-personal-')) { ... }
+
+    return undefined;
+  };
+
+  const syncConfig = getSyncConfig(id);
 
   return (
     <div 
