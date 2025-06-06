@@ -8,25 +8,9 @@ import StudentBoardsGrid from '../StudentBoardsGrid';
 import StudentBoardsWindow from '../StudentBoardsWindow';
 import { generateStudentBoards, getStudentBoardsForPage } from '@/utils/layoutCalculator';
 import { GridOrientation } from '../TeacherView';
-
-interface SessionStudent {
-  id: number;
-  student_name: string;
-  student_email?: string;
-  assigned_board_suffix: string;
-}
-
-interface Session {
-  id: string;
-  title: string;
-  unique_url_slug: string;
-  status: string;
-  created_at: string;
-}
+import { useUnifiedSession } from '@/contexts/UnifiedSessionContext';
 
 interface TeacherSessionViewProps {
-  activeSession: Session;
-  sessionStudents: SessionStudent[];
   maximizedBoard: string | null;
   currentPage: number;
   selectedLayoutId: string;
@@ -47,13 +31,9 @@ interface TeacherSessionViewProps {
   onNextPage: () => void;
   onIncreaseStudentCount: () => void;
   onDecreaseStudentCount: () => void;
-  onEndSession: () => void;
-  onSignOut: () => void;
 }
 
 const TeacherSessionView: React.FC<TeacherSessionViewProps> = ({
-  activeSession,
-  sessionStudents,
   maximizedBoard,
   currentPage,
   selectedLayoutId,
@@ -74,9 +54,15 @@ const TeacherSessionView: React.FC<TeacherSessionViewProps> = ({
   onNextPage,
   onIncreaseStudentCount,
   onDecreaseStudentCount,
-  onEndSession,
-  onSignOut,
 }) => {
+  const { 
+    activeSession, 
+    sessionStudents, 
+    handleEndSession, 
+    signOut,
+    handleStudentCountChange 
+  } = useUnifiedSession();
+
   const studentCount = sessionStudents.length;
   
   // Generate student boards and get current page boards
@@ -86,6 +72,17 @@ const TeacherSessionView: React.FC<TeacherSessionViewProps> = ({
     currentPage, 
     currentLayout?.studentsPerPage || 4
   );
+
+  // Use unified session's student count handler
+  const handleIncreaseStudentCount = () => {
+    handleStudentCountChange(studentCount + 1);
+    onIncreaseStudentCount();
+  };
+
+  const handleDecreaseStudentCount = () => {
+    handleStudentCountChange(Math.max(1, studentCount - 1));
+    onDecreaseStudentCount();
+  };
 
   if (maximizedBoard) {
     return (
@@ -116,8 +113,8 @@ const TeacherSessionView: React.FC<TeacherSessionViewProps> = ({
         availableLayouts={availableLayouts}
         selectedLayoutId={selectedLayoutId}
         gridOrientation={gridOrientation}
-        onIncreaseStudentCount={onIncreaseStudentCount}
-        onDecreaseStudentCount={onDecreaseStudentCount}
+        onIncreaseStudentCount={handleIncreaseStudentCount}
+        onDecreaseStudentCount={handleDecreaseStudentCount}
         onLayoutChange={onLayoutChange}
         onOrientationChange={onOrientationChange}
         onToggleSplitView={onToggleSplitView}
@@ -125,8 +122,8 @@ const TeacherSessionView: React.FC<TeacherSessionViewProps> = ({
         isCollapsed={isControlsCollapsed}
         onToggleCollapse={onToggleControlsCollapse}
         activeSession={activeSession}
-        onEndSession={onEndSession}
-        onSignOut={onSignOut}
+        onEndSession={handleEndSession}
+        onSignOut={signOut}
       />
 
       {/* Split View Window */}
@@ -145,8 +142,8 @@ const TeacherSessionView: React.FC<TeacherSessionViewProps> = ({
           onNextPage={onNextPage}
           onLayoutChange={onLayoutChange}
           onOrientationChange={onOrientationChange}
-          onIncreaseStudentCount={onIncreaseStudentCount}
-          onDecreaseStudentCount={onDecreaseStudentCount}
+          onIncreaseStudentCount={handleIncreaseStudentCount}
+          onDecreaseStudentCount={handleDecreaseStudentCount}
           onClose={onCloseSplitView}
         />
       )}
