@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from '@/components/ui/resizable';
 import WhiteboardPlaceholder from '../WhiteboardPlaceholder';
@@ -22,6 +21,7 @@ interface Session {
   unique_url_slug: string;
   status: string;
   created_at: string;
+  teacher_id: string;
 }
 
 interface TeacherSessionViewProps {
