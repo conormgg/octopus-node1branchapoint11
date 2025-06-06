@@ -6,7 +6,7 @@ import { UnifiedWhiteboardState } from '@/types/unifiedWhiteboard';
 import { useDrawingState } from './useDrawingState';
 import { useEraserState } from './useEraserState';
 import { useHistoryState } from './useHistoryState';
-import { useSyncState } from './useSyncState';
+import { useSyncState } from './sync/useSyncState';
 import { useRemoteOperationHandler } from './useRemoteOperationHandler';
 import { serializeDrawOperation, serializeEraseOperation } from '@/utils/operationSerializer';
 
