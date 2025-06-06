@@ -1,10 +1,12 @@
+
 import { useState, useCallback } from 'react';
 import { WhiteboardState, Tool } from '@/types/whiteboard';
+import { UnifiedWhiteboardState } from '@/types/unifiedWhiteboard';
 import { useDrawingState } from './useDrawingState';
 import { useEraserState } from './useEraserState';
 import { useHistoryState } from './useHistoryState';
 
-export const useWhiteboardState = () => {
+export const useWhiteboardState = (): UnifiedWhiteboardState => {
   const [state, setState] = useState<WhiteboardState>({
     lines: [],
     currentTool: 'pencil',
@@ -92,6 +94,7 @@ export const useWhiteboardState = () => {
 
   return {
     state,
+    syncState: null,
     setTool,
     setColor,
     setStrokeWidth,
@@ -101,6 +104,7 @@ export const useWhiteboardState = () => {
     undo,
     redo,
     canUndo,
-    canRedo
+    canRedo,
+    isReadOnly: false
   };
 };

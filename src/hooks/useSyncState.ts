@@ -1,11 +1,14 @@
+
 import { useEffect, useRef, useCallback, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { WhiteboardOperation, SyncConfig, SyncState, OperationType } from '@/types/sync';
+import { useSession } from '@/contexts/SessionContext';
 
 export const useSyncState = (
   config: SyncConfig,
   onReceiveOperation: (operation: WhiteboardOperation) => void
 ) => {
+  const { sessionId } = useSession();
   const [syncState, setSyncState] = useState<SyncState>({
     isConnected: false,
     isReceiveOnly: config.isReceiveOnly || false,
@@ -26,7 +29,7 @@ export const useSyncState = (
       sender_id: config.senderId
     };
 
-    // Send to Supabase
+    // Send to Supabase with proper session ID
     supabase
       .from('whiteboard_data')
       .insert({
@@ -34,7 +37,7 @@ export const useSyncState = (
         board_id: fullOperation.whiteboard_id,
         object_data: fullOperation.data,
         object_id: `${fullOperation.operation_type}_${Date.now()}`,
-        session_id: 'current-session', // This should be replaced with the actual session ID
+        session_id: sessionId, // Use proper session ID from context
         user_id: fullOperation.sender_id
       })
       .then(({ error }) => {
@@ -50,7 +53,7 @@ export const useSyncState = (
       });
 
     return fullOperation;
-  }, [config.whiteboardId, config.senderId, syncState.isReceiveOnly]);
+  }, [config.whiteboardId, config.senderId, syncState.isReceiveOnly, sessionId]);
 
   // Set up real-time subscription
   useEffect(() => {

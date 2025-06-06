@@ -1,6 +1,8 @@
+
 import { useState, useCallback } from 'react';
 import { WhiteboardState, Tool, LineObject } from '@/types/whiteboard';
 import { SyncConfig } from '@/types/sync';
+import { UnifiedWhiteboardState } from '@/types/unifiedWhiteboard';
 import { useDrawingState } from './useDrawingState';
 import { useEraserState } from './useEraserState';
 import { useHistoryState } from './useHistoryState';
@@ -8,7 +10,7 @@ import { useSyncState } from './useSyncState';
 import { useRemoteOperationHandler } from './useRemoteOperationHandler';
 import { serializeDrawOperation, serializeEraseOperation } from '@/utils/operationSerializer';
 
-export const useSyncWhiteboardState = (syncConfig?: SyncConfig) => {
+export const useSyncWhiteboardState = (syncConfig?: SyncConfig): UnifiedWhiteboardState => {
   const [state, setState] = useState<WhiteboardState>({
     lines: [],
     currentTool: 'pencil',

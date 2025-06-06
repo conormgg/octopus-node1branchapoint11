@@ -1,13 +1,14 @@
+
 import React, { useRef, useEffect } from 'react';
 import { Stage, Layer } from 'react-konva';
 import Konva from 'konva';
-import { useWhiteboardState } from '@/hooks/useWhiteboardState';
 import LineRenderer from './LineRenderer';
+import { UnifiedWhiteboardState } from '@/types/unifiedWhiteboard';
 
 interface KonvaStageProps {
   width: number;
   height: number;
-  whiteboardState: ReturnType<typeof useWhiteboardState>;
+  whiteboardState: UnifiedWhiteboardState;
   isReadOnly?: boolean;
 }
 

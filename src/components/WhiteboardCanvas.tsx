@@ -1,13 +1,7 @@
-import React from 'react';
-import { useWhiteboardState } from '@/hooks/useWhiteboardState';
-import KonvaStage from './canvas/KonvaStage';
 
-interface WhiteboardCanvasProps {
-  width: number;
-  height: number;
-  whiteboardState: ReturnType<typeof useWhiteboardState>;
-  isReadOnly?: boolean;
-}
+import React from 'react';
+import KonvaStage from './canvas/KonvaStage';
+import { WhiteboardCanvasProps } from '@/types/unifiedWhiteboard';
 
 const WhiteboardCanvas: React.FC<WhiteboardCanvasProps> = ({
   width,
