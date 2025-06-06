@@ -2,8 +2,8 @@
 import React, { useEffect, useState } from 'react';
 import SessionUrlModal from './session/SessionUrlModal';
 import TeacherSessionView from './session/TeacherSessionView';
-import { useSessionStudents } from '@/hooks/useSessionStudents';
 import { useTeacherViewState } from '@/hooks/useTeacherViewState';
+import { UnifiedSessionProvider } from '@/contexts/UnifiedSessionContext';
 
 export type GridOrientation = 'columns-first' | 'rows-first';
 
@@ -30,8 +30,6 @@ const TeacherView: React.FC<TeacherViewProps> = ({
 }) => {
   const [isUrlModalOpen, setIsUrlModalOpen] = useState(showUrlModal);
 
-  const { sessionStudents, handleStudentCountChange, studentCount } = useSessionStudents(activeSession);
-  
   const {
     maximizedBoard,
     currentPage,
@@ -51,26 +49,18 @@ const TeacherView: React.FC<TeacherViewProps> = ({
     handleToggleControlsCollapse,
     handlePreviousPage,
     handleNextPage,
-  } = useTeacherViewState(studentCount);
+  } = useTeacherViewState(0); // Start with 0, will be updated by session context
 
   useEffect(() => {
     setIsUrlModalOpen(showUrlModal);
   }, [showUrlModal]);
-
-  const increaseStudentCount = () => {
-    handleStudentCountChange(studentCount + 1);
-  };
-
-  const decreaseStudentCount = () => {
-    handleStudentCountChange(studentCount - 1);
-  };
 
   const handleCloseUrlModal = () => {
     setIsUrlModalOpen(false);
   };
 
   return (
-    <>
+    <UnifiedSessionProvider>
       {/* Session URL Modal */}
       {activeSession && (
         <SessionUrlModal
@@ -82,8 +72,6 @@ const TeacherView: React.FC<TeacherViewProps> = ({
       )}
 
       <TeacherSessionView
-        activeSession={activeSession!}
-        sessionStudents={sessionStudents}
         maximizedBoard={maximizedBoard}
         currentPage={currentPage}
         selectedLayoutId={selectedLayoutId}
@@ -102,12 +90,10 @@ const TeacherView: React.FC<TeacherViewProps> = ({
         onToggleControlsCollapse={handleToggleControlsCollapse}
         onPreviousPage={handlePreviousPage}
         onNextPage={handleNextPage}
-        onIncreaseStudentCount={increaseStudentCount}
-        onDecreaseStudentCount={decreaseStudentCount}
-        onEndSession={onEndSession!}
-        onSignOut={onSignOut!}
+        onIncreaseStudentCount={() => {}}
+        onDecreaseStudentCount={() => {}}
       />
-    </>
+    </UnifiedSessionProvider>
   );
 };
 
