@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from 'react';
 import SessionUrlModal from './session/SessionUrlModal';
 import TeacherSessionView from './session/TeacherSessionView';
@@ -13,6 +12,7 @@ interface Session {
   unique_url_slug: string;
   status: string;
   created_at: string;
+  teacher_id: string;
 }
 
 interface TeacherViewProps {
