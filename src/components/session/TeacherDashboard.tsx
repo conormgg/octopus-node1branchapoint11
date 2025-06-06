@@ -8,15 +8,6 @@ import CreateSessionForm from './CreateSessionForm';
 import TeacherView from '../TeacherView';
 import { LogOut, Plus, History } from 'lucide-react';
 
-interface Session {
-  id: string;
-  title: string;
-  unique_url_slug: string;
-  status: string;
-  created_at: string;
-  teacher_id: string;
-}
-
 const TeacherDashboard: React.FC = () => {
   const { user, signOut, isDemoMode } = useAuth();
 

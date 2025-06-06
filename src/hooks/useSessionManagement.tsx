@@ -9,6 +9,7 @@ interface Session {
   unique_url_slug: string;
   status: string;
   created_at: string;
+  teacher_id: string;
 }
 
 export const useSessionManagement = (user: any, isDemoMode: boolean) => {
