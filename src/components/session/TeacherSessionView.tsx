@@ -193,6 +193,8 @@ const TeacherSessionView: React.FC<TeacherSessionViewProps> = ({
                 onPreviousPage={onPreviousPage}
                 onNextPage={onNextPage}
                 isHeaderCollapsed={isControlsCollapsed}
+                sessionId={activeSession.id}
+                senderId={activeSession.teacher_id}
               />
             </ResizablePanel>
           </ResizablePanelGroup>

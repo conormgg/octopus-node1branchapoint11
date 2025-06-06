@@ -1,7 +1,8 @@
+
 import React from 'react';
 import WhiteboardCanvas from './WhiteboardCanvas';
 import MovableToolbar from './MovableToolbar';
-import { useSyncWhiteboardState } from '@/hooks/useSyncWhiteboardState';
+import { useSharedWhiteboardState } from '@/hooks/useSharedWhiteboardState';
 import { SyncConfig } from '@/types/sync';
 
 interface SyncWhiteboardProps {
@@ -15,7 +16,9 @@ export const SyncWhiteboard: React.FC<SyncWhiteboardProps> = ({
   width,
   height
 }) => {
-  const whiteboardState = useSyncWhiteboardState(syncConfig);
+  // Use the whiteboard ID from sync config to maintain shared state
+  const whiteboardId = syncConfig?.whiteboardId;
+  const whiteboardState = useSharedWhiteboardState(syncConfig, whiteboardId);
   const isReadOnly = whiteboardState.isReadOnly;
 
   const handleStrokeWidthChange = (width: number) => {

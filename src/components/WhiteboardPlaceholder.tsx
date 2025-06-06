@@ -78,8 +78,18 @@ const WhiteboardPlaceholder: React.FC<WhiteboardPlaceholderProps> = ({
       };
     }
 
-    // You can add logic for individual student boards here later
-    // e.g., if (boardId.startsWith('student-personal-')) { ... }
+    // Individual student boards - check if it matches the pattern
+    if (boardId.startsWith('student-board-')) {
+      const studentNumber = boardId.replace('student-board-', '');
+      if (!senderId) return undefined;
+      
+      return {
+        whiteboardId: `session-${sessionId}-student-${studentNumber}`,
+        senderId: senderId,
+        sessionId: sessionId,
+        isReceiveOnly: false,
+      };
+    }
 
     return undefined;
   };

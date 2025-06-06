@@ -18,6 +18,8 @@ interface StudentBoardsGridProps {
   onPreviousPage: () => void;
   onNextPage: () => void;
   isHeaderCollapsed?: boolean;
+  sessionId?: string;
+  senderId?: string;
 }
 
 const StudentBoardsGrid: React.FC<StudentBoardsGridProps> = ({
@@ -31,6 +33,8 @@ const StudentBoardsGrid: React.FC<StudentBoardsGridProps> = ({
   onPreviousPage,
   onNextPage,
   isHeaderCollapsed = false,
+  sessionId,
+  senderId,
 }) => {
   const renderStudentGrid = () => {
     if (!currentLayout) return null;
@@ -44,6 +48,8 @@ const StudentBoardsGrid: React.FC<StudentBoardsGridProps> = ({
             <WhiteboardPlaceholder
               id={boardId}
               onMaximize={() => onMaximize(boardId)}
+              sessionId={sessionId}
+              senderId={senderId}
             />
           </div>
         ))}

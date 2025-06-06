@@ -25,6 +25,8 @@ interface StudentBoardsWindowProps {
   onIncreaseStudentCount: () => void;
   onDecreaseStudentCount: () => void;
   onClose: () => void;
+  sessionId?: string;
+  senderId?: string;
 }
 
 const StudentBoardsWindow: React.FC<StudentBoardsWindowProps> = ({
@@ -44,6 +46,8 @@ const StudentBoardsWindow: React.FC<StudentBoardsWindowProps> = ({
   onIncreaseStudentCount,
   onDecreaseStudentCount,
   onClose,
+  sessionId,
+  senderId,
 }) => {
   const [container, setContainer] = useState<HTMLDivElement | null>(null);
   const [isReady, setIsReady] = useState(false);
@@ -99,6 +103,8 @@ const StudentBoardsWindow: React.FC<StudentBoardsWindowProps> = ({
           id={maximizedBoard}
           isMaximized={true}
           onMinimize={handleMinimizeInWindow}
+          sessionId={sessionId}
+          senderId={senderId}
         />
       </div>,
       container
@@ -171,6 +177,8 @@ const StudentBoardsWindow: React.FC<StudentBoardsWindowProps> = ({
           onPreviousPage={onPreviousPage}
           onNextPage={onNextPage}
           isHeaderCollapsed={isHeaderCollapsed}
+          sessionId={sessionId}
+          senderId={senderId}
         />
       </div>
     </div>,
