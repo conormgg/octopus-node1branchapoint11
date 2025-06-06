@@ -6,6 +6,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { DemoAuthProvider } from "@/hooks/useDemoAuth";
+import { SessionProvider } from "@/contexts/SessionContext";
 import AuthPage from "@/components/auth/AuthPage";
 import TeacherDashboard from "@/components/session/TeacherDashboard";
 import StudentJoinPage from "@/components/session/StudentJoinPage";
@@ -62,11 +63,13 @@ const AuthenticatedApp = () => {
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <DemoAuthProvider>
-      <TooltipProvider>
-        <Toaster />
-        <Sonner />
-        <AuthenticatedApp />
-      </TooltipProvider>
+      <SessionProvider>
+        <TooltipProvider>
+          <Toaster />
+          <Sonner />
+          <AuthenticatedApp />
+        </TooltipProvider>
+      </SessionProvider>
     </DemoAuthProvider>
   </QueryClientProvider>
 );
