@@ -1,23 +1,24 @@
-
 import React from 'react';
 import { useAuth } from '@/hooks/useAuth';
+import { useSessionManagement } from '@/hooks/useSessionManagement';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import CreateSessionForm from './CreateSessionForm';
 import TeacherView from '../TeacherView';
 import { LogOut, Plus, History } from 'lucide-react';
-import { useUnifiedSession } from '@/contexts/UnifiedSessionContext';
 
 const TeacherDashboard: React.FC = () => {
   const { user, signOut, isDemoMode } = useAuth();
-  const { 
-    activeSession, 
-    recentSessions, 
-    showUrlModal, 
-    handleSessionCreated, 
-    handleEndSession, 
-    resumeSession 
-  } = useUnifiedSession();
+
+  const {
+    activeSession,
+    recentSessions,
+    showUrlModal,
+    handleSessionCreated,
+    handleEndSession,
+    resumeSession,
+    handleCloseUrlModal,
+  } = useSessionManagement(user, isDemoMode);
 
   if (activeSession) {
     return (

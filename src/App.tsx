@@ -6,8 +6,6 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { DemoAuthProvider } from "@/hooks/useDemoAuth";
-import { SessionProvider } from "@/contexts/SessionContext";
-import { UnifiedSessionProvider } from "@/contexts/UnifiedSessionContext";
 import AuthPage from "@/components/auth/AuthPage";
 import TeacherDashboard from "@/components/session/TeacherDashboard";
 import StudentJoinPage from "@/components/session/StudentJoinPage";
@@ -42,11 +40,7 @@ const AuthenticatedApp = () => {
         {/* Teacher routes - require authentication or demo mode */}
         {(user || isDemoMode) ? (
           <>
-            <Route path="/dashboard" element={
-              <UnifiedSessionProvider>
-                <TeacherDashboard />
-              </UnifiedSessionProvider>
-            } />
+            <Route path="/dashboard" element={<TeacherDashboard />} />
             <Route path="/auth" element={<Navigate to="/dashboard" replace />} />
             <Route path="/" element={<Navigate to="/dashboard" replace />} />
           </>
@@ -68,13 +62,11 @@ const AuthenticatedApp = () => {
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <DemoAuthProvider>
-      <SessionProvider>
-        <TooltipProvider>
-          <Toaster />
-          <Sonner />
-          <AuthenticatedApp />
-        </TooltipProvider>
-      </SessionProvider>
+      <TooltipProvider>
+        <Toaster />
+        <Sonner />
+        <AuthenticatedApp />
+      </TooltipProvider>
     </DemoAuthProvider>
   </QueryClientProvider>
 );

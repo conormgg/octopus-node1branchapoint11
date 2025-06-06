@@ -1,18 +1,14 @@
-
 import { useState, useCallback } from 'react';
-import { WhiteboardState, Tool } from '@/types/whiteboard';
+import { WhiteboardState, Tool, LineObject } from '@/types/whiteboard';
 import { SyncConfig } from '@/types/sync';
-import { UnifiedWhiteboardState } from '@/types/unifiedWhiteboard';
 import { useDrawingState } from './useDrawingState';
 import { useEraserState } from './useEraserState';
 import { useHistoryState } from './useHistoryState';
-import { useSyncState } from './sync/useSyncState';
+import { useSyncState } from './useSyncState';
 import { useRemoteOperationHandler } from './useRemoteOperationHandler';
-import { useSyncDrawingOperations } from './whiteboard/useSyncDrawingOperations';
-import { useSyncEraserOperations } from './whiteboard/useSyncEraserOperations';
-import { usePointerHandlers } from './whiteboard/usePointerHandlers';
+import { serializeDrawOperation, serializeEraseOperation } from '@/utils/operationSerializer';
 
-export const useSyncWhiteboardState = (syncConfig?: SyncConfig): UnifiedWhiteboardState => {
+export const useSyncWhiteboardState = (syncConfig?: SyncConfig) => {
   const [state, setState] = useState<WhiteboardState>({
     lines: [],
     currentTool: 'pencil',
@@ -41,7 +37,7 @@ export const useSyncWhiteboardState = (syncConfig?: SyncConfig): UnifiedWhiteboa
     canRedo
   } = useHistoryState(state, setState);
 
-  const addToHistory = useCallback((lines: any[]) => {
+  const addToHistory = useCallback((lines: LineObject[]) => {
     baseAddToHistory(lines);
   }, [baseAddToHistory]);
 
@@ -52,41 +48,47 @@ export const useSyncWhiteboardState = (syncConfig?: SyncConfig): UnifiedWhiteboa
     stopDrawing: baseStopDrawing
   } = useDrawingState(state, setState, addToHistory);
 
-  // Sync drawing operations
-  const { stopDrawing } = useSyncDrawingOperations(
-    state,
-    baseStopDrawing,
-    sendOperation,
-    isApplyingRemoteOperation
-  );
+  const stopDrawing = useCallback(() => {
+    if (!state.isDrawing) return;
 
-  // Eraser operations with improved sync logic
+    baseStopDrawing();
+
+    // Sync the drawn line if we're not in receive-only mode
+    if (sendOperation && !isApplyingRemoteOperation.current) {
+      const drawnLine = state.lines[state.lines.length - 1];
+      if (drawnLine && drawnLine.tool === 'pencil') {
+        sendOperation(serializeDrawOperation(drawnLine));
+      }
+    }
+  }, [state.isDrawing, state.lines, baseStopDrawing, sendOperation, isApplyingRemoteOperation]);
+
+  // Eraser operations with sync
   const {
-    startErasing: baseStartErasing,
+    startErasing,
     continueErasing,
     stopErasing: baseStopErasing
   } = useEraserState(state, setState, addToHistory);
 
-  // Sync eraser operations
-  const { startErasing, stopErasing } = useSyncEraserOperations(
-    state,
-    baseStartErasing,
-    baseStopErasing,
-    sendOperation,
-    isApplyingRemoteOperation
-  );
+  const stopErasing = useCallback(() => {
+    if (!state.isDrawing) return;
 
-  // Pointer handlers
-  const { handlePointerDown, handlePointerMove, handlePointerUp } = usePointerHandlers(
-    state,
-    startDrawing,
-    startErasing,
-    continueDrawing,
-    continueErasing,
-    stopDrawing,
-    stopErasing,
-    syncConfig
-  );
+    // Get the current lines before stopping erasing
+    const linesBefore = [...state.lines];
+    
+    baseStopErasing();
+    
+    // Sync the erased lines if we're not in receive-only mode
+    if (sendOperation && !isApplyingRemoteOperation.current) {
+      // Find the IDs of lines that were erased
+      const erasedLineIds = linesBefore
+        .filter(line => !state.lines.some(l => l.id === line.id))
+        .map(line => line.id);
+      
+      if (erasedLineIds.length > 0) {
+        sendOperation(serializeEraseOperation(erasedLineIds));
+      }
+    }
+  }, [state.isDrawing, state.lines, baseStopErasing, sendOperation, isApplyingRemoteOperation]);
 
   // Tool change
   const setTool = useCallback((tool: Tool) => {
@@ -111,6 +113,42 @@ export const useSyncWhiteboardState = (syncConfig?: SyncConfig): UnifiedWhiteboa
       currentStrokeWidth: width
     }));
   }, []);
+
+  // Handle pointer down
+  const handlePointerDown = useCallback((x: number, y: number) => {
+    // Don't allow drawing in receive-only mode
+    if (syncConfig?.isReceiveOnly) return;
+    
+    if (state.currentTool === 'pencil') {
+      startDrawing(x, y);
+    } else if (state.currentTool === 'eraser') {
+      startErasing(x, y);
+    }
+  }, [state.currentTool, startDrawing, startErasing, syncConfig?.isReceiveOnly]);
+
+  // Handle pointer move
+  const handlePointerMove = useCallback((x: number, y: number) => {
+    // Don't allow drawing in receive-only mode
+    if (syncConfig?.isReceiveOnly) return;
+    
+    if (state.currentTool === 'pencil') {
+      continueDrawing(x, y);
+    } else if (state.currentTool === 'eraser') {
+      continueErasing(x, y);
+    }
+  }, [state.currentTool, continueDrawing, continueErasing, syncConfig?.isReceiveOnly]);
+
+  // Handle pointer up
+  const handlePointerUp = useCallback(() => {
+    // Don't allow drawing in receive-only mode
+    if (syncConfig?.isReceiveOnly) return;
+    
+    if (state.currentTool === 'pencil') {
+      stopDrawing();
+    } else if (state.currentTool === 'eraser') {
+      stopErasing();
+    }
+  }, [state.currentTool, stopDrawing, stopErasing, syncConfig?.isReceiveOnly]);
 
   return {
     state,
