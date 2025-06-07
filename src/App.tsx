@@ -7,7 +7,7 @@ import { BrowserRouter, Routes, Route, Navigate, useLocation } from "react-route
 import { useAuth } from "@/hooks/useAuth";
 import { DemoAuthProvider } from "@/hooks/useDemoAuth";
 import { WhiteboardStateProvider } from "@/contexts/WhiteboardStateContext";
-import { SessionExpirationProvider } from "@/contexts/SessionExpirationContext";
+import { SessionExpirationProvider } from "@/contexts/sessionExpiration";
 import { SessionProvider, useSessionContext } from "@/contexts/SessionContext";
 import AuthPage from "@/components/auth/AuthPage";
 import TeacherDashboard from "@/components/session/TeacherDashboard";

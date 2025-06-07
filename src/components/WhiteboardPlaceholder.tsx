@@ -1,10 +1,9 @@
-
 import React, { useState, useEffect } from 'react';
 import { Maximize2, Minimize2, AlertCircle } from 'lucide-react';
 import Whiteboard from './Whiteboard';
 import { SyncWhiteboard } from './SyncWhiteboard';
 import { SyncConfig } from '@/types/sync';
-import { useSessionExpirationContext } from '@/contexts/SessionExpirationContext';
+import { useSessionExpirationContext } from '@/contexts/sessionExpiration';
 
 interface WhiteboardPlaceholderProps {
   id: string;

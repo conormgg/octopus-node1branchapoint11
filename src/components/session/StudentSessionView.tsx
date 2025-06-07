@@ -5,7 +5,7 @@ import { supabase } from '@/integrations/supabase/client';
 import StudentView from '../StudentView';
 import { useToast } from '@/hooks/use-toast';
 import { Loader2 } from 'lucide-react';
-import { useSessionExpirationContext } from '@/contexts/SessionExpirationContext';
+import { useSessionExpirationContext } from '@/contexts/sessionExpiration';
 import { useWhiteboardStateContext } from '@/contexts/WhiteboardStateContext';
 import { Button } from '@/components/ui/button';
 
