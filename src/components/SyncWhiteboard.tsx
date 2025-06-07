@@ -18,7 +18,7 @@ export const SyncWhiteboard: React.FC<SyncWhiteboardProps> = ({
 }) => {
   // Use the whiteboard ID from sync config to maintain shared state
   const whiteboardId = syncConfig?.whiteboardId;
-  const whiteboardState = useSharedWhiteboardState(syncConfig, whiteboardId, width, height);
+  const whiteboardState = useSharedWhiteboardState(syncConfig, whiteboardId);
   const isReadOnly = whiteboardState.isReadOnly;
 
   const handleStrokeWidthChange = (width: number) => {

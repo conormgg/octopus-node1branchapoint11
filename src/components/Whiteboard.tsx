@@ -4,7 +4,7 @@ import WhiteboardCanvas from './WhiteboardCanvas';
 import MovableToolbar from './MovableToolbar';
 import { PalmRejectionSettings } from './PalmRejectionSettings';
 import { useWhiteboardState } from '@/hooks/useWhiteboardState';
-import { Settings, RotateCcw, Maximize } from 'lucide-react';
+import { Settings } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 
@@ -15,7 +15,7 @@ interface WhiteboardProps {
 const Whiteboard: React.FC<WhiteboardProps> = ({ isReadOnly = false }) => {
   const [dimensions, setDimensions] = useState({ width: 0, height: 0 });
   const containerRef = React.useRef<HTMLDivElement>(null);
-  const whiteboardState = useWhiteboardState(dimensions.width, dimensions.height);
+  const whiteboardState = useWhiteboardState();
 
   // Palm rejection configuration
   const [palmRejectionConfig, setPalmRejectionConfig] = useState({
@@ -48,9 +48,9 @@ const Whiteboard: React.FC<WhiteboardProps> = ({ isReadOnly = false }) => {
 
   return (
     <div ref={containerRef} className="relative w-full h-full">
-      {/* Control Panel */}
+      {/* Palm Rejection Settings Button */}
       {!isReadOnly && (
-        <div className="absolute top-2 left-2 z-20 flex gap-2">
+        <div className="absolute top-2 left-2 z-20">
           <Popover>
             <PopoverTrigger asChild>
               <Button variant="outline" size="icon" className="bg-white/80 backdrop-blur-sm">
@@ -64,33 +64,8 @@ const Whiteboard: React.FC<WhiteboardProps> = ({ isReadOnly = false }) => {
               />
             </PopoverContent>
           </Popover>
-          
-          <Button 
-            variant="outline" 
-            size="icon" 
-            className="bg-white/80 backdrop-blur-sm"
-            onClick={whiteboardState.panZoom.resetView}
-            title="Reset View"
-          >
-            <RotateCcw className="h-4 w-4" />
-          </Button>
-          
-          <Button 
-            variant="outline" 
-            size="icon" 
-            className="bg-white/80 backdrop-blur-sm"
-            onClick={whiteboardState.panZoom.fitToScreen}
-            title="Fit to Screen"
-          >
-            <Maximize className="h-4 w-4" />
-          </Button>
         </div>
       )}
-
-      {/* Zoom Indicator */}
-      <div className="absolute bottom-2 left-2 z-20 bg-white/80 backdrop-blur-sm px-2 py-1 rounded text-sm text-gray-600">
-        {Math.round(whiteboardState.state.panZoomState.scale * 100)}%
-      </div>
 
       <WhiteboardCanvas
         width={dimensions.width}

@@ -1,12 +1,10 @@
-
 import { useState, useCallback } from 'react';
-import { WhiteboardState, Tool, PanZoomState } from '@/types/whiteboard';
+import { WhiteboardState, Tool } from '@/types/whiteboard';
 import { useDrawingState } from './useDrawingState';
 import { useEraserState } from './useEraserState';
 import { useHistoryState } from './useHistoryState';
-import { usePanZoom } from './usePanZoom';
 
-export const useWhiteboardState = (canvasWidth: number = 800, canvasHeight: number = 600) => {
+export const useWhiteboardState = () => {
   const [state, setState] = useState<WhiteboardState>({
     lines: [],
     currentTool: 'pencil',
@@ -16,21 +14,6 @@ export const useWhiteboardState = (canvasWidth: number = 800, canvasHeight: numb
     panZoomState: { x: 0, y: 0, scale: 1 },
     history: [[]],
     historyIndex: 0
-  });
-
-  // Pan and zoom operations
-  const setPanZoomState = useCallback((newPanZoomState: PanZoomState) => {
-    setState(prev => ({
-      ...prev,
-      panZoomState: newPanZoomState
-    }));
-  }, []);
-
-  const panZoom = usePanZoom({
-    panZoomState: state.panZoomState,
-    setPanZoomState,
-    canvasWidth,
-    canvasHeight
   });
 
   // History operations
@@ -118,7 +101,6 @@ export const useWhiteboardState = (canvasWidth: number = 800, canvasHeight: numb
     undo,
     redo,
     canUndo,
-    canRedo,
-    panZoom
+    canRedo
   };
 };
