@@ -117,8 +117,13 @@ export const useSyncState = (
     const currentConfig = configRef.current;
     console.log(`Setting up realtime subscription for whiteboard: ${currentConfig.whiteboardId}`);
     
+    // Use a consistent channel name based on whiteboard ID and sender ID
+    // This ensures the same channel is used even if the component is unmounted and remounted
+    const channelName = `whiteboard-${currentConfig.whiteboardId}-${currentConfig.senderId}`;
+    console.log(`Creating channel with name: ${channelName}`);
+    
     const channel = supabase
-      .channel(`whiteboard-${currentConfig.whiteboardId}-${Date.now()}`) // Add timestamp to ensure unique channel
+      .channel(channelName)
       .on(
         'postgres_changes',
         {

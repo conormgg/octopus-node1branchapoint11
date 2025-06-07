@@ -6,9 +6,12 @@ import { GraduationCap, User } from 'lucide-react';
 
 interface StudentViewProps {
   sessionId: string;
+  studentId?: string;
 }
 
-const StudentView: React.FC<StudentViewProps> = ({ sessionId }) => {
+const StudentView: React.FC<StudentViewProps> = ({ sessionId, studentId }) => {
+  // Generate a consistent student ID if not provided
+  const studentSenderId = studentId || `student-${sessionId}`;
   const [maximizedBoard, setMaximizedBoard] = useState<string | null>(null);
 
   const handleMaximize = (boardId: string) => {
@@ -28,6 +31,7 @@ const StudentView: React.FC<StudentViewProps> = ({ sessionId }) => {
             isMaximized={true}
             onMinimize={handleMinimize}
             sessionId={sessionId}
+            senderId={studentSenderId}
           />
         </div>
       </div>
@@ -73,6 +77,7 @@ const StudentView: React.FC<StudentViewProps> = ({ sessionId }) => {
                   id="student-shared-teacher"
                   onMaximize={() => handleMaximize("student-shared-teacher")}
                   sessionId={sessionId}
+                  senderId={studentSenderId}
                 />
               </div>
             </div>
@@ -95,6 +100,7 @@ const StudentView: React.FC<StudentViewProps> = ({ sessionId }) => {
                   id="student-personal"
                   onMaximize={() => handleMaximize("student-personal")}
                   sessionId={sessionId}
+                  senderId={studentSenderId}
                 />
               </div>
             </div>

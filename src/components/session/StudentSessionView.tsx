@@ -91,7 +91,10 @@ const StudentSessionView: React.FC = () => {
           </div>
         </div>
       </div>
-      <StudentView sessionId={state.sessionId} />
+      <StudentView 
+        sessionId={state.sessionId} 
+        studentId={`student-${state.studentName}-${state.sessionId}`} 
+      />
     </div>
   );
 };

@@ -70,11 +70,24 @@ const WhiteboardPlaceholder: React.FC<WhiteboardPlaceholderProps> = ({
     
     // Student's view of teacher's board -> receives only
     if (boardId === "student-shared-teacher") {
+      // Ensure we have a senderId for proper subscription, even in read-only mode
+      const effectiveSenderId = senderId || `student-listener-${sessionId}`;
       return {
         whiteboardId: `session-${sessionId}-main`,
-        senderId: `student-listener-${sessionId}`,
+        senderId: effectiveSenderId,
         sessionId: sessionId,
         isReceiveOnly: true,
+      };
+    }
+
+    // Student's personal board
+    if (boardId === "student-personal") {
+      if (!senderId) return undefined; // Don't create config without a senderId
+      return {
+        whiteboardId: `session-${sessionId}-personal-${senderId}`,
+        senderId: senderId,
+        sessionId: sessionId,
+        isReceiveOnly: false,
       };
     }
 
