@@ -5,7 +5,6 @@ import TeacherSessionView from './session/TeacherSessionView';
 import { useSessionStudents } from '@/hooks/useSessionStudents';
 import { useTeacherViewState } from '@/hooks/useTeacherViewState';
 import { SessionExpirationProvider } from '@/contexts/SessionExpirationContext';
-import { useAuth } from '@/hooks/useAuth';
 
 export type GridOrientation = 'columns-first' | 'rows-first';
 
@@ -32,7 +31,6 @@ const TeacherView: React.FC<TeacherViewProps> = ({
   showUrlModal = false,
 }) => {
   const [isUrlModalOpen, setIsUrlModalOpen] = useState(showUrlModal);
-  const { user } = useAuth();
 
   const { sessionStudents, handleStudentCountChange, studentCount } = useSessionStudents(activeSession);
   
@@ -60,17 +58,6 @@ const TeacherView: React.FC<TeacherViewProps> = ({
   useEffect(() => {
     setIsUrlModalOpen(showUrlModal);
   }, [showUrlModal]);
-
-  // Log teacher view initialization for debugging
-  useEffect(() => {
-    if (activeSession && user) {
-      console.log('TeacherView initialized:', {
-        sessionId: activeSession.id,
-        teacherId: user.id,
-        sessionTitle: activeSession.title
-      });
-    }
-  }, [activeSession, user]);
 
   const increaseStudentCount = () => {
     handleStudentCountChange(studentCount + 1);
