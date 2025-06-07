@@ -1,3 +1,4 @@
+
 import { useEffect, useState, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { LineObject, ImageObject } from '@/types/whiteboard';
@@ -47,29 +48,37 @@ export const useWhiteboardPersistence = ({
 
       data.forEach((operation) => {
         const operationType = operation.action_type as OperationType;
-        const operationData = operation.object_data;
+        const operationData = operation.object_data as any; // Cast to any to access properties
 
         switch (operationType) {
           case 'draw':
             // Add or update line
             const line = operationData.line as LineObject;
-            linesMap.set(line.id, line);
+            if (line && line.id) {
+              linesMap.set(line.id, line);
+            }
             break;
           case 'erase':
             // Remove lines
-            const lineIds = operationData.line_ids as string[];
-            lineIds.forEach(id => linesMap.delete(id));
+            const lineIds = (operationData.line_ids || operationData.lineIds) as string[];
+            if (lineIds && Array.isArray(lineIds)) {
+              lineIds.forEach(id => linesMap.delete(id));
+            }
             break;
           case 'add_image':
           case 'update_image':
             // Add or update image
             const image = operationData.image as ImageObject;
-            imagesMap.set(image.id, image);
+            if (image && image.id) {
+              imagesMap.set(image.id, image);
+            }
             break;
           case 'delete_image':
             // Remove image
             const imageId = operationData.image_id as string;
-            imagesMap.delete(imageId);
+            if (imageId) {
+              imagesMap.delete(imageId);
+            }
             break;
         }
       });
