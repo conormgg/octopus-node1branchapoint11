@@ -1,5 +1,5 @@
 
-import { useState, useCallback, useEffect, useRef } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { WhiteboardState } from '@/types/whiteboard';
 import { SyncConfig } from '@/types/sync';
 import { useHistoryState } from './useHistoryState';
@@ -14,7 +14,6 @@ import { useSharedStateManagement } from './shared/useSharedStateManagement';
 
 export const useSharedWhiteboardState = (syncConfig?: SyncConfig, whiteboardId?: string) => {
   const { getWhiteboardState, updateWhiteboardState } = useWhiteboardStateContext();
-  const initializedRef = useRef(false);
   
   // Initialize state with shared state if available
   const [state, setState] = useState<WhiteboardState>(() => {
@@ -38,42 +37,19 @@ export const useSharedWhiteboardState = (syncConfig?: SyncConfig, whiteboardId?:
   // Pan/zoom operations
   const panZoom = usePanZoom(state.panZoomState, setPanZoomState);
 
-  // Update shared state whenever lines change (but only after initial setup)
+  // Update shared state whenever lines change
   useEffect(() => {
-    if (whiteboardId && initializedRef.current) {
+    if (whiteboardId) {
       updateWhiteboardState(whiteboardId, state.lines);
     }
   }, [state.lines, whiteboardId, updateWhiteboardState]);
 
-  // Mark as initialized after first render
-  useEffect(() => {
-    initializedRef.current = true;
-  }, []);
-
-  // Handle remote operations - create a truly stable callback
+  // Handle remote operations
   const { handleRemoteOperation, isApplyingRemoteOperation } = useRemoteOperationHandler(setState);
-  
-  // Create a stable callback that won't change between renders
-  const stableHandleRemoteOperation = useCallback((operation: any) => {
-    console.log('Stable remote operation handler called:', operation);
-    handleRemoteOperation(operation);
-  }, []); // Empty dependency array - this callback is stable
 
-  // Use a ref to store the latest handleRemoteOperation to avoid stale closures
-  const handleRemoteOperationRef = useRef(handleRemoteOperation);
-  useEffect(() => {
-    handleRemoteOperationRef.current = handleRemoteOperation;
-  }, [handleRemoteOperation]);
-
-  // Update the stable callback to use the ref
-  const trulyStableHandleRemoteOperation = useCallback((operation: any) => {
-    console.log('Truly stable remote operation handler called:', operation);
-    handleRemoteOperationRef.current(operation);
-  }, []);
-
-  // Set up sync if config is provided - use stable config and handler
+  // Set up sync if config is provided
   const { syncState, sendOperation } = syncConfig 
-    ? useSyncState(syncConfig, trulyStableHandleRemoteOperation)
+    ? useSyncState(syncConfig, handleRemoteOperation)
     : { syncState: null, sendOperation: null };
 
   // Enhanced add to history that syncs operations

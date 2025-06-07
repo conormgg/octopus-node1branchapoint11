@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Maximize2, Minimize2 } from 'lucide-react';
 import Whiteboard from './Whiteboard';
 import { SyncWhiteboard } from './SyncWhiteboard';
@@ -54,13 +54,12 @@ const WhiteboardPlaceholder: React.FC<WhiteboardPlaceholderProps> = ({
     }
   };
 
-  // Memoize sync config to prevent unnecessary re-renders
-  const syncConfig = useMemo((): SyncConfig | undefined => {
+  const getSyncConfig = (boardId: string): SyncConfig | undefined => {
     if (!sessionId) return undefined;
 
     // Teacher's main board -> broadcasts to students
-    if (id === "teacher-main") {
-      if (!senderId) return undefined;
+    if (boardId === "teacher-main") {
+      if (!senderId) return undefined; // Don't create config without a senderId
       return {
         whiteboardId: `session-${sessionId}-main`,
         senderId: senderId,
@@ -70,30 +69,18 @@ const WhiteboardPlaceholder: React.FC<WhiteboardPlaceholderProps> = ({
     }
     
     // Student's view of teacher's board -> receives only
-    if (id === "student-shared-teacher") {
-      const effectiveSenderId = senderId || `student-listener-${sessionId}`;
+    if (boardId === "student-shared-teacher") {
       return {
         whiteboardId: `session-${sessionId}-main`,
-        senderId: effectiveSenderId,
+        senderId: `student-listener-${sessionId}`,
         sessionId: sessionId,
         isReceiveOnly: true,
       };
     }
 
-    // Student's personal board
-    if (id === "student-personal") {
-      if (!senderId) return undefined;
-      return {
-        whiteboardId: `session-${sessionId}-personal-${senderId}`,
-        senderId: senderId,
-        sessionId: sessionId,
-        isReceiveOnly: false,
-      };
-    }
-
     // Individual student boards - check if it matches the pattern
-    if (id.startsWith('student-board-')) {
-      const studentNumber = id.replace('student-board-', '');
+    if (boardId.startsWith('student-board-')) {
+      const studentNumber = boardId.replace('student-board-', '');
       if (!senderId) return undefined;
       
       return {
@@ -105,7 +92,9 @@ const WhiteboardPlaceholder: React.FC<WhiteboardPlaceholderProps> = ({
     }
 
     return undefined;
-  }, [id, sessionId, senderId]);
+  };
+
+  const syncConfig = getSyncConfig(id);
 
   return (
     <div 
