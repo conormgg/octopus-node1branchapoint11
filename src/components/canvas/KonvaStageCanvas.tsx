@@ -112,11 +112,16 @@ const KonvaStageCanvas: React.FC<KonvaStageCanvasProps> = ({
       onTouchStart={handleTouchStart}
       style={{ cursor: currentTool === 'eraser' ? 'crosshair' : 'default' }}
     >
+      {/* Images layer - rendered first (behind) */}
+      <Layer>
+        {extraContent}
+      </Layer>
+      
+      {/* Lines layer - rendered second (on top) */}
       <Layer ref={layerRef}>
         {lines.map((line) => (
           <LineRenderer key={line.id} line={line} />
         ))}
-        {extraContent}
       </Layer>
     </Stage>
   );
