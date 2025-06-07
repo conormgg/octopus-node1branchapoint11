@@ -99,10 +99,14 @@ const WhiteboardPlaceholder: React.FC<WhiteboardPlaceholderProps> = ({
   return (
     <div 
       ref={containerRef}
-      className="flex flex-col h-full bg-white border-2 border-gray-200 rounded-lg shadow-sm hover:shadow-md transition-all duration-200 relative"
+      className={`flex flex-col bg-white border-2 border-gray-200 rounded-lg shadow-sm hover:shadow-md transition-all duration-200 relative ${
+        isMaximized 
+          ? 'fixed inset-4 z-50 h-[calc(100vh-2rem)] w-[calc(100vw-2rem)]' 
+          : 'h-full'
+      }`}
       style={{ 
-        width: initialWidth ? `${initialWidth}px` : '100%',
-        height: initialHeight ? `${initialHeight}px` : '100%'
+        width: isMaximized ? 'calc(100vw - 2rem)' : (initialWidth ? `${initialWidth}px` : '100%'),
+        height: isMaximized ? 'calc(100vh - 2rem)' : (initialHeight ? `${initialHeight}px` : '100%')
       }}
     >
       {/* Maximize/Minimize Button - positioned in top-right corner */}
@@ -123,8 +127,8 @@ const WhiteboardPlaceholder: React.FC<WhiteboardPlaceholderProps> = ({
         {syncConfig ? (
           <SyncWhiteboard 
             syncConfig={syncConfig}
-            width={dimensions.width}
-            height={dimensions.height}
+            width={isMaximized ? window.innerWidth - 32 : dimensions.width}
+            height={isMaximized ? window.innerHeight - 32 : dimensions.height}
           />
         ) : (
           <Whiteboard isReadOnly={false} />
