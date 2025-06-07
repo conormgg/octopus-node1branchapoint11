@@ -1,16 +1,17 @@
 
 import { useState, useCallback, useEffect, useRef } from 'react';
-import { WhiteboardState, Tool, LineObject } from '@/types/whiteboard';
+import { WhiteboardState, Tool, LineObject, PanZoomState } from '@/types/whiteboard';
 import { SyncConfig } from '@/types/sync';
 import { useDrawingState } from './useDrawingState';
 import { useEraserState } from './useEraserState';
 import { useHistoryState } from './useHistoryState';
+import { usePanZoom } from './usePanZoom';
 import { useSyncState } from './useSyncState';
 import { useRemoteOperationHandler } from './useRemoteOperationHandler';
 import { useWhiteboardStateContext } from '@/contexts/WhiteboardStateContext';
 import { serializeDrawOperation, serializeEraseOperation } from '@/utils/operationSerializer';
 
-export const useSharedWhiteboardState = (syncConfig?: SyncConfig, whiteboardId?: string) => {
+export const useSharedWhiteboardState = (syncConfig?: SyncConfig, whiteboardId?: string, canvasWidth: number = 800, canvasHeight: number = 600) => {
   const { getWhiteboardState, updateWhiteboardState } = useWhiteboardStateContext();
   
   // Track lines before erasing to detect what was erased
@@ -37,6 +38,21 @@ export const useSharedWhiteboardState = (syncConfig?: SyncConfig, whiteboardId?:
       updateWhiteboardState(whiteboardId, state.lines);
     }
   }, [state.lines, whiteboardId, updateWhiteboardState]);
+
+  // Pan and zoom operations
+  const setPanZoomState = useCallback((newPanZoomState: PanZoomState) => {
+    setState(prev => ({
+      ...prev,
+      panZoomState: newPanZoomState
+    }));
+  }, []);
+
+  const panZoom = usePanZoom({
+    panZoomState: state.panZoomState,
+    setPanZoomState,
+    canvasWidth,
+    canvasHeight
+  });
 
   // Handle remote operations
   const { handleRemoteOperation, isApplyingRemoteOperation } = useRemoteOperationHandler(setState);
@@ -193,6 +209,7 @@ export const useSharedWhiteboardState = (syncConfig?: SyncConfig, whiteboardId?:
     redo,
     canUndo,
     canRedo,
+    panZoom,
     isReadOnly: syncConfig?.isReceiveOnly || false
   };
 };
