@@ -10,7 +10,7 @@ interface PanZoomConfig {
 const DEFAULT_CONFIG: PanZoomConfig = {
   minScale: 0.1,
   maxScale: 5,
-  zoomSpeed: 0.0002 // Reduced from 0.001 to make zoom more gradual
+  zoomSpeed: 0.0006 // Increased from 0.0002 to make zoom more responsive
 };
 
 export const usePanZoom = (
@@ -144,9 +144,14 @@ export const usePanZoom = (
         Math.min(finalConfig.maxScale, gestureStateRef.current.initialScale * scaleRatio)
       );
       
-      // Convert initial pinch center to world coordinates
-      const worldX = (gestureStateRef.current.initialCenter.x - panZoomState.x) / gestureStateRef.current.initialScale;
-      const worldY = (gestureStateRef.current.initialCenter.y - panZoomState.y) / gestureStateRef.current.initialScale;
+      // Convert initial pinch center to world coordinates using the initial state
+      const initialPanState = {
+        x: panZoomState.x - (currentCenterX - gestureStateRef.current.initialCenter.x),
+        y: panZoomState.y - (currentCenterY - gestureStateRef.current.initialCenter.y)
+      };
+      
+      const worldX = (gestureStateRef.current.initialCenter.x - initialPanState.x) / gestureStateRef.current.initialScale;
+      const worldY = (gestureStateRef.current.initialCenter.y - initialPanState.y) / gestureStateRef.current.initialScale;
       
       // Calculate new pan position to keep the pinch center stationary
       const newX = currentCenterX - worldX * newScale;
