@@ -15,6 +15,8 @@ export const useSyncState = (
   });
 
   const pendingOperationsRef = useRef<WhiteboardOperation[]>([]);
+  const channelRef = useRef<any>(null);
+  const isSubscribedRef = useRef(false);
 
   // Send operation to other clients
   const sendOperation = useCallback((operation: Omit<WhiteboardOperation, 'id' | 'timestamp' | 'sender_id'>) => {
@@ -29,11 +31,11 @@ export const useSyncState = (
 
     console.log('Sending operation to Supabase:', fullOperation);
 
-    // Send to Supabase - the action_type now correctly accepts 'draw' and 'erase'
+    // Send to Supabase
     supabase
       .from('whiteboard_data')
       .insert({
-        action_type: fullOperation.operation_type, // 'draw' or 'erase' - now allowed by constraint
+        action_type: fullOperation.operation_type,
         board_id: fullOperation.whiteboard_id,
         object_data: fullOperation.data,
         object_id: `${fullOperation.operation_type}_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
@@ -43,7 +45,6 @@ export const useSyncState = (
       .then(({ error }) => {
         if (error) {
           console.error('Error sending operation:', error);
-          console.error('Operation that failed:', fullOperation);
           // Add to pending operations for retry
           pendingOperationsRef.current.push(fullOperation);
           setSyncState(prev => ({
@@ -78,10 +79,20 @@ export const useSyncState = (
 
   // Set up real-time subscription
   useEffect(() => {
+    // Clean up existing subscription if any
+    if (channelRef.current && isSubscribedRef.current) {
+      console.log('Cleaning up existing subscription');
+      supabase.removeChannel(channelRef.current);
+      channelRef.current = null;
+      isSubscribedRef.current = false;
+    }
+
     console.log(`Setting up realtime subscription for whiteboard: ${config.whiteboardId}`);
     
+    // Create unique channel name to prevent conflicts
+    const channelName = `whiteboard-${config.whiteboardId}-${Date.now()}`;
     const channel = supabase
-      .channel(`whiteboard-${config.whiteboardId}`)
+      .channel(channelName)
       .on(
         'postgres_changes',
         {
@@ -120,15 +131,24 @@ export const useSyncState = (
           isConnected: status === 'SUBSCRIBED'
         }));
 
-        // Retry pending operations when we reconnect
         if (status === 'SUBSCRIBED') {
+          isSubscribedRef.current = true;
+          // Retry pending operations when we reconnect
           retryPendingOperations();
+        } else if (status === 'CLOSED' || status === 'CHANNEL_ERROR') {
+          isSubscribedRef.current = false;
         }
       });
 
+    channelRef.current = channel;
+
     return () => {
       console.log('Cleaning up realtime subscription');
-      supabase.removeChannel(channel);
+      if (channelRef.current && isSubscribedRef.current) {
+        supabase.removeChannel(channelRef.current);
+        channelRef.current = null;
+        isSubscribedRef.current = false;
+      }
     };
   }, [config.whiteboardId, config.senderId, onReceiveOperation, retryPendingOperations]);
 
