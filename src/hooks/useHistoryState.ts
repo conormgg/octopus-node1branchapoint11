@@ -1,15 +1,17 @@
+
 import { useCallback } from 'react';
-import { LineObject } from '@/types/whiteboard';
+import { LineObject, ImageObject } from '@/types/whiteboard';
 
 export const useHistoryState = (
   state: {
-    history: LineObject[][];
+    history: { lines: LineObject[]; images: ImageObject[] }[];
     historyIndex: number;
     lines: LineObject[];
+    images: ImageObject[];
   },
   setState: (updater: (prev: any) => any) => void
 ) => {
-  const addToHistory = useCallback((lines: LineObject[]) => {
+  const addToHistory = useCallback((snapshot: { lines: LineObject[]; images: ImageObject[] }) => {
     setState(prev => {
       // If we're not at the end of the history, truncate it
       const newHistory = prev.historyIndex < prev.history.length - 1
@@ -18,7 +20,7 @@ export const useHistoryState = (
       
       return {
         ...prev,
-        history: [...newHistory, [...lines]],
+        history: [...newHistory, { lines: [...snapshot.lines], images: [...snapshot.images] }],
         historyIndex: newHistory.length
       };
     });
@@ -29,9 +31,11 @@ export const useHistoryState = (
       if (prev.historyIndex <= 0) return prev;
       
       const newIndex = prev.historyIndex - 1;
+      const snapshot = prev.history[newIndex];
       return {
         ...prev,
-        lines: [...prev.history[newIndex]],
+        lines: [...snapshot.lines],
+        images: [...snapshot.images],
         historyIndex: newIndex
       };
     });
@@ -42,9 +46,11 @@ export const useHistoryState = (
       if (prev.historyIndex >= prev.history.length - 1) return prev;
       
       const newIndex = prev.historyIndex + 1;
+      const snapshot = prev.history[newIndex];
       return {
         ...prev,
-        lines: [...prev.history[newIndex]],
+        lines: [...snapshot.lines],
+        images: [...snapshot.images],
         historyIndex: newIndex
       };
     });

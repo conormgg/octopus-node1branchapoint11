@@ -1,3 +1,4 @@
+
 export type Tool = 'pencil' | 'eraser';
 
 export interface LineObject {
@@ -13,6 +14,15 @@ export interface LineObject {
   rotation: number;
 }
 
+export interface ImageObject {
+  id: string;
+  x: number;
+  y: number;
+  src: string;
+  width?: number;
+  height?: number;
+}
+
 export interface PanZoomState {
   x: number;
   y: number;
@@ -21,11 +31,12 @@ export interface PanZoomState {
 
 export interface WhiteboardState {
   lines: LineObject[];
+  images: ImageObject[];
   currentTool: Tool;
   currentColor: string;
   currentStrokeWidth: number;
   isDrawing: boolean;
   panZoomState: PanZoomState;
-  history: LineObject[][];
+  history: { lines: LineObject[]; images: ImageObject[] }[];
   historyIndex: number;
 }

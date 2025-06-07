@@ -1,20 +1,23 @@
 
 import { useState, useCallback } from 'react';
-import { WhiteboardState, Tool, PanZoomState } from '@/types/whiteboard';
+import { v4 as uuidv4 } from 'uuid';
+import { WhiteboardState, Tool, PanZoomState, ImageObject } from '@/types/whiteboard';
 import { useDrawingState } from './useDrawingState';
 import { useEraserState } from './useEraserState';
 import { useHistoryState } from './useHistoryState';
 import { usePanZoom } from './usePanZoom';
+import Konva from 'konva';
 
 export const useWhiteboardState = () => {
   const [state, setState] = useState<WhiteboardState>({
     lines: [],
+    images: [],
     currentTool: 'pencil',
     currentColor: '#000000',
     currentStrokeWidth: 5,
     isDrawing: false,
     panZoomState: { x: 0, y: 0, scale: 1 },
-    history: [[]],
+    history: [{ lines: [], images: [] }],
     historyIndex: 0
   });
 
@@ -31,12 +34,16 @@ export const useWhiteboardState = () => {
 
   // History operations
   const {
-    addToHistory,
+    addToHistory: baseAddToHistory,
     undo,
     redo,
     canUndo,
     canRedo
   } = useHistoryState(state, setState);
+
+  const addToHistory = useCallback(() => {
+    baseAddToHistory({ lines: state.lines, images: state.images });
+  }, [baseAddToHistory, state.lines, state.images]);
 
   // Drawing operations (pencil only)
   const {
@@ -51,6 +58,51 @@ export const useWhiteboardState = () => {
     continueErasing,
     stopErasing
   } = useEraserState(state, setState, addToHistory);
+
+  // Handle paste functionality
+  const handlePaste = useCallback((e: ClipboardEvent, stage: Konva.Stage | null) => {
+    e.preventDefault();
+    const items = e.clipboardData?.items;
+    if (!items || !stage) return;
+
+    for (let i = 0; i < items.length; i++) {
+      if (items[i].type.indexOf('image') !== -1) {
+        const file = items[i].getAsFile();
+        if (!file) continue;
+
+        const reader = new FileReader();
+        reader.onload = (event) => {
+          const imageUrl = event.target?.result as string;
+          const image = new window.Image();
+          image.src = imageUrl;
+          image.onload = () => {
+            const pointerPosition = stage.getPointerPosition() ?? { x: stage.width() / 2, y: stage.height() / 2 };
+            const position = {
+              x: (pointerPosition.x - state.panZoomState.x) / state.panZoomState.scale,
+              y: (pointerPosition.y - state.panZoomState.y) / state.panZoomState.scale,
+            };
+
+            const newImage: ImageObject = {
+              id: `image_${uuidv4()}`,
+              src: imageUrl,
+              x: position.x - (image.width / 4),
+              y: position.y - (image.height / 4),
+              width: image.width / 2,
+              height: image.height / 2,
+            };
+            
+            setState(prev => ({
+              ...prev,
+              images: [...prev.images, newImage],
+              history: [...prev.history.slice(0, prev.historyIndex + 1), { lines: prev.lines, images: [...prev.images, newImage] }],
+              historyIndex: prev.historyIndex + 1
+            }));
+          };
+        };
+        reader.readAsDataURL(file);
+      }
+    }
+  }, [state.panZoomState]);
 
   // Tool change
   const setTool = useCallback((tool: Tool) => {
@@ -117,6 +169,8 @@ export const useWhiteboardState = () => {
     handlePointerDown,
     handlePointerMove,
     handlePointerUp,
+    handlePaste,
+    addToHistory,
     undo,
     redo,
     canUndo,

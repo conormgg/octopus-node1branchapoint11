@@ -26,6 +26,8 @@ interface KonvaStageCanvasProps {
   handlePointerMove: (x: number, y: number) => void;
   handlePointerUp: () => void;
   isReadOnly: boolean;
+  onStageClick?: (e: Konva.KonvaEventObject<MouseEvent | TouchEvent>) => void;
+  extraContent?: React.ReactNode;
 }
 
 const KonvaStageCanvas: React.FC<KonvaStageCanvasProps> = ({
@@ -41,13 +43,17 @@ const KonvaStageCanvas: React.FC<KonvaStageCanvasProps> = ({
   handlePointerDown,
   handlePointerMove,
   handlePointerUp,
-  isReadOnly
+  isReadOnly,
+  onStageClick,
+  extraContent
 }) => {
   const { getRelativePointerPosition } = useStageCoordinates(panZoomState);
 
   // Fallback mouse handlers for devices without pointer events
   const handleMouseDown = (e: Konva.KonvaEventObject<MouseEvent>) => {
-    if (isReadOnly || palmRejectionConfig.enabled) return; // Use pointer events when palm rejection is enabled
+    if (onStageClick) onStageClick(e);
+    
+    if (isReadOnly || palmRejectionConfig.enabled) return;
     
     // Handle right-click pan
     if (e.evt.button === 2) {
@@ -90,6 +96,10 @@ const KonvaStageCanvas: React.FC<KonvaStageCanvasProps> = ({
     handlePointerUp();
   };
 
+  const handleTouchStart = (e: Konva.KonvaEventObject<TouchEvent>) => {
+    if (onStageClick) onStageClick(e);
+  };
+
   return (
     <Stage
       width={width}
@@ -99,12 +109,14 @@ const KonvaStageCanvas: React.FC<KonvaStageCanvasProps> = ({
       onMouseMove={handleMouseMove}
       onMouseUp={handleMouseUp}
       onMouseLeave={handleMouseUp}
+      onTouchStart={handleTouchStart}
       style={{ cursor: currentTool === 'eraser' ? 'crosshair' : 'default' }}
     >
       <Layer ref={layerRef}>
         {lines.map((line) => (
           <LineRenderer key={line.id} line={line} />
         ))}
+        {extraContent}
       </Layer>
     </Stage>
   );

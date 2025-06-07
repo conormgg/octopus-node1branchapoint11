@@ -1,10 +1,11 @@
 
-import React, { useRef, useEffect } from 'react';
+import React, { useRef, useEffect, useState } from 'react';
 import Konva from 'konva';
 import { useWhiteboardState } from '@/hooks/useWhiteboardState';
 import { usePalmRejection } from '@/hooks/usePalmRejection';
 import { useStageEventHandlers } from '@/hooks/useStageEventHandlers';
 import KonvaStageCanvas from './KonvaStageCanvas';
+import ImageRenderer from './ImageRenderer';
 
 interface KonvaStageProps {
   width: number;
@@ -38,12 +39,15 @@ const KonvaStage: React.FC<KonvaStageProps> = ({
   const stageRef = useRef<Konva.Stage>(null);
   const layerRef = useRef<Konva.Layer>(null);
   const containerRef = useRef<HTMLDivElement>(null);
+  const [selectedId, selectShape] = useState<string | null>(null);
 
   const {
     state,
     handlePointerDown,
     handlePointerMove,
     handlePointerUp,
+    handlePaste,
+    addToHistory,
     panZoom
   } = whiteboardState;
 
@@ -60,6 +64,23 @@ const KonvaStage: React.FC<KonvaStageProps> = ({
     stage.scaleY(state.panZoomState.scale);
   }, [state.panZoomState]);
 
+  // Add paste event listener
+  useEffect(() => {
+    const container = containerRef.current;
+    if (!container || isReadOnly) return;
+
+    const pasteHandler = (e: ClipboardEvent) => {
+      handlePaste(e, stageRef.current);
+    };
+
+    container.setAttribute('tabIndex', '0');
+    container.addEventListener('paste', pasteHandler);
+
+    return () => {
+      container.removeEventListener('paste', pasteHandler);
+    };
+  }, [handlePaste, isReadOnly]);
+
   // Set up all event handlers
   useStageEventHandlers({
     containerRef,
@@ -74,15 +95,24 @@ const KonvaStage: React.FC<KonvaStageProps> = ({
     isReadOnly
   });
 
+  // Handle shape selection/deselection
+  const checkDeselect = (e: Konva.KonvaEventObject<MouseEvent | TouchEvent>) => {
+    const clickedOnEmpty = e.target === e.target.getStage();
+    if (clickedOnEmpty) {
+      selectShape(null);
+    }
+  };
+
   return (
     <div 
       ref={containerRef} 
-      className="w-full h-full select-none" 
+      className="w-full h-full select-none outline-none" 
       style={{ 
         WebkitUserSelect: 'none',
         WebkitTouchCallout: 'none',
         touchAction: 'none'
       }}
+      tabIndex={0}
     >
       <KonvaStageCanvas
         width={width}
@@ -98,6 +128,25 @@ const KonvaStage: React.FC<KonvaStageProps> = ({
         handlePointerMove={handlePointerMove}
         handlePointerUp={handlePointerUp}
         isReadOnly={isReadOnly}
+        onStageClick={checkDeselect}
+        extraContent={
+          <>
+            {state.images.map((image) => (
+              <ImageRenderer
+                key={image.id}
+                imageObject={image}
+                isSelected={image.id === selectedId}
+                onSelect={() => selectShape(image.id)}
+                onChange={(newAttrs) => {
+                  whiteboardState.state.images = whiteboardState.state.images.map(img =>
+                    img.id === image.id ? { ...img, ...newAttrs } : img
+                  );
+                }}
+                onUpdateState={addToHistory}
+              />
+            ))}
+          </>
+        }
       />
     </div>
   );
