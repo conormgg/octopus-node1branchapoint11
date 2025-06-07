@@ -38,12 +38,15 @@ const KonvaStage: React.FC<KonvaStageProps> = ({
   const stageRef = useRef<Konva.Stage>(null);
   const layerRef = useRef<Konva.Layer>(null);
   const containerRef = useRef<HTMLDivElement>(null);
+  const [isPanning, setIsPanning] = useState(false);
+  const [panStartPos, setPanStartPos] = useState({ x: 0, y: 0 });
 
   const {
     state,
     handlePointerDown,
     handlePointerMove,
-    handlePointerUp
+    handlePointerUp,
+    panZoom
   } = whiteboardState;
 
   const palmRejection = usePalmRejection(palmRejectionConfig);
@@ -62,12 +65,65 @@ const KonvaStage: React.FC<KonvaStageProps> = ({
     };
   };
 
+  // Pan and zoom event handlers
+  useEffect(() => {
+    const container = containerRef.current;
+    if (!container) return;
+
+    const handleWheel = (e: WheelEvent) => {
+      panZoom.handleWheel(e);
+    };
+
+    const handleMouseDown = (e: MouseEvent) => {
+      if (panZoom.handlePanStart(e)) {
+        setIsPanning(true);
+        setPanStartPos({ x: e.clientX, y: e.clientY });
+        container.style.cursor = 'grabbing';
+      }
+    };
+
+    const handleMouseMove = (e: MouseEvent) => {
+      if (isPanning) {
+        const newPos = panZoom.handlePanMove(e, panStartPos);
+        setPanStartPos(newPos);
+      }
+    };
+
+    const handleMouseUp = (e: MouseEvent) => {
+      if (isPanning && e.button === 2) {
+        setIsPanning(false);
+        container.style.cursor = 'default';
+      }
+    };
+
+    const handleContextMenu = (e: MouseEvent) => {
+      e.preventDefault(); // Prevent right-click context menu
+    };
+
+    container.addEventListener('wheel', handleWheel, { passive: false });
+    container.addEventListener('mousedown', handleMouseDown);
+    container.addEventListener('mousemove', handleMouseMove);
+    container.addEventListener('mouseup', handleMouseUp);
+    container.addEventListener('contextmenu', handleContextMenu);
+
+    return () => {
+      container.removeEventListener('wheel', handleWheel);
+      container.removeEventListener('mousedown', handleMouseDown);
+      container.removeEventListener('mousemove', handleMouseMove);
+      container.removeEventListener('mouseup', handleMouseUp);
+      container.removeEventListener('contextmenu', handleContextMenu);
+    };
+  }, [panZoom, isPanning, panStartPos]);
+
   // Pointer event handlers with palm rejection
   useEffect(() => {
     const container = containerRef.current;
     if (!container || isReadOnly || !palmRejectionConfig.enabled) return;
 
     const handlePointerDownEvent = (e: PointerEvent) => {
+      // Don't start drawing if we're panning
+      if (isPanning || e.button === 2) return;
+      
       e.preventDefault();
       
       if (!palmRejection.shouldProcessPointer(e)) {
@@ -83,6 +139,9 @@ const KonvaStage: React.FC<KonvaStageProps> = ({
     };
 
     const handlePointerMoveEvent = (e: PointerEvent) => {
+      // Don't draw if we're panning
+      if (isPanning) return;
+      
       e.preventDefault();
       
       if (!palmRejection.shouldProcessPointer(e)) return;
@@ -125,11 +184,11 @@ const KonvaStage: React.FC<KonvaStageProps> = ({
       container.removeEventListener('pointercancel', handlePointerUpEvent);
       container.style.touchAction = '';
     };
-  }, [palmRejection, handlePointerDown, handlePointerMove, handlePointerUp, state.panZoomState, isReadOnly, palmRejectionConfig.enabled]);
+  }, [palmRejection, handlePointerDown, handlePointerMove, handlePointerUp, state.panZoomState, isReadOnly, palmRejectionConfig.enabled, isPanning]);
 
   // Fallback mouse handlers for devices without pointer events
   const handleMouseDown = (e: Konva.KonvaEventObject<MouseEvent>) => {
-    if (isReadOnly || palmRejectionConfig.enabled) return; // Use pointer events when palm rejection is enabled
+    if (isReadOnly || palmRejectionConfig.enabled || isPanning || e.evt.button === 2) return;
     
     const stage = e.target.getStage();
     if (!stage) return;
@@ -139,7 +198,7 @@ const KonvaStage: React.FC<KonvaStageProps> = ({
   };
 
   const handleMouseMove = (e: Konva.KonvaEventObject<MouseEvent>) => {
-    if (isReadOnly || palmRejectionConfig.enabled) return;
+    if (isReadOnly || palmRejectionConfig.enabled || isPanning) return;
     
     const stage = e.target.getStage();
     if (!stage) return;
@@ -149,7 +208,7 @@ const KonvaStage: React.FC<KonvaStageProps> = ({
   };
 
   const handleMouseUp = () => {
-    if (isReadOnly || palmRejectionConfig.enabled) return;
+    if (isReadOnly || palmRejectionConfig.enabled || isPanning) return;
     
     handlePointerUp();
   };
@@ -164,7 +223,11 @@ const KonvaStage: React.FC<KonvaStageProps> = ({
         onMouseMove={handleMouseMove}
         onMouseUp={handleMouseUp}
         onMouseLeave={handleMouseUp}
-        style={{ cursor: state.currentTool === 'eraser' ? 'crosshair' : 'default' }}
+        style={{ cursor: isPanning ? 'grabbing' : (state.currentTool === 'eraser' ? 'crosshair' : 'default') }}
+        x={state.panZoomState.x}
+        y={state.panZoomState.y}
+        scaleX={state.panZoomState.scale}
+        scaleY={state.panZoomState.scale}
       >
         <Layer ref={layerRef}>
           {state.lines.map((line) => (
