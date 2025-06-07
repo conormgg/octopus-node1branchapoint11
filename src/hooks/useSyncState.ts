@@ -16,12 +16,12 @@ export const useSyncState = (
 
   const pendingOperationsRef = useRef<WhiteboardOperation[]>([]);
   const channelRef = useRef<any>(null);
+  const isSubscribedRef = useRef(false);
   const reconnectTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const reconnectAttemptsRef = useRef(0);
   const isUnmountedRef = useRef(false);
   const configRef = useRef(config);
   const onReceiveOperationRef = useRef(onReceiveOperation);
-  const setupInProgressRef = useRef(false);
 
   // Update refs when values change
   useEffect(() => {
@@ -116,23 +116,34 @@ export const useSyncState = (
     return fullOperation;
   }, []);
 
-  // Setup subscription with connection health management
-  const setupSubscription = useCallback(() => {
-    if (isUnmountedRef.current || setupInProgressRef.current) return;
-
-    setupInProgressRef.current = true;
-
-    // Clear any existing channel
+  // Clean up existing subscription completely
+  const cleanupSubscription = useCallback(() => {
     if (channelRef.current) {
-      console.log('Cleaning up existing channel before reconnection');
-      supabase.removeChannel(channelRef.current);
+      console.log('Cleaning up existing channel');
+      try {
+        // Only unsubscribe if we were actually subscribed
+        if (isSubscribedRef.current) {
+          supabase.removeChannel(channelRef.current);
+          isSubscribedRef.current = false;
+        }
+      } catch (error) {
+        console.warn('Error during channel cleanup:', error);
+      }
       channelRef.current = null;
     }
+  }, []);
+
+  // Setup subscription with connection health management
+  const setupSubscription = useCallback(() => {
+    if (isUnmountedRef.current) return;
+
+    // Always clean up before creating new subscription
+    cleanupSubscription();
 
     const currentConfig = configRef.current;
     console.log(`Setting up realtime subscription for whiteboard: ${currentConfig.whiteboardId}`);
     
-    const channelName = `whiteboard-${currentConfig.whiteboardId}-${currentConfig.senderId}`;
+    const channelName = `whiteboard-${currentConfig.whiteboardId}-${Date.now()}`;
     console.log(`Creating channel with name: ${channelName}`);
     
     const channel = supabase
@@ -168,53 +179,56 @@ export const useSyncState = (
           console.log('Processing remote operation:', operation);
           onReceiveOperationRef.current(operation);
         }
-      )
-      .subscribe((status) => {
-        setupInProgressRef.current = false;
-        
-        if (isUnmountedRef.current) return;
-        
-        console.log('Subscription status:', status);
-        
-        if (status === 'SUBSCRIBED') {
-          reconnectAttemptsRef.current = 0;
-          setSyncState(prev => ({
-            ...prev,
-            isConnected: true
-          }));
-          // Retry pending operations when we reconnect
-          setTimeout(retryPendingOperations, 100);
-        } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
-          setSyncState(prev => ({
-            ...prev,
-            isConnected: false
-          }));
-          
-          // Implement exponential backoff reconnection with max timeout
-          const backoffDelay = Math.min(1000 * Math.pow(2, reconnectAttemptsRef.current), 30000);
-          reconnectAttemptsRef.current++;
-          
-          console.log(`Connection failed, retrying in ${backoffDelay}ms (attempt ${reconnectAttemptsRef.current})`);
-          
-          if (reconnectTimeoutRef.current) {
-            clearTimeout(reconnectTimeoutRef.current);
-          }
-          
-          reconnectTimeoutRef.current = setTimeout(() => {
-            if (!isUnmountedRef.current) {
-              setupSubscription();
-            }
-          }, backoffDelay);
-        } else if (status === 'CLOSED') {
-          setSyncState(prev => ({
-            ...prev,
-            isConnected: false
-          }));
-        }
-      });
+      );
 
     channelRef.current = channel;
-  }, [retryPendingOperations]);
+
+    // Subscribe and track subscription state
+    channel.subscribe((status) => {
+      if (isUnmountedRef.current) return;
+      
+      console.log('Subscription status:', status);
+      
+      if (status === 'SUBSCRIBED') {
+        isSubscribedRef.current = true;
+        reconnectAttemptsRef.current = 0;
+        setSyncState(prev => ({
+          ...prev,
+          isConnected: true
+        }));
+        // Retry pending operations when we reconnect
+        setTimeout(retryPendingOperations, 100);
+      } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
+        isSubscribedRef.current = false;
+        setSyncState(prev => ({
+          ...prev,
+          isConnected: false
+        }));
+        
+        // Implement exponential backoff reconnection with max timeout
+        const backoffDelay = Math.min(1000 * Math.pow(2, reconnectAttemptsRef.current), 30000);
+        reconnectAttemptsRef.current++;
+        
+        console.log(`Connection failed, retrying in ${backoffDelay}ms (attempt ${reconnectAttemptsRef.current})`);
+        
+        if (reconnectTimeoutRef.current) {
+          clearTimeout(reconnectTimeoutRef.current);
+        }
+        
+        reconnectTimeoutRef.current = setTimeout(() => {
+          if (!isUnmountedRef.current) {
+            setupSubscription();
+          }
+        }, backoffDelay);
+      } else if (status === 'CLOSED') {
+        isSubscribedRef.current = false;
+        setSyncState(prev => ({
+          ...prev,
+          isConnected: false
+        }));
+      }
+    });
+  }, [cleanupSubscription, retryPendingOperations]);
 
   // Set up subscription when component mounts or config changes significantly
   useEffect(() => {
@@ -224,19 +238,15 @@ export const useSyncState = (
     return () => {
       console.log('Cleaning up realtime subscription');
       isUnmountedRef.current = true;
-      setupInProgressRef.current = false;
       
       if (reconnectTimeoutRef.current) {
         clearTimeout(reconnectTimeoutRef.current);
         reconnectTimeoutRef.current = null;
       }
       
-      if (channelRef.current) {
-        supabase.removeChannel(channelRef.current);
-        channelRef.current = null;
-      }
+      cleanupSubscription();
     };
-  }, [config.whiteboardId, config.sessionId]); // Only recreate on actual config changes
+  }, [config.whiteboardId, config.sessionId, setupSubscription, cleanupSubscription]);
 
   // Update sync state when isReceiveOnly changes (without recreating subscription)
   useEffect(() => {
