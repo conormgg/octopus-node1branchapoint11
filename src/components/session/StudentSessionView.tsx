@@ -5,7 +5,7 @@ import { supabase } from '@/integrations/supabase/client';
 import StudentView from '../StudentView';
 import { useToast } from '@/hooks/use-toast';
 import { Loader2 } from 'lucide-react';
-import { SessionExpirationProvider, useSessionExpirationContext } from '@/contexts/SessionExpirationContext';
+import { useSessionExpirationContext } from '@/contexts/SessionExpirationContext';
 import { useWhiteboardStateContext } from '@/contexts/WhiteboardStateContext';
 import { Button } from '@/components/ui/button';
 
@@ -161,16 +161,7 @@ const StudentSessionView: React.FC = () => {
     );
   }
 
-  return (
-    <SessionExpirationProvider 
-      sessionId={state.sessionId}
-      onSessionExpired={() => {
-        console.log('Session expired, handled by context');
-      }}
-    >
-      <StudentSessionContent state={state} sessionSlug={sessionSlug} />
-    </SessionExpirationProvider>
-  );
+  return <StudentSessionContent state={state} sessionSlug={sessionSlug} />;
 };
 
 export default StudentSessionView;

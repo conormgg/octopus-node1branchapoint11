@@ -4,7 +4,6 @@ import SessionUrlModal from './session/SessionUrlModal';
 import TeacherSessionView from './session/TeacherSessionView';
 import { useSessionStudents } from '@/hooks/useSessionStudents';
 import { useTeacherViewState } from '@/hooks/useTeacherViewState';
-import { SessionExpirationProvider } from '@/contexts/SessionExpirationContext';
 
 export type GridOrientation = 'columns-first' | 'rows-first';
 
@@ -72,13 +71,7 @@ const TeacherView: React.FC<TeacherViewProps> = ({
   };
 
   return (
-    <SessionExpirationProvider 
-      sessionId={activeSession?.id || null}
-      onSessionExpired={() => {
-        // Handle session expiration at the top level
-        console.log('Session expired, handled by context');
-      }}
-    >
+    <>
       {/* Session URL Modal */}
       {activeSession && (
         <SessionUrlModal
@@ -115,7 +108,7 @@ const TeacherView: React.FC<TeacherViewProps> = ({
         onEndSession={onEndSession!}
         onSignOut={onSignOut!}
       />
-    </SessionExpirationProvider>
+    </>
   );
 };
 

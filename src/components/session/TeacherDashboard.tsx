@@ -1,7 +1,8 @@
 
-import React from 'react';
+import React, { useEffect } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { useSessionManagement } from '@/hooks/useSessionManagement';
+import { useSessionContext } from '@/contexts/SessionContext';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import CreateSessionForm from './CreateSessionForm';
@@ -10,6 +11,7 @@ import { LogOut, Plus, History } from 'lucide-react';
 
 const TeacherDashboard: React.FC = () => {
   const { user, signOut, isDemoMode } = useAuth();
+  const { setCurrentSessionId } = useSessionContext();
 
   const {
     activeSession,
@@ -20,6 +22,11 @@ const TeacherDashboard: React.FC = () => {
     resumeSession,
     handleCloseUrlModal,
   } = useSessionManagement(user, isDemoMode);
+
+  // Update session context when active session changes
+  useEffect(() => {
+    setCurrentSessionId(activeSession?.id || null);
+  }, [activeSession?.id, setCurrentSessionId]);
 
   if (activeSession) {
     return (
