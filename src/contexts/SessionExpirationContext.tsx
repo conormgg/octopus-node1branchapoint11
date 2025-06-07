@@ -9,6 +9,7 @@ interface SessionExpirationContextType {
   expiresAt: Date | null;
   timeRemaining: number | null;
   sessionEndReason: 'expired' | 'ended_by_teacher' | null;
+  isRedirecting?: boolean;
 }
 
 const SessionExpirationContext = createContext<SessionExpirationContextType | undefined>(undefined);
@@ -31,6 +32,7 @@ export const SessionExpirationProvider: React.FC<SessionExpirationProviderProps>
   const [hasShownToast, setHasShownToast] = useState(false);
   const [lastKnownStatus, setLastKnownStatus] = useState<string | null>(null);
   const [hasProcessedEndState, setHasProcessedEndState] = useState(false);
+  const [isRedirecting, setIsRedirecting] = useState(false);
   const { toast } = useToast();
   const { clearWhiteboardState } = useWhiteboardStateContext();
 
@@ -49,8 +51,8 @@ export const SessionExpirationProvider: React.FC<SessionExpirationProviderProps>
         return;
       }
 
-      // If we've already processed an end state, don't process again
-      if (hasProcessedEndState && (data.status === 'ended_by_teacher' || data.status === 'expired')) {
+      // If we've already processed an end state or we're in the process of redirecting, don't process again
+      if ((hasProcessedEndState && (data.status === 'ended_by_teacher' || data.status === 'expired')) || isRedirecting) {
         return;
       }
 
@@ -62,12 +64,14 @@ export const SessionExpirationProvider: React.FC<SessionExpirationProviderProps>
           setTimeRemaining(0);
           setSessionEndReason('ended_by_teacher');
           setHasProcessedEndState(true);
+          setIsRedirecting(true);
           
+          // Only show toast once and only from this central location
           if (!hasShownToast) {
             setHasShownToast(true);
             toast({
               title: "Session Ended",
-              description: "This session has been ended by the teacher.",
+              description: "This session has been ended by the teacher. You will be redirected to the home page.",
               variant: "destructive",
             });
           }
@@ -85,12 +89,14 @@ export const SessionExpirationProvider: React.FC<SessionExpirationProviderProps>
           setTimeRemaining(0);
           setSessionEndReason('expired');
           setHasProcessedEndState(true);
+          setIsRedirecting(true);
           
+          // Only show toast once and only from this central location
           if (!hasShownToast) {
             setHasShownToast(true);
             toast({
               title: "Session Expired",
-              description: "This session has expired. Your whiteboard data will no longer be saved.",
+              description: "This session has expired. Your whiteboard data will no longer be saved. You will be redirected to the home page.",
               variant: "destructive",
             });
           }
@@ -107,6 +113,7 @@ export const SessionExpirationProvider: React.FC<SessionExpirationProviderProps>
           setExpiresAt(null);
           setTimeRemaining(0);
           setHasProcessedEndState(true);
+          setIsRedirecting(true);
           if (onSessionExpired) onSessionExpired();
         }
         setLastKnownStatus(data.status);
@@ -131,13 +138,14 @@ export const SessionExpirationProvider: React.FC<SessionExpirationProviderProps>
         setIsExpired(true);
         setSessionEndReason('expired');
         setHasProcessedEndState(true);
+        setIsRedirecting(true);
         
         // Only show toast once for natural expiration
         if (!hasShownToast) {
           setHasShownToast(true);
           toast({
             title: "Session Expired",
-            description: "This session has expired. Your whiteboard data will no longer be saved.",
+            description: "This session has expired. Your whiteboard data will no longer be saved. You will be redirected to the home page.",
             variant: "destructive",
           });
         }
@@ -199,7 +207,8 @@ export const SessionExpirationProvider: React.FC<SessionExpirationProviderProps>
     isExpired,
     expiresAt,
     timeRemaining,
-    sessionEndReason
+    sessionEndReason,
+    isRedirecting
   };
 
   return (

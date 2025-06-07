@@ -19,20 +19,10 @@ const StudentSessionContent: React.FC<{ state: LocationState; sessionSlug?: stri
   const navigate = useNavigate();
   const { toast } = useToast();
   const { clearWhiteboardState } = useWhiteboardStateContext();
-  const { isExpired, sessionEndReason } = useSessionExpirationContext();
+  const { isExpired, sessionEndReason, isRedirecting } = useSessionExpirationContext();
 
   useEffect(() => {
-    if (isExpired) {
-      const endMessage = sessionEndReason === 'ended_by_teacher' 
-        ? "This session has been ended by the teacher." 
-        : "This session has expired.";
-        
-      toast({
-        title: sessionEndReason === 'ended_by_teacher' ? "Session Ended" : "Session Expired",
-        description: `${endMessage} You will be redirected to the home page.`,
-        variant: "destructive",
-      });
-      
+    if (isExpired && isRedirecting) {
       // Clear whiteboard state from memory for all boards related to this session
       const clearSessionData = async () => {
         const { data: whiteboardData } = await supabase
@@ -51,11 +41,15 @@ const StudentSessionContent: React.FC<{ state: LocationState; sessionSlug?: stri
       clearSessionData();
       
       // Redirect to home page after a short delay
-      setTimeout(() => {
+      // Use a longer delay to ensure the toast is visible and reduce flickering
+      const redirectTimer = setTimeout(() => {
         navigate('/');
-      }, 3000);
+      }, 3500);
+      
+      // Clean up the timer if the component unmounts
+      return () => clearTimeout(redirectTimer);
     }
-  }, [isExpired, sessionEndReason, toast, navigate, clearWhiteboardState, state.sessionId]);
+  }, [isExpired, isRedirecting, navigate, clearWhiteboardState, state.sessionId]);
   
   // If session is expired, show a message
   if (isExpired) {

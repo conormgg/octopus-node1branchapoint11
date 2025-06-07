@@ -33,7 +33,7 @@ const WhiteboardPlaceholder: React.FC<WhiteboardPlaceholderProps> = ({
   const containerRef = React.useRef<HTMLDivElement>(null);
   
   // Use centralized session expiration context
-  const { isExpired, expiresAt, sessionEndReason } = useSessionExpirationContext();
+  const { isExpired, expiresAt, sessionEndReason, isRedirecting } = useSessionExpirationContext();
 
   const updateDimensions = () => {
     if (containerRef.current) {
@@ -137,7 +137,7 @@ const WhiteboardPlaceholder: React.FC<WhiteboardPlaceholderProps> = ({
       )}
       
       {/* Session Status Warning */}
-      {sessionId && isExpired && (
+      {sessionId && isExpired && !isRedirecting && (
         <div className="absolute top-3 left-3 z-10 p-2 rounded-lg bg-red-50 border border-red-200 shadow-sm transition-all duration-150 flex items-center space-x-2">
           <AlertCircle size={14} className="text-red-500" />
           <span className="text-xs text-red-600">

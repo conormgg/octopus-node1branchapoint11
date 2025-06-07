@@ -97,6 +97,7 @@ export const useSessionManagement = (user: any, isDemoMode: boolean) => {
         });
       }
 
+      // Only show toast on teacher's side (not duplicated on student side)
       toast({
         title: "Session Ended",
         description: "The session has been ended successfully.",
