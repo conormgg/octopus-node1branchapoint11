@@ -17,16 +17,22 @@ export const useSyncState = (
   const pendingOperationsRef = useRef<WhiteboardOperation[]>([]);
   const channelRef = useRef<any>(null);
   const isSubscribedRef = useRef(false);
+  const configRef = useRef(config);
+
+  // Update config reference when it changes
+  useEffect(() => {
+    configRef.current = config;
+  }, [config]);
 
   // Send operation to other clients
   const sendOperation = useCallback((operation: Omit<WhiteboardOperation, 'id' | 'timestamp' | 'sender_id'>) => {
-    if (syncState.isReceiveOnly) return null;
+    if (configRef.current.isReceiveOnly) return null;
 
     const fullOperation: WhiteboardOperation = {
       ...operation,
-      whiteboard_id: config.whiteboardId,
+      whiteboard_id: configRef.current.whiteboardId,
       timestamp: Date.now(),
-      sender_id: config.senderId
+      sender_id: configRef.current.senderId
     };
 
     console.log('Sending operation to Supabase:', fullOperation);
@@ -39,7 +45,7 @@ export const useSyncState = (
         board_id: fullOperation.whiteboard_id,
         object_data: fullOperation.data,
         object_id: `${fullOperation.operation_type}_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
-        session_id: config.sessionId,
+        session_id: configRef.current.sessionId,
         user_id: fullOperation.sender_id
       })
       .then(({ error }) => {
@@ -62,7 +68,7 @@ export const useSyncState = (
       });
 
     return fullOperation;
-  }, [config.whiteboardId, config.senderId, config.sessionId, syncState.isReceiveOnly]);
+  }, []);
 
   // Retry pending operations
   const retryPendingOperations = useCallback(() => {
@@ -90,7 +96,7 @@ export const useSyncState = (
     console.log(`Setting up realtime subscription for whiteboard: ${config.whiteboardId}`);
     
     // Create unique channel name to prevent conflicts
-    const channelName = `whiteboard-${config.whiteboardId}-${Date.now()}`;
+    const channelName = `whiteboard-${config.whiteboardId}-${config.senderId}`;
     const channel = supabase
       .channel(channelName)
       .on(
@@ -106,7 +112,7 @@ export const useSyncState = (
           const data = payload.new as any;
           
           // Don't process our own operations
-          if (data.user_id === config.senderId) {
+          if (data.user_id === configRef.current.senderId) {
             console.log('Ignoring own operation');
             return;
           }
@@ -154,6 +160,6 @@ export const useSyncState = (
 
   return {
     syncState,
-    sendOperation: syncState.isReceiveOnly ? null : sendOperation
+    sendOperation: configRef.current.isReceiveOnly ? null : sendOperation
   };
 };

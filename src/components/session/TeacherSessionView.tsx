@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from '@/components/ui/resizable';
 import WhiteboardPlaceholder from '../WhiteboardPlaceholder';
@@ -97,23 +96,8 @@ const TeacherSessionView: React.FC<TeacherSessionViewProps> = ({
         />
       )}
 
-      {/* Maximized Board Overlay */}
-      {maximizedBoard && (
-        <div className="absolute inset-0 z-50 bg-gray-100 p-4">
-          <div className="h-full">
-            <WhiteboardPlaceholder
-              id={maximizedBoard}
-              isMaximized={true}
-              onMinimize={onMinimize}
-              sessionId={activeSession.id}
-              senderId={activeSession.teacher_id}
-            />
-          </div>
-        </div>
-      )}
-
       {/* Normal Layout - Always Rendered */}
-      <div className={maximizedBoard ? 'invisible' : 'visible'}>
+      <div>
         <TeacherHeader
           studentCount={studentCount}
           currentLayout={currentLayout}
@@ -159,45 +143,73 @@ const TeacherSessionView: React.FC<TeacherSessionViewProps> = ({
         <div className={`flex-1 ${isControlsCollapsed ? 'h-screen' : 'h-[calc(100vh-5rem)]'} p-4`}>
           {isSplitViewActive ? (
             // Single panel view - only teacher's board when split view is active
-            <div className="h-full">
-              <TeacherMainBoard 
-                onMaximize={onMaximize} 
-                isHeaderCollapsed={isControlsCollapsed}
-                sessionId={activeSession.id}
-                senderId={activeSession.teacher_id}
-              />
-            </div>
-          ) : (
-            // Normal split panel view
-            <ResizablePanelGroup direction="horizontal" className="rounded-lg overflow-hidden">
-              {/* Left Pane - Teacher's Main Board */}
-              <ResizablePanel defaultSize={60} minSize={40}>
+            <div className="h-full relative">
+              <div 
+                className={`h-full ${
+                  maximizedBoard === "teacher-main" 
+                    ? "fixed inset-4 z-50 bg-gray-100" 
+                    : ""
+                }`}
+              >
                 <TeacherMainBoard 
                   onMaximize={onMaximize} 
                   isHeaderCollapsed={isControlsCollapsed}
                   sessionId={activeSession.id}
                   senderId={activeSession.teacher_id}
                 />
+              </div>
+            </div>
+          ) : (
+            // Normal split panel view
+            <ResizablePanelGroup direction="horizontal" className="rounded-lg overflow-hidden">
+              {/* Left Pane - Teacher's Main Board */}
+              <ResizablePanel defaultSize={60} minSize={40}>
+                <div className="h-full relative">
+                  <div 
+                    className={`h-full ${
+                      maximizedBoard === "teacher-main" 
+                        ? "fixed inset-4 z-50 bg-gray-100" 
+                        : ""
+                    }`}
+                  >
+                    <TeacherMainBoard 
+                      onMaximize={onMaximize} 
+                      isHeaderCollapsed={isControlsCollapsed}
+                      sessionId={activeSession.id}
+                      senderId={activeSession.teacher_id}
+                    />
+                  </div>
+                </div>
               </ResizablePanel>
 
               <ResizableHandle className="w-2 bg-gray-200 hover:bg-gray-300 transition-colors duration-150" />
 
               {/* Right Pane - Student Boards Grid */}
               <ResizablePanel defaultSize={40} minSize={30}>
-                <StudentBoardsGrid
-                  studentCount={studentCount}
-                  currentLayout={currentLayout}
-                  currentStudentBoards={currentStudentBoards}
-                  currentPage={currentPage}
-                  totalPages={totalPages}
-                  gridOrientation={gridOrientation}
-                  onMaximize={onMaximize}
-                  onPreviousPage={onPreviousPage}
-                  onNextPage={onNextPage}
-                  isHeaderCollapsed={isControlsCollapsed}
-                  sessionId={activeSession.id}
-                  senderId={activeSession.teacher_id}
-                />
+                <div className="h-full relative">
+                  <div 
+                    className={`h-full ${
+                      maximizedBoard && maximizedBoard.startsWith("student-board-") 
+                        ? "fixed inset-4 z-50 bg-gray-100" 
+                        : ""
+                    }`}
+                  >
+                    <StudentBoardsGrid
+                      studentCount={studentCount}
+                      currentLayout={currentLayout}
+                      currentStudentBoards={currentStudentBoards}
+                      currentPage={currentPage}
+                      totalPages={totalPages}
+                      gridOrientation={gridOrientation}
+                      onMaximize={onMaximize}
+                      onPreviousPage={onPreviousPage}
+                      onNextPage={onNextPage}
+                      isHeaderCollapsed={isControlsCollapsed}
+                      sessionId={activeSession.id}
+                      senderId={activeSession.teacher_id}
+                    />
+                  </div>
+                </div>
               </ResizablePanel>
             </ResizablePanelGroup>
           )}
