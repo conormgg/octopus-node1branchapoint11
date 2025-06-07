@@ -1,8 +1,10 @@
+
 import { useState, useCallback } from 'react';
-import { WhiteboardState, Tool } from '@/types/whiteboard';
+import { WhiteboardState, Tool, PanZoomState } from '@/types/whiteboard';
 import { useDrawingState } from './useDrawingState';
 import { useEraserState } from './useEraserState';
 import { useHistoryState } from './useHistoryState';
+import { usePanZoom } from './usePanZoom';
 
 export const useWhiteboardState = () => {
   const [state, setState] = useState<WhiteboardState>({
@@ -15,6 +17,17 @@ export const useWhiteboardState = () => {
     history: [[]],
     historyIndex: 0
   });
+
+  // Pan/zoom state management
+  const setPanZoomState = useCallback((panZoomState: PanZoomState) => {
+    setState(prev => ({
+      ...prev,
+      panZoomState
+    }));
+  }, []);
+
+  // Pan/zoom operations
+  const panZoom = usePanZoom(state.panZoomState, setPanZoomState);
 
   // History operations
   const {
@@ -65,21 +78,27 @@ export const useWhiteboardState = () => {
 
   // Handle pointer down
   const handlePointerDown = useCallback((x: number, y: number) => {
+    // Don't start drawing if a pan/zoom gesture is active
+    if (panZoom.isGestureActive()) return;
+    
     if (state.currentTool === 'pencil') {
       startDrawing(x, y);
     } else if (state.currentTool === 'eraser') {
       startErasing(x, y);
     }
-  }, [state.currentTool, startDrawing, startErasing]);
+  }, [state.currentTool, startDrawing, startErasing, panZoom]);
 
   // Handle pointer move
   const handlePointerMove = useCallback((x: number, y: number) => {
+    // Don't continue drawing if a pan/zoom gesture is active
+    if (panZoom.isGestureActive()) return;
+    
     if (state.currentTool === 'pencil') {
       continueDrawing(x, y);
     } else if (state.currentTool === 'eraser') {
       continueErasing(x, y);
     }
-  }, [state.currentTool, continueDrawing, continueErasing]);
+  }, [state.currentTool, continueDrawing, continueErasing, panZoom]);
 
   // Handle pointer up
   const handlePointerUp = useCallback(() => {
@@ -101,6 +120,7 @@ export const useWhiteboardState = () => {
     undo,
     redo,
     canUndo,
-    canRedo
+    canRedo,
+    panZoom
   };
 };

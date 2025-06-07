@@ -36,6 +36,13 @@ const WhiteboardCanvas: React.FC<WhiteboardCanvasProps> = ({
         isReadOnly={isReadOnly}
         palmRejectionConfig={palmRejectionConfig}
       />
+      
+      {/* Zoom indicator */}
+      {whiteboardState.state.panZoomState.scale !== 1 && (
+        <div className="absolute bottom-4 right-4 bg-black/70 text-white px-3 py-1 rounded-lg text-sm">
+          {Math.round(whiteboardState.state.panZoomState.scale * 100)}%
+        </div>
+      )}
     </div>
   );
 };

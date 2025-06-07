@@ -1,6 +1,6 @@
 
 import { useState, useCallback, useEffect, useRef } from 'react';
-import { WhiteboardState, Tool, LineObject } from '@/types/whiteboard';
+import { WhiteboardState, Tool, LineObject, PanZoomState } from '@/types/whiteboard';
 import { SyncConfig } from '@/types/sync';
 import { useDrawingState } from './useDrawingState';
 import { useEraserState } from './useEraserState';
@@ -8,6 +8,7 @@ import { useHistoryState } from './useHistoryState';
 import { useSyncState } from './useSyncState';
 import { useRemoteOperationHandler } from './useRemoteOperationHandler';
 import { useWhiteboardStateContext } from '@/contexts/WhiteboardStateContext';
+import { usePanZoom } from './usePanZoom';
 import { serializeDrawOperation, serializeEraseOperation } from '@/utils/operationSerializer';
 
 export const useSharedWhiteboardState = (syncConfig?: SyncConfig, whiteboardId?: string) => {
@@ -30,6 +31,17 @@ export const useSharedWhiteboardState = (syncConfig?: SyncConfig, whiteboardId?:
       historyIndex: 0
     };
   });
+
+  // Pan/zoom state management
+  const setPanZoomState = useCallback((panZoomState: PanZoomState) => {
+    setState(prev => ({
+      ...prev,
+      panZoomState
+    }));
+  }, []);
+
+  // Pan/zoom operations
+  const panZoom = usePanZoom(state.panZoomState, setPanZoomState);
 
   // Update shared state whenever lines change
   useEffect(() => {
@@ -146,27 +158,27 @@ export const useSharedWhiteboardState = (syncConfig?: SyncConfig, whiteboardId?:
 
   // Handle pointer down
   const handlePointerDown = useCallback((x: number, y: number) => {
-    // Don't allow drawing in receive-only mode
-    if (syncConfig?.isReceiveOnly) return;
+    // Don't allow drawing in receive-only mode or during pan/zoom gestures
+    if (syncConfig?.isReceiveOnly || panZoom.isGestureActive()) return;
     
     if (state.currentTool === 'pencil') {
       startDrawing(x, y);
     } else if (state.currentTool === 'eraser') {
       startErasing(x, y);
     }
-  }, [state.currentTool, startDrawing, startErasing, syncConfig?.isReceiveOnly]);
+  }, [state.currentTool, startDrawing, startErasing, syncConfig?.isReceiveOnly, panZoom]);
 
   // Handle pointer move
   const handlePointerMove = useCallback((x: number, y: number) => {
-    // Don't allow drawing in receive-only mode
-    if (syncConfig?.isReceiveOnly) return;
+    // Don't allow drawing in receive-only mode or during pan/zoom gestures
+    if (syncConfig?.isReceiveOnly || panZoom.isGestureActive()) return;
     
     if (state.currentTool === 'pencil') {
       continueDrawing(x, y);
     } else if (state.currentTool === 'eraser') {
       continueErasing(x, y);
     }
-  }, [state.currentTool, continueDrawing, continueErasing, syncConfig?.isReceiveOnly]);
+  }, [state.currentTool, continueDrawing, continueErasing, syncConfig?.isReceiveOnly, panZoom]);
 
   // Handle pointer up
   const handlePointerUp = useCallback(() => {
@@ -193,6 +205,7 @@ export const useSharedWhiteboardState = (syncConfig?: SyncConfig, whiteboardId?:
     redo,
     canUndo,
     canRedo,
+    panZoom,
     isReadOnly: syncConfig?.isReceiveOnly || false
   };
 };
