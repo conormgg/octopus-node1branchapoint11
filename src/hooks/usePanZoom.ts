@@ -10,7 +10,7 @@ interface PanZoomConfig {
 const DEFAULT_CONFIG: PanZoomConfig = {
   minScale: 0.1,
   maxScale: 5,
-  zoomSpeed: 0.001
+  zoomSpeed: 0.0002 // Reduced from 0.001 to make zoom more gradual
 };
 
 export const usePanZoom = (
@@ -28,7 +28,7 @@ export const usePanZoom = (
     initialCenter: { x: 0, y: 0 }
   });
 
-  const zoom = useCallback((delta: number, screenX: number, screenY: number) => {
+  const zoom = useCallback((delta: number, canvasX: number, canvasY: number) => {
     const newScale = Math.max(
       finalConfig.minScale,
       Math.min(finalConfig.maxScale, panZoomState.scale + delta)
@@ -36,13 +36,13 @@ export const usePanZoom = (
 
     if (newScale === panZoomState.scale) return;
 
-    // Convert screen coordinates to world coordinates
-    const worldX = (screenX - panZoomState.x) / panZoomState.scale;
-    const worldY = (screenY - panZoomState.y) / panZoomState.scale;
+    // Convert canvas coordinates to world coordinates
+    const worldX = (canvasX - panZoomState.x) / panZoomState.scale;
+    const worldY = (canvasY - panZoomState.y) / panZoomState.scale;
 
     // Calculate new pan position to keep the world point under the cursor
-    const newX = screenX - worldX * newScale;
-    const newY = screenY - worldY * newScale;
+    const newX = canvasX - worldX * newScale;
+    const newY = canvasY - worldY * newScale;
 
     setPanZoomState({
       x: newX,
@@ -62,7 +62,13 @@ export const usePanZoom = (
   const handleWheel = useCallback((e: WheelEvent) => {
     e.preventDefault();
     const delta = -e.deltaY * finalConfig.zoomSpeed;
-    zoom(delta, e.clientX, e.clientY);
+    
+    // Get coordinates relative to the canvas container
+    const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
+    const canvasX = e.clientX - rect.left;
+    const canvasY = e.clientY - rect.top;
+    
+    zoom(delta, canvasX, canvasY);
   }, [zoom, finalConfig.zoomSpeed]);
 
   const startPan = useCallback((clientX: number, clientY: number) => {
@@ -98,8 +104,10 @@ export const usePanZoom = (
         Math.pow(touch2.clientY - touch1.clientY, 2)
       );
       
-      const centerX = (touch1.clientX + touch2.clientX) / 2;
-      const centerY = (touch1.clientY + touch2.clientY) / 2;
+      // Get coordinates relative to the canvas container
+      const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
+      const centerX = ((touch1.clientX + touch2.clientX) / 2) - rect.left;
+      const centerY = ((touch1.clientY + touch2.clientY) / 2) - rect.top;
       
       gestureStateRef.current = {
         isMultiTouch: true,
@@ -124,8 +132,10 @@ export const usePanZoom = (
         Math.pow(touch2.clientY - touch1.clientY, 2)
       );
       
-      const currentCenterX = (touch1.clientX + touch2.clientX) / 2;
-      const currentCenterY = (touch1.clientY + touch2.clientY) / 2;
+      // Get coordinates relative to the canvas container
+      const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
+      const currentCenterX = ((touch1.clientX + touch2.clientX) / 2) - rect.left;
+      const currentCenterY = ((touch1.clientY + touch2.clientY) / 2) - rect.top;
       
       // Handle pinch zoom with proper zoom-to-center
       const scaleRatio = currentDistance / gestureStateRef.current.initialDistance;
