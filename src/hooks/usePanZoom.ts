@@ -10,7 +10,7 @@ interface PanZoomConfig {
 const DEFAULT_CONFIG: PanZoomConfig = {
   minScale: 0.1,
   maxScale: 5,
-  zoomSpeed: 0.0006 // Increased from 0.0002 to make zoom more responsive
+  zoomSpeed: 0.001 // Changed back from 0.0006 to 0.001
 };
 
 export const usePanZoom = (
