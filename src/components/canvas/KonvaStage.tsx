@@ -1,3 +1,4 @@
+
 import React, { useRef, useEffect, useState } from 'react';
 import Konva from 'konva';
 import { useWhiteboardState } from '@/hooks/useWhiteboardState';
@@ -131,8 +132,8 @@ const KonvaStage: React.FC<KonvaStageProps> = ({
     if ('updateImageState' in whiteboardState && typeof whiteboardState.updateImageState === 'function') {
       whiteboardState.updateImageState(imageId, newAttrs);
     } else {
-      // For non-sync version, we need to handle this differently
-      console.log('Image update requested but no updateImageState available:', imageId, newAttrs);
+      // This path is for non-sync version, which is acceptable.
+      console.log('Image update requested but no updateImageState available on the provided state object.');
     }
   };
 
@@ -171,7 +172,7 @@ const KonvaStage: React.FC<KonvaStageProps> = ({
                 isSelected={image.id === selectedId}
                 onSelect={() => selectShape(image.id)}
                 onChange={(newAttrs) => updateImageState(image.id, newAttrs)}
-                onUpdateState={addToHistory}
+                onUpdateState={() => {}}
               />
             )) || null}
           </>

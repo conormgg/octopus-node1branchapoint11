@@ -9,7 +9,7 @@ import { useSyncState } from './useSyncState';
 import { useRemoteOperationHandler } from './useRemoteOperationHandler';
 import { useWhiteboardStateContext } from '@/contexts/WhiteboardStateContext';
 import { usePanZoom } from './usePanZoom';
-import { serializeDrawOperation, serializeEraseOperation, serializeAddImageOperation } from '@/utils/operationSerializer';
+import { serializeDrawOperation, serializeEraseOperation, serializeAddImageOperation, serializeUpdateImageOperation } from '@/utils/operationSerializer';
 import { v4 as uuidv4 } from 'uuid';
 import Konva from 'konva';
 
@@ -134,6 +134,27 @@ export const useSharedWhiteboardState = (syncConfig?: SyncConfig, whiteboardId?:
     // Clear the reference
     linesBeforeErasingRef.current = [];
   }, [state.isDrawing, state.lines, baseStopErasing, sendOperation, isApplyingRemoteOperation]);
+
+  // Image update function with sync
+  const updateImageState = useCallback((imageId: string, newAttrs: Partial<ImageObject>) => {
+    console.log('Updating image state:', imageId, newAttrs);
+    
+    setState(prev => ({
+      ...prev,
+      images: prev.images.map(img =>
+        img.id === imageId ? { ...img, ...newAttrs } : img
+      )
+    }));
+
+    // Sync the image update if we're not in receive-only mode
+    if (sendOperation && !isApplyingRemoteOperation.current) {
+      console.log('Syncing image update:', imageId, newAttrs);
+      sendOperation(serializeUpdateImageOperation(imageId, newAttrs));
+    }
+
+    // Add to history after state update
+    setTimeout(() => addToHistory(), 0);
+  }, [setState, sendOperation, isApplyingRemoteOperation, addToHistory]);
 
   // Handle paste
   const handlePaste = useCallback((e: ClipboardEvent, stage: Konva.Stage | null) => {
@@ -276,6 +297,7 @@ export const useSharedWhiteboardState = (syncConfig?: SyncConfig, whiteboardId?:
     canUndo,
     canRedo,
     panZoom,
+    updateImageState,
     isReadOnly: syncConfig?.isReceiveOnly || false
   };
 };
