@@ -1,6 +1,6 @@
 
 import { useState, useCallback, useEffect, useRef } from 'react';
-import { WhiteboardState, Tool, LineObject, PanZoomState } from '@/types/whiteboard';
+import { WhiteboardState, Tool, LineObject, PanZoomState, ImageObject } from '@/types/whiteboard';
 import { SyncConfig } from '@/types/sync';
 import { useDrawingState } from './useDrawingState';
 import { useEraserState } from './useEraserState';
@@ -10,6 +10,8 @@ import { useRemoteOperationHandler } from './useRemoteOperationHandler';
 import { useWhiteboardStateContext } from '@/contexts/WhiteboardStateContext';
 import { usePanZoom } from './usePanZoom';
 import { serializeDrawOperation, serializeEraseOperation } from '@/utils/operationSerializer';
+import { v4 as uuidv4 } from 'uuid';
+import Konva from 'konva';
 
 export const useSharedWhiteboardState = (syncConfig?: SyncConfig, whiteboardId?: string) => {
   const { getWhiteboardState, updateWhiteboardState } = useWhiteboardStateContext();
@@ -22,12 +24,13 @@ export const useSharedWhiteboardState = (syncConfig?: SyncConfig, whiteboardId?:
     const sharedLines = whiteboardId ? getWhiteboardState(whiteboardId) : [];
     return {
       lines: sharedLines,
+      images: [],
       currentTool: 'pencil',
       currentColor: '#000000',
       currentStrokeWidth: 5,
       isDrawing: false,
       panZoomState: { x: 0, y: 0, scale: 1 },
-      history: [sharedLines],
+      history: [{ lines: sharedLines, images: [] }],
       historyIndex: 0
     };
   });
@@ -67,9 +70,9 @@ export const useSharedWhiteboardState = (syncConfig?: SyncConfig, whiteboardId?:
     canRedo
   } = useHistoryState(state, setState);
 
-  const addToHistory = useCallback((lines: LineObject[]) => {
-    baseAddToHistory(lines);
-  }, [baseAddToHistory]);
+  const addToHistory = useCallback(() => {
+    baseAddToHistory({ lines: state.lines, images: state.images });
+  }, [baseAddToHistory, state.lines, state.images]);
 
   // Drawing operations with sync
   const {
@@ -131,6 +134,52 @@ export const useSharedWhiteboardState = (syncConfig?: SyncConfig, whiteboardId?:
     // Clear the reference
     linesBeforeErasingRef.current = [];
   }, [state.isDrawing, state.lines, baseStopErasing, sendOperation, isApplyingRemoteOperation]);
+
+  // Handle paste
+  const handlePaste = useCallback((e: ClipboardEvent, stage: Konva.Stage | null) => {
+    e.preventDefault();
+    const items = e.clipboardData?.items;
+    if (!items || !stage) return;
+  
+    for (let i = 0; i < items.length; i++) {
+      if (items[i].type.indexOf('image') !== -1) {
+        const file = items[i].getAsFile();
+        if (!file) continue;
+  
+        const reader = new FileReader();
+        reader.onload = (event) => {
+          const imageUrl = event.target?.result as string;
+          const image = new window.Image();
+          image.src = imageUrl;
+          image.onload = () => {
+            const pointerPosition = stage.getPointerPosition() ?? { x: stage.width() / 2, y: stage.height() / 2 };
+            const position = {
+              x: (pointerPosition.x - state.panZoomState.x) / state.panZoomState.scale,
+              y: (pointerPosition.y - state.panZoomState.y) / state.panZoomState.scale,
+            };
+
+            const newImage: ImageObject = {
+              id: `image_${uuidv4()}`,
+              src: imageUrl,
+              x: position.x - (image.width / 4),
+              y: position.y - (image.height / 4),
+              width: image.width / 2,
+              height: image.height / 2,
+            };
+            
+            setState(prev => ({
+              ...prev,
+              images: [...prev.images, newImage]
+            }));
+            
+            // Add to history after state update
+            setTimeout(() => addToHistory(), 0);
+          };
+        };
+        reader.readAsDataURL(file);
+      }
+    }
+  }, [state.panZoomState, addToHistory]);
 
   // Tool change
   const setTool = useCallback((tool: Tool) => {
@@ -201,6 +250,8 @@ export const useSharedWhiteboardState = (syncConfig?: SyncConfig, whiteboardId?:
     handlePointerDown,
     handlePointerMove,
     handlePointerUp,
+    handlePaste,
+    addToHistory,
     undo,
     redo,
     canUndo,

@@ -1,34 +1,45 @@
+
 import { useState, useCallback } from 'react';
-import { WhiteboardState, Tool, LineObject } from '@/types/whiteboard';
+import { WhiteboardState, Tool, LineObject, ImageObject } from '@/types/whiteboard';
 import { SyncConfig } from '@/types/sync';
 import { useDrawingState } from './useDrawingState';
 import { useEraserState } from './useEraserState';
 import { useHistoryState } from './useHistoryState';
 import { useSyncState } from './useSyncState';
 import { useRemoteOperationHandler } from './useRemoteOperationHandler';
+import { usePanZoom } from './usePanZoom';
 import { serializeDrawOperation, serializeEraseOperation } from '@/utils/operationSerializer';
 
-export const useSyncWhiteboardState = (syncConfig?: SyncConfig) => {
+export const useSyncWhiteboardState = (syncConfig: SyncConfig) => {
   const [state, setState] = useState<WhiteboardState>({
     lines: [],
+    images: [],
     currentTool: 'pencil',
     currentColor: '#000000',
     currentStrokeWidth: 5,
     isDrawing: false,
     panZoomState: { x: 0, y: 0, scale: 1 },
-    history: [[]],
+    history: [{ lines: [], images: [] }],
     historyIndex: 0
   });
+
+  // Pan/zoom operations
+  const setPanZoomState = useCallback((panZoomState: any) => {
+    setState(prev => ({
+      ...prev,
+      panZoomState
+    }));
+  }, []);
+
+  const panZoom = usePanZoom(state.panZoomState, setPanZoomState);
 
   // Handle remote operations
   const { handleRemoteOperation, isApplyingRemoteOperation } = useRemoteOperationHandler(setState);
 
-  // Set up sync if config is provided
-  const { syncState, sendOperation } = syncConfig 
-    ? useSyncState(syncConfig, handleRemoteOperation)
-    : { syncState: null, sendOperation: null };
+  // Set up sync
+  const { syncState, sendOperation } = useSyncState(syncConfig, handleRemoteOperation);
 
-  // Enhanced add to history that syncs operations
+  // History management
   const {
     addToHistory: baseAddToHistory,
     undo,
@@ -37,9 +48,9 @@ export const useSyncWhiteboardState = (syncConfig?: SyncConfig) => {
     canRedo
   } = useHistoryState(state, setState);
 
-  const addToHistory = useCallback((lines: LineObject[]) => {
-    baseAddToHistory(lines);
-  }, [baseAddToHistory]);
+  const addToHistory = useCallback(() => {
+    baseAddToHistory({ lines: state.lines, images: state.images });
+  }, [baseAddToHistory, state.lines, state.images]);
 
   // Drawing operations with sync
   const {
@@ -54,15 +65,15 @@ export const useSyncWhiteboardState = (syncConfig?: SyncConfig) => {
     baseStopDrawing();
 
     // Sync the drawn line if we're not in receive-only mode
-    if (sendOperation && !isApplyingRemoteOperation.current) {
+    if (sendOperation && !isApplyingRemoteOperation.current && !syncConfig.isReceiveOnly) {
       const drawnLine = state.lines[state.lines.length - 1];
       if (drawnLine && drawnLine.tool === 'pencil') {
         sendOperation(serializeDrawOperation(drawnLine));
       }
     }
-  }, [state.isDrawing, state.lines, baseStopDrawing, sendOperation, isApplyingRemoteOperation]);
+  }, [state.isDrawing, state.lines, baseStopDrawing, sendOperation, isApplyingRemoteOperation, syncConfig.isReceiveOnly]);
 
-  // Eraser operations with sync
+  // Eraser operations with sync  
   const {
     startErasing,
     continueErasing,
@@ -72,23 +83,10 @@ export const useSyncWhiteboardState = (syncConfig?: SyncConfig) => {
   const stopErasing = useCallback(() => {
     if (!state.isDrawing) return;
 
-    // Get the current lines before stopping erasing
-    const linesBefore = [...state.lines];
-    
     baseStopErasing();
     
-    // Sync the erased lines if we're not in receive-only mode
-    if (sendOperation && !isApplyingRemoteOperation.current) {
-      // Find the IDs of lines that were erased
-      const erasedLineIds = linesBefore
-        .filter(line => !state.lines.some(l => l.id === line.id))
-        .map(line => line.id);
-      
-      if (erasedLineIds.length > 0) {
-        sendOperation(serializeEraseOperation(erasedLineIds));
-      }
-    }
-  }, [state.isDrawing, state.lines, baseStopErasing, sendOperation, isApplyingRemoteOperation]);
+    // Add sync logic for erasing if needed
+  }, [state.isDrawing, baseStopErasing]);
 
   // Tool change
   const setTool = useCallback((tool: Tool) => {
@@ -116,39 +114,36 @@ export const useSyncWhiteboardState = (syncConfig?: SyncConfig) => {
 
   // Handle pointer down
   const handlePointerDown = useCallback((x: number, y: number) => {
-    // Don't allow drawing in receive-only mode
-    if (syncConfig?.isReceiveOnly) return;
+    if (syncConfig.isReceiveOnly || panZoom.isGestureActive()) return;
     
     if (state.currentTool === 'pencil') {
       startDrawing(x, y);
     } else if (state.currentTool === 'eraser') {
       startErasing(x, y);
     }
-  }, [state.currentTool, startDrawing, startErasing, syncConfig?.isReceiveOnly]);
+  }, [state.currentTool, startDrawing, startErasing, syncConfig.isReceiveOnly, panZoom]);
 
   // Handle pointer move
   const handlePointerMove = useCallback((x: number, y: number) => {
-    // Don't allow drawing in receive-only mode
-    if (syncConfig?.isReceiveOnly) return;
+    if (syncConfig.isReceiveOnly || panZoom.isGestureActive()) return;
     
     if (state.currentTool === 'pencil') {
       continueDrawing(x, y);
     } else if (state.currentTool === 'eraser') {
       continueErasing(x, y);
     }
-  }, [state.currentTool, continueDrawing, continueErasing, syncConfig?.isReceiveOnly]);
+  }, [state.currentTool, continueDrawing, continueErasing, syncConfig.isReceiveOnly, panZoom]);
 
   // Handle pointer up
   const handlePointerUp = useCallback(() => {
-    // Don't allow drawing in receive-only mode
-    if (syncConfig?.isReceiveOnly) return;
+    if (syncConfig.isReceiveOnly) return;
     
     if (state.currentTool === 'pencil') {
       stopDrawing();
     } else if (state.currentTool === 'eraser') {
       stopErasing();
     }
-  }, [state.currentTool, stopDrawing, stopErasing, syncConfig?.isReceiveOnly]);
+  }, [state.currentTool, stopDrawing, stopErasing, syncConfig.isReceiveOnly]);
 
   return {
     state,
@@ -163,6 +158,7 @@ export const useSyncWhiteboardState = (syncConfig?: SyncConfig) => {
     redo,
     canUndo,
     canRedo,
-    isReadOnly: syncConfig?.isReceiveOnly || false
+    panZoom,
+    isReadOnly: syncConfig.isReceiveOnly
   };
 };
