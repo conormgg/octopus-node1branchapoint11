@@ -30,6 +30,7 @@ export const SessionExpirationProvider: React.FC<SessionExpirationProviderProps>
   const [sessionEndReason, setSessionEndReason] = useState<'expired' | 'ended_by_teacher' | null>(null);
   const [hasShownToast, setHasShownToast] = useState(false);
   const [lastKnownStatus, setLastKnownStatus] = useState<string | null>(null);
+  const [hasProcessedEndState, setHasProcessedEndState] = useState(false);
   const { toast } = useToast();
   const { clearWhiteboardState } = useWhiteboardStateContext();
 
@@ -48,57 +49,66 @@ export const SessionExpirationProvider: React.FC<SessionExpirationProviderProps>
         return;
       }
 
-      // Only show toast if status changed from active to something else
-      const statusChanged = lastKnownStatus === 'active' && data.status !== 'active';
-      
+      // If we've already processed an end state, don't process again
+      if (hasProcessedEndState && (data.status === 'ended_by_teacher' || data.status === 'expired')) {
+        return;
+      }
+
       // Handle different session statuses
       if (data.status === 'ended_by_teacher') {
-        setIsExpired(true);
-        setExpiresAt(null);
-        setTimeRemaining(0);
-        setSessionEndReason('ended_by_teacher');
-        
-        // Show toast only once when status changes from active to ended_by_teacher
-        if (statusChanged && !hasShownToast) {
-          setHasShownToast(true);
-          toast({
-            title: "Session Ended",
-            description: "This session has been ended by the teacher.",
-            variant: "destructive",
-          });
+        if (!hasProcessedEndState) {
+          setIsExpired(true);
+          setExpiresAt(null);
+          setTimeRemaining(0);
+          setSessionEndReason('ended_by_teacher');
+          setHasProcessedEndState(true);
+          
+          if (!hasShownToast) {
+            setHasShownToast(true);
+            toast({
+              title: "Session Ended",
+              description: "This session has been ended by the teacher.",
+              variant: "destructive",
+            });
+          }
+          
+          if (onSessionExpired) onSessionExpired();
         }
-        
-        if (onSessionExpired) onSessionExpired();
         setLastKnownStatus(data.status);
         return;
       }
 
       if (data.status === 'expired') {
-        setIsExpired(true);
-        setExpiresAt(null);
-        setTimeRemaining(0);
-        setSessionEndReason('expired');
-        
-        // Show toast only once when status changes from active to expired
-        if (statusChanged && !hasShownToast) {
-          setHasShownToast(true);
-          toast({
-            title: "Session Expired",
-            description: "This session has expired. Your whiteboard data will no longer be saved.",
-            variant: "destructive",
-          });
+        if (!hasProcessedEndState) {
+          setIsExpired(true);
+          setExpiresAt(null);
+          setTimeRemaining(0);
+          setSessionEndReason('expired');
+          setHasProcessedEndState(true);
+          
+          if (!hasShownToast) {
+            setHasShownToast(true);
+            toast({
+              title: "Session Expired",
+              description: "This session has expired. Your whiteboard data will no longer be saved.",
+              variant: "destructive",
+            });
+          }
+          
+          if (onSessionExpired) onSessionExpired();
         }
-        
-        if (onSessionExpired) onSessionExpired();
         setLastKnownStatus(data.status);
         return;
       }
 
       if (data.status !== 'active') {
-        setIsExpired(true);
-        setExpiresAt(null);
-        setTimeRemaining(0);
-        if (onSessionExpired) onSessionExpired();
+        if (!hasProcessedEndState) {
+          setIsExpired(true);
+          setExpiresAt(null);
+          setTimeRemaining(0);
+          setHasProcessedEndState(true);
+          if (onSessionExpired) onSessionExpired();
+        }
         setLastKnownStatus(data.status);
         return;
       }
@@ -117,9 +127,10 @@ export const SessionExpirationProvider: React.FC<SessionExpirationProviderProps>
       const remaining = expirationTime.getTime() - now.getTime();
       setTimeRemaining(remaining > 0 ? remaining : 0);
       
-      if (remaining <= 0) {
+      if (remaining <= 0 && !hasProcessedEndState) {
         setIsExpired(true);
         setSessionEndReason('expired');
+        setHasProcessedEndState(true);
         
         // Only show toast once for natural expiration
         if (!hasShownToast) {
@@ -159,7 +170,7 @@ export const SessionExpirationProvider: React.FC<SessionExpirationProviderProps>
     } catch (err) {
       console.error('Error checking session expiration:', err);
     }
-  }, [sessionId, onSessionExpired, toast, clearWhiteboardState, hasShownToast, lastKnownStatus]);
+  }, [sessionId, onSessionExpired, toast, clearWhiteboardState, hasShownToast, lastKnownStatus, hasProcessedEndState]);
 
   useEffect(() => {
     if (!sessionId) return;
@@ -169,6 +180,7 @@ export const SessionExpirationProvider: React.FC<SessionExpirationProviderProps>
     setIsExpired(false);
     setSessionEndReason(null);
     setLastKnownStatus(null);
+    setHasProcessedEndState(false);
 
     // Initial check
     checkSessionExpiration();
