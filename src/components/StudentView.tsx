@@ -1,9 +1,8 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from '@/components/ui/resizable';
 import WhiteboardPlaceholder from './WhiteboardPlaceholder';
 import { GraduationCap, User } from 'lucide-react';
-import { useAuth } from '@/hooks/useAuth';
 
 interface StudentViewProps {
   sessionId: string;
@@ -11,18 +10,6 @@ interface StudentViewProps {
 
 const StudentView: React.FC<StudentViewProps> = ({ sessionId }) => {
   const [maximizedBoard, setMaximizedBoard] = useState<string | null>(null);
-  const { user } = useAuth();
-
-  // Log student view initialization for debugging
-  useEffect(() => {
-    if (sessionId && user) {
-      console.log('StudentView initialized:', {
-        sessionId,
-        studentId: user.id,
-        userEmail: user.email
-      });
-    }
-  }, [sessionId, user]);
 
   const handleMaximize = (boardId: string) => {
     setMaximizedBoard(boardId);
@@ -49,9 +36,6 @@ const StudentView: React.FC<StudentViewProps> = ({ sessionId }) => {
           <div className="flex items-center space-x-2 px-3 py-2 bg-gray-50 rounded-lg">
             <User className="w-4 h-4 text-gray-600" />
             <span className="text-sm font-medium text-gray-700">Student View</span>
-            {process.env.NODE_ENV === 'development' && user && (
-              <span className="text-xs text-gray-500">({user.email})</span>
-            )}
           </div>
         </div>
       </div>
@@ -83,7 +67,6 @@ const StudentView: React.FC<StudentViewProps> = ({ sessionId }) => {
                   onMaximize={() => handleMaximize("student-shared-teacher")}
                   onMinimize={handleMinimize}
                   sessionId={sessionId}
-                  senderId={user?.id}
                 />
               </div>
             </div>
@@ -114,7 +97,6 @@ const StudentView: React.FC<StudentViewProps> = ({ sessionId }) => {
                   onMaximize={() => handleMaximize("student-personal")}
                   onMinimize={handleMinimize}
                   sessionId={sessionId}
-                  senderId={user?.id}
                 />
               </div>
             </div>

@@ -17,8 +17,6 @@ export const useSyncState = (
   const pendingOperationsRef = useRef<WhiteboardOperation[]>([]);
   const channelRef = useRef<any>(null);
   const configRef = useRef(config);
-  const connectionAttempts = useRef(0);
-  const maxConnectionAttempts = 3;
 
   // Update config reference when it changes
   useEffect(() => {
@@ -27,10 +25,7 @@ export const useSyncState = (
 
   // Send operation to other clients
   const sendOperation = useCallback((operation: Omit<WhiteboardOperation, 'id' | 'timestamp' | 'sender_id'>) => {
-    if (configRef.current.isReceiveOnly) {
-      console.log('Skipping send operation - receive only mode');
-      return null;
-    }
+    if (configRef.current.isReceiveOnly) return null;
 
     const fullOperation: WhiteboardOperation = {
       ...operation,
@@ -39,12 +34,7 @@ export const useSyncState = (
       sender_id: configRef.current.senderId
     };
 
-    console.log('Sending operation to Supabase:', {
-      whiteboardId: fullOperation.whiteboard_id,
-      operationType: fullOperation.operation_type,
-      senderId: fullOperation.sender_id,
-      sessionId: configRef.current.sessionId
-    });
+    console.log('Sending operation to Supabase:', fullOperation);
 
     // Send to Supabase
     supabase
@@ -92,8 +82,8 @@ export const useSyncState = (
     });
   }, [sendOperation]);
 
-  // Set up real-time subscription with retry logic
-  const setupSubscription = useCallback(() => {
+  // Set up real-time subscription
+  useEffect(() => {
     // Clean up existing subscription if any
     if (channelRef.current) {
       console.log('Cleaning up existing subscription');
@@ -101,12 +91,10 @@ export const useSyncState = (
       channelRef.current = null;
     }
 
-    console.log(`Setting up realtime subscription for whiteboard: ${config.whiteboardId}, attempt: ${connectionAttempts.current + 1}`);
+    console.log(`Setting up realtime subscription for whiteboard: ${config.whiteboardId}`);
     
-    // Create deterministic channel name without timestamp to avoid conflicts
-    const channelName = `whiteboard-sync-${config.whiteboardId.replace(/[^a-zA-Z0-9-]/g, '-')}`;
-    console.log('Using channel name:', channelName);
-    
+    // Create unique channel name to prevent conflicts
+    const channelName = `whiteboard-${config.whiteboardId}-${Date.now()}`;
     const channel = supabase
       .channel(channelName)
       .on(
@@ -118,14 +106,7 @@ export const useSyncState = (
           filter: `board_id=eq.${config.whiteboardId}`
         },
         (payload) => {
-          console.log('Received operation from Supabase:', {
-            board_id: payload.new.board_id,
-            action_type: payload.new.action_type,
-            user_id: payload.new.user_id,
-            sender_id: configRef.current.senderId,
-            isOwnOperation: payload.new.user_id === configRef.current.senderId
-          });
-          
+          console.log('Received operation from Supabase:', payload);
           const data = payload.new as any;
           
           // Don't process our own operations
@@ -148,47 +129,19 @@ export const useSyncState = (
         }
       )
       .subscribe((status) => {
-        console.log('Subscription status:', {
-          status,
-          whiteboardId: config.whiteboardId,
-          senderId: config.senderId,
-          isReceiveOnly: config.isReceiveOnly
-        });
-        
-        const isConnected = status === 'SUBSCRIBED';
+        console.log('Subscription status:', status);
         setSyncState(prev => ({
           ...prev,
-          isConnected
+          isConnected: status === 'SUBSCRIBED'
         }));
 
-        if (isConnected) {
-          console.log('Successfully connected to realtime');
-          connectionAttempts.current = 0;
+        if (status === 'SUBSCRIBED') {
           // Retry pending operations when we reconnect
           retryPendingOperations();
-        } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
-          console.error('Connection failed:', status);
-          
-          // Retry connection if we haven't exceeded max attempts
-          if (connectionAttempts.current < maxConnectionAttempts) {
-            connectionAttempts.current++;
-            console.log(`Retrying connection in 2 seconds... (attempt ${connectionAttempts.current}/${maxConnectionAttempts})`);
-            setTimeout(() => {
-              setupSubscription();
-            }, 2000);
-          } else {
-            console.error('Max connection attempts reached');
-          }
         }
       });
 
     channelRef.current = channel;
-  }, [config.whiteboardId, config.senderId, config.isReceiveOnly, onReceiveOperation, retryPendingOperations]);
-
-  // Set up subscription on mount and config changes
-  useEffect(() => {
-    connectionAttempts.current = 0;
-    setupSubscription();
 
     return () => {
       console.log('Cleaning up realtime subscription');
@@ -197,7 +150,7 @@ export const useSyncState = (
         channelRef.current = null;
       }
     };
-  }, [setupSubscription]);
+  }, [config.whiteboardId, config.senderId, onReceiveOperation, retryPendingOperations]);
 
   return {
     syncState,
