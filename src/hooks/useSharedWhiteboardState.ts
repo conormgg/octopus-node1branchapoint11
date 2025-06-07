@@ -11,12 +11,20 @@ import { useSharedDrawingOperations } from './shared/useSharedDrawingOperations'
 import { useSharedImageOperations } from './shared/useSharedImageOperations';
 import { useSharedPointerHandlers } from './shared/useSharedPointerHandlers';
 import { useSharedStateManagement } from './shared/useSharedStateManagement';
+import { useWhiteboardPersistence } from './useWhiteboardPersistence';
 
 export const useSharedWhiteboardState = (syncConfig?: SyncConfig, whiteboardId?: string) => {
   const { getWhiteboardState, updateWhiteboardState } = useWhiteboardStateContext();
   
+  // Load persisted whiteboard data if available
+  const persistence = syncConfig && whiteboardId ? useWhiteboardPersistence({
+    whiteboardId,
+    sessionId: syncConfig.sessionId
+  }) : { isLoading: false, error: null, lines: [], images: [] };
+  
   // Initialize state with shared state if available
   const [state, setState] = useState<WhiteboardState>(() => {
+    // First try to get from context (for in-memory state)
     const sharedLines = whiteboardId ? getWhiteboardState(whiteboardId) : [];
     return {
       lines: sharedLines,
@@ -30,6 +38,24 @@ export const useSharedWhiteboardState = (syncConfig?: SyncConfig, whiteboardId?:
       historyIndex: 0
     };
   });
+
+  // Update state when persisted data is loaded
+  useEffect(() => {
+    if (!persistence.isLoading && persistence.lines.length > 0) {
+      setState(prevState => ({
+        ...prevState,
+        lines: persistence.lines,
+        images: persistence.images,
+        history: [{ lines: persistence.lines, images: persistence.images }, ...prevState.history],
+        historyIndex: 0
+      }));
+      
+      // Also update the shared state context
+      if (whiteboardId) {
+        updateWhiteboardState(whiteboardId, persistence.lines);
+      }
+    }
+  }, [persistence.isLoading, persistence.lines, persistence.images, whiteboardId, updateWhiteboardState]);
 
   // State management functions
   const { setPanZoomState, setTool, setColor, setStrokeWidth } = useSharedStateManagement(setState);

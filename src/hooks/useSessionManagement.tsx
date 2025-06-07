@@ -2,6 +2,7 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
+import { useWhiteboardStateContext } from '@/contexts/WhiteboardStateContext';
 
 interface Session {
   id: string;
@@ -17,6 +18,7 @@ export const useSessionManagement = (user: any, isDemoMode: boolean) => {
   const [recentSessions, setRecentSessions] = useState<Session[]>([]);
   const [showUrlModal, setShowUrlModal] = useState(false);
   const { toast } = useToast();
+  const { clearWhiteboardState } = useWhiteboardStateContext();
 
   useEffect(() => {
     if (user) {
@@ -72,12 +74,32 @@ export const useSessionManagement = (user: any, isDemoMode: boolean) => {
     if (!activeSession) return;
 
     try {
+      // First, get all whiteboard IDs associated with this session
+      const { data: whiteboardData, error: fetchError } = await supabase
+        .from('whiteboard_data')
+        .select('board_id')
+        .eq('session_id', activeSession.id);
+        
+      if (fetchError) throw fetchError;
+      
+      // Update session status
       const { error } = await supabase
         .from('sessions')
         .update({ status: 'ended_by_teacher' })
         .eq('id', activeSession.id);
 
       if (error) throw error;
+
+      // Clear whiteboard state from memory
+      if (whiteboardData) {
+        // Get unique board IDs
+        const boardIds = [...new Set(whiteboardData.map(item => item.board_id))];
+        
+        // Clear each board from memory
+        boardIds.forEach(boardId => {
+          clearWhiteboardState(boardId);
+        });
+      }
 
       toast({
         title: "Session Ended",

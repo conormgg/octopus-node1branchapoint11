@@ -1,9 +1,11 @@
 
 import React, { useState, useEffect } from 'react';
-import { Maximize2, Minimize2 } from 'lucide-react';
+import { Maximize2, Minimize2, AlertCircle } from 'lucide-react';
 import Whiteboard from './Whiteboard';
 import { SyncWhiteboard } from './SyncWhiteboard';
 import { SyncConfig } from '@/types/sync';
+import { useSessionExpiration } from '@/hooks/useSessionExpiration';
+import { useToast } from '@/hooks/use-toast';
 
 interface WhiteboardPlaceholderProps {
   id: string;
@@ -30,6 +32,19 @@ const WhiteboardPlaceholder: React.FC<WhiteboardPlaceholderProps> = ({
 }) => {
   const [dimensions, setDimensions] = useState({ width: 0, height: 0 });
   const containerRef = React.useRef<HTMLDivElement>(null);
+  const { toast } = useToast();
+  
+  // Session expiration handling
+  const { isExpired, expiresAt, timeRemaining } = sessionId ? useSessionExpiration({
+    sessionId,
+    onSessionExpired: () => {
+      toast({
+        title: "Session Expired",
+        description: "This session has expired. Your whiteboard data will no longer be saved.",
+        variant: "destructive",
+      });
+    }
+  }) : { isExpired: false, expiresAt: null, timeRemaining: null };
 
   const updateDimensions = () => {
     if (containerRef.current) {
@@ -121,6 +136,26 @@ const WhiteboardPlaceholder: React.FC<WhiteboardPlaceholderProps> = ({
           <Maximize2 size={16} className="text-gray-600" />
         )}
       </button>
+      
+      {/* Session Expiration Indicator */}
+      {sessionId && expiresAt && !isExpired && (
+        <div className="absolute top-3 left-3 z-10 p-2 rounded-lg bg-white/80 hover:bg-white border border-gray-200 shadow-sm transition-all duration-150 flex items-center space-x-2">
+          <div className="w-2 h-2 rounded-full bg-green-500"></div>
+          <span className="text-xs text-gray-600">
+            Session active until {expiresAt.toLocaleTimeString()}
+          </span>
+        </div>
+      )}
+      
+      {/* Session Expired Warning */}
+      {sessionId && isExpired && (
+        <div className="absolute top-3 left-3 z-10 p-2 rounded-lg bg-red-50 border border-red-200 shadow-sm transition-all duration-150 flex items-center space-x-2">
+          <AlertCircle size={14} className="text-red-500" />
+          <span className="text-xs text-red-600">
+            Session expired
+          </span>
+        </div>
+      )}
       
       {/* Whiteboard Content Area */}
       <div className="flex-1 flex items-center justify-center bg-gray-25 relative overflow-hidden rounded-lg">
