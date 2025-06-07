@@ -64,20 +64,41 @@ const KonvaStage: React.FC<KonvaStageProps> = ({
     stage.scaleY(state.panZoomState.scale);
   }, [state.panZoomState]);
 
-  // Add paste event listener
+  // Add paste event listener with proper focus handling
   useEffect(() => {
     const container = containerRef.current;
     if (!container || isReadOnly) return;
 
     const pasteHandler = (e: ClipboardEvent) => {
+      console.log('Paste event detected in container');
       handlePaste(e, stageRef.current);
     };
 
+    const focusHandler = () => {
+      console.log('Container focused, paste events should work');
+    };
+
+    const clickHandler = () => {
+      // Ensure container can receive paste events
+      if (container) {
+        container.focus();
+      }
+    };
+
+    // Make container focusable and add event listeners
     container.setAttribute('tabIndex', '0');
+    container.style.outline = 'none'; // Remove focus outline
     container.addEventListener('paste', pasteHandler);
+    container.addEventListener('focus', focusHandler);
+    container.addEventListener('click', clickHandler);
+
+    // Focus the container initially to enable paste
+    container.focus();
 
     return () => {
       container.removeEventListener('paste', pasteHandler);
+      container.removeEventListener('focus', focusHandler);
+      container.removeEventListener('click', clickHandler);
     };
   }, [handlePaste, isReadOnly]);
 
@@ -110,7 +131,7 @@ const KonvaStage: React.FC<KonvaStageProps> = ({
       style={{ 
         WebkitUserSelect: 'none',
         WebkitTouchCallout: 'none',
-        touchAction: 'none'
+        touchAction: palmRejectionConfig.enabled ? 'none' : 'auto'
       }}
       tabIndex={0}
     >
@@ -138,9 +159,12 @@ const KonvaStage: React.FC<KonvaStageProps> = ({
                 isSelected={image.id === selectedId}
                 onSelect={() => selectShape(image.id)}
                 onChange={(newAttrs) => {
-                  whiteboardState.state.images = whiteboardState.state.images.map(img =>
-                    img.id === image.id ? { ...img, ...newAttrs } : img
-                  );
+                  setState(prev => ({
+                    ...prev,
+                    images: prev.images.map(img =>
+                      img.id === image.id ? { ...img, ...newAttrs } : img
+                    )
+                  }));
                 }}
                 onUpdateState={addToHistory}
               />

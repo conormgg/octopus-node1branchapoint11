@@ -1,3 +1,4 @@
+
 import { useCallback, useRef } from 'react';
 import { LineObject, Tool } from '@/types/whiteboard';
 
@@ -10,7 +11,7 @@ export const useDrawingState = (
     isDrawing: boolean;
   },
   setState: (updater: (prev: any) => any) => void,
-  addToHistory: (lines: LineObject[]) => void
+  addToHistory: () => void
 ) => {
   const lineIdRef = useRef(0);
 
@@ -59,13 +60,14 @@ export const useDrawingState = (
   const stopDrawing = useCallback(() => {
     if (!state.isDrawing) return;
 
-    addToHistory(state.lines);
-
     setState(prev => ({
       ...prev,
       isDrawing: false
     }));
-  }, [state.isDrawing, state.lines, setState, addToHistory]);
+
+    // Add to history after drawing is complete
+    setTimeout(() => addToHistory(), 0);
+  }, [state.isDrawing, setState, addToHistory]);
 
   return {
     startDrawing,
