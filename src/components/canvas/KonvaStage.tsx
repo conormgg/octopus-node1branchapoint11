@@ -1,4 +1,3 @@
-
 import React, { useRef, useEffect, useState } from 'react';
 import Konva from 'konva';
 import { useWhiteboardState } from '@/hooks/useWhiteboardState';
@@ -128,17 +127,12 @@ const KonvaStage: React.FC<KonvaStageProps> = ({
 
   // Helper function to update image state
   const updateImageState = (imageId: string, newAttrs: any) => {
-    // Check if whiteboardState has setState method (non-sync version)
-    if ('setState' in whiteboardState && typeof whiteboardState.setState === 'function') {
-      whiteboardState.setState((prev: any) => ({
-        ...prev,
-        images: prev.images.map((img: any) =>
-          img.id === imageId ? { ...img, ...newAttrs } : img
-        )
-      }));
+    // Check if whiteboardState has updateImageState method (sync version)
+    if ('updateImageState' in whiteboardState && typeof whiteboardState.updateImageState === 'function') {
+      whiteboardState.updateImageState(imageId, newAttrs);
     } else {
-      // For sync version, we need to handle this differently
-      console.log('Image update requested but no setState available:', imageId, newAttrs);
+      // For non-sync version, we need to handle this differently
+      console.log('Image update requested but no updateImageState available:', imageId, newAttrs);
     }
   };
 

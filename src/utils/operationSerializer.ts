@@ -1,5 +1,5 @@
 
-import { LineObject } from '@/types/whiteboard';
+import { LineObject, ImageObject } from '@/types/whiteboard';
 import { WhiteboardOperation } from '@/types/sync';
 
 export const serializeDrawOperation = (line: LineObject): Omit<WhiteboardOperation, 'id' | 'timestamp' | 'sender_id'> => ({
@@ -18,10 +18,35 @@ export const serializeEraseOperation = (erasedLineIds: string[]): Omit<Whiteboar
   }
 });
 
+export const serializeAddImageOperation = (image: ImageObject): Omit<WhiteboardOperation, 'id' | 'timestamp' | 'sender_id'> => ({
+  whiteboard_id: '', // Will be set by the calling function
+  operation_type: 'add_image',
+  data: {
+    image
+  }
+});
+
+export const serializeUpdateImageOperation = (imageId: string, updates: Partial<ImageObject>): Omit<WhiteboardOperation, 'id' | 'timestamp' | 'sender_id'> => ({
+  whiteboard_id: '', // Will be set by the calling function
+  operation_type: 'update_image',
+  data: {
+    image_id: imageId,
+    updates
+  }
+});
+
+export const serializeDeleteImageOperation = (imageId: string): Omit<WhiteboardOperation, 'id' | 'timestamp' | 'sender_id'> => ({
+  whiteboard_id: '', // Will be set by the calling function
+  operation_type: 'delete_image',
+  data: {
+    image_id: imageId
+  }
+});
+
 export const applyOperation = (
-  lines: LineObject[],
+  state: { lines: LineObject[]; images: ImageObject[] },
   operation: WhiteboardOperation
-): LineObject[] => {
+): { lines: LineObject[]; images: ImageObject[] } => {
   console.log('Applying operation:', operation);
   
   switch (operation.operation_type) {
@@ -30,11 +55,14 @@ export const applyOperation = (
       console.log('Adding new line:', newLine);
       
       // Don't add if line already exists (prevent duplicates)
-      if (lines.some(line => line.id === newLine.id)) {
+      if (state.lines.some(line => line.id === newLine.id)) {
         console.log('Line already exists, skipping');
-        return lines;
+        return state;
       }
-      return [...lines, newLine];
+      return {
+        ...state,
+        lines: [...state.lines, newLine]
+      };
     }
     case 'erase': {
       const lineIdsToRemove = operation.data.lineIds || operation.data.line_ids; // Handle both formats
@@ -42,15 +70,54 @@ export const applyOperation = (
       
       if (!lineIdsToRemove || lineIdsToRemove.length === 0) {
         console.log('No lines to remove');
-        return lines;
+        return state;
       }
       
-      const filteredLines = lines.filter(line => !lineIdsToRemove.includes(line.id));
-      console.log(`Removed ${lines.length - filteredLines.length} lines`);
-      return filteredLines;
+      const filteredLines = state.lines.filter(line => !lineIdsToRemove.includes(line.id));
+      console.log(`Removed ${state.lines.length - filteredLines.length} lines`);
+      return {
+        ...state,
+        lines: filteredLines
+      };
+    }
+    case 'add_image': {
+      const newImage = operation.data.image;
+      console.log('Adding new image:', newImage);
+      
+      // Don't add if image already exists (prevent duplicates)
+      if (state.images.some(image => image.id === newImage.id)) {
+        console.log('Image already exists, skipping');
+        return state;
+      }
+      return {
+        ...state,
+        images: [...state.images, newImage]
+      };
+    }
+    case 'update_image': {
+      const { image_id, updates } = operation.data;
+      console.log('Updating image:', image_id, updates);
+      
+      const updatedImages = state.images.map(image =>
+        image.id === image_id ? { ...image, ...updates } : image
+      );
+      return {
+        ...state,
+        images: updatedImages
+      };
+    }
+    case 'delete_image': {
+      const imageIdToRemove = operation.data.image_id;
+      console.log('Removing image:', imageIdToRemove);
+      
+      const filteredImages = state.images.filter(image => image.id !== imageIdToRemove);
+      return {
+        ...state,
+        images: filteredImages
+      };
     }
     default:
       console.log('Unknown operation type:', operation.operation_type);
-      return lines;
+      return state;
   }
 };

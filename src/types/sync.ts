@@ -1,7 +1,7 @@
 
-import { LineObject } from './whiteboard';
+import { LineObject, ImageObject } from './whiteboard';
 
-export type OperationType = 'draw' | 'erase';
+export type OperationType = 'draw' | 'erase' | 'add_image' | 'update_image' | 'delete_image';
 
 export interface WhiteboardOperation {
   whiteboard_id: string;
@@ -17,6 +17,19 @@ export interface DrawOperationData {
 
 export interface EraseOperationData {
   line_ids: string[];
+}
+
+export interface AddImageOperationData {
+  image: ImageObject;
+}
+
+export interface UpdateImageOperationData {
+  image_id: string;
+  updates: Partial<ImageObject>;
+}
+
+export interface DeleteImageOperationData {
+  image_id: string;
 }
 
 export interface SyncConfig {

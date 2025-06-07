@@ -1,7 +1,7 @@
+
 import { useCallback, useRef } from 'react';
 import { WhiteboardOperation } from '@/types/sync';
 import { applyOperation } from '@/utils/operationSerializer';
-import { LineObject } from '@/types/whiteboard';
 
 export const useRemoteOperationHandler = (
   setState: (updater: (prev: any) => any) => void
@@ -13,11 +13,12 @@ export const useRemoteOperationHandler = (
     isApplyingRemoteOperation.current = true;
     
     setState(prev => {
-      const updatedLines = applyOperation(prev.lines, operation);
+      const updatedState = applyOperation(prev, operation);
       
       return {
         ...prev,
-        lines: updatedLines
+        lines: updatedState.lines,
+        images: updatedState.images
       };
     });
     
