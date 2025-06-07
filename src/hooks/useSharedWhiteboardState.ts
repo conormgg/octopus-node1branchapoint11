@@ -1,5 +1,5 @@
 
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback, useEffect, useRef } from 'react';
 import { WhiteboardState } from '@/types/whiteboard';
 import { SyncConfig } from '@/types/sync';
 import { useHistoryState } from './useHistoryState';
@@ -14,6 +14,7 @@ import { useSharedStateManagement } from './shared/useSharedStateManagement';
 
 export const useSharedWhiteboardState = (syncConfig?: SyncConfig, whiteboardId?: string) => {
   const { getWhiteboardState, updateWhiteboardState } = useWhiteboardStateContext();
+  const initializedRef = useRef(false);
   
   // Initialize state with shared state if available
   const [state, setState] = useState<WhiteboardState>(() => {
@@ -37,19 +38,29 @@ export const useSharedWhiteboardState = (syncConfig?: SyncConfig, whiteboardId?:
   // Pan/zoom operations
   const panZoom = usePanZoom(state.panZoomState, setPanZoomState);
 
-  // Update shared state whenever lines change
+  // Update shared state whenever lines change (but only after initial setup)
   useEffect(() => {
-    if (whiteboardId) {
+    if (whiteboardId && initializedRef.current) {
       updateWhiteboardState(whiteboardId, state.lines);
     }
   }, [state.lines, whiteboardId, updateWhiteboardState]);
 
-  // Handle remote operations
-  const { handleRemoteOperation, isApplyingRemoteOperation } = useRemoteOperationHandler(setState);
+  // Mark as initialized after first render
+  useEffect(() => {
+    initializedRef.current = true;
+  }, []);
 
-  // Set up sync if config is provided
+  // Handle remote operations - use stable callback to prevent sync re-subscriptions
+  const { handleRemoteOperation, isApplyingRemoteOperation } = useRemoteOperationHandler(setState);
+  
+  // Stable callback for remote operations to prevent useSyncState re-subscriptions
+  const stableHandleRemoteOperation = useCallback((operation: any) => {
+    handleRemoteOperation(operation);
+  }, [handleRemoteOperation]);
+
+  // Set up sync if config is provided - use stable config and handler
   const { syncState, sendOperation } = syncConfig 
-    ? useSyncState(syncConfig, handleRemoteOperation)
+    ? useSyncState(syncConfig, stableHandleRemoteOperation)
     : { syncState: null, sendOperation: null };
 
   // Enhanced add to history that syncs operations
