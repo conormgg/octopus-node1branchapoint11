@@ -46,6 +46,13 @@ const WhiteboardPlaceholder: React.FC<WhiteboardPlaceholderProps> = ({
     };
   }, []);
 
+  // Update dimensions when maximized state changes
+  useEffect(() => {
+    // Small delay to ensure container has resized
+    const timer = setTimeout(updateDimensions, 100);
+    return () => clearTimeout(timer);
+  }, [isMaximized]);
+
   const handleMaximizeClick = () => {
     if (isMaximized && onMinimize) {
       onMinimize();
@@ -131,7 +138,6 @@ const WhiteboardPlaceholder: React.FC<WhiteboardPlaceholderProps> = ({
       <div className="flex-1 flex items-center justify-center bg-gray-25 relative overflow-hidden rounded-lg">
         {syncConfig ? (
           <SyncWhiteboard 
-            key={`${id}-${isMaximized}`} // Force remount on maximize/minimize to reset state
             syncConfig={syncConfig}
             width={dimensions.width}
             height={dimensions.height}
