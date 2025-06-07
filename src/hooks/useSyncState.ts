@@ -15,6 +15,8 @@ export const useSyncState = (
   });
 
   const pendingOperationsRef = useRef<WhiteboardOperation[]>([]);
+  const channelRef = useRef<any>(null);
+  const reconnectTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   // Send operation to other clients
   const sendOperation = useCallback((operation: Omit<WhiteboardOperation, 'id' | 'timestamp' | 'sender_id'>) => {
@@ -29,11 +31,11 @@ export const useSyncState = (
 
     console.log('Sending operation to Supabase:', fullOperation);
 
-    // Send to Supabase - the action_type now correctly accepts 'draw' and 'erase'
+    // Send to Supabase
     supabase
       .from('whiteboard_data')
       .insert({
-        action_type: fullOperation.operation_type, // 'draw' or 'erase' - now allowed by constraint
+        action_type: fullOperation.operation_type,
         board_id: fullOperation.whiteboard_id,
         object_data: fullOperation.data,
         object_id: `${fullOperation.operation_type}_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
@@ -43,7 +45,6 @@ export const useSyncState = (
       .then(({ error }) => {
         if (error) {
           console.error('Error sending operation:', error);
-          console.error('Operation that failed:', fullOperation);
           // Add to pending operations for retry
           pendingOperationsRef.current.push(fullOperation);
           setSyncState(prev => ({
@@ -76,8 +77,14 @@ export const useSyncState = (
     });
   }, [sendOperation]);
 
-  // Set up real-time subscription
-  useEffect(() => {
+  // Setup realtime subscription with reconnection logic
+  const setupSubscription = useCallback(() => {
+    // Clean up existing channel
+    if (channelRef.current) {
+      console.log('Cleaning up existing channel');
+      supabase.removeChannel(channelRef.current);
+    }
+
     console.log(`Setting up realtime subscription for whiteboard: ${config.whiteboardId}`);
     
     const channel = supabase
@@ -120,17 +127,48 @@ export const useSyncState = (
           isConnected: status === 'SUBSCRIBED'
         }));
 
-        // Retry pending operations when we reconnect
+        // Handle reconnection
         if (status === 'SUBSCRIBED') {
+          console.log('Successfully connected to realtime');
           retryPendingOperations();
+          
+          // Clear any pending reconnection timeout
+          if (reconnectTimeoutRef.current) {
+            clearTimeout(reconnectTimeoutRef.current);
+            reconnectTimeoutRef.current = null;
+          }
+        } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
+          console.log('Connection error, scheduling reconnection');
+          setSyncState(prev => ({ ...prev, isConnected: false }));
+          
+          // Schedule reconnection attempt
+          if (!reconnectTimeoutRef.current) {
+            reconnectTimeoutRef.current = setTimeout(() => {
+              console.log('Attempting to reconnect...');
+              setupSubscription();
+              reconnectTimeoutRef.current = null;
+            }, 3000);
+          }
         }
       });
 
+    channelRef.current = channel;
+  }, [config.whiteboardId, config.senderId, onReceiveOperation, retryPendingOperations]);
+
+  // Set up subscription on mount and config changes
+  useEffect(() => {
+    setupSubscription();
+
     return () => {
       console.log('Cleaning up realtime subscription');
-      supabase.removeChannel(channel);
+      if (channelRef.current) {
+        supabase.removeChannel(channelRef.current);
+      }
+      if (reconnectTimeoutRef.current) {
+        clearTimeout(reconnectTimeoutRef.current);
+      }
     };
-  }, [config.whiteboardId, config.senderId, onReceiveOperation, retryPendingOperations]);
+  }, [setupSubscription]);
 
   return {
     syncState,

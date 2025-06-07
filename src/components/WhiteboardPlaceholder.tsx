@@ -55,11 +55,13 @@ const WhiteboardPlaceholder: React.FC<WhiteboardPlaceholderProps> = ({
   };
 
   const getSyncConfig = (boardId: string): SyncConfig | undefined => {
-    if (!sessionId) return undefined;
+    if (!sessionId || !senderId) {
+      console.log('Missing sessionId or senderId for sync config:', { sessionId, senderId, boardId });
+      return undefined;
+    }
 
     // Teacher's main board -> broadcasts to students
     if (boardId === "teacher-main") {
-      if (!senderId) return undefined; // Don't create config without a senderId
       return {
         whiteboardId: `session-${sessionId}-main`,
         senderId: senderId,
@@ -81,7 +83,6 @@ const WhiteboardPlaceholder: React.FC<WhiteboardPlaceholderProps> = ({
     // Individual student boards - check if it matches the pattern
     if (boardId.startsWith('student-board-')) {
       const studentNumber = boardId.replace('student-board-', '');
-      if (!senderId) return undefined;
       
       return {
         whiteboardId: `session-${sessionId}-student-${studentNumber}`,
@@ -91,10 +92,18 @@ const WhiteboardPlaceholder: React.FC<WhiteboardPlaceholderProps> = ({
       };
     }
 
+    console.log('No sync config found for board:', boardId);
     return undefined;
   };
 
   const syncConfig = getSyncConfig(id);
+
+  // Add connection status logging
+  useEffect(() => {
+    if (syncConfig) {
+      console.log(`WhiteboardPlaceholder ${id} sync config:`, syncConfig);
+    }
+  }, [id, syncConfig]);
 
   return (
     <div 
@@ -122,6 +131,7 @@ const WhiteboardPlaceholder: React.FC<WhiteboardPlaceholderProps> = ({
       <div className="flex-1 flex items-center justify-center bg-gray-25 relative overflow-hidden rounded-lg">
         {syncConfig ? (
           <SyncWhiteboard 
+            key={`${id}-${isMaximized}`} // Force remount on maximize/minimize to reset state
             syncConfig={syncConfig}
             width={dimensions.width}
             height={dimensions.height}

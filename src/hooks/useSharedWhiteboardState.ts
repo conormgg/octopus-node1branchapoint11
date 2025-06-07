@@ -1,5 +1,5 @@
 
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback, useEffect, useRef } from 'react';
 import { WhiteboardState } from '@/types/whiteboard';
 import { SyncConfig } from '@/types/sync';
 import { useHistoryState } from './useHistoryState';
@@ -14,6 +14,7 @@ import { useSharedStateManagement } from './shared/useSharedStateManagement';
 
 export const useSharedWhiteboardState = (syncConfig?: SyncConfig, whiteboardId?: string) => {
   const { getWhiteboardState, updateWhiteboardState } = useWhiteboardStateContext();
+  const stateInitialized = useRef(false);
   
   // Initialize state with shared state if available
   const [state, setState] = useState<WhiteboardState>(() => {
@@ -37,17 +38,26 @@ export const useSharedWhiteboardState = (syncConfig?: SyncConfig, whiteboardId?:
   // Pan/zoom operations
   const panZoom = usePanZoom(state.panZoomState, setPanZoomState);
 
-  // Update shared state whenever lines change
+  // Update shared state whenever lines change, but avoid infinite loops
   useEffect(() => {
-    if (whiteboardId) {
+    if (whiteboardId && stateInitialized.current) {
+      console.log('Updating shared whiteboard state for:', whiteboardId);
       updateWhiteboardState(whiteboardId, state.lines);
+    }
+    if (!stateInitialized.current) {
+      stateInitialized.current = true;
     }
   }, [state.lines, whiteboardId, updateWhiteboardState]);
 
   // Handle remote operations
   const { handleRemoteOperation, isApplyingRemoteOperation } = useRemoteOperationHandler(setState);
 
-  // Set up sync if config is provided
+  // Set up sync if config is provided - using a stable reference
+  const syncConfigRef = useRef(syncConfig);
+  useEffect(() => {
+    syncConfigRef.current = syncConfig;
+  }, [syncConfig]);
+
   const { syncState, sendOperation } = syncConfig 
     ? useSyncState(syncConfig, handleRemoteOperation)
     : { syncState: null, sendOperation: null };
