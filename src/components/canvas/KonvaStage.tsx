@@ -91,14 +91,29 @@ const KonvaStage: React.FC<KonvaStageProps> = ({
     const container = containerRef.current;
     if (!container) return;
 
-    container.addEventListener('touchstart', panZoom.handleTouchStart, { passive: false });
-    container.addEventListener('touchmove', panZoom.handleTouchMove, { passive: false });
-    container.addEventListener('touchend', panZoom.handleTouchEnd);
+    const handleTouchStart = (e: TouchEvent) => {
+      e.preventDefault(); // Prevent iOS context menu
+      panZoom.handleTouchStart(e);
+    };
+
+    const handleTouchMove = (e: TouchEvent) => {
+      e.preventDefault(); // Prevent scrolling and selection
+      panZoom.handleTouchMove(e);
+    };
+
+    const handleTouchEnd = (e: TouchEvent) => {
+      e.preventDefault(); // Prevent default touch behaviors
+      panZoom.handleTouchEnd(e);
+    };
+
+    container.addEventListener('touchstart', handleTouchStart, { passive: false });
+    container.addEventListener('touchmove', handleTouchMove, { passive: false });
+    container.addEventListener('touchend', handleTouchEnd, { passive: false });
 
     return () => {
-      container.removeEventListener('touchstart', panZoom.handleTouchStart);
-      container.removeEventListener('touchmove', panZoom.handleTouchMove);
-      container.removeEventListener('touchend', panZoom.handleTouchEnd);
+      container.removeEventListener('touchstart', handleTouchStart);
+      container.removeEventListener('touchmove', handleTouchMove);
+      container.removeEventListener('touchend', handleTouchEnd);
     };
   }, [panZoom.handleTouchStart, panZoom.handleTouchMove, panZoom.handleTouchEnd]);
 
@@ -240,7 +255,15 @@ const KonvaStage: React.FC<KonvaStageProps> = ({
   };
 
   return (
-    <div ref={containerRef} className="w-full h-full">
+    <div 
+      ref={containerRef} 
+      className="w-full h-full select-none" 
+      style={{ 
+        WebkitUserSelect: 'none',
+        WebkitTouchCallout: 'none',
+        touchAction: 'none'
+      }}
+    >
       <Stage
         width={width}
         height={height}
