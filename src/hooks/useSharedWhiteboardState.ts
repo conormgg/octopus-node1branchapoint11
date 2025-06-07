@@ -9,7 +9,7 @@ import { useSyncState } from './useSyncState';
 import { useRemoteOperationHandler } from './useRemoteOperationHandler';
 import { useWhiteboardStateContext } from '@/contexts/WhiteboardStateContext';
 import { usePanZoom } from './usePanZoom';
-import { serializeDrawOperation, serializeEraseOperation } from '@/utils/operationSerializer';
+import { serializeDrawOperation, serializeEraseOperation, serializeAddImageOperation } from '@/utils/operationSerializer';
 import { v4 as uuidv4 } from 'uuid';
 import Konva from 'konva';
 
@@ -185,13 +185,20 @@ export const useSharedWhiteboardState = (syncConfig?: SyncConfig, whiteboardId?:
             
             // Add to history after state update
             setTimeout(() => addToHistory(), 0);
+            
+            // Sync the new image if we're not in receive-only mode
+            if (sendOperation && !isApplyingRemoteOperation.current) {
+              console.log('Syncing new image to other clients:', newImage);
+              sendOperation(serializeAddImageOperation(newImage));
+            }
+            
             console.log('Image added to whiteboard');
           };
         };
         reader.readAsDataURL(file);
       }
     }
-  }, [state.panZoomState, addToHistory]);
+  }, [state.panZoomState, addToHistory, sendOperation, isApplyingRemoteOperation]);
 
   // Tool change
   const setTool = useCallback((tool: Tool) => {
