@@ -1,4 +1,3 @@
-
 import { useCallback, useRef } from 'react';
 import { PanZoomState } from '@/types/whiteboard';
 
@@ -29,7 +28,7 @@ export const usePanZoom = (
     initialCenter: { x: 0, y: 0 }
   });
 
-  const zoom = useCallback((delta: number, centerX: number, centerY: number) => {
+  const zoom = useCallback((delta: number, screenX: number, screenY: number) => {
     const newScale = Math.max(
       finalConfig.minScale,
       Math.min(finalConfig.maxScale, panZoomState.scale + delta)
@@ -37,10 +36,13 @@ export const usePanZoom = (
 
     if (newScale === panZoomState.scale) return;
 
-    // Calculate zoom center relative to current view
-    const scaleRatio = newScale / panZoomState.scale;
-    const newX = centerX - (centerX - panZoomState.x) * scaleRatio;
-    const newY = centerY - (centerY - panZoomState.y) * scaleRatio;
+    // Convert screen coordinates to world coordinates
+    const worldX = (screenX - panZoomState.x) / panZoomState.scale;
+    const worldY = (screenY - panZoomState.y) / panZoomState.scale;
+
+    // Calculate new pan position to keep the world point under the cursor
+    const newX = screenX - worldX * newScale;
+    const newY = screenY - worldY * newScale;
 
     setPanZoomState({
       x: newX,
@@ -125,20 +127,24 @@ export const usePanZoom = (
       const currentCenterX = (touch1.clientX + touch2.clientX) / 2;
       const currentCenterY = (touch1.clientY + touch2.clientY) / 2;
       
-      // Handle pinch zoom
-      const scaleChange = (currentDistance / gestureStateRef.current.initialDistance) - 1;
+      // Handle pinch zoom with proper zoom-to-center
+      const scaleRatio = currentDistance / gestureStateRef.current.initialDistance;
       const newScale = Math.max(
         finalConfig.minScale,
-        Math.min(finalConfig.maxScale, gestureStateRef.current.initialScale + scaleChange)
+        Math.min(finalConfig.maxScale, gestureStateRef.current.initialScale * scaleRatio)
       );
       
-      // Handle two-finger pan
-      const deltaX = currentCenterX - lastPanPointRef.current.x;
-      const deltaY = currentCenterY - lastPanPointRef.current.y;
+      // Convert initial pinch center to world coordinates
+      const worldX = (gestureStateRef.current.initialCenter.x - panZoomState.x) / gestureStateRef.current.initialScale;
+      const worldY = (gestureStateRef.current.initialCenter.y - panZoomState.y) / gestureStateRef.current.initialScale;
+      
+      // Calculate new pan position to keep the pinch center stationary
+      const newX = currentCenterX - worldX * newScale;
+      const newY = currentCenterY - worldY * newScale;
       
       setPanZoomState({
-        x: panZoomState.x + deltaX,
-        y: panZoomState.y + deltaY,
+        x: newX,
+        y: newY,
         scale: newScale
       });
       
