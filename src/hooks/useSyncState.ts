@@ -21,10 +21,12 @@ export const useSyncState = (
   const isUnmountedRef = useRef(false);
   const configRef = useRef(config);
   const onReceiveOperationRef = useRef(onReceiveOperation);
+  const isReceiveOnlyRef = useRef(config.isReceiveOnly || false);
 
   // Update refs when values change to avoid dependency cycles
   useEffect(() => {
     configRef.current = config;
+    isReceiveOnlyRef.current = config.isReceiveOnly || false;
   }, [config.whiteboardId, config.senderId, config.sessionId, config.isReceiveOnly]);
 
   useEffect(() => {
@@ -34,7 +36,7 @@ export const useSyncState = (
   // Stable send operation function that doesn't recreate on every render
   const sendOperation = useCallback((operation: Omit<WhiteboardOperation, 'id' | 'timestamp' | 'sender_id'>) => {
     // Use ref to get current value without causing dependency cycle
-    if (configRef.current.isReceiveOnly) return null;
+    if (isReceiveOnlyRef.current) return null;
 
     const fullOperation: WhiteboardOperation = {
       ...operation,
@@ -82,7 +84,7 @@ export const useSyncState = (
     return fullOperation;
   }, []); // Empty dependency array - function is stable
 
-  // Stable retry function that doesn't depend on sendOperation
+  // Stable retry function
   const retryPendingOperations = useCallback(() => {
     if (pendingOperationsRef.current.length === 0 || isUnmountedRef.current) return;
 
@@ -91,8 +93,9 @@ export const useSyncState = (
     pendingOperationsRef.current = [];
 
     operationsToRetry.forEach(operation => {
-      // Re-create the operation without the metadata fields
+      // Re-create the operation with all required properties for sendOperation
       const operationToRetry = {
+        whiteboard_id: operation.whiteboard_id,
         operation_type: operation.operation_type,
         data: operation.data
       };
