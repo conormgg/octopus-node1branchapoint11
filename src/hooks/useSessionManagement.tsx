@@ -17,6 +17,7 @@ export const useSessionManagement = (user: any, isDemoMode: boolean) => {
   const [activeSession, setActiveSession] = useState<Session | null>(null);
   const [recentSessions, setRecentSessions] = useState<Session[]>([]);
   const [showUrlModal, setShowUrlModal] = useState(false);
+  const [endingSession, setEndingSession] = useState(false);
   const { toast } = useToast();
   const { clearWhiteboardState } = useWhiteboardStateContext();
 
@@ -70,8 +71,10 @@ export const useSessionManagement = (user: any, isDemoMode: boolean) => {
   };
 
   const handleEndSession = async () => {
-    if (!activeSession) return;
+    if (!activeSession || endingSession) return;
 
+    setEndingSession(true);
+    
     try {
       // First, get all whiteboard IDs associated with this session
       const { data: whiteboardData, error: fetchError } = await supabase
@@ -97,7 +100,7 @@ export const useSessionManagement = (user: any, isDemoMode: boolean) => {
         });
       }
 
-      // Only show toast on teacher's side (not duplicated on student side)
+      // Show toast only on teacher's side (not duplicated on student side)
       toast({
         title: "Session Ended",
         description: "The session has been ended successfully.",
@@ -111,6 +114,8 @@ export const useSessionManagement = (user: any, isDemoMode: boolean) => {
         description: error.message,
         variant: "destructive",
       });
+    } finally {
+      setEndingSession(false);
     }
   };
 

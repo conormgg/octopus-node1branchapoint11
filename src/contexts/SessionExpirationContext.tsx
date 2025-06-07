@@ -33,6 +33,7 @@ export const SessionExpirationProvider: React.FC<SessionExpirationProviderProps>
   const [lastKnownStatus, setLastKnownStatus] = useState<string | null>(null);
   const [hasProcessedEndState, setHasProcessedEndState] = useState(false);
   const [isRedirecting, setIsRedirecting] = useState(false);
+  const [toastShownForSession, setToastShownForSession] = useState<string | null>(null);
   const { toast } = useToast();
   const { clearWhiteboardState } = useWhiteboardStateContext();
 
@@ -66,9 +67,10 @@ export const SessionExpirationProvider: React.FC<SessionExpirationProviderProps>
           setHasProcessedEndState(true);
           setIsRedirecting(true);
           
-          // Only show toast once and only from this central location
-          if (!hasShownToast) {
+          // Only show toast once per session and only from this central location
+          if (!hasShownToast && toastShownForSession !== sessionId) {
             setHasShownToast(true);
+            setToastShownForSession(sessionId);
             toast({
               title: "Session Ended",
               description: "This session has been ended by the teacher. You will be redirected to the home page.",
@@ -91,9 +93,10 @@ export const SessionExpirationProvider: React.FC<SessionExpirationProviderProps>
           setHasProcessedEndState(true);
           setIsRedirecting(true);
           
-          // Only show toast once and only from this central location
-          if (!hasShownToast) {
+          // Only show toast once per session and only from this central location
+          if (!hasShownToast && toastShownForSession !== sessionId) {
             setHasShownToast(true);
+            setToastShownForSession(sessionId);
             toast({
               title: "Session Expired",
               description: "This session has expired. Your whiteboard data will no longer be saved. You will be redirected to the home page.",
@@ -140,9 +143,10 @@ export const SessionExpirationProvider: React.FC<SessionExpirationProviderProps>
         setHasProcessedEndState(true);
         setIsRedirecting(true);
         
-        // Only show toast once for natural expiration
-        if (!hasShownToast) {
+        // Only show toast once for natural expiration per session
+        if (!hasShownToast && toastShownForSession !== sessionId) {
           setHasShownToast(true);
+          setToastShownForSession(sessionId);
           toast({
             title: "Session Expired",
             description: "This session has expired. Your whiteboard data will no longer be saved. You will be redirected to the home page.",
@@ -178,7 +182,7 @@ export const SessionExpirationProvider: React.FC<SessionExpirationProviderProps>
     } catch (err) {
       console.error('Error checking session expiration:', err);
     }
-  }, [sessionId, onSessionExpired, toast, clearWhiteboardState, hasShownToast, lastKnownStatus, hasProcessedEndState]);
+  }, [sessionId, onSessionExpired, toast, clearWhiteboardState, hasShownToast, lastKnownStatus, hasProcessedEndState, isRedirecting, toastShownForSession]);
 
   useEffect(() => {
     if (!sessionId) return;
@@ -189,6 +193,8 @@ export const SessionExpirationProvider: React.FC<SessionExpirationProviderProps>
     setSessionEndReason(null);
     setLastKnownStatus(null);
     setHasProcessedEndState(false);
+    setIsRedirecting(false);
+    setToastShownForSession(null);
 
     // Initial check
     checkSessionExpiration();
