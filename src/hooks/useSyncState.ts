@@ -16,7 +16,6 @@ export const useSyncState = (
 
   const pendingOperationsRef = useRef<WhiteboardOperation[]>([]);
   const channelRef = useRef<any>(null);
-  const isSubscribedRef = useRef(false);
   const configRef = useRef(config);
 
   // Update config reference when it changes
@@ -86,17 +85,16 @@ export const useSyncState = (
   // Set up real-time subscription
   useEffect(() => {
     // Clean up existing subscription if any
-    if (channelRef.current && isSubscribedRef.current) {
+    if (channelRef.current) {
       console.log('Cleaning up existing subscription');
       supabase.removeChannel(channelRef.current);
       channelRef.current = null;
-      isSubscribedRef.current = false;
     }
 
     console.log(`Setting up realtime subscription for whiteboard: ${config.whiteboardId}`);
     
     // Create unique channel name to prevent conflicts
-    const channelName = `whiteboard-${config.whiteboardId}-${config.senderId}`;
+    const channelName = `whiteboard-${config.whiteboardId}-${Date.now()}`;
     const channel = supabase
       .channel(channelName)
       .on(
@@ -138,11 +136,8 @@ export const useSyncState = (
         }));
 
         if (status === 'SUBSCRIBED') {
-          isSubscribedRef.current = true;
           // Retry pending operations when we reconnect
           retryPendingOperations();
-        } else if (status === 'CLOSED' || status === 'CHANNEL_ERROR') {
-          isSubscribedRef.current = false;
         }
       });
 
@@ -150,10 +145,9 @@ export const useSyncState = (
 
     return () => {
       console.log('Cleaning up realtime subscription');
-      if (channelRef.current && isSubscribedRef.current) {
+      if (channelRef.current) {
         supabase.removeChannel(channelRef.current);
         channelRef.current = null;
-        isSubscribedRef.current = false;
       }
     };
   }, [config.whiteboardId, config.senderId, onReceiveOperation, retryPendingOperations]);
