@@ -52,9 +52,27 @@ const SessionWrapper = ({ children }: { children: React.ReactNode }) => {
   );
 };
 
-const AuthenticatedApp = () => {
+// Helper function to check if current route is a student route
+const isStudentRoute = (pathname: string) => {
+  return pathname.startsWith('/session/');
+};
+
+const AuthAwareRoutes = () => {
+  const location = useLocation();
   const { user, loading, isDemoMode } = useAuth();
 
+  // For student routes, skip authentication loading and render immediately
+  if (isStudentRoute(location.pathname)) {
+    return (
+      <Routes>
+        <Route path="/session/:sessionSlug" element={<StudentJoinPage />} />
+        <Route path="/session/:sessionSlug/student" element={<StudentSessionView />} />
+        <Route path="*" element={<NotFound />} />
+      </Routes>
+    );
+  }
+
+  // For non-student routes, show loading state during auth check
   if (loading) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
@@ -66,33 +84,35 @@ const AuthenticatedApp = () => {
     );
   }
 
+  // Teacher routes - require authentication or demo mode
+  return (
+    <Routes>
+      {(user || isDemoMode) ? (
+        <>
+          <Route path="/dashboard" element={<TeacherDashboard />} />
+          <Route path="/auth" element={<Navigate to="/dashboard" replace />} />
+          <Route path="/" element={<Navigate to="/dashboard" replace />} />
+        </>
+      ) : (
+        <>
+          <Route path="/auth" element={<AuthPage />} />
+          <Route path="/dashboard" element={<Navigate to="/auth" replace />} />
+          <Route path="/" element={<Index />} />
+        </>
+      )}
+      
+      {/* Catch all other routes */}
+      <Route path="*" element={<NotFound />} />
+    </Routes>
+  );
+};
+
+const AuthenticatedApp = () => {
   return (
     <BrowserRouter>
       <SessionProvider>
         <SessionWrapper>
-          <Routes>
-            {/* Public routes for students to join sessions */}
-            <Route path="/session/:sessionSlug" element={<StudentJoinPage />} />
-            <Route path="/session/:sessionSlug/student" element={<StudentSessionView />} />
-            
-            {/* Teacher routes - require authentication or demo mode */}
-            {(user || isDemoMode) ? (
-              <>
-                <Route path="/dashboard" element={<TeacherDashboard />} />
-                <Route path="/auth" element={<Navigate to="/dashboard" replace />} />
-                <Route path="/" element={<Navigate to="/dashboard" replace />} />
-              </>
-            ) : (
-              <>
-                <Route path="/auth" element={<AuthPage />} />
-                <Route path="/dashboard" element={<Navigate to="/auth" replace />} />
-                <Route path="/" element={<Index />} />
-              </>
-            )}
-            
-            {/* Catch all other routes */}
-            <Route path="*" element={<NotFound />} />
-          </Routes>
+          <AuthAwareRoutes />
         </SessionWrapper>
       </SessionProvider>
     </BrowserRouter>
