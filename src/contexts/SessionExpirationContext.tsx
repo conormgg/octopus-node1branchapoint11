@@ -28,7 +28,8 @@ export const SessionExpirationProvider: React.FC<SessionExpirationProviderProps>
   const [expiresAt, setExpiresAt] = useState<Date | null>(null);
   const [timeRemaining, setTimeRemaining] = useState<number | null>(null);
   const [sessionEndReason, setSessionEndReason] = useState<'expired' | 'ended_by_teacher' | null>(null);
-  const [hasShownExpiredToast, setHasShownExpiredToast] = useState(false);
+  const [hasShownToast, setHasShownToast] = useState(false);
+  const [lastKnownStatus, setLastKnownStatus] = useState<string | null>(null);
   const { toast } = useToast();
   const { clearWhiteboardState } = useWhiteboardStateContext();
 
@@ -47,14 +48,28 @@ export const SessionExpirationProvider: React.FC<SessionExpirationProviderProps>
         return;
       }
 
+      // Only show toast if status changed from active to something else
+      const statusChanged = lastKnownStatus === 'active' && data.status !== 'active';
+      
       // Handle different session statuses
       if (data.status === 'ended_by_teacher') {
         setIsExpired(true);
         setExpiresAt(null);
         setTimeRemaining(0);
         setSessionEndReason('ended_by_teacher');
-        // Don't show toast for teacher-ended sessions
+        
+        // Show toast only once when status changes from active to ended_by_teacher
+        if (statusChanged && !hasShownToast) {
+          setHasShownToast(true);
+          toast({
+            title: "Session Ended",
+            description: "This session has been ended by the teacher.",
+            variant: "destructive",
+          });
+        }
+        
         if (onSessionExpired) onSessionExpired();
+        setLastKnownStatus(data.status);
         return;
       }
 
@@ -64,9 +79,9 @@ export const SessionExpirationProvider: React.FC<SessionExpirationProviderProps>
         setTimeRemaining(0);
         setSessionEndReason('expired');
         
-        // Only show toast once for expired sessions
-        if (!hasShownExpiredToast) {
-          setHasShownExpiredToast(true);
+        // Show toast only once when status changes from active to expired
+        if (statusChanged && !hasShownToast) {
+          setHasShownToast(true);
           toast({
             title: "Session Expired",
             description: "This session has expired. Your whiteboard data will no longer be saved.",
@@ -75,6 +90,7 @@ export const SessionExpirationProvider: React.FC<SessionExpirationProviderProps>
         }
         
         if (onSessionExpired) onSessionExpired();
+        setLastKnownStatus(data.status);
         return;
       }
 
@@ -83,8 +99,12 @@ export const SessionExpirationProvider: React.FC<SessionExpirationProviderProps>
         setExpiresAt(null);
         setTimeRemaining(0);
         if (onSessionExpired) onSessionExpired();
+        setLastKnownStatus(data.status);
         return;
       }
+
+      // Update last known status
+      setLastKnownStatus(data.status);
 
       // Calculate expiration time for active sessions
       const createdAt = new Date(data.created_at);
@@ -102,8 +122,8 @@ export const SessionExpirationProvider: React.FC<SessionExpirationProviderProps>
         setSessionEndReason('expired');
         
         // Only show toast once for natural expiration
-        if (!hasShownExpiredToast) {
-          setHasShownExpiredToast(true);
+        if (!hasShownToast) {
+          setHasShownToast(true);
           toast({
             title: "Session Expired",
             description: "This session has expired. Your whiteboard data will no longer be saved.",
@@ -139,23 +159,24 @@ export const SessionExpirationProvider: React.FC<SessionExpirationProviderProps>
     } catch (err) {
       console.error('Error checking session expiration:', err);
     }
-  }, [sessionId, onSessionExpired, toast, clearWhiteboardState, hasShownExpiredToast]);
+  }, [sessionId, onSessionExpired, toast, clearWhiteboardState, hasShownToast, lastKnownStatus]);
 
   useEffect(() => {
     if (!sessionId) return;
 
     // Reset state when sessionId changes
-    setHasShownExpiredToast(false);
+    setHasShownToast(false);
     setIsExpired(false);
     setSessionEndReason(null);
+    setLastKnownStatus(null);
 
     // Initial check
     checkSessionExpiration();
 
-    // Set up interval to check every minute
+    // Set up interval to check every 5 seconds for faster detection
     const intervalId = setInterval(() => {
       checkSessionExpiration();
-    }, 60000);
+    }, 5000);
 
     return () => {
       clearInterval(intervalId);
