@@ -59,42 +59,61 @@ const WhiteboardPlaceholder: React.FC<WhiteboardPlaceholderProps> = ({
   };
 
   const getSyncConfig = (boardId: string): SyncConfig | undefined => {
-    if (!sessionId) return undefined;
+    if (!sessionId || !senderId) {
+      console.log('Missing sessionId or senderId for sync config:', { sessionId, senderId, boardId });
+      return undefined;
+    }
 
     // Teacher's main board -> broadcasts to students
     if (boardId === "teacher-main") {
-      if (!senderId) return undefined;
-      return {
+      const config = {
         whiteboardId: `session-${sessionId}-main`,
         senderId: senderId,
         sessionId: sessionId,
         isReceiveOnly: false,
       };
+      console.log('Teacher main board sync config:', config);
+      return config;
     }
     
     // Student's view of teacher's board -> receives only
     if (boardId === "student-shared-teacher") {
-      return {
+      const config = {
         whiteboardId: `session-${sessionId}-main`,
-        senderId: `student-listener-${sessionId}`,
+        senderId: senderId, // Use actual student ID instead of generic listener
         sessionId: sessionId,
         isReceiveOnly: true,
       };
+      console.log('Student shared teacher board sync config:', config);
+      return config;
     }
 
     // Individual student boards
     if (boardId.startsWith('student-board-')) {
       const studentNumber = boardId.replace('student-board-', '');
-      if (!senderId) return undefined;
-      
-      return {
+      const config = {
         whiteboardId: `session-${sessionId}-student-${studentNumber}`,
         senderId: senderId,
         sessionId: sessionId,
         isReceiveOnly: false,
       };
+      console.log('Student individual board sync config:', config);
+      return config;
     }
 
+    // Student personal board (not synced with teacher)
+    if (boardId === "student-personal") {
+      const config = {
+        whiteboardId: `session-${sessionId}-personal-${senderId}`,
+        senderId: senderId,
+        sessionId: sessionId,
+        isReceiveOnly: false,
+      };
+      console.log('Student personal board sync config:', config);
+      return config;
+    }
+
+    console.log('No sync config found for boardId:', boardId);
     return undefined;
   };
 
