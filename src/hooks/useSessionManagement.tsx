@@ -27,7 +27,6 @@ export const useSessionManagement = (user: any, isDemoMode: boolean) => {
   }, [user]);
 
   const fetchRecentSessions = async () => {
-    // Skip fetching for demo mode since we don't have real data
     if (isDemoMode) {
       setRecentSessions([]);
       return;
@@ -59,7 +58,7 @@ export const useSessionManagement = (user: any, isDemoMode: boolean) => {
       if (error) throw error;
       
       setActiveSession(data);
-      setShowUrlModal(true); // Show the URL modal for newly created sessions
+      setShowUrlModal(true);
       fetchRecentSessions();
     } catch (error: any) {
       toast({
@@ -82,7 +81,7 @@ export const useSessionManagement = (user: any, isDemoMode: boolean) => {
         
       if (fetchError) throw fetchError;
       
-      // Update session status
+      // Update session status to 'ended_by_teacher' instead of 'expired'
       const { error } = await supabase
         .from('sessions')
         .update({ status: 'ended_by_teacher' })
@@ -92,10 +91,7 @@ export const useSessionManagement = (user: any, isDemoMode: boolean) => {
 
       // Clear whiteboard state from memory
       if (whiteboardData) {
-        // Get unique board IDs
         const boardIds = [...new Set(whiteboardData.map(item => item.board_id))];
-        
-        // Clear each board from memory
         boardIds.forEach(boardId => {
           clearWhiteboardState(boardId);
         });
