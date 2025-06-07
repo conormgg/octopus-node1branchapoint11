@@ -19,18 +19,17 @@ import { Loader2 } from "lucide-react";
 
 const queryClient = new QueryClient();
 
-const SessionWrapper = ({ children }: { children: React.ReactNode }) => {
+// Helper function to check if current route is a student route
+const isStudentRoute = (pathname: string) => {
+  return pathname.startsWith('/session/');
+};
+
+// Student-only routes without any authentication
+const StudentRoutes = () => {
   const location = useLocation();
-  const { currentSessionId } = useSessionContext();
   
   // Extract session ID from location state for student sessions
   const getSessionId = () => {
-    // First check if we have a teacher session ID from context
-    if (currentSessionId) {
-      return currentSessionId;
-    }
-    
-    // Then check for student session from location state
     if (location.pathname.includes('/session/') && location.state) {
       const state = location.state as { sessionId?: string };
       return state.sessionId || null;
@@ -47,32 +46,35 @@ const SessionWrapper = ({ children }: { children: React.ReactNode }) => {
         console.log('Session expired, handled by centralized context');
       }}
     >
-      {children}
-    </SessionExpirationProvider>
-  );
-};
-
-// Helper function to check if current route is a student route
-const isStudentRoute = (pathname: string) => {
-  return pathname.startsWith('/session/');
-};
-
-const AuthAwareRoutes = () => {
-  const location = useLocation();
-  const { user, loading, isDemoMode } = useAuth();
-
-  // For student routes, skip authentication loading and render immediately
-  if (isStudentRoute(location.pathname)) {
-    return (
       <Routes>
         <Route path="/session/:sessionSlug" element={<StudentJoinPage />} />
         <Route path="/session/:sessionSlug/student" element={<StudentSessionView />} />
         <Route path="*" element={<NotFound />} />
       </Routes>
-    );
-  }
+    </SessionExpirationProvider>
+  );
+};
 
-  // For non-student routes, show loading state during auth check
+// Teacher routes with full authentication
+const TeacherSessionWrapper = ({ children }: { children: React.ReactNode }) => {
+  const { currentSessionId } = useSessionContext();
+
+  return (
+    <SessionExpirationProvider 
+      sessionId={currentSessionId}
+      onSessionExpired={() => {
+        console.log('Session expired, handled by centralized context');
+      }}
+    >
+      {children}
+    </SessionExpirationProvider>
+  );
+};
+
+const TeacherRoutes = () => {
+  const { user, loading, isDemoMode } = useAuth();
+
+  // Show loading state during auth check
   if (loading) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
@@ -84,52 +86,60 @@ const AuthAwareRoutes = () => {
     );
   }
 
-  // Teacher routes - require authentication or demo mode
   return (
-    <Routes>
-      {(user || isDemoMode) ? (
-        <>
-          <Route path="/dashboard" element={<TeacherDashboard />} />
-          <Route path="/auth" element={<Navigate to="/dashboard" replace />} />
-          <Route path="/" element={<Navigate to="/dashboard" replace />} />
-        </>
-      ) : (
-        <>
-          <Route path="/auth" element={<AuthPage />} />
-          <Route path="/dashboard" element={<Navigate to="/auth" replace />} />
-          <Route path="/" element={<Index />} />
-        </>
-      )}
-      
-      {/* Catch all other routes */}
-      <Route path="*" element={<NotFound />} />
-    </Routes>
+    <SessionProvider>
+      <TeacherSessionWrapper>
+        <Routes>
+          {(user || isDemoMode) ? (
+            <>
+              <Route path="/dashboard" element={<TeacherDashboard />} />
+              <Route path="/auth" element={<Navigate to="/dashboard" replace />} />
+              <Route path="/" element={<Navigate to="/dashboard" replace />} />
+            </>
+          ) : (
+            <>
+              <Route path="/auth" element={<AuthPage />} />
+              <Route path="/dashboard" element={<Navigate to="/auth" replace />} />
+              <Route path="/" element={<Index />} />
+            </>
+          )}
+          
+          {/* Catch all other routes */}
+          <Route path="*" element={<NotFound />} />
+        </Routes>
+      </TeacherSessionWrapper>
+    </SessionProvider>
   );
 };
 
-const AuthenticatedApp = () => {
+// Route dispatcher that decides between student and teacher flows
+const RouteDispatcher = () => {
+  const location = useLocation();
+
+  // For student routes, use minimal student-only app
+  if (isStudentRoute(location.pathname)) {
+    return <StudentRoutes />;
+  }
+
+  // For all other routes, use full teacher app with authentication
   return (
-    <BrowserRouter>
-      <SessionProvider>
-        <SessionWrapper>
-          <AuthAwareRoutes />
-        </SessionWrapper>
-      </SessionProvider>
-    </BrowserRouter>
+    <DemoAuthProvider>
+      <TeacherRoutes />
+    </DemoAuthProvider>
   );
 };
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
-    <DemoAuthProvider>
-      <WhiteboardStateProvider>
-        <TooltipProvider>
-          <Toaster />
-          <Sonner />
-          <AuthenticatedApp />
-        </TooltipProvider>
-      </WhiteboardStateProvider>
-    </DemoAuthProvider>
+    <WhiteboardStateProvider>
+      <TooltipProvider>
+        <Toaster />
+        <Sonner />
+        <BrowserRouter>
+          <RouteDispatcher />
+        </BrowserRouter>
+      </TooltipProvider>
+    </WhiteboardStateProvider>
   </QueryClientProvider>
 );
 
