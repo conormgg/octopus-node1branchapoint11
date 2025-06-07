@@ -21,22 +21,57 @@ export const useSyncState = (
   const isUnmountedRef = useRef(false);
   const configRef = useRef(config);
   const onReceiveOperationRef = useRef(onReceiveOperation);
-  const isReceiveOnlyRef = useRef(config.isReceiveOnly || false);
+  const setupInProgressRef = useRef(false);
 
-  // Update refs when values change to avoid dependency cycles
+  // Update refs when values change
   useEffect(() => {
     configRef.current = config;
-    isReceiveOnlyRef.current = config.isReceiveOnly || false;
   }, [config.whiteboardId, config.senderId, config.sessionId, config.isReceiveOnly]);
 
   useEffect(() => {
     onReceiveOperationRef.current = onReceiveOperation;
   }, [onReceiveOperation]);
 
-  // Stable send operation function that doesn't recreate on every render
+  // Retry pending operations independently of subscription setup
+  const retryPendingOperations = useCallback(() => {
+    if (pendingOperationsRef.current.length === 0 || isUnmountedRef.current) return;
+
+    console.log(`Retrying ${pendingOperationsRef.current.length} pending operations`);
+    const operationsToRetry = [...pendingOperationsRef.current];
+    pendingOperationsRef.current = [];
+
+    operationsToRetry.forEach(operation => {
+      supabase
+        .from('whiteboard_data')
+        .insert({
+          action_type: operation.operation_type,
+          board_id: operation.whiteboard_id,
+          object_data: operation.data,
+          object_id: `${operation.operation_type}_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+          session_id: configRef.current.sessionId,
+          user_id: operation.sender_id
+        })
+        .then(({ error }) => {
+          if (error) {
+            console.error('Error retrying operation:', error);
+            if (!isUnmountedRef.current) {
+              pendingOperationsRef.current.push(operation);
+            }
+          }
+        });
+    });
+
+    if (!isUnmountedRef.current) {
+      setSyncState(prev => ({
+        ...prev,
+        pendingOperations: []
+      }));
+    }
+  }, []);
+
+  // Stable send operation function
   const sendOperation = useCallback((operation: Omit<WhiteboardOperation, 'id' | 'timestamp' | 'sender_id'>) => {
-    // Use ref to get current value without causing dependency cycle
-    if (isReceiveOnlyRef.current) return null;
+    if (configRef.current.isReceiveOnly) return null;
 
     const fullOperation: WhiteboardOperation = {
       ...operation,
@@ -47,7 +82,6 @@ export const useSyncState = (
 
     console.log('Sending operation to Supabase:', fullOperation);
 
-    // Send to Supabase
     supabase
       .from('whiteboard_data')
       .insert({
@@ -61,7 +95,6 @@ export const useSyncState = (
       .then(({ error }) => {
         if (error) {
           console.error('Error sending operation:', error);
-          // Add to pending operations for retry
           if (!isUnmountedRef.current) {
             pendingOperationsRef.current.push(fullOperation);
             setSyncState(prev => ({
@@ -71,7 +104,6 @@ export const useSyncState = (
           }
         } else {
           console.log('Operation sent successfully');
-          // Remove from pending operations if it was there
           if (!isUnmountedRef.current) {
             setSyncState(prev => ({
               ...prev,
@@ -82,30 +114,13 @@ export const useSyncState = (
       });
 
     return fullOperation;
-  }, []); // Empty dependency array - function is stable
+  }, []);
 
-  // Stable retry function
-  const retryPendingOperations = useCallback(() => {
-    if (pendingOperationsRef.current.length === 0 || isUnmountedRef.current) return;
-
-    console.log(`Retrying ${pendingOperationsRef.current.length} pending operations`);
-    const operationsToRetry = [...pendingOperationsRef.current];
-    pendingOperationsRef.current = [];
-
-    operationsToRetry.forEach(operation => {
-      // Re-create the operation with all required properties for sendOperation
-      const operationToRetry = {
-        whiteboard_id: operation.whiteboard_id,
-        operation_type: operation.operation_type,
-        data: operation.data
-      };
-      sendOperation(operationToRetry);
-    });
-  }, [sendOperation]);
-
-  // Stable subscription setup function
+  // Setup subscription with connection health management
   const setupSubscription = useCallback(() => {
-    if (isUnmountedRef.current) return;
+    if (isUnmountedRef.current || setupInProgressRef.current) return;
+
+    setupInProgressRef.current = true;
 
     // Clear any existing channel
     if (channelRef.current) {
@@ -117,8 +132,6 @@ export const useSyncState = (
     const currentConfig = configRef.current;
     console.log(`Setting up realtime subscription for whiteboard: ${currentConfig.whiteboardId}`);
     
-    // Use a consistent channel name based on whiteboard ID and sender ID
-    // This ensures the same channel is used even if the component is unmounted and remounted
     const channelName = `whiteboard-${currentConfig.whiteboardId}-${currentConfig.senderId}`;
     console.log(`Creating channel with name: ${channelName}`);
     
@@ -144,7 +157,6 @@ export const useSyncState = (
             return;
           }
           
-          // Convert to our internal operation format
           const operation: WhiteboardOperation = {
             whiteboard_id: data.board_id,
             operation_type: data.action_type as OperationType,
@@ -158,26 +170,27 @@ export const useSyncState = (
         }
       )
       .subscribe((status) => {
+        setupInProgressRef.current = false;
+        
         if (isUnmountedRef.current) return;
         
         console.log('Subscription status:', status);
         
         if (status === 'SUBSCRIBED') {
-          // Reset reconnection attempts on successful connection
           reconnectAttemptsRef.current = 0;
           setSyncState(prev => ({
             ...prev,
             isConnected: true
           }));
           // Retry pending operations when we reconnect
-          retryPendingOperations();
+          setTimeout(retryPendingOperations, 100);
         } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
           setSyncState(prev => ({
             ...prev,
             isConnected: false
           }));
           
-          // Implement exponential backoff reconnection
+          // Implement exponential backoff reconnection with max timeout
           const backoffDelay = Math.min(1000 * Math.pow(2, reconnectAttemptsRef.current), 30000);
           reconnectAttemptsRef.current++;
           
@@ -192,7 +205,7 @@ export const useSyncState = (
               setupSubscription();
             }
           }, backoffDelay);
-        } else {
+        } else if (status === 'CLOSED') {
           setSyncState(prev => ({
             ...prev,
             isConnected: false
@@ -201,9 +214,9 @@ export const useSyncState = (
       });
 
     channelRef.current = channel;
-  }, [retryPendingOperations]); // Only depend on retryPendingOperations
+  }, [retryPendingOperations]);
 
-  // Set up subscription when component mounts - only run once
+  // Set up subscription when component mounts or config changes significantly
   useEffect(() => {
     isUnmountedRef.current = false;
     setupSubscription();
@@ -211,6 +224,7 @@ export const useSyncState = (
     return () => {
       console.log('Cleaning up realtime subscription');
       isUnmountedRef.current = true;
+      setupInProgressRef.current = false;
       
       if (reconnectTimeoutRef.current) {
         clearTimeout(reconnectTimeoutRef.current);
@@ -222,9 +236,9 @@ export const useSyncState = (
         channelRef.current = null;
       }
     };
-  }, []); // Empty dependency array - only run once on mount
+  }, [config.whiteboardId, config.sessionId]); // Only recreate on actual config changes
 
-  // Update sync state when config changes (without recreating subscription)
+  // Update sync state when isReceiveOnly changes (without recreating subscription)
   useEffect(() => {
     setSyncState(prev => ({
       ...prev,

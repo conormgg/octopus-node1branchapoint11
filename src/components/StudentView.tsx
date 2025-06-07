@@ -22,22 +22,6 @@ const StudentView: React.FC<StudentViewProps> = ({ sessionId, studentId }) => {
     setMaximizedBoard(null);
   };
 
-  if (maximizedBoard) {
-    return (
-      <div className="min-h-screen bg-gray-100 p-4">
-        <div className="h-[calc(100vh-2rem)]">
-          <WhiteboardPlaceholder
-            id={maximizedBoard}
-            isMaximized={true}
-            onMinimize={handleMinimize}
-            sessionId={sessionId}
-            senderId={studentSenderId}
-          />
-        </div>
-      </div>
-    );
-  }
-
   return (
     <div className="min-h-screen bg-gray-100">
       {/* Header */}
@@ -60,52 +44,70 @@ const StudentView: React.FC<StudentViewProps> = ({ sessionId, studentId }) => {
       </div>
 
       {/* Main Content */}
-      <div className="h-[calc(100vh-5rem)] p-4">
-        <ResizablePanelGroup direction="horizontal" className="rounded-lg overflow-hidden">
-          {/* Left Pane - Teacher's Shared Board */}
-          <ResizablePanel defaultSize={50} minSize={30}>
-            <div className="h-full p-2">
-              <div className="mb-3">
-                <h2 className="text-lg font-semibold text-gray-800 flex items-center">
-                  <GraduationCap className="w-5 h-5 mr-2 text-blue-500" />
-                  Teacher's Board
-                </h2>
-                <p className="text-sm text-gray-600">Shared content from your instructor</p>
+      <div className="h-[calc(100vh-5rem)] p-4 relative">
+        {/* Normal split panel view */}
+        <div className={`h-full transition-all duration-300 ${maximizedBoard ? 'opacity-0 pointer-events-none' : 'opacity-100'}`}>
+          <ResizablePanelGroup direction="horizontal" className="rounded-lg overflow-hidden">
+            {/* Left Pane - Teacher's Shared Board */}
+            <ResizablePanel defaultSize={50} minSize={30}>
+              <div className="h-full p-2">
+                <div className="mb-3">
+                  <h2 className="text-lg font-semibold text-gray-800 flex items-center">
+                    <GraduationCap className="w-5 h-5 mr-2 text-blue-500" />
+                    Teacher's Board
+                  </h2>
+                  <p className="text-sm text-gray-600">Shared content from your instructor</p>
+                </div>
+                <div className="h-[calc(100%-4rem)]">
+                  <WhiteboardPlaceholder
+                    id="student-shared-teacher"
+                    onMaximize={() => handleMaximize("student-shared-teacher")}
+                    sessionId={sessionId}
+                    senderId={studentSenderId}
+                  />
+                </div>
               </div>
-              <div className="h-[calc(100%-4rem)]">
-                <WhiteboardPlaceholder
-                  id="student-shared-teacher"
-                  onMaximize={() => handleMaximize("student-shared-teacher")}
-                  sessionId={sessionId}
-                  senderId={studentSenderId}
-                />
-              </div>
-            </div>
-          </ResizablePanel>
+            </ResizablePanel>
 
-          <ResizableHandle className="w-2 bg-gray-200 hover:bg-gray-300 transition-colors duration-150" />
+            <ResizableHandle className="w-2 bg-gray-200 hover:bg-gray-300 transition-colors duration-150" />
 
-          {/* Right Pane - Student's Personal Board */}
-          <ResizablePanel defaultSize={50} minSize={30}>
-            <div className="h-full p-2">
-              <div className="mb-3">
-                <h2 className="text-lg font-semibold text-gray-800 flex items-center">
-                  <User className="w-5 h-5 mr-2 text-green-500" />
-                  Your Personal Board
-                </h2>
-                <p className="text-sm text-gray-600">Your private workspace for notes and practice</p>
+            {/* Right Pane - Student's Personal Board */}
+            <ResizablePanel defaultSize={50} minSize={30}>
+              <div className="h-full p-2">
+                <div className="mb-3">
+                  <h2 className="text-lg font-semibold text-gray-800 flex items-center">
+                    <User className="w-5 h-5 mr-2 text-green-500" />
+                    Your Personal Board
+                  </h2>
+                  <p className="text-sm text-gray-600">Your private workspace for notes and practice</p>
+                </div>
+                <div className="h-[calc(100%-4rem)]">
+                  <WhiteboardPlaceholder
+                    id="student-personal"
+                    onMaximize={() => handleMaximize("student-personal")}
+                    sessionId={sessionId}
+                    senderId={studentSenderId}
+                  />
+                </div>
               </div>
-              <div className="h-[calc(100%-4rem)]">
-                <WhiteboardPlaceholder
-                  id="student-personal"
-                  onMaximize={() => handleMaximize("student-personal")}
-                  sessionId={sessionId}
-                  senderId={studentSenderId}
-                />
-              </div>
+            </ResizablePanel>
+          </ResizablePanelGroup>
+        </div>
+
+        {/* Maximized board overlay - positioned absolutely to avoid remounting */}
+        {maximizedBoard && (
+          <div className="absolute inset-0 bg-gray-100 z-50 transition-all duration-300">
+            <div className="h-full">
+              <WhiteboardPlaceholder
+                id={maximizedBoard}
+                isMaximized={true}
+                onMinimize={handleMinimize}
+                sessionId={sessionId}
+                senderId={studentSenderId}
+              />
             </div>
-          </ResizablePanel>
-        </ResizablePanelGroup>
+          </div>
+        )}
       </div>
     </div>
   );

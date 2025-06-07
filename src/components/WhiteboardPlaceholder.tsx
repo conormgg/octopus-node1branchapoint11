@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { Maximize2, Minimize2 } from 'lucide-react';
 import Whiteboard from './Whiteboard';
 import { SyncWhiteboard } from './SyncWhiteboard';
@@ -54,12 +54,13 @@ const WhiteboardPlaceholder: React.FC<WhiteboardPlaceholderProps> = ({
     }
   };
 
-  const getSyncConfig = (boardId: string): SyncConfig | undefined => {
+  // Memoize sync config to prevent unnecessary re-renders
+  const syncConfig = useMemo((): SyncConfig | undefined => {
     if (!sessionId) return undefined;
 
     // Teacher's main board -> broadcasts to students
-    if (boardId === "teacher-main") {
-      if (!senderId) return undefined; // Don't create config without a senderId
+    if (id === "teacher-main") {
+      if (!senderId) return undefined;
       return {
         whiteboardId: `session-${sessionId}-main`,
         senderId: senderId,
@@ -69,8 +70,7 @@ const WhiteboardPlaceholder: React.FC<WhiteboardPlaceholderProps> = ({
     }
     
     // Student's view of teacher's board -> receives only
-    if (boardId === "student-shared-teacher") {
-      // Ensure we have a senderId for proper subscription, even in read-only mode
+    if (id === "student-shared-teacher") {
       const effectiveSenderId = senderId || `student-listener-${sessionId}`;
       return {
         whiteboardId: `session-${sessionId}-main`,
@@ -81,8 +81,8 @@ const WhiteboardPlaceholder: React.FC<WhiteboardPlaceholderProps> = ({
     }
 
     // Student's personal board
-    if (boardId === "student-personal") {
-      if (!senderId) return undefined; // Don't create config without a senderId
+    if (id === "student-personal") {
+      if (!senderId) return undefined;
       return {
         whiteboardId: `session-${sessionId}-personal-${senderId}`,
         senderId: senderId,
@@ -92,8 +92,8 @@ const WhiteboardPlaceholder: React.FC<WhiteboardPlaceholderProps> = ({
     }
 
     // Individual student boards - check if it matches the pattern
-    if (boardId.startsWith('student-board-')) {
-      const studentNumber = boardId.replace('student-board-', '');
+    if (id.startsWith('student-board-')) {
+      const studentNumber = id.replace('student-board-', '');
       if (!senderId) return undefined;
       
       return {
@@ -105,9 +105,7 @@ const WhiteboardPlaceholder: React.FC<WhiteboardPlaceholderProps> = ({
     }
 
     return undefined;
-  };
-
-  const syncConfig = getSyncConfig(id);
+  }, [id, sessionId, senderId]);
 
   return (
     <div 
