@@ -50,17 +50,30 @@ export const useSharedWhiteboardState = (syncConfig?: SyncConfig, whiteboardId?:
     initializedRef.current = true;
   }, []);
 
-  // Handle remote operations - use stable callback to prevent sync re-subscriptions
+  // Handle remote operations - create a truly stable callback
   const { handleRemoteOperation, isApplyingRemoteOperation } = useRemoteOperationHandler(setState);
   
-  // Stable callback for remote operations to prevent useSyncState re-subscriptions
+  // Create a stable callback that won't change between renders
   const stableHandleRemoteOperation = useCallback((operation: any) => {
+    console.log('Stable remote operation handler called:', operation);
     handleRemoteOperation(operation);
+  }, []); // Empty dependency array - this callback is stable
+
+  // Use a ref to store the latest handleRemoteOperation to avoid stale closures
+  const handleRemoteOperationRef = useRef(handleRemoteOperation);
+  useEffect(() => {
+    handleRemoteOperationRef.current = handleRemoteOperation;
   }, [handleRemoteOperation]);
+
+  // Update the stable callback to use the ref
+  const trulyStableHandleRemoteOperation = useCallback((operation: any) => {
+    console.log('Truly stable remote operation handler called:', operation);
+    handleRemoteOperationRef.current(operation);
+  }, []);
 
   // Set up sync if config is provided - use stable config and handler
   const { syncState, sendOperation } = syncConfig 
-    ? useSyncState(syncConfig, stableHandleRemoteOperation)
+    ? useSyncState(syncConfig, trulyStableHandleRemoteOperation)
     : { syncState: null, sendOperation: null };
 
   // Enhanced add to history that syncs operations

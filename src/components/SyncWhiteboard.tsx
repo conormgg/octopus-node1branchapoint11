@@ -36,8 +36,10 @@ export const SyncWhiteboard: React.FC<SyncWhiteboardProps> = ({
       return { color: 'bg-green-500', text: 'Connected', show: true };
     } else if (isConnected && hasPendingOps) {
       return { color: 'bg-yellow-500', text: 'Syncing...', show: true };
-    } else {
+    } else if (!isConnected && hasPendingOps) {
       return { color: 'bg-orange-500', text: 'Reconnecting...', show: true };
+    } else {
+      return { color: 'bg-red-500', text: 'Disconnected', show: true };
     }
   };
 

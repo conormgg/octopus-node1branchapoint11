@@ -19,32 +19,28 @@ export const useSyncState = (
   const reconnectTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const reconnectAttemptsRef = useRef(0);
   const isUnmountedRef = useRef(false);
+  const configRef = useRef(config);
+  const onReceiveOperationRef = useRef(onReceiveOperation);
 
-  // Stable config values to prevent unnecessary re-subscriptions
-  const stableConfig = useRef(config);
-  
-  // Update stable config only when essential values change
+  // Update refs when values change to avoid dependency cycles
   useEffect(() => {
-    const configChanged = 
-      stableConfig.current.whiteboardId !== config.whiteboardId ||
-      stableConfig.current.senderId !== config.senderId ||
-      stableConfig.current.sessionId !== config.sessionId ||
-      stableConfig.current.isReceiveOnly !== config.isReceiveOnly;
-    
-    if (configChanged) {
-      stableConfig.current = config;
-    }
+    configRef.current = config;
   }, [config.whiteboardId, config.senderId, config.sessionId, config.isReceiveOnly]);
 
-  // Send operation to other clients
+  useEffect(() => {
+    onReceiveOperationRef.current = onReceiveOperation;
+  }, [onReceiveOperation]);
+
+  // Stable send operation function that doesn't recreate on every render
   const sendOperation = useCallback((operation: Omit<WhiteboardOperation, 'id' | 'timestamp' | 'sender_id'>) => {
-    if (syncState.isReceiveOnly) return null;
+    // Use ref to get current value without causing dependency cycle
+    if (configRef.current.isReceiveOnly) return null;
 
     const fullOperation: WhiteboardOperation = {
       ...operation,
-      whiteboard_id: stableConfig.current.whiteboardId,
+      whiteboard_id: configRef.current.whiteboardId,
       timestamp: Date.now(),
-      sender_id: stableConfig.current.senderId
+      sender_id: configRef.current.senderId
     };
 
     console.log('Sending operation to Supabase:', fullOperation);
@@ -57,7 +53,7 @@ export const useSyncState = (
         board_id: fullOperation.whiteboard_id,
         object_data: fullOperation.data,
         object_id: `${fullOperation.operation_type}_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
-        session_id: stableConfig.current.sessionId,
+        session_id: configRef.current.sessionId,
         user_id: fullOperation.sender_id
       })
       .then(({ error }) => {
@@ -84,9 +80,9 @@ export const useSyncState = (
       });
 
     return fullOperation;
-  }, [syncState.isReceiveOnly]);
+  }, []); // Empty dependency array - function is stable
 
-  // Retry pending operations
+  // Stable retry function that doesn't depend on sendOperation
   const retryPendingOperations = useCallback(() => {
     if (pendingOperationsRef.current.length === 0 || isUnmountedRef.current) return;
 
@@ -95,11 +91,16 @@ export const useSyncState = (
     pendingOperationsRef.current = [];
 
     operationsToRetry.forEach(operation => {
-      sendOperation(operation);
+      // Re-create the operation without the metadata fields
+      const operationToRetry = {
+        operation_type: operation.operation_type,
+        data: operation.data
+      };
+      sendOperation(operationToRetry);
     });
   }, [sendOperation]);
 
-  // Setup subscription with reconnection logic
+  // Stable subscription setup function
   const setupSubscription = useCallback(() => {
     if (isUnmountedRef.current) return;
 
@@ -110,17 +111,18 @@ export const useSyncState = (
       channelRef.current = null;
     }
 
-    console.log(`Setting up realtime subscription for whiteboard: ${stableConfig.current.whiteboardId}`);
+    const currentConfig = configRef.current;
+    console.log(`Setting up realtime subscription for whiteboard: ${currentConfig.whiteboardId}`);
     
     const channel = supabase
-      .channel(`whiteboard-${stableConfig.current.whiteboardId}-${Date.now()}`) // Add timestamp to ensure unique channel
+      .channel(`whiteboard-${currentConfig.whiteboardId}-${Date.now()}`) // Add timestamp to ensure unique channel
       .on(
         'postgres_changes',
         {
           event: 'INSERT',
           schema: 'public',
           table: 'whiteboard_data',
-          filter: `board_id=eq.${stableConfig.current.whiteboardId}`
+          filter: `board_id=eq.${currentConfig.whiteboardId}`
         },
         (payload) => {
           if (isUnmountedRef.current) return;
@@ -129,7 +131,7 @@ export const useSyncState = (
           const data = payload.new as any;
           
           // Don't process our own operations
-          if (data.user_id === stableConfig.current.senderId) {
+          if (data.user_id === currentConfig.senderId) {
             console.log('Ignoring own operation');
             return;
           }
@@ -144,7 +146,7 @@ export const useSyncState = (
           };
           
           console.log('Processing remote operation:', operation);
-          onReceiveOperation(operation);
+          onReceiveOperationRef.current(operation);
         }
       )
       .subscribe((status) => {
@@ -191,9 +193,9 @@ export const useSyncState = (
       });
 
     channelRef.current = channel;
-  }, [onReceiveOperation, retryPendingOperations]);
+  }, [retryPendingOperations]); // Only depend on retryPendingOperations
 
-  // Set up subscription when component mounts or essential config changes
+  // Set up subscription when component mounts - only run once
   useEffect(() => {
     isUnmountedRef.current = false;
     setupSubscription();
@@ -212,7 +214,15 @@ export const useSyncState = (
         channelRef.current = null;
       }
     };
-  }, [setupSubscription]);
+  }, []); // Empty dependency array - only run once on mount
+
+  // Update sync state when config changes (without recreating subscription)
+  useEffect(() => {
+    setSyncState(prev => ({
+      ...prev,
+      isReceiveOnly: config.isReceiveOnly || false
+    }));
+  }, [config.isReceiveOnly]);
 
   return {
     syncState,
