@@ -82,6 +82,7 @@ const KonvaStage: React.FC<KonvaStageProps> = ({
       // Ensure container can receive paste events
       if (container) {
         container.focus();
+        console.log('Container clicked and focused for paste');
       }
     };
 
@@ -94,6 +95,7 @@ const KonvaStage: React.FC<KonvaStageProps> = ({
 
     // Focus the container initially to enable paste
     container.focus();
+    console.log('Container setup complete for paste events');
 
     return () => {
       container.removeEventListener('paste', pasteHandler);
@@ -124,6 +126,22 @@ const KonvaStage: React.FC<KonvaStageProps> = ({
     }
   };
 
+  // Helper function to update image state
+  const updateImageState = (imageId: string, newAttrs: any) => {
+    // Check if whiteboardState has setState method (non-sync version)
+    if ('setState' in whiteboardState && typeof whiteboardState.setState === 'function') {
+      whiteboardState.setState((prev: any) => ({
+        ...prev,
+        images: prev.images.map((img: any) =>
+          img.id === imageId ? { ...img, ...newAttrs } : img
+        )
+      }));
+    } else {
+      // For sync version, we need to handle this differently
+      console.log('Image update requested but no setState available:', imageId, newAttrs);
+    }
+  };
+
   return (
     <div 
       ref={containerRef} 
@@ -131,7 +149,7 @@ const KonvaStage: React.FC<KonvaStageProps> = ({
       style={{ 
         WebkitUserSelect: 'none',
         WebkitTouchCallout: 'none',
-        touchAction: palmRejectionConfig.enabled ? 'none' : 'auto'
+        touchAction: palmRejectionConfig.enabled ? 'manipulation' : 'auto'
       }}
       tabIndex={0}
     >
@@ -152,23 +170,16 @@ const KonvaStage: React.FC<KonvaStageProps> = ({
         onStageClick={checkDeselect}
         extraContent={
           <>
-            {state.images.map((image) => (
+            {state.images?.map((image) => (
               <ImageRenderer
                 key={image.id}
                 imageObject={image}
                 isSelected={image.id === selectedId}
                 onSelect={() => selectShape(image.id)}
-                onChange={(newAttrs) => {
-                  setState(prev => ({
-                    ...prev,
-                    images: prev.images.map(img =>
-                      img.id === image.id ? { ...img, ...newAttrs } : img
-                    )
-                  }));
-                }}
+                onChange={(newAttrs) => updateImageState(image.id, newAttrs)}
                 onUpdateState={addToHistory}
               />
-            ))}
+            )) || null}
           </>
         }
       />
