@@ -26,7 +26,11 @@ export const SyncWhiteboard: React.FC<SyncWhiteboardProps> = ({
   };
 
   return (
-    <div className="relative w-full h-full">
+    <div className="relative w-full h-full select-none" style={{ 
+      WebkitUserSelect: 'none',
+      WebkitTouchCallout: 'none',
+      touchAction: 'none'
+    }}>
       {/* Sync status indicator */}
       {syncConfig && (
         <div className="absolute top-2 right-2 z-20 flex items-center space-x-2 text-sm">

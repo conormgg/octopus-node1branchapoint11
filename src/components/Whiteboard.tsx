@@ -47,7 +47,11 @@ const Whiteboard: React.FC<WhiteboardProps> = ({ isReadOnly = false }) => {
   };
 
   return (
-    <div ref={containerRef} className="relative w-full h-full">
+    <div ref={containerRef} className="relative w-full h-full select-none" style={{ 
+      WebkitUserSelect: 'none',
+      WebkitTouchCallout: 'none',
+      touchAction: 'none'
+    }}>
       {/* Palm Rejection Settings Button */}
       {!isReadOnly && (
         <div className="absolute top-2 left-2 z-20">

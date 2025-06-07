@@ -28,7 +28,11 @@ const WhiteboardCanvas: React.FC<WhiteboardCanvasProps> = ({
   palmRejectionConfig
 }) => {
   return (
-    <div className="relative w-full h-full bg-white rounded-lg overflow-hidden">
+    <div className="relative w-full h-full bg-white rounded-lg overflow-hidden select-none" style={{ 
+      WebkitUserSelect: 'none',
+      WebkitTouchCallout: 'none',
+      touchAction: 'none'
+    }}>
       <KonvaStage
         width={width}
         height={height}
