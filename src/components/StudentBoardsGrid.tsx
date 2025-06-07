@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Users, ChevronLeft, ChevronRight, RotateCcw, Grid } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -14,7 +13,9 @@ interface StudentBoardsGridProps {
   currentPage: number;
   totalPages: number;
   gridOrientation: GridOrientation;
+  maximizedBoard: string | null;
   onMaximize: (boardId: string) => void;
+  onMinimize: () => void;
   onPreviousPage: () => void;
   onNextPage: () => void;
   isHeaderCollapsed?: boolean;
@@ -29,7 +30,9 @@ const StudentBoardsGrid: React.FC<StudentBoardsGridProps> = ({
   currentPage,
   totalPages,
   gridOrientation,
+  maximizedBoard,
   onMaximize,
+  onMinimize,
   onPreviousPage,
   onNextPage,
   isHeaderCollapsed = false,
@@ -47,7 +50,9 @@ const StudentBoardsGrid: React.FC<StudentBoardsGridProps> = ({
           <div key={boardId} className="min-h-0">
             <WhiteboardPlaceholder
               id={boardId}
+              isMaximized={maximizedBoard === boardId}
               onMaximize={() => onMaximize(boardId)}
+              onMinimize={onMinimize}
               sessionId={sessionId}
               senderId={senderId}
             />

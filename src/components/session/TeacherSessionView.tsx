@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from '@/components/ui/resizable';
 import WhiteboardPlaceholder from '../WhiteboardPlaceholder';
@@ -152,7 +153,9 @@ const TeacherSessionView: React.FC<TeacherSessionViewProps> = ({
                 }`}
               >
                 <TeacherMainBoard 
-                  onMaximize={onMaximize} 
+                  onMaximize={onMaximize}
+                  onMinimize={onMinimize}
+                  maximizedBoard={maximizedBoard}
                   isHeaderCollapsed={isControlsCollapsed}
                   sessionId={activeSession.id}
                   senderId={activeSession.teacher_id}
@@ -173,7 +176,9 @@ const TeacherSessionView: React.FC<TeacherSessionViewProps> = ({
                     }`}
                   >
                     <TeacherMainBoard 
-                      onMaximize={onMaximize} 
+                      onMaximize={onMaximize}
+                      onMinimize={onMinimize}
+                      maximizedBoard={maximizedBoard}
                       isHeaderCollapsed={isControlsCollapsed}
                       sessionId={activeSession.id}
                       senderId={activeSession.teacher_id}
@@ -201,7 +206,9 @@ const TeacherSessionView: React.FC<TeacherSessionViewProps> = ({
                       currentPage={currentPage}
                       totalPages={totalPages}
                       gridOrientation={gridOrientation}
+                      maximizedBoard={maximizedBoard}
                       onMaximize={onMaximize}
+                      onMinimize={onMinimize}
                       onPreviousPage={onPreviousPage}
                       onNextPage={onNextPage}
                       isHeaderCollapsed={isControlsCollapsed}

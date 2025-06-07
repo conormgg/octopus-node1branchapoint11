@@ -46,9 +46,19 @@ const WindowContentRenderer: React.FC<WindowContentRendererProps> = ({
   onClose,
 }) => {
   const [isHeaderCollapsed, setIsHeaderCollapsed] = useState(false);
+  const [maximizedBoard, setMaximizedBoard] = useState<string | null>(null);
 
   const toggleHeaderCollapse = () => {
     setIsHeaderCollapsed(prev => !prev);
+  };
+
+  const handleMaximize = (boardId: string) => {
+    setMaximizedBoard(boardId);
+    onMaximize(boardId);
+  };
+
+  const handleMinimize = () => {
+    setMaximizedBoard(null);
   };
 
   console.log('Rendering portal content', { studentCount, currentLayout, currentStudentBoards });
@@ -115,7 +125,9 @@ const WindowContentRenderer: React.FC<WindowContentRendererProps> = ({
           currentPage={currentPage}
           totalPages={totalPages}
           gridOrientation={gridOrientation}
-          onMaximize={onMaximize}
+          maximizedBoard={maximizedBoard}
+          onMaximize={handleMaximize}
+          onMinimize={handleMinimize}
           onPreviousPage={onPreviousPage}
           onNextPage={onNextPage}
           isHeaderCollapsed={isHeaderCollapsed}

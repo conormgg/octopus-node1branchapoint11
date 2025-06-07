@@ -5,6 +5,8 @@ import WhiteboardPlaceholder from './WhiteboardPlaceholder';
 
 interface TeacherMainBoardProps {
   onMaximize: (boardId: string) => void;
+  onMinimize: () => void;
+  maximizedBoard: string | null;
   isHeaderCollapsed?: boolean;
   sessionId: string;
   senderId: string;
@@ -12,6 +14,8 @@ interface TeacherMainBoardProps {
 
 const TeacherMainBoard: React.FC<TeacherMainBoardProps> = ({ 
   onMaximize, 
+  onMinimize,
+  maximizedBoard,
   isHeaderCollapsed = false,
   sessionId,
   senderId
@@ -30,7 +34,9 @@ const TeacherMainBoard: React.FC<TeacherMainBoardProps> = ({
       <div className={`${isHeaderCollapsed ? 'h-full' : 'h-[calc(100%-4rem)]'}`}>
         <WhiteboardPlaceholder
           id="teacher-main"
+          isMaximized={maximizedBoard === "teacher-main"}
           onMaximize={() => onMaximize("teacher-main")}
+          onMinimize={onMinimize}
           sessionId={sessionId}
           senderId={senderId}
         />
