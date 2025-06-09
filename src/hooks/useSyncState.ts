@@ -82,8 +82,24 @@ export const useSyncState = (
     });
   }, [sendOperation]);
 
+  // Store previous config values to detect actual changes
+  const prevConfigRef = useRef<{ whiteboardId: string; senderId: string } | null>(null);
+
   // Set up real-time subscription
   useEffect(() => {
+    // Check if config values actually changed
+    const configChanged = !prevConfigRef.current || 
+      prevConfigRef.current.whiteboardId !== config.whiteboardId ||
+      prevConfigRef.current.senderId !== config.senderId;
+
+    if (!configChanged) {
+      console.log('Config values unchanged, keeping existing subscription');
+      return;
+    }
+
+    // Update previous config reference
+    prevConfigRef.current = { whiteboardId: config.whiteboardId, senderId: config.senderId };
+
     // Clean up existing subscription if any
     if (channelRef.current) {
       console.log('Cleaning up existing subscription');
@@ -93,8 +109,8 @@ export const useSyncState = (
 
     console.log(`Setting up realtime subscription for whiteboard: ${config.whiteboardId}`);
     
-    // Create unique channel name to prevent conflicts
-    const channelName = `whiteboard-${config.whiteboardId}-${Date.now()}`;
+    // Create stable channel name based on whiteboard ID
+    const channelName = `whiteboard-${config.whiteboardId}`;
     const channel = supabase
       .channel(channelName)
       .on(

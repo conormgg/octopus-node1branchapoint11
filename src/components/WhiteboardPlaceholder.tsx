@@ -76,11 +76,12 @@ const WhiteboardPlaceholder: React.FC<WhiteboardPlaceholderProps> = ({
     }
   };
 
-  const getSyncConfig = (boardId: string): SyncConfig | undefined => {
+  // Memoize sync config to prevent recreating it on every render
+  const syncConfig = React.useMemo(() => {
     if (!sessionId) return undefined;
 
     // Teacher's main board -> broadcasts to students
-    if (boardId === "teacher-main") {
+    if (id === "teacher-main") {
       if (!senderId) return undefined;
       return {
         whiteboardId: `session-${sessionId}-main`,
@@ -91,7 +92,7 @@ const WhiteboardPlaceholder: React.FC<WhiteboardPlaceholderProps> = ({
     }
     
     // Student's view of teacher's board -> receives only
-    if (boardId === "student-shared-teacher") {
+    if (id === "student-shared-teacher") {
       return {
         whiteboardId: `session-${sessionId}-main`,
         senderId: `student-listener-${sessionId}`,
@@ -101,8 +102,8 @@ const WhiteboardPlaceholder: React.FC<WhiteboardPlaceholderProps> = ({
     }
 
     // Individual student boards
-    if (boardId.startsWith('student-board-')) {
-      const studentNumber = boardId.replace('student-board-', '');
+    if (id.startsWith('student-board-')) {
+      const studentNumber = id.replace('student-board-', '');
       if (!senderId) return undefined;
       
       return {
@@ -114,9 +115,7 @@ const WhiteboardPlaceholder: React.FC<WhiteboardPlaceholderProps> = ({
     }
 
     return undefined;
-  };
-
-  const syncConfig = getSyncConfig(id);
+  }, [id, sessionId, senderId]);
 
   // Calculate dimensions based on maximized state
   const whiteboardWidth = isMaximized ? (window.innerWidth - 32) : (dimensions.width || initialWidth || 800);
