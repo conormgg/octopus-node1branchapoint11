@@ -14,7 +14,7 @@ export const useSharedPointerHandlers = (
   syncConfig: SyncConfig | undefined,
   panZoom: any
 ) => {
-  // Handle pointer down
+  // Handle pointer down - only for drawing operations
   const handlePointerDown = useCallback((x: number, y: number) => {
     // Don't allow drawing in receive-only mode or during pan/zoom gestures
     if (syncConfig?.isReceiveOnly || panZoom.isGestureActive()) return;
@@ -26,7 +26,7 @@ export const useSharedPointerHandlers = (
     }
   }, [state.currentTool, startDrawing, startErasing, syncConfig?.isReceiveOnly, panZoom]);
 
-  // Handle pointer move
+  // Handle pointer move - only for drawing operations
   const handlePointerMove = useCallback((x: number, y: number) => {
     // Don't allow drawing in receive-only mode or during pan/zoom gestures
     if (syncConfig?.isReceiveOnly || panZoom.isGestureActive()) return;
@@ -38,7 +38,7 @@ export const useSharedPointerHandlers = (
     }
   }, [state.currentTool, continueDrawing, continueErasing, syncConfig?.isReceiveOnly, panZoom]);
 
-  // Handle pointer up
+  // Handle pointer up - only for drawing operations
   const handlePointerUp = useCallback(() => {
     // Don't allow drawing in receive-only mode
     if (syncConfig?.isReceiveOnly) return;

@@ -53,13 +53,14 @@ const KonvaStageCanvas: React.FC<KonvaStageCanvasProps> = ({
   const handleMouseDown = (e: Konva.KonvaEventObject<MouseEvent>) => {
     if (onStageClick) onStageClick(e);
     
-    if (isReadOnly || palmRejectionConfig.enabled) return;
-    
-    // Handle right-click pan
+    // Handle right-click pan - works for everyone, including read-only users
     if (e.evt.button === 2) {
       panZoom.startPan(e.evt.clientX, e.evt.clientY);
       return;
     }
+    
+    // Only proceed with drawing if not in read-only mode or palm rejection is disabled
+    if (isReadOnly || palmRejectionConfig.enabled) return;
     
     const stage = e.target.getStage();
     if (!stage) return;
@@ -69,13 +70,14 @@ const KonvaStageCanvas: React.FC<KonvaStageCanvasProps> = ({
   };
 
   const handleMouseMove = (e: Konva.KonvaEventObject<MouseEvent>) => {
-    if (isReadOnly || palmRejectionConfig.enabled) return;
-    
-    // Handle right-click pan
+    // Handle right-click pan - works for everyone, including read-only users
     if (e.evt.buttons === 2) {
       panZoom.continuePan(e.evt.clientX, e.evt.clientY);
       return;
     }
+    
+    // Only proceed with drawing if not in read-only mode or palm rejection is disabled
+    if (isReadOnly || palmRejectionConfig.enabled) return;
     
     const stage = e.target.getStage();
     if (!stage) return;
@@ -85,13 +87,14 @@ const KonvaStageCanvas: React.FC<KonvaStageCanvasProps> = ({
   };
 
   const handleMouseUp = (e: Konva.KonvaEventObject<MouseEvent>) => {
-    if (isReadOnly || palmRejectionConfig.enabled) return;
-    
-    // Handle right-click pan end
+    // Handle right-click pan end - works for everyone, including read-only users
     if (e.evt.button === 2) {
       panZoom.stopPan();
       return;
     }
+    
+    // Only proceed with drawing if not in read-only mode or palm rejection is disabled
+    if (isReadOnly || palmRejectionConfig.enabled) return;
     
     handlePointerUp();
   };

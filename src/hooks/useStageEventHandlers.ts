@@ -42,7 +42,7 @@ export const useStageEventHandlers = ({
 }: UseStageEventHandlersProps) => {
   const { getRelativePointerPosition } = useStageCoordinates(panZoomState);
 
-  // Wheel event for zoom
+  // Wheel event for zoom - always works regardless of read-only status
   useEffect(() => {
     const container = containerRef.current;
     if (!container) return;
@@ -54,7 +54,7 @@ export const useStageEventHandlers = ({
     };
   }, [panZoom.handleWheel]);
 
-  // Touch events for pinch/pan
+  // Touch events for pinch/pan - always works regardless of read-only status
   useEffect(() => {
     const container = containerRef.current;
     if (!container) return;
@@ -85,19 +85,22 @@ export const useStageEventHandlers = ({
     };
   }, [panZoom.handleTouchStart, panZoom.handleTouchMove, panZoom.handleTouchEnd]);
 
-  // Pointer event handlers with palm rejection and pan/zoom integration
+  // Pointer event handlers with proper separation of pan/zoom and drawing
   useEffect(() => {
     const container = containerRef.current;
-    if (!container || isReadOnly) return;
+    if (!container) return;
 
     const handlePointerDownEvent = (e: PointerEvent) => {
       e.preventDefault();
       
-      // Handle right-click pan
+      // Handle right-click pan - works for everyone, including read-only users
       if (e.button === 2) {
         panZoom.startPan(e.clientX, e.clientY);
         return;
       }
+      
+      // Only proceed with drawing if not in read-only mode
+      if (isReadOnly) return;
       
       // Don't process drawing if palm rejection is enabled and rejects this pointer
       if (palmRejectionConfig.enabled && !palmRejection.shouldProcessPointer(e)) {
@@ -115,11 +118,14 @@ export const useStageEventHandlers = ({
     const handlePointerMoveEvent = (e: PointerEvent) => {
       e.preventDefault();
       
-      // Handle right-click pan
+      // Handle right-click pan - works for everyone, including read-only users
       if (e.buttons === 2) {
         panZoom.continuePan(e.clientX, e.clientY);
         return;
       }
+      
+      // Only proceed with drawing if not in read-only mode
+      if (isReadOnly) return;
       
       // Don't process drawing if palm rejection rejects this pointer
       if (palmRejectionConfig.enabled && !palmRejection.shouldProcessPointer(e)) return;
@@ -134,7 +140,7 @@ export const useStageEventHandlers = ({
     const handlePointerUpEvent = (e: PointerEvent) => {
       e.preventDefault();
       
-      // Handle right-click pan end
+      // Handle right-click pan end - works for everyone, including read-only users
       if (e.button === 2) {
         panZoom.stopPan();
         return;
@@ -142,14 +148,20 @@ export const useStageEventHandlers = ({
       
       palmRejection.onPointerEnd(e.pointerId);
       
-      // Always call handlePointerUp to complete any ongoing drawing
-      handlePointerUp();
+      // Only call handlePointerUp for drawing if not in read-only mode
+      if (!isReadOnly) {
+        handlePointerUp();
+      }
     };
 
     const handlePointerLeaveEvent = (e: PointerEvent) => {
       palmRejection.onPointerEnd(e.pointerId);
-      panZoom.stopPan();
-      handlePointerUp();
+      panZoom.stopPan(); // Always stop pan on leave
+      
+      // Only call handlePointerUp for drawing if not in read-only mode
+      if (!isReadOnly) {
+        handlePointerUp();
+      }
     };
 
     const handleContextMenu = (e: Event) => {
