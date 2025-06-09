@@ -20,10 +20,35 @@ export const useSessionExpiration = ({ sessionId, onSessionExpired }: UseSession
   const [hasProcessedEndState, setHasProcessedEndState] = useState(false);
   const [isRedirecting, setIsRedirecting] = useState(false);
   const [toastShownForSession, setToastShownForSession] = useState<string | null>(null);
+  const [lastActivityTime, setLastActivityTime] = useState<Date>(new Date());
+  const [sessionData, setSessionData] = useState<any>(null);
   
   const { toast } = useToast();
   const { clearWhiteboardState } = useWhiteboardStateContext();
   const { fetchSessionData, updateSessionToExpired } = useSessionStatusChecker();
+
+  const IDLE_TIMEOUT_MS = 10 * 60 * 1000; // 10 minutes of idle time
+  const SESSION_BUFFER_MS = 10 * 60 * 1000; // 10 minutes buffer after session duration
+
+  // Track user activity to reset idle timer
+  const updateActivity = useCallback(() => {
+    setLastActivityTime(new Date());
+  }, []);
+
+  // Set up activity listeners
+  useEffect(() => {
+    const events = ['mousedown', 'mousemove', 'keypress', 'scroll', 'touchstart', 'click'];
+    
+    events.forEach(event => {
+      document.addEventListener(event, updateActivity, { passive: true });
+    });
+
+    return () => {
+      events.forEach(event => {
+        document.removeEventListener(event, updateActivity);
+      });
+    };
+  }, [updateActivity]);
 
   const clearWhiteboardData = useCallback(async (sessionId: string) => {
     try {
@@ -51,7 +76,7 @@ export const useSessionExpiration = ({ sessionId, onSessionExpired }: UseSession
       
       const message = reason === 'ended_by_teacher'
         ? "This session has been ended by the teacher. You will be redirected to the home page."
-        : "This session has expired. Your whiteboard data will no longer be saved. You will be redirected to the home page.";
+        : "This session has expired due to inactivity. You will be redirected to the home page.";
       
       toast({
         title: reason === 'ended_by_teacher' ? "Session Ended" : "Session Expired",
@@ -88,6 +113,9 @@ export const useSessionExpiration = ({ sessionId, onSessionExpired }: UseSession
     const data = await fetchSessionData(sessionId);
     if (!data) return;
 
+    // Store session data for calculations
+    setSessionData(data);
+
     // If we've already processed an end state or we're in the process of redirecting, don't process again
     if ((hasProcessedEndState && (data.status === 'ended_by_teacher' || data.status === 'expired')) || isRedirecting) {
       return;
@@ -122,24 +150,40 @@ export const useSessionExpiration = ({ sessionId, onSessionExpired }: UseSession
     // Update last known status
     setLastKnownStatus(data.status);
 
-    // Calculate expiration time for active sessions
+    // Calculate session limits
     const createdAt = new Date(data.created_at);
-    const durationMs = (data.duration_minutes + 10) * 60 * 1000; // Add 10 minutes buffer
-    const expirationTime = new Date(createdAt.getTime() + durationMs);
-    
-    setExpiresAt(expirationTime);
+    const sessionDurationMs = data.duration_minutes * 60 * 1000;
+    const maxSessionTime = new Date(createdAt.getTime() + sessionDurationMs + SESSION_BUFFER_MS);
     
     const now = new Date();
-    const remaining = expirationTime.getTime() - now.getTime();
-    setTimeRemaining(remaining > 0 ? remaining : 0);
+    const timeSinceLastActivity = now.getTime() - lastActivityTime.getTime();
+    const timeUntilMaxSession = maxSessionTime.getTime() - now.getTime();
     
-    if (remaining <= 0 && !hasProcessedEndState) {
+    // Check if session should expire due to idle time OR max session time
+    const shouldExpireIdle = timeSinceLastActivity >= IDLE_TIMEOUT_MS;
+    const shouldExpireMaxTime = timeUntilMaxSession <= 0;
+    
+    if ((shouldExpireIdle || shouldExpireMaxTime) && !hasProcessedEndState) {
+      console.log('Session expiring:', { 
+        shouldExpireIdle, 
+        shouldExpireMaxTime, 
+        timeSinceLastActivity: timeSinceLastActivity / 1000 / 60,
+        timeUntilMaxSession: timeUntilMaxSession / 1000 / 60 
+      });
       await handleSessionEnd('expired', sessionId);
     } else {
+      // Update expiration time based on the earliest expiry condition
+      const idleExpiryTime = new Date(lastActivityTime.getTime() + IDLE_TIMEOUT_MS);
+      const earliestExpiry = idleExpiryTime < maxSessionTime ? idleExpiryTime : maxSessionTime;
+      
+      setExpiresAt(earliestExpiry);
       setIsExpired(false);
       setSessionEndReason(null);
+      
+      const remaining = earliestExpiry.getTime() - now.getTime();
+      setTimeRemaining(remaining > 0 ? remaining : 0);
     }
-  }, [sessionId, fetchSessionData, hasProcessedEndState, isRedirecting, handleSessionEnd, onSessionExpired]);
+  }, [sessionId, fetchSessionData, hasProcessedEndState, isRedirecting, handleSessionEnd, onSessionExpired, lastActivityTime]);
 
   // Reset state when sessionId changes
   useEffect(() => {
@@ -152,6 +196,8 @@ export const useSessionExpiration = ({ sessionId, onSessionExpired }: UseSession
     setHasProcessedEndState(false);
     setIsRedirecting(false);
     setToastShownForSession(null);
+    setLastActivityTime(new Date());
+    setSessionData(null);
   }, [sessionId]);
 
   // Set up session checking interval
@@ -161,10 +207,10 @@ export const useSessionExpiration = ({ sessionId, onSessionExpired }: UseSession
     // Initial check
     checkSessionExpiration();
 
-    // Set up interval to check every 5 seconds for faster detection
+    // Set up interval to check every 30 seconds (less frequent since we're tracking activity)
     const intervalId = setInterval(() => {
       checkSessionExpiration();
-    }, 5000);
+    }, 30000);
 
     return () => {
       clearInterval(intervalId);
