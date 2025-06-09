@@ -21,17 +21,17 @@ export const useSharedPersistenceIntegration = (
 
   // Update state when persisted data is loaded
   useEffect(() => {
-    if (!persistence.isLoading && persistence.lines.length > 0) {
+    if (!persistence.isLoading && persistence.lines && persistence.lines.length > 0) {
       setState(prevState => ({
         ...prevState,
         lines: persistence.lines,
-        images: persistence.images,
-        history: [{ lines: persistence.lines, images: persistence.images }, ...prevState.history],
+        images: persistence.images || [],
+        history: [{ lines: persistence.lines, images: persistence.images || [] }, ...prevState.history],
         historyIndex: 0
       }));
       
-      // Also update the shared state context
-      if (whiteboardId) {
+      // Also update the shared state context if available
+      if (whiteboardId && updateWhiteboardState) {
         updateWhiteboardState(whiteboardId, persistence.lines);
       }
     }
@@ -39,7 +39,7 @@ export const useSharedPersistenceIntegration = (
 
   // Update shared state whenever lines change
   useEffect(() => {
-    if (whiteboardId) {
+    if (whiteboardId && updateWhiteboardState) {
       updateWhiteboardState(whiteboardId, state.lines);
     }
   }, [state.lines, whiteboardId, updateWhiteboardState]);

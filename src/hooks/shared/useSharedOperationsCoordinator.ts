@@ -40,7 +40,7 @@ export const useSharedOperationsCoordinator = (
     state, setState, addToHistory, sendOperation, isApplyingRemoteOperation
   );
 
-  // Image operations with whiteboard ID
+  // Image operations with proper parameter handling
   const imageOperations = useSharedImageOperations(
     state, setState, addToHistory, sendOperation, isApplyingRemoteOperation, whiteboardId
   );

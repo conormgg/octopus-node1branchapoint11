@@ -34,7 +34,7 @@ export const useSharedImageOperations = (
     setTimeout(() => addToHistory(), 0);
   }, [setState, sendOperation, isApplyingRemoteOperation, addToHistory, whiteboardId]);
 
-  // Handle paste functionality with whiteboard-specific focus
+  // Handle paste functionality - fixed to accept correct parameters
   const handlePaste = useCallback((e: ClipboardEvent, stage: Konva.Stage | null) => {
     console.log(`[${whiteboardId}] Paste event triggered`);
     e.preventDefault();

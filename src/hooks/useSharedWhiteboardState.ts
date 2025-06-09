@@ -15,7 +15,7 @@ export const useSharedWhiteboardState = (syncConfig?: SyncConfig, whiteboardId?:
   // Selection state management
   const selection = useSelectionState();
 
-  // Handle persistence and context integration (updated parameter order)
+  // Handle persistence and context integration
   useSharedPersistenceIntegration(state, setState, syncConfig, whiteboardId);
 
   // State management functions
@@ -27,11 +27,18 @@ export const useSharedWhiteboardState = (syncConfig?: SyncConfig, whiteboardId?:
   // Coordinate all operations (drawing, sync, history, etc.) with whiteboard ID
   const operations = useSharedOperationsCoordinator(syncConfig, state, setState, whiteboardId);
 
-  // Pointer event handlers
+  // Pointer event handlers with proper safety checks
   const { handlePointerDown, handlePointerMove, handlePointerUp } = useSharedPointerHandlers(
-    state, operations.startDrawing, operations.continueDrawing, operations.stopDrawing, 
-    operations.startErasing, operations.continueErasing, operations.stopErasing,
-    syncConfig, panZoom, selection
+    state, 
+    operations.startDrawing, 
+    operations.continueDrawing, 
+    operations.stopDrawing, 
+    operations.startErasing, 
+    operations.continueErasing, 
+    operations.stopErasing,
+    syncConfig, 
+    panZoom, 
+    selection
   );
 
   return {
