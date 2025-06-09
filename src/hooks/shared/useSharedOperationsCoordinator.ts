@@ -11,7 +11,8 @@ import { useSharedImageOperations } from './useSharedImageOperations';
 export const useSharedOperationsCoordinator = (
   syncConfig: SyncConfig | undefined,
   state: WhiteboardState,
-  setState: (updater: (prev: WhiteboardState) => WhiteboardState) => void
+  setState: (updater: (prev: WhiteboardState) => WhiteboardState) => void,
+  whiteboardId?: string
 ) => {
   // Handle remote operations
   const { handleRemoteOperation, isApplyingRemoteOperation } = useRemoteOperationHandler(setState);
@@ -39,9 +40,9 @@ export const useSharedOperationsCoordinator = (
     state, setState, addToHistory, sendOperation, isApplyingRemoteOperation
   );
 
-  // Image operations
+  // Image operations with whiteboard ID
   const imageOperations = useSharedImageOperations(
-    state, setState, addToHistory, sendOperation, isApplyingRemoteOperation
+    state, setState, addToHistory, sendOperation, isApplyingRemoteOperation, whiteboardId
   );
 
   return {

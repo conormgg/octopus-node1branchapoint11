@@ -1,4 +1,3 @@
-
 import React, { useRef, useEffect, useState } from 'react';
 import Konva from 'konva';
 import { useWhiteboardState } from '@/hooks/useWhiteboardState';
@@ -52,6 +51,9 @@ const KonvaStage: React.FC<KonvaStageProps> = ({
     selection
   } = whiteboardState;
 
+  // Get whiteboard ID for this instance
+  const whiteboardId = 'whiteboardId' in whiteboardState ? whiteboardState.whiteboardId : undefined;
+
   const palmRejection = usePalmRejection(palmRejectionConfig);
 
   // Apply pan/zoom transformations to the stage
@@ -65,17 +67,29 @@ const KonvaStage: React.FC<KonvaStageProps> = ({
     stage.scaleY(state.panZoomState.scale);
   }, [state.panZoomState]);
 
-  // Add paste event listener and keyboard shortcuts
+  // Add paste event listener and keyboard shortcuts with whiteboard-specific handling
   useEffect(() => {
     const container = containerRef.current;
     if (!container || isReadOnly) return;
 
     const pasteHandler = (e: ClipboardEvent) => {
-      console.log('Paste event detected in container');
-      handlePaste(e, stageRef.current);
+      console.log(`[${whiteboardId}] Paste event detected in container`);
+      
+      // Only handle paste if this container is focused/active
+      if (document.activeElement === container || container.contains(document.activeElement)) {
+        console.log(`[${whiteboardId}] Container is focused, handling paste`);
+        handlePaste(e, stageRef.current, whiteboardId);
+      } else {
+        console.log(`[${whiteboardId}] Container not focused, ignoring paste`);
+      }
     };
 
     const keyDownHandler = (e: KeyboardEvent) => {
+      // Only handle keyboard events if this container is focused
+      if (document.activeElement !== container && !container.contains(document.activeElement)) {
+        return;
+      }
+
       // Escape key - clear selection
       if (e.key === 'Escape' && selection?.clearSelection) {
         selection.clearSelection();
@@ -85,20 +99,20 @@ const KonvaStage: React.FC<KonvaStageProps> = ({
       // Delete key - remove selected objects (placeholder for future implementation)
       if (e.key === 'Delete' && selection?.selectionState?.selectedObjects?.length > 0) {
         // TODO: Implement delete functionality in later stages
-        console.log('Delete key pressed - selected objects:', selection.selectionState.selectedObjects);
+        console.log(`[${whiteboardId}] Delete key pressed - selected objects:`, selection.selectionState.selectedObjects);
         e.preventDefault();
       }
     };
 
     const focusHandler = () => {
-      console.log('Container focused, paste events should work');
+      console.log(`[${whiteboardId}] Container focused, paste events should work`);
     };
 
-    const clickHandler = () => {
+    const clickHandler = (e: MouseEvent) => {
       // Ensure container can receive paste events
-      if (container) {
+      if (container && e.target && container.contains(e.target as Node)) {
         container.focus();
-        console.log('Container clicked and focused for paste');
+        console.log(`[${whiteboardId}] Container clicked and focused for paste`);
       }
     };
 
@@ -112,7 +126,7 @@ const KonvaStage: React.FC<KonvaStageProps> = ({
 
     // Focus the container initially to enable paste
     container.focus();
-    console.log('Container setup complete for paste events and keyboard shortcuts');
+    console.log(`[${whiteboardId}] Container setup complete for paste events and keyboard shortcuts`);
 
     return () => {
       container.removeEventListener('paste', pasteHandler);
@@ -120,7 +134,7 @@ const KonvaStage: React.FC<KonvaStageProps> = ({
       container.removeEventListener('focus', focusHandler);
       container.removeEventListener('click', clickHandler);
     };
-  }, [handlePaste, isReadOnly, selection]);
+  }, [handlePaste, isReadOnly, selection, whiteboardId]);
 
   // Set up all event handlers
   useStageEventHandlers({
@@ -151,7 +165,7 @@ const KonvaStage: React.FC<KonvaStageProps> = ({
       whiteboardState.updateImageState(imageId, newAttrs);
     } else {
       // This path is for non-sync version, which is acceptable.
-      console.log('Image update requested but no updateImageState available on the provided state object.');
+      console.log(`[${whiteboardId}] Image update requested but no updateImageState available on the provided state object.`);
     }
   };
 
@@ -165,6 +179,7 @@ const KonvaStage: React.FC<KonvaStageProps> = ({
         touchAction: palmRejectionConfig.enabled ? 'manipulation' : 'auto'
       }}
       tabIndex={0}
+      data-whiteboard-id={whiteboardId}
     >
       <KonvaStageCanvas
         width={width}
@@ -180,7 +195,12 @@ const KonvaStage: React.FC<KonvaStageProps> = ({
         handlePointerMove={handlePointerMove}
         handlePointerUp={handlePointerUp}
         isReadOnly={isReadOnly}
-        onStageClick={checkDeselect}
+        onStageClick={(e) => {
+          const clickedOnEmpty = e.target === e.target.getStage();
+          if (clickedOnEmpty) {
+            selectShape(null);
+          }
+        }}
         selectionBounds={selection?.selectionState?.selectionBounds || null}
         isSelecting={selection?.selectionState?.isSelecting || false}
         extraContent={

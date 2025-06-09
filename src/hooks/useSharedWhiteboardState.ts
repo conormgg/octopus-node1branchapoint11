@@ -24,8 +24,8 @@ export const useSharedWhiteboardState = (syncConfig?: SyncConfig, whiteboardId?:
   // Pan/zoom operations
   const panZoom = usePanZoom(state.panZoomState, setPanZoomState);
 
-  // Coordinate all operations (drawing, sync, history, etc.)
-  const operations = useSharedOperationsCoordinator(syncConfig, state, setState);
+  // Coordinate all operations (drawing, sync, history, etc.) with whiteboard ID
+  const operations = useSharedOperationsCoordinator(syncConfig, state, setState, whiteboardId);
 
   // Pointer event handlers
   const { handlePointerDown, handlePointerMove, handlePointerUp } = useSharedPointerHandlers(
@@ -52,6 +52,7 @@ export const useSharedWhiteboardState = (syncConfig?: SyncConfig, whiteboardId?:
     panZoom,
     updateImageState: operations.updateImageState,
     selection,
-    isReadOnly: syncConfig?.isReceiveOnly || false
+    isReadOnly: syncConfig?.isReceiveOnly || false,
+    whiteboardId // Expose whiteboard ID for component identification
   };
 };
