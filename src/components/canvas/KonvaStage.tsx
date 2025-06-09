@@ -115,15 +115,25 @@ const KonvaStage: React.FC<KonvaStageProps> = ({
     };
 
     // Make container focusable and add event listeners
-    container.setAttribute('tabIndex', '0');
+    const tabIndexValue =
+      typeof whiteboardId === 'string'
+        ? String(1000 + whiteboardId.charCodeAt(0))
+        : '1000';
+    container.setAttribute('tabIndex', tabIndexValue);
+    container.setAttribute('id', `whiteboard-container-${whiteboardId || 'unknown'}`);
     container.style.outline = 'none'; // Remove focus outline
     container.addEventListener('paste', pasteHandler);
     container.addEventListener('keydown', keyDownHandler);
     container.addEventListener('focus', focusHandler);
-    container.addEventListener('click', clickHandler);
+    container.addEventListener('click', (e: MouseEvent) => {
+      // Only focus this container, and log which one is being focused
+      container.focus();
+      setTimeout(() => {
+        console.log(`[${whiteboardId}] Container clicked and focused for paste. document.activeElement.id:`, (document.activeElement as HTMLElement)?.id);
+      }, 0);
+    });
 
-    // Focus the container initially to enable paste
-    container.focus();
+    // Don't auto-focus the container - only focus when explicitly clicked
     console.log(`[${whiteboardId}] Container setup complete for paste events and keyboard shortcuts`);
 
     return () => {
@@ -141,22 +151,16 @@ const KonvaStage: React.FC<KonvaStageProps> = ({
     const globalPasteHandler = (e: ClipboardEvent) => {
       const container = containerRef.current;
       
-      // Check if this whiteboard container is visible and not read-only
-      if (container && container.offsetParent !== null) {
-        console.log(`[${whiteboardId}] Global paste event detected, checking if should handle`);
-        
-        // If no other input is focused, handle the paste
-        const activeElement = document.activeElement;
-        const isInputFocused = activeElement && (
-          activeElement.tagName === 'INPUT' || 
-          activeElement.tagName === 'TEXTAREA' || 
-          (activeElement as HTMLElement).contentEditable === 'true'
-        );
-        
-        if (!isInputFocused) {
-          console.log(`[${whiteboardId}] Handling global paste event`);
-          handlePaste(e, stageRef.current);
-        }
+      // Only process the paste event if this container is focused
+      if (
+        container &&
+        container.offsetParent !== null &&
+        document.activeElement === container
+      ) {
+        console.log(`[${whiteboardId}] Global paste event detected and container is focused, handling paste`);
+        handlePaste(e, stageRef.current);
+      } else {
+        console.log(`[${whiteboardId}] Global paste event ignored (container not focused)`);
       }
     };
 

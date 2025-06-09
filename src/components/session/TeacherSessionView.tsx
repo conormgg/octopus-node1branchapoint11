@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from '@/components/ui/resizable';
 import WhiteboardPlaceholder from '../WhiteboardPlaceholder';

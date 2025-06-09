@@ -35,9 +35,9 @@ export const useSharedOperationsCoordinator = (
     baseAddToHistory({ lines: state.lines, images: state.images });
   }, [baseAddToHistory, state.lines, state.images]);
 
-  // Drawing and erasing operations
+  // Drawing and erasing operations with whiteboard ID
   const drawingOperations = useSharedDrawingOperations(
-    state, setState, addToHistory, sendOperation, isApplyingRemoteOperation
+    state, setState, addToHistory, sendOperation, isApplyingRemoteOperation, whiteboardId
   );
 
   // Image operations with proper parameter handling
