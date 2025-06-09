@@ -28,16 +28,16 @@ export const useSharedDrawingOperations = (
 
     baseStopDrawing();
 
-    // Sync the drawn line ONLY if we're on the teacher's board (teacher1)
+    // Sync the drawn line ONLY if we're on the teacher's main board
     // and not in receive-only mode
-    if (sendOperation && !isApplyingRemoteOperation.current && whiteboardId === 'teacher1') {
+    if (sendOperation && !isApplyingRemoteOperation.current && whiteboardId === 'teacher-main') {
       const drawnLine = state.lines[state.lines.length - 1];
       if (drawnLine && drawnLine.tool === 'pencil') {
         console.log(`[${whiteboardId}] Syncing drawn line to other clients:`, drawnLine.id);
         sendOperation(serializeDrawOperation(drawnLine));
       }
     } else {
-      console.log(`[${whiteboardId}] Not syncing drawn line - either not teacher board or in receive-only mode`);
+      console.log(`[${whiteboardId}] Not syncing drawn line - whiteboard ID: ${whiteboardId}, has sendOperation: ${!!sendOperation}`);
     }
   }, [state.isDrawing, state.lines, baseStopDrawing, sendOperation, isApplyingRemoteOperation, whiteboardId]);
 
@@ -61,9 +61,9 @@ export const useSharedDrawingOperations = (
 
     baseStopErasing();
     
-    // Sync the erased lines ONLY if we're on the teacher's board (teacher1)
+    // Sync the erased lines ONLY if we're on the teacher's main board
     // and not in receive-only mode
-    if (sendOperation && !isApplyingRemoteOperation.current && whiteboardId === 'teacher1') {
+    if (sendOperation && !isApplyingRemoteOperation.current && whiteboardId === 'teacher-main') {
       // Find the IDs of lines that were erased by comparing with the lines before erasing
       const erasedLineIds = linesBeforeErasingRef.current
         .filter(line => !state.lines.some(l => l.id === line.id))
@@ -78,7 +78,7 @@ export const useSharedDrawingOperations = (
         sendOperation(serializeEraseOperation(erasedLineIds));
       }
     } else {
-      console.log(`[${whiteboardId}] Not syncing erased lines - either not teacher board or in receive-only mode`);
+      console.log(`[${whiteboardId}] Not syncing erased lines - whiteboard ID: ${whiteboardId}, has sendOperation: ${!!sendOperation}`);
     }
     
     // Clear the reference

@@ -24,13 +24,13 @@ export const useSharedImageOperations = (
       )
     }));
 
-    // Sync the image update ONLY if we're on the teacher's board (teacher1)
+    // Sync the image update ONLY if we're on the teacher's main board
     // and not in receive-only mode
-    if (sendOperation && !isApplyingRemoteOperation.current && whiteboardId === 'teacher1') {
+    if (sendOperation && !isApplyingRemoteOperation.current && whiteboardId === 'teacher-main') {
       console.log(`[${whiteboardId}] Syncing image update:`, imageId, newAttrs);
       sendOperation(serializeUpdateImageOperation(imageId, newAttrs));
     } else {
-      console.log(`[${whiteboardId}] Not syncing image update - either not teacher board or in receive-only mode`);
+      console.log(`[${whiteboardId}] Not syncing image update - whiteboard ID: ${whiteboardId}, has sendOperation: ${!!sendOperation}`);
     }
 
     // Add to history after state update
@@ -92,13 +92,13 @@ export const useSharedImageOperations = (
             // Add to history after state update
             setTimeout(() => addToHistory(), 0);
             
-            // Sync the new image ONLY if we're on the teacher's board (teacher1)
+            // Sync the new image ONLY if we're on the teacher's main board
             // and not in receive-only mode
-            if (sendOperation && !isApplyingRemoteOperation.current && whiteboardId === 'teacher1') {
+            if (sendOperation && !isApplyingRemoteOperation.current && whiteboardId === 'teacher-main') {
               console.log(`[${whiteboardId}] Syncing new image to other clients:`, newImage);
               sendOperation(serializeAddImageOperation(newImage));
             } else {
-              console.log(`[${whiteboardId}] Not syncing image - either not teacher board or in receive-only mode`);
+              console.log(`[${whiteboardId}] Not syncing image - whiteboard ID: ${whiteboardId}, has sendOperation: ${!!sendOperation}`);
             }
             
             console.log(`[${whiteboardId}] Image added to whiteboard`);
