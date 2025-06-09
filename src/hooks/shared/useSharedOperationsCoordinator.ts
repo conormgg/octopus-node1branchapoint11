@@ -36,9 +36,9 @@ export const useSharedOperationsCoordinator = (
   }, [baseAddToHistory, state.lines, state.images]);
 
   // Drawing and erasing operations with whiteboard ID
-  // Extract the actual board ID from the sync config if available
-  const actualWhiteboardId = syncConfig?.whiteboardId?.includes('main') ? 'teacher-main' : whiteboardId;
-  console.log(`[Operations Coordinator] Using whiteboard ID: ${actualWhiteboardId}, sync config ID: ${syncConfig?.whiteboardId}`);
+  // Use the full whiteboard ID from sync config or fallback to provided ID
+  const actualWhiteboardId = syncConfig?.whiteboardId || whiteboardId;
+  console.log(`[Operations Coordinator] Using whiteboard ID: ${actualWhiteboardId}`);
   
   const drawingOperations = useSharedDrawingOperations(
     state, setState, addToHistory, sendOperation, isApplyingRemoteOperation, actualWhiteboardId
