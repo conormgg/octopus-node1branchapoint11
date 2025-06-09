@@ -161,8 +161,6 @@ class SyncConnectionManager {
       sender_id: config.senderId
     };
     
-    console.log('[SyncConnectionManager] Sending operation:', fullOperation);
-    
     // Send to Supabase
     supabase
       .from('whiteboard_data')
@@ -178,7 +176,6 @@ class SyncConnectionManager {
         if (error) {
           console.error('[SyncConnectionManager] Error sending operation:', error);
         } else {
-          console.log('[SyncConnectionManager] Operation sent successfully');
           connectionInfo.lastActivity = Date.now();
         }
       });

@@ -5,6 +5,9 @@ import { useDrawingState } from '../useDrawingState';
 import { useEraserState } from '../useEraserState';
 import { serializeDrawOperation, serializeEraseOperation, serializeUpdateLineOperation, serializeDeleteObjectsOperation } from '@/utils/operationSerializer';
 
+// Debug flag for line movement - set to true to see line movement logs
+const DEBUG_LINE_MOVEMENT = false;
+
 export const useSharedDrawingOperations = (
   state: any,
   setState: any,
@@ -83,6 +86,10 @@ export const useSharedDrawingOperations = (
 
   // Update line position/transformation
   const updateLine = useCallback((lineId: string, updates: Partial<LineObject>) => {
+    if (DEBUG_LINE_MOVEMENT) {
+      console.log(`[Line Movement] Updating line ${lineId}:`, updates);
+    }
+    
     setState((prev: any) => ({
       ...prev,
       lines: prev.lines.map((line: LineObject) =>
@@ -95,6 +102,10 @@ export const useSharedDrawingOperations = (
     if (sendOperation && !isApplyingRemoteOperation.current) {
       // Create the operation
       const operation = serializeUpdateLineOperation(lineId, updates);
+      
+      if (DEBUG_LINE_MOVEMENT) {
+        console.log(`[Line Movement] Sending operation to database:`, operation);
+      }
       
       // Send it to the database/sync system
       sendOperation(operation);

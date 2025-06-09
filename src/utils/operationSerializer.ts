@@ -65,16 +65,12 @@ export const applyOperation = (
   state: { lines: LineObject[]; images: ImageObject[] },
   operation: WhiteboardOperation
 ): { lines: LineObject[]; images: ImageObject[] } => {
-  console.log('Applying operation:', operation);
-  
   switch (operation.operation_type) {
     case 'draw': {
       const newLine = operation.data.line;
-      console.log('Adding new line:', newLine);
       
       // Don't add if line already exists (prevent duplicates)
       if (state.lines.some(line => line.id === newLine.id)) {
-        console.log('Line already exists, skipping');
         return state;
       }
       return {
@@ -136,7 +132,6 @@ export const applyOperation = (
     }
     case 'update_line': {
       const { line_id, updates } = operation.data;
-      console.log('Updating line:', line_id, updates);
       
       const updatedLines = state.lines.map(line =>
         line.id === line_id ? { ...line, ...updates } : line
