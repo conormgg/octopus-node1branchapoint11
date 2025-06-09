@@ -107,22 +107,26 @@ const LineRenderer: React.FC<LineRendererProps> = React.memo(({
         onDragEnd={(e) => {
           if (onDragEnd) {
             const node = e.target;
-            onDragEnd({
+            const updates = {
               x: node.x(),
               y: node.y()
-            });
+            };
+            console.log(`[LineRenderer] onDragEnd for line ${line.id}:`, updates);
+            onDragEnd(updates);
           }
         }}
         onTransformEnd={(e) => {
           if (onDragEnd) {
             const node = e.target;
-            onDragEnd({
+            const updates = {
               x: node.x(),
               y: node.y(),
               scaleX: node.scaleX(),
               scaleY: node.scaleY(),
               rotation: node.rotation()
-            });
+            };
+            console.log(`[LineRenderer] onTransformEnd for line ${line.id}:`, updates);
+            onDragEnd(updates);
           }
         }}
         shadowForStrokeEnabled={false}
