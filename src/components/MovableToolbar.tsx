@@ -1,9 +1,8 @@
-
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
-import { Pen, Eraser, MousePointer } from 'lucide-react';
+import { Pen, Eraser } from 'lucide-react';
 import { Tool } from '@/types/whiteboard';
 
 interface MovableToolbarProps {
@@ -65,17 +64,6 @@ const MovableToolbar: React.FC<MovableToolbarProps> = ({
     document.removeEventListener('mouseup', handleMouseUp);
   };
 
-  const handleToolChange = (tool: Tool, event: React.MouseEvent) => {
-    // Prevent any default behavior and stop propagation
-    event.preventDefault();
-    event.stopPropagation();
-    
-    if (!isReadOnly) {
-      console.log('Changing tool to:', tool);
-      onToolChange(tool);
-    }
-  };
-
   return (
     <Card
       className="absolute shadow-md rounded-lg z-10 select-none bg-black text-white"
@@ -94,9 +82,8 @@ const MovableToolbar: React.FC<MovableToolbarProps> = ({
             variant="ghost"
             size="icon"
             className={`h-8 w-8 ${currentTool === 'pencil' ? 'bg-gray-700' : ''}`}
-            onClick={(e) => handleToolChange('pencil', e)}
+            onClick={() => !isReadOnly && onToolChange('pencil')}
             disabled={isReadOnly}
-            type="button"
           >
             <Pen className="h-4 w-4" />
           </Button>
@@ -105,22 +92,10 @@ const MovableToolbar: React.FC<MovableToolbarProps> = ({
             variant="ghost"
             size="icon"
             className={`h-8 w-8 ${currentTool === 'eraser' ? 'bg-gray-700' : ''}`}
-            onClick={(e) => handleToolChange('eraser', e)}
+            onClick={() => !isReadOnly && onToolChange('eraser')}
             disabled={isReadOnly}
-            type="button"
           >
             <Eraser className="h-4 w-4" />
-          </Button>
-          
-          <Button
-            variant="ghost"
-            size="icon"
-            className={`h-8 w-8 ${currentTool === 'select' ? 'bg-gray-700' : ''}`}
-            onClick={(e) => handleToolChange('select', e)}
-            disabled={isReadOnly}
-            type="button"
-          >
-            <MousePointer className="h-4 w-4" />
           </Button>
           
           <Separator orientation="vertical" className="mx-1 h-8 bg-gray-600" />

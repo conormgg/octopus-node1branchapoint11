@@ -12,7 +12,6 @@ import { useSharedImageOperations } from './shared/useSharedImageOperations';
 import { useSharedPointerHandlers } from './shared/useSharedPointerHandlers';
 import { useSharedStateManagement } from './shared/useSharedStateManagement';
 import { useWhiteboardPersistence } from './useWhiteboardPersistence';
-import { useSelectionState } from './useSelectionState';
 
 export const useSharedWhiteboardState = (syncConfig?: SyncConfig, whiteboardId?: string) => {
   const { getWhiteboardState, updateWhiteboardState } = useWhiteboardStateContext();
@@ -36,12 +35,7 @@ export const useSharedWhiteboardState = (syncConfig?: SyncConfig, whiteboardId?:
       isDrawing: false,
       panZoomState: { x: 0, y: 0, scale: 1 },
       history: [{ lines: sharedLines, images: [] }],
-      historyIndex: 0,
-      selectionState: {
-        selectedIds: [],
-        isTransforming: false,
-        selectionRect: null
-      }
+      historyIndex: 0
     };
   });
 
@@ -112,20 +106,6 @@ export const useSharedWhiteboardState = (syncConfig?: SyncConfig, whiteboardId?:
     state, setState, addToHistory, sendOperation, isApplyingRemoteOperation
   );
 
-  // Selection operations
-  const {
-    selectObject,
-    addToSelection,
-    removeFromSelection,
-    clearSelection,
-    selectAll,
-    startSelectionRect,
-    updateSelectionRect,
-    completeSelectionRect,
-    setTransforming,
-    applyTransformation
-  } = useSelectionState(state, setState, addToHistory);
-
   // Pointer event handlers
   const { handlePointerDown, handlePointerMove, handlePointerUp } = useSharedPointerHandlers(
     state, startDrawing, continueDrawing, stopDrawing, startErasing, continueErasing, stopErasing,
@@ -134,7 +114,6 @@ export const useSharedWhiteboardState = (syncConfig?: SyncConfig, whiteboardId?:
 
   return {
     state,
-    setState,
     syncState,
     setTool,
     setColor,
@@ -150,13 +129,6 @@ export const useSharedWhiteboardState = (syncConfig?: SyncConfig, whiteboardId?:
     canRedo,
     panZoom,
     updateImageState,
-    selectObject,
-    addToSelection,
-    removeFromSelection,
-    clearSelection,
-    selectAll,
-    setTransforming,
-    applyTransformation,
     isReadOnly: syncConfig?.isReceiveOnly || false
   };
 };

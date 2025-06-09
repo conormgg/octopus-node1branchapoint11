@@ -5,7 +5,6 @@ import { WhiteboardState, Tool, PanZoomState, ImageObject } from '@/types/whiteb
 import { useDrawingState } from './useDrawingState';
 import { useEraserState } from './useEraserState';
 import { useHistoryState } from './useHistoryState';
-import { useSelectionState } from './useSelectionState';
 import { usePanZoom } from './usePanZoom';
 import Konva from 'konva';
 
@@ -19,12 +18,7 @@ export const useWhiteboardState = () => {
     isDrawing: false,
     panZoomState: { x: 0, y: 0, scale: 1 },
     history: [{ lines: [], images: [] }],
-    historyIndex: 0,
-    selectionState: {
-      selectedIds: [],
-      isTransforming: false,
-      selectionRect: null
-    }
+    historyIndex: 0
   });
 
   // Pan/zoom state management
@@ -147,20 +141,6 @@ export const useWhiteboardState = () => {
     }));
   }, []);
 
-  // Selection operations
-  const {
-    selectObject,
-    addToSelection,
-    removeFromSelection,
-    clearSelection,
-    selectAll,
-    startSelectionRect,
-    updateSelectionRect,
-    completeSelectionRect,
-    setTransforming,
-    applyTransformation
-  } = useSelectionState(state, setState, addToHistory);
-
   // Handle pointer down
   const handlePointerDown = useCallback((x: number, y: number) => {
     // Don't start drawing if a pan/zoom gesture is active
@@ -170,13 +150,8 @@ export const useWhiteboardState = () => {
       startDrawing(x, y);
     } else if (state.currentTool === 'eraser') {
       startErasing(x, y);
-    } else if (state.currentTool === 'select') {
-      // Clear selection if not clicking on a selected object
-      // This will be handled by the KonvaStage component's checkDeselect function
-      // Start selection rectangle
-      startSelectionRect(x, y);
     }
-  }, [state.currentTool, startDrawing, startErasing, startSelectionRect, panZoom]);
+  }, [state.currentTool, startDrawing, startErasing, panZoom]);
 
   // Handle pointer move
   const handlePointerMove = useCallback((x: number, y: number) => {
@@ -187,11 +162,8 @@ export const useWhiteboardState = () => {
       continueDrawing(x, y);
     } else if (state.currentTool === 'eraser') {
       continueErasing(x, y);
-    } else if (state.currentTool === 'select' && state.selectionState.selectionRect) {
-      // Update selection rectangle
-      updateSelectionRect(x, y);
     }
-  }, [state.currentTool, state.selectionState.selectionRect, continueDrawing, continueErasing, updateSelectionRect, panZoom]);
+  }, [state.currentTool, continueDrawing, continueErasing, panZoom]);
 
   // Handle pointer up
   const handlePointerUp = useCallback(() => {
@@ -199,11 +171,8 @@ export const useWhiteboardState = () => {
       stopDrawing();
     } else if (state.currentTool === 'eraser') {
       stopErasing();
-    } else if (state.currentTool === 'select' && state.selectionState.selectionRect) {
-      // Complete selection rectangle and select objects within it
-      completeSelectionRect();
     }
-  }, [state.currentTool, state.selectionState.selectionRect, stopDrawing, stopErasing, completeSelectionRect]);
+  }, [state.currentTool, stopDrawing, stopErasing]);
 
   return {
     state,
@@ -219,14 +188,6 @@ export const useWhiteboardState = () => {
     redo,
     canUndo,
     canRedo,
-    panZoom,
-    // Selection methods
-    selectObject,
-    addToSelection,
-    removeFromSelection,
-    clearSelection,
-    selectAll,
-    setTransforming,
-    applyTransformation
+    panZoom
   };
 };

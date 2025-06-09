@@ -1,7 +1,6 @@
 
 import React from 'react';
 import { useWhiteboardState } from '@/hooks/useWhiteboardState';
-import { useSharedWhiteboardState } from '@/hooks/useSharedWhiteboardState';
 import KonvaStage from './canvas/KonvaStage';
 
 interface PalmRejectionConfig {
@@ -16,7 +15,7 @@ interface PalmRejectionConfig {
 interface WhiteboardCanvasProps {
   width: number;
   height: number;
-  whiteboardState: ReturnType<typeof useWhiteboardState> | ReturnType<typeof useSharedWhiteboardState>;
+  whiteboardState: ReturnType<typeof useWhiteboardState>;
   isReadOnly?: boolean;
   palmRejectionConfig?: PalmRejectionConfig;
 }
@@ -37,7 +36,7 @@ const WhiteboardCanvas: React.FC<WhiteboardCanvasProps> = ({
       <KonvaStage
         width={width}
         height={height}
-        whiteboardState={whiteboardState as ReturnType<typeof useSharedWhiteboardState>}
+        whiteboardState={whiteboardState}
         isReadOnly={isReadOnly}
         palmRejectionConfig={palmRejectionConfig}
       />

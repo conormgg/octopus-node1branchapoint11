@@ -113,12 +113,7 @@ const KonvaStageCanvas: React.FC<KonvaStageCanvasProps> = ({
       onMouseUp={handleMouseUp}
       onMouseLeave={handleMouseUp}
       onTouchStart={handleTouchStart}
-      style={{ 
-        cursor: 
-          currentTool === 'eraser' ? 'crosshair' : 
-          currentTool === 'select' ? 'pointer' : 
-          'default' 
-      }}
+      style={{ cursor: currentTool === 'eraser' ? 'crosshair' : 'default' }}
     >
       {/* Images layer - rendered first (behind) */}
       <Layer>

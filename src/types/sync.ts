@@ -1,7 +1,7 @@
 
 import { LineObject, ImageObject } from './whiteboard';
 
-export type OperationType = 'draw' | 'erase' | 'add_image' | 'update_image' | 'delete_image' | 'transform_object';
+export type OperationType = 'draw' | 'erase' | 'add_image' | 'update_image' | 'delete_image';
 
 export interface WhiteboardOperation {
   whiteboard_id: string;
@@ -30,20 +30,6 @@ export interface UpdateImageOperationData {
 
 export interface DeleteImageOperationData {
   image_id: string;
-}
-
-export interface TransformObjectOperationData {
-  object_id: string;
-  object_type: 'line' | 'image';
-  transforms: {
-    x?: number;
-    y?: number;
-    scaleX?: number;
-    scaleY?: number;
-    rotation?: number;
-    width?: number;
-    height?: number;
-  };
 }
 
 export interface SyncConfig {
