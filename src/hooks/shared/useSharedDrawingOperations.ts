@@ -87,9 +87,6 @@ export const useSharedDrawingOperations = (
 
   // Update line position/transformation
   const updateLine = useCallback((lineId: string, updates: Partial<LineObject>) => {
-    console.log(`[${whiteboardId}] Updating line state:`, lineId, updates);
-    console.log(`[${whiteboardId}] Debug - sendOperation exists: ${!!sendOperation}, isApplyingRemote: ${isApplyingRemoteOperation.current}, includes -main: ${whiteboardId?.includes('-main')}`);
-    
     setState((prev: any) => ({
       ...prev,
       lines: prev.lines.map((line: LineObject) =>
@@ -100,12 +97,7 @@ export const useSharedDrawingOperations = (
     // Sync line transformation ONLY if we're on the teacher's main board
     // and not in receive-only mode
     if (sendOperation && !isApplyingRemoteOperation.current && whiteboardId && whiteboardId.includes('-main')) {
-      console.log(`[${whiteboardId}] Syncing line transformation:`, lineId, updates);
-      const operation = serializeUpdateLineOperation(lineId, updates);
-      console.log(`[${whiteboardId}] Sending operation:`, operation);
-      sendOperation(operation);
-    } else {
-      console.log(`[${whiteboardId}] Not syncing line update - whiteboard ID: ${whiteboardId}, has sendOperation: ${!!sendOperation}, isApplyingRemote: ${isApplyingRemoteOperation.current}`);
+      sendOperation(serializeUpdateLineOperation(lineId, updates));
     }
     
     // Add to history after state update
