@@ -12,6 +12,7 @@ import { useSharedImageOperations } from './shared/useSharedImageOperations';
 import { useSharedPointerHandlers } from './shared/useSharedPointerHandlers';
 import { useSharedStateManagement } from './shared/useSharedStateManagement';
 import { useWhiteboardPersistence } from './useWhiteboardPersistence';
+import { useSelectionState } from './useSelectionState';
 
 export const useSharedWhiteboardState = (syncConfig?: SyncConfig, whiteboardId?: string) => {
   const { getWhiteboardState, updateWhiteboardState } = useWhiteboardStateContext();
@@ -34,10 +35,19 @@ export const useSharedWhiteboardState = (syncConfig?: SyncConfig, whiteboardId?:
       currentStrokeWidth: 5,
       isDrawing: false,
       panZoomState: { x: 0, y: 0, scale: 1 },
+      selectionState: {
+        selectedObjects: [],
+        selectionBounds: null,
+        isSelecting: false,
+        transformationData: {}
+      },
       history: [{ lines: sharedLines, images: [] }],
       historyIndex: 0
     };
   });
+
+  // Selection state management
+  const selection = useSelectionState();
 
   // Update state when persisted data is loaded
   useEffect(() => {
@@ -129,6 +139,7 @@ export const useSharedWhiteboardState = (syncConfig?: SyncConfig, whiteboardId?:
     canRedo,
     panZoom,
     updateImageState,
+    selection,
     isReadOnly: syncConfig?.isReceiveOnly || false
   };
 };
