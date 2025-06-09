@@ -1,5 +1,4 @@
 
-
 import React, { useState, useEffect } from 'react';
 import { Maximize2, Minimize2, AlertCircle } from 'lucide-react';
 import Whiteboard from './Whiteboard';
@@ -30,51 +29,26 @@ const WhiteboardPlaceholder: React.FC<WhiteboardPlaceholderProps> = ({
   sessionId,
   senderId
 }) => {
-  const [dimensions, setDimensions] = useState({ width: 0, height: 0 });
-  const [maximizedDimensions, setMaximizedDimensions] = useState({ width: 0, height: 0 });
+  const [containerDimensions, setContainerDimensions] = useState({ width: 0, height: 0 });
   const containerRef = React.useRef<HTMLDivElement>(null);
   
   // Use centralized session expiration context
   const { isExpired, expiresAt, sessionEndReason, isRedirecting } = useSessionExpirationContext();
 
-  const updateDimensions = () => {
-    if (containerRef.current && !isMaximized) {
+  const updateContainerDimensions = () => {
+    if (containerRef.current) {
       const { width, height } = containerRef.current.getBoundingClientRect();
-      console.log(`[${id}] Container dimensions:`, { width, height });
-      setDimensions({ width, height });
-    }
-  };
-
-  const updateMaximizedDimensions = () => {
-    if (isMaximized) {
-      // Account for inset-4 (16px on each side) = 32px total
-      // Account for UI elements: maximize button (approx 50px from top), some padding
-      const width = window.innerWidth - 32;
-      const height = window.innerHeight - 32;
-      console.log(`[${id}] Maximized dimensions calculated:`, { width, height });
-      setMaximizedDimensions({ width, height });
+      console.log(`[${id}] Container dimensions:`, { width, height, isMaximized });
+      setContainerDimensions({ width, height });
     }
   };
 
   useEffect(() => {
-    updateDimensions();
-    window.addEventListener('resize', updateDimensions);
+    updateContainerDimensions();
+    window.addEventListener('resize', updateContainerDimensions);
     return () => {
-      window.removeEventListener('resize', updateDimensions);
+      window.removeEventListener('resize', updateContainerDimensions);
     };
-  }, [isMaximized]);
-
-  // Update maximized dimensions when maximizing or window resizes
-  useEffect(() => {
-    if (isMaximized) {
-      // Small delay to ensure the container has been repositioned
-      const timer = setTimeout(updateMaximizedDimensions, 10);
-      window.addEventListener('resize', updateMaximizedDimensions);
-      return () => {
-        clearTimeout(timer);
-        window.removeEventListener('resize', updateMaximizedDimensions);
-      };
-    }
   }, [isMaximized]);
 
   // Add escape key listener when maximized
@@ -149,20 +123,19 @@ const WhiteboardPlaceholder: React.FC<WhiteboardPlaceholderProps> = ({
     return undefined;
   }, [id, sessionId, senderId]);
 
-  // Calculate dimensions based on maximized state
-  const whiteboardWidth = isMaximized 
-    ? (maximizedDimensions.width > 0 ? maximizedDimensions.width - 100 : window.innerWidth - 132) // Account for UI elements
-    : (dimensions.width || initialWidth || 800);
-  const whiteboardHeight = isMaximized 
-    ? (maximizedDimensions.height > 0 ? maximizedDimensions.height - 100 : window.innerHeight - 132) // Account for UI elements  
-    : (dimensions.height || initialHeight || 600);
+  // Calculate whiteboard dimensions - much simpler approach
+  const whiteboardWidth = containerDimensions.width > 0 
+    ? containerDimensions.width - 16 // Small padding for borders/margins
+    : initialWidth || 800;
+  const whiteboardHeight = containerDimensions.height > 0 
+    ? containerDimensions.height - 60 // Account for buttons and status indicators
+    : initialHeight || 600;
 
-  console.log(`[${id}] Whiteboard dimensions:`, { 
+  console.log(`[${id}] Final whiteboard dimensions:`, { 
     whiteboardWidth, 
     whiteboardHeight, 
     isMaximized,
-    containerDimensions: dimensions,
-    maximizedDimensions 
+    containerDimensions 
   });
 
   // Common UI elements
@@ -198,19 +171,21 @@ const WhiteboardPlaceholder: React.FC<WhiteboardPlaceholderProps> = ({
     </div>
   );
 
-  // Create the whiteboard content - this will NEVER be remounted
+  // Create the whiteboard content - stable key to prevent remounting
   const whiteboardContent = (
-    <div className="flex-1 flex items-center justify-center bg-gray-25 relative overflow-hidden rounded-lg">
+    <div className="flex-1 flex items-center justify-center bg-gray-25 relative overflow-hidden rounded-lg p-2">
       {whiteboardWidth > 0 && whiteboardHeight > 0 ? (
         syncConfig ? (
           <SyncWhiteboard 
-            key={`sync-${id}-stable`} // Stable key to prevent remounting
+            key={`sync-${id}-stable`}
             syncConfig={syncConfig}
             width={whiteboardWidth}
             height={whiteboardHeight}
           />
         ) : (
-          <Whiteboard isReadOnly={false} />
+          <div className="w-full h-full">
+            <Whiteboard isReadOnly={false} />
+          </div>
         )
       ) : (
         <div className="text-gray-500">Loading whiteboard...</div>
@@ -218,7 +193,6 @@ const WhiteboardPlaceholder: React.FC<WhiteboardPlaceholderProps> = ({
     </div>
   );
 
-  // Single container approach - no conditional returns, no portals
   return (
     <>
       {/* Backdrop overlay - only shown when maximized */}
@@ -229,17 +203,17 @@ const WhiteboardPlaceholder: React.FC<WhiteboardPlaceholderProps> = ({
         />
       )}
       
-      {/* Main container - always in the same position */}
+      {/* Main container - CSS handles sizing */}
       <div 
         ref={containerRef}
         className={`
           flex flex-col bg-white border-2 border-gray-200 rounded-lg shadow-sm hover:shadow-md transition-all duration-200 relative
           ${isMaximized 
             ? 'fixed inset-4 z-[9999] shadow-2xl' 
-            : 'h-full'
+            : 'h-full w-full'
           }
         `}
-        style={!isMaximized ? { 
+        style={!isMaximized && (initialWidth || initialHeight) ? { 
           width: initialWidth ? `${initialWidth}px` : '100%',
           height: initialHeight ? `${initialHeight}px` : '100%'
         } : undefined}
@@ -254,4 +228,3 @@ const WhiteboardPlaceholder: React.FC<WhiteboardPlaceholderProps> = ({
 };
 
 export default WhiteboardPlaceholder;
-
