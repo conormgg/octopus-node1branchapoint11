@@ -3,7 +3,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route, Navigate, useLocation } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { DemoAuthProvider } from "@/hooks/useDemoAuth";
 import { WhiteboardStateProvider } from "@/contexts/WhiteboardStateContext";
@@ -16,6 +16,7 @@ import StudentSessionView from "@/components/session/StudentSessionView";
 import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
 import { Loader2 } from "lucide-react";
+import { useCallback } from "react";
 
 const queryClient = new QueryClient();
 
@@ -27,6 +28,7 @@ const isStudentRoute = (pathname: string) => {
 // Student-only routes without any authentication
 const StudentRoutes = () => {
   const location = useLocation();
+  const navigate = useNavigate();
   
   // Extract session ID from location state for student sessions
   const getSessionId = () => {
@@ -39,12 +41,17 @@ const StudentRoutes = () => {
 
   const sessionId = getSessionId();
 
+  const handleStudentSessionExpired = useCallback(() => {
+    console.log('Student session expired, redirecting to join page');
+    // For students, redirect to the session join page to show expired message
+    const sessionSlug = location.pathname.split('/')[2];
+    navigate(`/session/${sessionSlug}`, { replace: true });
+  }, [navigate, location.pathname]);
+
   return (
     <SessionExpirationProvider 
       sessionId={sessionId}
-      onSessionExpired={() => {
-        console.log('Session expired, handled by centralized context');
-      }}
+      onSessionExpired={handleStudentSessionExpired}
     >
       <Routes>
         <Route path="/session/:sessionSlug" element={<StudentJoinPage />} />
@@ -57,14 +64,20 @@ const StudentRoutes = () => {
 
 // Teacher routes with full authentication
 const TeacherSessionWrapper = ({ children }: { children: React.ReactNode }) => {
-  const { currentSessionId } = useSessionContext();
+  const { currentSessionId, clearCurrentSession } = useSessionContext();
+  const navigate = useNavigate();
+
+  const handleTeacherSessionExpired = useCallback(() => {
+    console.log('Teacher session expired, redirecting to dashboard');
+    // Clear the current session and redirect to dashboard
+    clearCurrentSession();
+    navigate('/dashboard', { replace: true });
+  }, [clearCurrentSession, navigate]);
 
   return (
     <SessionExpirationProvider 
       sessionId={currentSessionId}
-      onSessionExpired={() => {
-        console.log('Session expired, handled by centralized context');
-      }}
+      onSessionExpired={handleTeacherSessionExpired}
     >
       {children}
     </SessionExpirationProvider>

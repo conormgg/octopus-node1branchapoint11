@@ -1,18 +1,27 @@
 
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, ReactNode } from 'react';
 
 interface SessionContextType {
   currentSessionId: string | null;
   setCurrentSessionId: (sessionId: string | null) => void;
+  clearCurrentSession: () => void;
 }
 
 const SessionContext = createContext<SessionContextType | undefined>(undefined);
 
-export const SessionProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+export const SessionProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const [currentSessionId, setCurrentSessionId] = useState<string | null>(null);
 
+  const clearCurrentSession = () => {
+    setCurrentSessionId(null);
+  };
+
   return (
-    <SessionContext.Provider value={{ currentSessionId, setCurrentSessionId }}>
+    <SessionContext.Provider value={{ 
+      currentSessionId, 
+      setCurrentSessionId,
+      clearCurrentSession 
+    }}>
       {children}
     </SessionContext.Provider>
   );
