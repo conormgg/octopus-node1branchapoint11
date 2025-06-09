@@ -75,14 +75,11 @@ const KonvaStage: React.FC<KonvaStageProps> = ({
 
     const pasteHandler = (e: ClipboardEvent) => {
       console.log(`[${whiteboardId}] Paste event detected in container`);
+      console.log(`[${whiteboardId}] Active element:`, document.activeElement);
+      console.log(`[${whiteboardId}] Container:`, container);
       
-      // Only handle paste if this container is focused/active
-      if (document.activeElement === container || container.contains(document.activeElement)) {
-        console.log(`[${whiteboardId}] Container is focused, handling paste`);
-        handlePaste(e, stageRef.current);
-      } else {
-        console.log(`[${whiteboardId}] Container not focused, ignoring paste`);
-      }
+      // Handle paste event - the event listener is already on the correct container
+      handlePaste(e, stageRef.current);
     };
 
     const keyDownHandler = (e: KeyboardEvent) => {
@@ -136,6 +133,42 @@ const KonvaStage: React.FC<KonvaStageProps> = ({
       container.removeEventListener('click', clickHandler);
     };
   }, [handlePaste, isReadOnly, selection, whiteboardId]);
+
+  // Add global paste event listener as fallback
+  useEffect(() => {
+    if (isReadOnly) return;
+
+    const globalPasteHandler = (e: ClipboardEvent) => {
+      const container = containerRef.current;
+      
+      // Check if this whiteboard container is visible and not read-only
+      if (container && container.offsetParent !== null) {
+        console.log(`[${whiteboardId}] Global paste event detected, checking if should handle`);
+        
+        // If no other input is focused, handle the paste
+        const activeElement = document.activeElement;
+        const isInputFocused = activeElement && (
+          activeElement.tagName === 'INPUT' || 
+          activeElement.tagName === 'TEXTAREA' || 
+          (activeElement as HTMLElement).contentEditable === 'true'
+        );
+        
+        if (!isInputFocused) {
+          console.log(`[${whiteboardId}] Handling global paste event`);
+          handlePaste(e, stageRef.current);
+        }
+      }
+    };
+
+    // Add global paste listener
+    document.addEventListener('paste', globalPasteHandler);
+    console.log(`[${whiteboardId}] Global paste listener added`);
+
+    return () => {
+      document.removeEventListener('paste', globalPasteHandler);
+      console.log(`[${whiteboardId}] Global paste listener removed`);
+    };
+  }, [handlePaste, isReadOnly, whiteboardId]);
 
   // Set up all event handlers
   useStageEventHandlers({
