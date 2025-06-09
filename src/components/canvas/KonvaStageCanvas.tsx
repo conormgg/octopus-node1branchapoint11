@@ -128,15 +128,7 @@ const KonvaStageCanvas: React.FC<KonvaStageCanvasProps> = ({
       {/* Lines layer - rendered second (on top) */}
       <Layer ref={layerRef}>
         {lines.map((line) => (
-          <LineRenderer 
-            key={line.id} 
-            line={line}
-            isSelected={false} // TODO: Will be updated when selection state is properly passed
-            onSelect={() => {
-              // TODO: Will be implemented when selection handlers are properly passed
-              console.log('Line selected:', line.id);
-            }}
-          />
+          <LineRenderer key={line.id} line={line} />
         ))}
         
         {/* Selection rectangle - rendered on top of everything */}

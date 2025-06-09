@@ -31,7 +31,7 @@ export const useSharedWhiteboardState = (syncConfig?: SyncConfig, whiteboardId?:
   const { handlePointerDown, handlePointerMove, handlePointerUp } = useSharedPointerHandlers(
     state, operations.startDrawing, operations.continueDrawing, operations.stopDrawing, 
     operations.startErasing, operations.continueErasing, operations.stopErasing,
-    syncConfig, panZoom, selection
+    syncConfig, panZoom
   );
 
   return {
