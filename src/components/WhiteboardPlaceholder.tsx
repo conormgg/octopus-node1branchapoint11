@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Maximize2, Minimize2, AlertCircle } from 'lucide-react';
 import Whiteboard from './Whiteboard';
@@ -36,7 +35,7 @@ const WhiteboardPlaceholder: React.FC<WhiteboardPlaceholderProps> = ({
   const { isExpired, expiresAt, sessionEndReason, isRedirecting } = useSessionExpirationContext();
 
   const updateDimensions = () => {
-    if (containerRef.current) {
+    if (containerRef.current && !isMaximized) {
       const { width, height } = containerRef.current.getBoundingClientRect();
       setDimensions({ width, height });
     }
@@ -48,7 +47,7 @@ const WhiteboardPlaceholder: React.FC<WhiteboardPlaceholderProps> = ({
     return () => {
       window.removeEventListener('resize', updateDimensions);
     };
-  }, []);
+  }, [isMaximized]);
 
   // Add escape key listener when maximized
   useEffect(() => {
@@ -117,81 +116,78 @@ const WhiteboardPlaceholder: React.FC<WhiteboardPlaceholderProps> = ({
   const syncConfig = getSyncConfig(id);
 
   // Calculate dimensions based on maximized state
-  const whiteboardWidth = isMaximized ? window.innerWidth - 64 : dimensions.width;
-  const whiteboardHeight = isMaximized ? window.innerHeight - 128 : dimensions.height;
+  const whiteboardWidth = isMaximized ? window.innerWidth - 32 : dimensions.width;
+  const whiteboardHeight = isMaximized ? window.innerHeight - 96 : dimensions.height;
 
   return (
-    <>
+    <div 
+      ref={containerRef}
+      className={`
+        flex flex-col bg-white border-2 border-gray-200 rounded-lg shadow-sm hover:shadow-md transition-all duration-200 relative
+        ${isMaximized 
+          ? 'fixed inset-4 z-[9999] bg-background shadow-lg' 
+          : 'h-full'
+        }
+      `}
+      style={!isMaximized ? { 
+        width: initialWidth ? `${initialWidth}px` : '100%',
+        height: initialHeight ? `${initialHeight}px` : '100%'
+      } : undefined}
+    >
       {/* Backdrop overlay - only show when maximized */}
       {isMaximized && (
         <div className="fixed inset-0 bg-black/50 z-[9998]" onClick={onMinimize} />
       )}
-      
-      {/* Main container - always rendered, styled conditionally */}
-      <div 
-        ref={containerRef}
-        className={`
-          flex flex-col bg-white border-2 border-gray-200 rounded-lg shadow-sm hover:shadow-md transition-all duration-200 relative
-          ${isMaximized 
-            ? 'fixed inset-0 z-[9999] p-4 bg-background shadow-lg h-full' 
-            : 'h-full'
-          }
-        `}
-        style={!isMaximized ? { 
-          width: initialWidth ? `${initialWidth}px` : '100%',
-          height: initialHeight ? `${initialHeight}px` : '100%'
-        } : undefined}
+
+      {/* Toggle Button */}
+      <button
+        onClick={handleMaximizeClick}
+        className="absolute top-3 right-3 z-10 p-2 rounded-lg bg-white/90 hover:bg-white border border-gray-200 shadow-sm transition-all duration-150"
+        title={isMaximized ? "Minimize (Press Esc)" : "Maximize"}
       >
-        {/* Toggle Button */}
-        <button
-          onClick={handleMaximizeClick}
-          className="absolute top-3 right-3 z-10 p-2 rounded-lg bg-white/90 hover:bg-white border border-gray-200 shadow-sm transition-all duration-150"
-          title={isMaximized ? "Minimize (Press Esc)" : "Maximize"}
-        >
-          {isMaximized ? (
-            <Minimize2 size={16} className="text-gray-600" />
-          ) : (
-            <Maximize2 size={16} className="text-gray-600" />
-          )}
-        </button>
-        
-        {/* Session Status Indicator */}
-        {sessionId && expiresAt && !isExpired && (
-          <div className="absolute top-3 left-3 z-10 p-2 rounded-lg bg-white/90 hover:bg-white border border-gray-200 shadow-sm transition-all duration-150 flex items-center space-x-2">
-            <div className="w-2 h-2 rounded-full bg-green-500"></div>
-            <span className="text-xs text-gray-600">
-              Session active until {expiresAt.toLocaleTimeString()}
-            </span>
-          </div>
+        {isMaximized ? (
+          <Minimize2 size={16} className="text-gray-600" />
+        ) : (
+          <Maximize2 size={16} className="text-gray-600" />
         )}
-        
-        {/* Session Status Warning */}
-        {sessionId && isExpired && !isRedirecting && (
-          <div className="absolute top-3 left-3 z-10 p-2 rounded-lg bg-red-50 border border-red-200 shadow-sm transition-all duration-150 flex items-center space-x-2">
-            <AlertCircle size={14} className="text-red-500" />
-            <span className="text-xs text-red-600">
-              {sessionEndReason === 'ended_by_teacher' ? 'Session ended' : 'Session expired'}
-            </span>
-          </div>
-        )}
-        
-        {/* Whiteboard Content Area */}
-        <div className={`
-          flex-1 flex items-center justify-center bg-gray-25 relative overflow-hidden rounded-lg
-          ${isMaximized ? 'mt-12' : ''}
-        `}>
-          {syncConfig ? (
-            <SyncWhiteboard 
-              syncConfig={syncConfig}
-              width={whiteboardWidth}
-              height={whiteboardHeight}
-            />
-          ) : (
-            <Whiteboard isReadOnly={false} />
-          )}
+      </button>
+      
+      {/* Session Status Indicator */}
+      {sessionId && expiresAt && !isExpired && (
+        <div className="absolute top-3 left-3 z-10 p-2 rounded-lg bg-white/90 hover:bg-white border border-gray-200 shadow-sm transition-all duration-150 flex items-center space-x-2">
+          <div className="w-2 h-2 rounded-full bg-green-500"></div>
+          <span className="text-xs text-gray-600">
+            Session active until {expiresAt.toLocaleTimeString()}
+          </span>
         </div>
+      )}
+      
+      {/* Session Status Warning */}
+      {sessionId && isExpired && !isRedirecting && (
+        <div className="absolute top-3 left-3 z-10 p-2 rounded-lg bg-red-50 border border-red-200 shadow-sm transition-all duration-150 flex items-center space-x-2">
+          <AlertCircle size={14} className="text-red-500" />
+          <span className="text-xs text-red-600">
+            {sessionEndReason === 'ended_by_teacher' ? 'Session ended' : 'Session expired'}
+          </span>
+        </div>
+      )}
+      
+      {/* Whiteboard Content Area */}
+      <div className={`
+        flex-1 flex items-center justify-center bg-gray-25 relative overflow-hidden rounded-lg
+        ${isMaximized ? 'mt-12' : ''}
+      `}>
+        {syncConfig ? (
+          <SyncWhiteboard 
+            syncConfig={syncConfig}
+            width={whiteboardWidth}
+            height={whiteboardHeight}
+          />
+        ) : (
+          <Whiteboard isReadOnly={false} />
+        )}
       </div>
-    </>
+    </div>
   );
 };
 
