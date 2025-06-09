@@ -45,7 +45,7 @@ export const serializeDeleteImageOperation = (imageId: string): Omit<WhiteboardO
 
 export const serializeUpdateLineOperation = (lineId: string, updates: Partial<LineObject>): Omit<WhiteboardOperation, 'id' | 'timestamp' | 'sender_id'> => ({
   whiteboard_id: '', // Will be set by the calling function
-  operation_type: 'update_line',
+  operation_type: 'transform_objects', // Use 'transform_objects' for line updates
   data: {
     line_id: lineId,
     updates
@@ -131,6 +131,17 @@ export const applyOperation = (
       };
     }
     case 'update_line': {
+      const { line_id, updates } = operation.data;
+      
+      const updatedLines = state.lines.map(line =>
+        line.id === line_id ? { ...line, ...updates } : line
+      );
+      return {
+        ...state,
+        lines: updatedLines
+      };
+    }
+    case 'transform_objects': {
       const { line_id, updates } = operation.data;
       
       const updatedLines = state.lines.map(line =>
