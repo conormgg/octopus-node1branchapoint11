@@ -193,6 +193,40 @@ export const useSyncWhiteboardState = (syncConfig: SyncConfig) => {
     }
   }, [state.currentTool, state.lines, state.images, stopDrawing, stopErasing, syncConfig.isReceiveOnly, selection]);
 
+  // Update line position/attributes
+  const updateLine = useCallback((lineId: string, updates: Partial<LineObject>) => {
+    setState(prev => ({
+      ...prev,
+      lines: prev.lines.map(line => 
+        line.id === lineId ? { ...line, ...updates } : line
+      )
+    }));
+    // Add to history after state update
+    setTimeout(() => addToHistory(), 0);
+    
+    // TODO: Add sync logic for line updates in future stages
+    // if (sendOperation && !isApplyingRemoteOperation.current && !syncConfig.isReceiveOnly) {
+    //   sendOperation(serializeUpdateOperation('line', lineId, updates));
+    // }
+  }, [addToHistory]);
+
+  // Update image position/attributes
+  const updateImage = useCallback((imageId: string, updates: Partial<ImageObject>) => {
+    setState(prev => ({
+      ...prev,
+      images: prev.images.map(image => 
+        image.id === imageId ? { ...image, ...updates } : image
+      )
+    }));
+    // Add to history after state update
+    setTimeout(() => addToHistory(), 0);
+    
+    // TODO: Add sync logic for image updates in future stages
+    // if (sendOperation && !isApplyingRemoteOperation.current && !syncConfig.isReceiveOnly) {
+    //   sendOperation(serializeUpdateOperation('image', imageId, updates));
+    // }
+  }, [addToHistory]);
+
   // Handle paste functionality
   const handlePaste = useCallback((e: ClipboardEvent, stage: Konva.Stage | null) => {
     console.log('Paste event triggered in sync whiteboard state');
@@ -279,6 +313,8 @@ export const useSyncWhiteboardState = (syncConfig: SyncConfig) => {
     canRedo,
     panZoom,
     selection,
+    updateLine,
+    updateImage,
     isReadOnly: syncConfig.isReceiveOnly
   };
 };

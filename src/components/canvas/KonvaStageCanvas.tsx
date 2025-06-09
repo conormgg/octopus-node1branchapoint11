@@ -32,6 +32,7 @@ interface KonvaStageCanvasProps {
   selectionBounds?: SelectionBounds | null;
   isSelecting?: boolean;
   selection?: any;
+  onUpdateLine?: (lineId: string, updates: any) => void;
 }
 
 const KonvaStageCanvas: React.FC<KonvaStageCanvasProps> = ({
@@ -52,7 +53,8 @@ const KonvaStageCanvas: React.FC<KonvaStageCanvasProps> = ({
   extraContent,
   selectionBounds,
   isSelecting = false,
-  selection
+  selection,
+  onUpdateLine
 }) => {
   const { getRelativePointerPosition } = useStageCoordinates(panZoomState);
 
@@ -61,6 +63,10 @@ const KonvaStageCanvas: React.FC<KonvaStageCanvasProps> = ({
     // Handle right-click pan - works for everyone, including read-only users
     if (e.evt.button === 2) {
       panZoom.startPan(e.evt.clientX, e.evt.clientY);
+      // Clear hover state when starting pan to prevent jerky behavior
+      if (selection?.setHoveredObjectId) {
+        selection.setHoveredObjectId(null);
+      }
       return;
     }
     
@@ -102,6 +108,10 @@ const KonvaStageCanvas: React.FC<KonvaStageCanvasProps> = ({
     // Handle right-click pan - works for everyone, including read-only users
     if (e.evt.buttons === 2) {
       panZoom.continuePan(e.evt.clientX, e.evt.clientY);
+      // Clear hover state during pan to prevent jerky behavior
+      if (selection?.setHoveredObjectId) {
+        selection.setHoveredObjectId(null);
+      }
       return;
     }
     
@@ -142,7 +152,11 @@ const KonvaStageCanvas: React.FC<KonvaStageCanvasProps> = ({
       onMouseUp={handleMouseUp}
       onMouseLeave={handleMouseUp}
       onTouchStart={handleTouchStart}
-      style={{ cursor: currentTool === 'eraser' ? 'crosshair' : 'default' }}
+      style={{ 
+        cursor: currentTool === 'eraser' ? 'crosshair' : 
+                currentTool === 'select' && selection?.hoveredObjectId ? 'pointer' : 
+                'default' 
+      }}
     >
       {/* Images layer - rendered first (behind) */}
       <Layer>
@@ -156,11 +170,28 @@ const KonvaStageCanvas: React.FC<KonvaStageCanvasProps> = ({
             key={line.id} 
             line={line}
             isSelected={selection?.isObjectSelected?.(line.id) || false}
+            isHovered={selection?.hoveredObjectId === line.id}
+            currentTool={currentTool}
             onSelect={currentTool === 'select' ? () => {
               if (selection) {
                 selection.selectObjects([{ id: line.id, type: 'line' }]);
               }
             } : undefined}
+            onMouseEnter={currentTool === 'select' ? () => {
+              if (selection?.setHoveredObjectId) {
+                selection.setHoveredObjectId(line.id);
+              }
+            } : undefined}
+            onMouseLeave={currentTool === 'select' ? () => {
+              if (selection?.setHoveredObjectId) {
+                selection.setHoveredObjectId(null);
+              }
+            } : undefined}
+            onDragEnd={(newPosition) => {
+              if (onUpdateLine) {
+                onUpdateLine(line.id, newPosition);
+              }
+            }}
           />
         ))}
         

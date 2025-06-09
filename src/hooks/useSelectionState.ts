@@ -8,6 +8,8 @@ export const useSelectionState = () => {
     isSelecting: false,
     transformationData: {}
   });
+  
+  const [hoveredObjectId, setHoveredObjectId] = useState<string | null>(null);
 
   // Select objects
   const selectObjects = useCallback((objects: SelectedObject[]) => {
@@ -459,6 +461,8 @@ export const useSelectionState = () => {
     findObjectsInBounds,
     isObjectSelected,
     getSelectedObjectIds,
-    calculateSelectionBounds
+    calculateSelectionBounds,
+    hoveredObjectId,
+    setHoveredObjectId
   };
 };

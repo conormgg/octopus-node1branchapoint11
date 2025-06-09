@@ -49,7 +49,9 @@ const KonvaStage: React.FC<KonvaStageProps> = ({
     handlePaste,
     addToHistory,
     panZoom,
-    selection
+    selection,
+    updateLine,
+    updateImage
   } = whiteboardState;
 
   // Get whiteboard ID for this instance
@@ -242,6 +244,7 @@ const KonvaStage: React.FC<KonvaStageProps> = ({
         selectionBounds={selection?.selectionState?.selectionBounds || null}
         isSelecting={selection?.selectionState?.isSelecting || false}
         selection={selection}
+        onUpdateLine={updateLine}
         extraContent={
           <>
             {state.images?.map((image) => (
@@ -249,14 +252,35 @@ const KonvaStage: React.FC<KonvaStageProps> = ({
                 key={image.id}
                 imageObject={image}
                 isSelected={selection?.isObjectSelected(image.id) || false}
+                isHovered={selection?.hoveredObjectId === image.id}
                 onSelect={() => {
                   if (selection && state.currentTool === 'select') {
                     selection.selectObjects([{ id: image.id, type: 'image' }]);
                   }
                 }}
-                onChange={(newAttrs) => updateImageState(image.id, newAttrs)}
-                onUpdateState={() => {}}
+                onChange={(newAttrs) => {
+                  if (updateImage) {
+                    updateImage(image.id, newAttrs);
+                  } else {
+                    updateImageState(image.id, newAttrs);
+                  }
+                }}
+                onUpdateState={() => {
+                  if (addToHistory) {
+                    addToHistory();
+                  }
+                }}
                 currentTool={state.currentTool}
+                onMouseEnter={state.currentTool === 'select' ? () => {
+                  if (selection?.setHoveredObjectId) {
+                    selection.setHoveredObjectId(image.id);
+                  }
+                } : undefined}
+                onMouseLeave={state.currentTool === 'select' ? () => {
+                  if (selection?.setHoveredObjectId) {
+                    selection.setHoveredObjectId(null);
+                  }
+                } : undefined}
               />
             )) || null}
           </>

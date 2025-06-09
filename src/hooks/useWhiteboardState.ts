@@ -154,6 +154,30 @@ export const useWhiteboardState = () => {
     }));
   }, []);
 
+  // Update line position
+  const updateLine = useCallback((lineId: string, updates: Partial<typeof state.lines[0]>) => {
+    setState(prev => ({
+      ...prev,
+      lines: prev.lines.map(line => 
+        line.id === lineId ? { ...line, ...updates } : line
+      )
+    }));
+    // Add to history after state update
+    setTimeout(() => addToHistory(), 0);
+  }, [addToHistory]);
+
+  // Update image position/attributes
+  const updateImage = useCallback((imageId: string, updates: Partial<ImageObject>) => {
+    setState(prev => ({
+      ...prev,
+      images: prev.images.map(image => 
+        image.id === imageId ? { ...image, ...updates } : image
+      )
+    }));
+    // Add to history after state update
+    setTimeout(() => addToHistory(), 0);
+  }, [addToHistory]);
+
   // Handle pointer down
   const handlePointerDown = useCallback((x: number, y: number) => {
     // Don't start drawing if a pan/zoom gesture is active
@@ -240,6 +264,8 @@ export const useWhiteboardState = () => {
     canUndo,
     canRedo,
     panZoom,
-    selection
+    selection,
+    updateLine,
+    updateImage
   };
 };

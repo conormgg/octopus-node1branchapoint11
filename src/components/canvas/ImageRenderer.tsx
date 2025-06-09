@@ -8,19 +8,25 @@ import useImage from 'use-image';
 interface ImageRendererProps {
   imageObject: ImageObject;
   isSelected: boolean;
+  isHovered?: boolean;
   onSelect: () => void;
   onChange: (newAttrs: Partial<ImageObject>) => void;
   onUpdateState: () => void;
   currentTool?: string;
+  onMouseEnter?: () => void;
+  onMouseLeave?: () => void;
 }
 
-const ImageRenderer: React.FC<ImageRendererProps> = ({
+const ImageRenderer: React.FC<ImageRendererProps> = React.memo(({
   imageObject,
   isSelected,
+  isHovered = false,
   onSelect,
   onChange,
   onUpdateState,
   currentTool = 'pencil',
+  onMouseEnter,
+  onMouseLeave,
 }) => {
   const [image] = useImage(imageObject.src);
   const imageRef = useRef<Konva.Image>(null);
@@ -63,6 +69,8 @@ const ImageRenderer: React.FC<ImageRendererProps> = ({
       <Image
         onClick={onSelect}
         onTap={onSelect}
+        onMouseEnter={onMouseEnter}
+        onMouseLeave={onMouseLeave}
         ref={imageRef}
         image={image}
         x={imageObject.x}
@@ -71,6 +79,8 @@ const ImageRenderer: React.FC<ImageRendererProps> = ({
         onDragStart={onSelect}
         onDragEnd={handleDragEnd}
         onTransformEnd={handleTransformEnd}
+        stroke={isHovered && !isSelected ? 'rgba(0, 123, 255, 0.3)' : undefined}
+        strokeWidth={isHovered && !isSelected ? 2 : 0}
         {...(imageObject.width && { width: imageObject.width })}
         {...(imageObject.height && { height: imageObject.height })}
       />
@@ -87,6 +97,20 @@ const ImageRenderer: React.FC<ImageRendererProps> = ({
       )}
     </>
   );
-};
+}, (prevProps, nextProps) => {
+  // Custom comparison function for React.memo
+  // Only re-render if these specific props change
+  return (
+    prevProps.imageObject.id === nextProps.imageObject.id &&
+    prevProps.imageObject.src === nextProps.imageObject.src &&
+    prevProps.imageObject.x === nextProps.imageObject.x &&
+    prevProps.imageObject.y === nextProps.imageObject.y &&
+    prevProps.imageObject.width === nextProps.imageObject.width &&
+    prevProps.imageObject.height === nextProps.imageObject.height &&
+    prevProps.isSelected === nextProps.isSelected &&
+    prevProps.isHovered === nextProps.isHovered &&
+    prevProps.currentTool === nextProps.currentTool
+  );
+});
 
 export default ImageRenderer;
