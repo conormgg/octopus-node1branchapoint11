@@ -59,6 +59,7 @@ const ImageRenderer: React.FC<ImageRendererProps> = React.memo(({
         y: node.y(),
         width: Math.max(5, node.width() * scaleX),
         height: Math.max(node.height() * scaleY),
+        rotation: node.rotation(), // Include rotation in the update
       });
       onUpdateState();
     }
@@ -75,6 +76,7 @@ const ImageRenderer: React.FC<ImageRendererProps> = React.memo(({
         image={image}
         x={imageObject.x}
         y={imageObject.y}
+        rotation={imageObject.rotation || 0} // Apply rotation from imageObject
         draggable={currentTool === 'select' && isSelected}
         onDragStart={onSelect}
         onDragEnd={handleDragEnd}
@@ -107,6 +109,7 @@ const ImageRenderer: React.FC<ImageRendererProps> = React.memo(({
     prevProps.imageObject.y === nextProps.imageObject.y &&
     prevProps.imageObject.width === nextProps.imageObject.width &&
     prevProps.imageObject.height === nextProps.imageObject.height &&
+    prevProps.imageObject.rotation === nextProps.imageObject.rotation &&
     prevProps.isSelected === nextProps.isSelected &&
     prevProps.isHovered === nextProps.isHovered &&
     prevProps.currentTool === nextProps.currentTool
