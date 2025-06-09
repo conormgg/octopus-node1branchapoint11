@@ -231,8 +231,8 @@ const KonvaStage: React.FC<KonvaStageProps> = ({
         isReadOnly={isReadOnly}
         onStageClick={(e) => {
           const clickedOnEmpty = e.target === e.target.getStage();
-          if (clickedOnEmpty) {
-            selectShape(null);
+          if (clickedOnEmpty && selection) {
+            selection.clearSelection();
           }
         }}
         selectionBounds={selection?.selectionState?.selectionBounds || null}
@@ -243,8 +243,12 @@ const KonvaStage: React.FC<KonvaStageProps> = ({
               <ImageRenderer
                 key={image.id}
                 imageObject={image}
-                isSelected={image.id === selectedId}
-                onSelect={() => selectShape(image.id)}
+                isSelected={selection?.isObjectSelected(image.id) || false}
+                onSelect={() => {
+                  if (selection) {
+                    selection.selectObjects([{ id: image.id, type: 'image' }]);
+                  }
+                }}
                 onChange={(newAttrs) => updateImageState(image.id, newAttrs)}
                 onUpdateState={() => {}}
               />
