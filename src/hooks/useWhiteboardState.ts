@@ -6,6 +6,7 @@ import { useDrawingState } from './useDrawingState';
 import { useEraserState } from './useEraserState';
 import { useHistoryState } from './useHistoryState';
 import { usePanZoom } from './usePanZoom';
+import { useSelectionState } from './useSelectionState';
 import Konva from 'konva';
 
 export const useWhiteboardState = () => {
@@ -17,6 +18,12 @@ export const useWhiteboardState = () => {
     currentStrokeWidth: 5,
     isDrawing: false,
     panZoomState: { x: 0, y: 0, scale: 1 },
+    selectionState: {
+      selectedObjects: [],
+      selectionBounds: null,
+      isSelecting: false,
+      transformationData: {}
+    },
     history: [{ lines: [], images: [] }],
     historyIndex: 0
   });
@@ -31,6 +38,9 @@ export const useWhiteboardState = () => {
 
   // Pan/zoom operations
   const panZoom = usePanZoom(state.panZoomState, setPanZoomState);
+
+  // Selection operations
+  const selection = useSelectionState();
 
   // History operations
   const {
@@ -150,8 +160,20 @@ export const useWhiteboardState = () => {
       startDrawing(x, y);
     } else if (state.currentTool === 'eraser') {
       startErasing(x, y);
+    } else if (state.currentTool === 'select') {
+      // Handle selection logic
+      const foundObjects = selection.findObjectsAtPoint({ x, y }, state.lines, state.images);
+      
+      if (foundObjects.length > 0) {
+        // Select the first found object
+        selection.selectObjects([foundObjects[0]]);
+      } else {
+        // Start drag-to-select
+        selection.setIsSelecting(true);
+        selection.setSelectionBounds({ x, y, width: 0, height: 0 });
+      }
     }
-  }, [state.currentTool, startDrawing, startErasing, panZoom]);
+  }, [state.currentTool, state.lines, state.images, startDrawing, startErasing, panZoom, selection]);
 
   // Handle pointer move
   const handlePointerMove = useCallback((x: number, y: number) => {
@@ -162,8 +184,20 @@ export const useWhiteboardState = () => {
       continueDrawing(x, y);
     } else if (state.currentTool === 'eraser') {
       continueErasing(x, y);
+    } else if (state.currentTool === 'select' && selection.selectionState.isSelecting) {
+      // Update drag-to-select rectangle
+      const bounds = selection.selectionState.selectionBounds;
+      if (bounds) {
+        const newBounds = {
+          x: Math.min(bounds.x, x),
+          y: Math.min(bounds.y, y),
+          width: Math.abs(x - bounds.x),
+          height: Math.abs(y - bounds.y)
+        };
+        selection.setSelectionBounds(newBounds);
+      }
     }
-  }, [state.currentTool, continueDrawing, continueErasing, panZoom]);
+  }, [state.currentTool, continueDrawing, continueErasing, panZoom, selection]);
 
   // Handle pointer up
   const handlePointerUp = useCallback(() => {
@@ -171,8 +205,20 @@ export const useWhiteboardState = () => {
       stopDrawing();
     } else if (state.currentTool === 'eraser') {
       stopErasing();
+    } else if (state.currentTool === 'select' && selection.selectionState.isSelecting) {
+      // Complete drag-to-select
+      const bounds = selection.selectionState.selectionBounds;
+      if (bounds && (bounds.width > 5 || bounds.height > 5)) {
+        // Find objects within selection bounds
+        const objectsInBounds = selection.findObjectsInBounds(bounds, state.lines, state.images);
+        selection.selectObjects(objectsInBounds);
+      }
+      
+      // End selection
+      selection.setIsSelecting(false);
+      selection.setSelectionBounds(null);
     }
-  }, [state.currentTool, stopDrawing, stopErasing]);
+  }, [state.currentTool, state.lines, state.images, stopDrawing, stopErasing, selection]);
 
   return {
     state,
@@ -188,6 +234,7 @@ export const useWhiteboardState = () => {
     redo,
     canUndo,
     canRedo,
-    panZoom
+    panZoom,
+    selection
   };
 };
