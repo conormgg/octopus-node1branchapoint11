@@ -1,3 +1,4 @@
+
 import React, { useRef, useEffect } from 'react';
 import { Line, Transformer } from 'react-konva';
 import { LineObject } from '@/types/whiteboard';
@@ -34,6 +35,7 @@ const LineRenderer: React.FC<LineRendererProps> = React.memo(({
       trRef.current?.getLayer()?.batchDraw();
     }
   }, [isSelected, currentTool]);
+  
   // Don't render eraser strokes - they are used for stroke deletion, not visual feedback
   if (line.tool === 'eraser') return null;
 
@@ -107,15 +109,32 @@ const LineRenderer: React.FC<LineRendererProps> = React.memo(({
         onDragEnd={(e) => {
           if (onDragEnd) {
             const node = e.target;
+            console.log('Line drag end - sending update:', {
+              x: node.x(),
+              y: node.y(),
+              scaleX: node.scaleX(),
+              scaleY: node.scaleY(),
+              rotation: node.rotation()
+            });
             onDragEnd({
               x: node.x(),
-              y: node.y()
+              y: node.y(),
+              scaleX: node.scaleX(),
+              scaleY: node.scaleY(),
+              rotation: node.rotation()
             });
           }
         }}
         onTransformEnd={(e) => {
           if (onDragEnd) {
             const node = e.target;
+            console.log('Line transform end - sending update:', {
+              x: node.x(),
+              y: node.y(),
+              scaleX: node.scaleX(),
+              scaleY: node.scaleY(),
+              rotation: node.rotation()
+            });
             onDragEnd({
               x: node.x(),
               y: node.y(),
