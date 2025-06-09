@@ -15,8 +15,8 @@ export const useSharedWhiteboardState = (syncConfig?: SyncConfig, whiteboardId?:
   // Selection state management
   const selection = useSelectionState();
 
-  // Handle persistence and context integration
-  useSharedPersistenceIntegration(syncConfig, whiteboardId, state, setState);
+  // Handle persistence and context integration (updated parameter order)
+  useSharedPersistenceIntegration(state, setState, syncConfig, whiteboardId);
 
   // State management functions
   const { setPanZoomState, setTool, setColor, setStrokeWidth } = useSharedStateManagement(setState);

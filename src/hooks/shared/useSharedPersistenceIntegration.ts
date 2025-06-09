@@ -6,10 +6,10 @@ import { useWhiteboardPersistence } from '../useWhiteboardPersistence';
 import { useWhiteboardStateContext } from '@/contexts/WhiteboardStateContext';
 
 export const useSharedPersistenceIntegration = (
-  syncConfig?: SyncConfig,
-  whiteboardId?: string,
   state: WhiteboardState,
-  setState: (updater: (prev: WhiteboardState) => WhiteboardState) => void
+  setState: (updater: (prev: WhiteboardState) => WhiteboardState) => void,
+  syncConfig?: SyncConfig,
+  whiteboardId?: string
 ) => {
   const { updateWhiteboardState } = useWhiteboardStateContext();
   
