@@ -159,36 +159,6 @@ const KonvaStage: React.FC<KonvaStageProps> = ({
     };
   }, [handlePaste, isReadOnly, selection, whiteboardId]);
 
-  // Add global paste event listener as fallback
-  useEffect(() => {
-    if (isReadOnly) return;
-
-    const globalPasteHandler = (e: ClipboardEvent) => {
-      const container = containerRef.current;
-      
-      // Only process the paste event if this container is focused
-      if (
-        container &&
-        container.offsetParent !== null &&
-        document.activeElement === container
-      ) {
-        console.log(`[${whiteboardId}] Global paste event detected and container is focused, handling paste`);
-        handlePaste(e, stageRef.current);
-      } else {
-        console.log(`[${whiteboardId}] Global paste event ignored (container not focused)`);
-      }
-    };
-
-    // Add global paste listener
-    document.addEventListener('paste', globalPasteHandler);
-    console.log(`[${whiteboardId}] Global paste listener added`);
-
-    return () => {
-      document.removeEventListener('paste', globalPasteHandler);
-      console.log(`[${whiteboardId}] Global paste listener removed`);
-    };
-  }, [handlePaste, isReadOnly, whiteboardId]);
-
   // Set up all event handlers
   useStageEventHandlers({
     containerRef,
