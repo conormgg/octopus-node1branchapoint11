@@ -51,6 +51,14 @@ export const SyncWhiteboard: React.FC<SyncWhiteboardProps> = ({
         height={height}
         whiteboardState={whiteboardState}
         isReadOnly={isReadOnly}
+        palmRejectionConfig={{
+          maxContactSize: 40,
+          minPressure: 0.1,
+          palmTimeoutMs: 500,
+          clusterDistance: 100,
+          preferStylus: true,
+          enabled: false
+        }}
       />
       <MovableToolbar
         currentTool={whiteboardState.state.currentTool}

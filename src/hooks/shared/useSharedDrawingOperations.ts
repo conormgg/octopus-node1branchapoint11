@@ -85,12 +85,31 @@ export const useSharedDrawingOperations = (
     linesBeforeErasingRef.current = [];
   }, [state.isDrawing, state.lines, baseStopErasing, sendOperation, isApplyingRemoteOperation, whiteboardId]);
 
+  // Update line position/transformation
+  const updateLine = useCallback((lineId: string, updates: Partial<LineObject>) => {
+    setState((prev: any) => ({
+      ...prev,
+      lines: prev.lines.map((line: LineObject) =>
+        line.id === lineId ? { ...line, ...updates } : line
+      )
+    }));
+    
+    // Add to history after transformation
+    addToHistory();
+    
+    // TODO: Sync line transformation in future stages
+    if (sendOperation && !isApplyingRemoteOperation.current && whiteboardId === 'teacher-main') {
+      console.log(`[${whiteboardId}] Line transformation sync not yet implemented`);
+    }
+  }, [setState, addToHistory, sendOperation, isApplyingRemoteOperation, whiteboardId]);
+
   return {
     startDrawing,
     continueDrawing,
     stopDrawing,
     startErasing,
     continueErasing,
-    stopErasing
+    stopErasing,
+    updateLine
   };
 };

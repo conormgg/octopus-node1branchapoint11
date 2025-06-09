@@ -72,18 +72,12 @@ const KonvaStageCanvas: React.FC<KonvaStageCanvasProps> = ({
     
     // Handle selection tool clicks
     if (currentTool === 'select' && selection && !isReadOnly) {
-      // Check if we clicked on a line
+      // Check if we clicked on a line or image
       const clickedShape = e.target;
       if (clickedShape && clickedShape !== e.target.getStage()) {
-        // Find the line by ID
-        const lineId = clickedShape.id();
-        if (lineId) {
-          const clickedLine = lines.find(l => l.id === lineId);
-          if (clickedLine) {
-            selection.selectObjects([{ id: lineId, type: 'line' }]);
-            return;
-          }
-        }
+        // Don't handle the click here - let the shape's onClick handler deal with it
+        // This allows dragging to work properly
+        return;
       } else {
         // Clicked on empty space - call the stage click handler for deselection
         if (onStageClick) onStageClick(e);
@@ -92,7 +86,7 @@ const KonvaStageCanvas: React.FC<KonvaStageCanvasProps> = ({
     }
     
     // Call the stage click handler for other tools
-    if (onStageClick) onStageClick(e);
+    if (onStageClick && currentTool !== 'select') onStageClick(e);
     
     // Only proceed with drawing if not in read-only mode or palm rejection is disabled
     if (isReadOnly || palmRejectionConfig.enabled) return;

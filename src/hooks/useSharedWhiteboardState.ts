@@ -58,6 +58,8 @@ export const useSharedWhiteboardState = (syncConfig?: SyncConfig, whiteboardId?:
     canRedo: operations.canRedo,
     panZoom,
     updateImageState: operations.updateImageState,
+    updateLine: operations.updateLine,
+    updateImage: operations.updateImage,
     selection,
     isReadOnly: syncConfig?.isReceiveOnly || false,
     whiteboardId // Expose whiteboard ID for component identification

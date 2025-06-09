@@ -70,6 +70,14 @@ const KonvaStage: React.FC<KonvaStageProps> = ({
     stage.scaleY(state.panZoomState.scale);
   }, [state.panZoomState]);
 
+  // Store current tool on stage for access in event handlers
+  useEffect(() => {
+    const stage = stageRef.current;
+    if (!stage) return;
+    
+    stage.setAttr('currentTool', state.currentTool);
+  }, [state.currentTool]);
+
   // Add paste event listener and keyboard shortcuts with whiteboard-specific handling
   useEffect(() => {
     const container = containerRef.current;

@@ -159,7 +159,8 @@ const LineRenderer: React.FC<LineRendererProps> = React.memo(({
     prevProps.line.scaleY === nextProps.line.scaleY &&
     prevProps.line.rotation === nextProps.line.rotation &&
     prevProps.isSelected === nextProps.isSelected &&
-    prevProps.isHovered === nextProps.isHovered
+    prevProps.isHovered === nextProps.isHovered &&
+    prevProps.currentTool === nextProps.currentTool
   );
 });
 

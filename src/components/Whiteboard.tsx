@@ -24,7 +24,7 @@ const Whiteboard: React.FC<WhiteboardProps> = ({ isReadOnly = false }) => {
     palmTimeoutMs: 500,
     clusterDistance: 100,
     preferStylus: true,
-    enabled: true
+    enabled: false
   });
 
   const updateDimensions = () => {

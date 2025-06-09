@@ -109,8 +109,12 @@ export const useSharedImageOperations = (
     }
   }, [state.panZoomState, addToHistory, sendOperation, isApplyingRemoteOperation, setState, whiteboardId]);
 
+  // Alias for updateImageState to match expected interface
+  const updateImage = updateImageState;
+
   return {
     updateImageState,
+    updateImage,
     handlePaste
   };
 };
