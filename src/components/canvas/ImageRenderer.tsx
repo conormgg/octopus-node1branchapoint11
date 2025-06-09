@@ -11,6 +11,7 @@ interface ImageRendererProps {
   onSelect: () => void;
   onChange: (newAttrs: Partial<ImageObject>) => void;
   onUpdateState: () => void;
+  currentTool?: string;
 }
 
 const ImageRenderer: React.FC<ImageRendererProps> = ({
@@ -19,17 +20,18 @@ const ImageRenderer: React.FC<ImageRendererProps> = ({
   onSelect,
   onChange,
   onUpdateState,
+  currentTool = 'pencil',
 }) => {
   const [image] = useImage(imageObject.src);
   const imageRef = useRef<Konva.Image>(null);
   const trRef = useRef<Konva.Transformer>(null);
 
   useEffect(() => {
-    if (isSelected) {
+    if (isSelected && currentTool === 'select') {
       trRef.current?.nodes([imageRef.current!]);
       trRef.current?.getLayer()?.batchDraw();
     }
-  }, [isSelected]);
+  }, [isSelected, currentTool]);
 
   const handleDragEnd = (e: Konva.KonvaEventObject<DragEvent>) => {
     onChange({
@@ -65,14 +67,14 @@ const ImageRenderer: React.FC<ImageRendererProps> = ({
         image={image}
         x={imageObject.x}
         y={imageObject.y}
-        draggable
+        draggable={currentTool === 'select' && isSelected}
         onDragStart={onSelect}
         onDragEnd={handleDragEnd}
         onTransformEnd={handleTransformEnd}
         {...(imageObject.width && { width: imageObject.width })}
         {...(imageObject.height && { height: imageObject.height })}
       />
-      {isSelected && (
+      {isSelected && currentTool === 'select' && (
         <Transformer
           ref={trRef}
           boundBoxFunc={(oldBox, newBox) => {

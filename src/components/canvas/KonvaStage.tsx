@@ -250,12 +250,13 @@ const KonvaStage: React.FC<KonvaStageProps> = ({
                 imageObject={image}
                 isSelected={selection?.isObjectSelected(image.id) || false}
                 onSelect={() => {
-                  if (selection) {
+                  if (selection && state.currentTool === 'select') {
                     selection.selectObjects([{ id: image.id, type: 'image' }]);
                   }
                 }}
                 onChange={(newAttrs) => updateImageState(image.id, newAttrs)}
                 onUpdateState={() => {}}
+                currentTool={state.currentTool}
               />
             )) || null}
           </>
