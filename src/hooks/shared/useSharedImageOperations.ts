@@ -26,7 +26,7 @@ export const useSharedImageOperations = (
 
     // Sync the image update ONLY if we're on the teacher's main board
     // and not in receive-only mode
-    if (sendOperation && !isApplyingRemoteOperation.current && whiteboardId === 'teacher-main') {
+    if (sendOperation && !isApplyingRemoteOperation.current && whiteboardId && whiteboardId.includes('-main')) {
       console.log(`[${whiteboardId}] Syncing image update:`, imageId, newAttrs);
       sendOperation(serializeUpdateImageOperation(imageId, newAttrs));
     } else {
@@ -94,7 +94,7 @@ export const useSharedImageOperations = (
             
             // Sync the new image ONLY if we're on the teacher's main board
             // and not in receive-only mode
-            if (sendOperation && !isApplyingRemoteOperation.current && whiteboardId === 'teacher-main') {
+            if (sendOperation && !isApplyingRemoteOperation.current && whiteboardId && whiteboardId.includes('-main')) {
               console.log(`[${whiteboardId}] Syncing new image to other clients:`, newImage);
               sendOperation(serializeAddImageOperation(newImage));
             } else {

@@ -30,7 +30,7 @@ export const useSharedDrawingOperations = (
 
     // Sync the drawn line ONLY if we're on the teacher's main board
     // and not in receive-only mode
-    if (sendOperation && !isApplyingRemoteOperation.current && whiteboardId === 'teacher-main') {
+    if (sendOperation && !isApplyingRemoteOperation.current && whiteboardId && whiteboardId.includes('-main')) {
       const drawnLine = state.lines[state.lines.length - 1];
       if (drawnLine && drawnLine.tool === 'pencil') {
         console.log(`[${whiteboardId}] Syncing drawn line to other clients:`, drawnLine.id);
@@ -63,7 +63,7 @@ export const useSharedDrawingOperations = (
     
     // Sync the erased lines ONLY if we're on the teacher's main board
     // and not in receive-only mode
-    if (sendOperation && !isApplyingRemoteOperation.current && whiteboardId === 'teacher-main') {
+    if (sendOperation && !isApplyingRemoteOperation.current && whiteboardId && whiteboardId.includes('-main')) {
       // Find the IDs of lines that were erased by comparing with the lines before erasing
       const erasedLineIds = linesBeforeErasingRef.current
         .filter(line => !state.lines.some(l => l.id === line.id))
@@ -98,7 +98,7 @@ export const useSharedDrawingOperations = (
     addToHistory();
     
     // Sync line transformation
-    if (sendOperation && !isApplyingRemoteOperation.current && whiteboardId === 'teacher-main') {
+    if (sendOperation && !isApplyingRemoteOperation.current && whiteboardId && whiteboardId.includes('-main')) {
       console.log(`[${whiteboardId}] Syncing line transformation:`, lineId, updates);
       sendOperation(serializeUpdateLineOperation(lineId, updates));
     }
@@ -125,7 +125,7 @@ export const useSharedDrawingOperations = (
     addToHistory();
 
     // Sync deletion
-    if (sendOperation && !isApplyingRemoteOperation.current && whiteboardId === 'teacher-main') {
+    if (sendOperation && !isApplyingRemoteOperation.current && whiteboardId && whiteboardId.includes('-main')) {
       console.log(`[${whiteboardId}] Syncing object deletion - lines:`, selectedLineIds, 'images:', selectedImageIds);
       sendOperation(serializeDeleteObjectsOperation(selectedLineIds, selectedImageIds));
     }
