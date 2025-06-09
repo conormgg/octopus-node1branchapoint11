@@ -1,7 +1,7 @@
 
 import React, { useRef, useEffect, useState } from 'react';
 import Konva from 'konva';
-import { useWhiteboardState } from '@/hooks/useWhiteboardState';
+import { useSharedWhiteboardState } from '@/hooks/useSharedWhiteboardState';
 import { usePalmRejection } from '@/hooks/usePalmRejection';
 import { useStageEventHandlers } from '@/hooks/useStageEventHandlers';
 import KonvaStageCanvas from './KonvaStageCanvas';
@@ -12,7 +12,7 @@ import SelectionRect from './SelectionRect';
 interface KonvaStageProps {
   width: number;
   height: number;
-  whiteboardState: ReturnType<typeof useWhiteboardState>;
+  whiteboardState: ReturnType<typeof useSharedWhiteboardState>;
   isReadOnly?: boolean;
   palmRejectionConfig?: {
     maxContactSize: number;
@@ -142,12 +142,12 @@ const KonvaStage: React.FC<KonvaStageProps> = ({
     if ('updateImageState' in whiteboardState && typeof whiteboardState.updateImageState === 'function') {
       whiteboardState.updateImageState(imageId, newAttrs);
     } else {
-      // Update the image directly in the state
+      // Update the image directly using setState
       const updatedImages = state.images.map(img => 
         img.id === imageId ? { ...img, ...newAttrs } : img
       );
       
-      // Update the state
+      // Update the state using setState from whiteboardState
       whiteboardState.setState((prev: any) => ({
         ...prev,
         images: updatedImages
@@ -165,7 +165,7 @@ const KonvaStage: React.FC<KonvaStageProps> = ({
       line.id === lineId ? { ...line, ...newAttrs } : line
     );
     
-    // Update the state
+    // Update the state using setState from whiteboardState
     whiteboardState.setState((prev: any) => ({
       ...prev,
       lines: updatedLines
