@@ -1,4 +1,5 @@
 
+
 import React, { useState, useEffect } from 'react';
 import { Maximize2, Minimize2, AlertCircle } from 'lucide-react';
 import Whiteboard from './Whiteboard';
@@ -30,6 +31,7 @@ const WhiteboardPlaceholder: React.FC<WhiteboardPlaceholderProps> = ({
   senderId
 }) => {
   const [dimensions, setDimensions] = useState({ width: 0, height: 0 });
+  const [maximizedDimensions, setMaximizedDimensions] = useState({ width: 0, height: 0 });
   const containerRef = React.useRef<HTMLDivElement>(null);
   
   // Use centralized session expiration context
@@ -43,12 +45,36 @@ const WhiteboardPlaceholder: React.FC<WhiteboardPlaceholderProps> = ({
     }
   };
 
+  const updateMaximizedDimensions = () => {
+    if (isMaximized) {
+      // Account for inset-4 (16px on each side) = 32px total
+      // Account for UI elements: maximize button (approx 50px from top), some padding
+      const width = window.innerWidth - 32;
+      const height = window.innerHeight - 32;
+      console.log(`[${id}] Maximized dimensions calculated:`, { width, height });
+      setMaximizedDimensions({ width, height });
+    }
+  };
+
   useEffect(() => {
     updateDimensions();
     window.addEventListener('resize', updateDimensions);
     return () => {
       window.removeEventListener('resize', updateDimensions);
     };
+  }, [isMaximized]);
+
+  // Update maximized dimensions when maximizing or window resizes
+  useEffect(() => {
+    if (isMaximized) {
+      // Small delay to ensure the container has been repositioned
+      const timer = setTimeout(updateMaximizedDimensions, 10);
+      window.addEventListener('resize', updateMaximizedDimensions);
+      return () => {
+        clearTimeout(timer);
+        window.removeEventListener('resize', updateMaximizedDimensions);
+      };
+    }
   }, [isMaximized]);
 
   // Add escape key listener when maximized
@@ -124,14 +150,19 @@ const WhiteboardPlaceholder: React.FC<WhiteboardPlaceholderProps> = ({
   }, [id, sessionId, senderId]);
 
   // Calculate dimensions based on maximized state
-  const whiteboardWidth = isMaximized ? (window.innerWidth - 32) : (dimensions.width || initialWidth || 800);
-  const whiteboardHeight = isMaximized ? (window.innerHeight - 32) : (dimensions.height || initialHeight || 600);
+  const whiteboardWidth = isMaximized 
+    ? (maximizedDimensions.width > 0 ? maximizedDimensions.width - 100 : window.innerWidth - 132) // Account for UI elements
+    : (dimensions.width || initialWidth || 800);
+  const whiteboardHeight = isMaximized 
+    ? (maximizedDimensions.height > 0 ? maximizedDimensions.height - 100 : window.innerHeight - 132) // Account for UI elements  
+    : (dimensions.height || initialHeight || 600);
 
   console.log(`[${id}] Whiteboard dimensions:`, { 
     whiteboardWidth, 
     whiteboardHeight, 
     isMaximized,
-    containerDimensions: dimensions 
+    containerDimensions: dimensions,
+    maximizedDimensions 
   });
 
   // Common UI elements
@@ -223,3 +254,4 @@ const WhiteboardPlaceholder: React.FC<WhiteboardPlaceholderProps> = ({
 };
 
 export default WhiteboardPlaceholder;
+
