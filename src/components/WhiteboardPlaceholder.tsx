@@ -39,7 +39,6 @@ const WhiteboardPlaceholder: React.FC<WhiteboardPlaceholderProps> = ({
   const updateDimensions = () => {
     if (containerRef.current && !isMaximized) {
       const { width, height } = containerRef.current.getBoundingClientRect();
-      console.log(`[${id}] Container dimensions:`, { width, height });
       setDimensions({ width, height });
     }
   };
@@ -120,13 +119,6 @@ const WhiteboardPlaceholder: React.FC<WhiteboardPlaceholderProps> = ({
   // Calculate dimensions based on maximized state
   const whiteboardWidth = isMaximized ? (window.innerWidth - 32) : (dimensions.width || initialWidth || 800);
   const whiteboardHeight = isMaximized ? (window.innerHeight - 32) : (dimensions.height || initialHeight || 600);
-
-  console.log(`[${id}] Whiteboard dimensions:`, { 
-    whiteboardWidth, 
-    whiteboardHeight, 
-    isMaximized,
-    containerDimensions: dimensions 
-  });
 
   // Create the whiteboard content that will be reused
   const whiteboardContent = (

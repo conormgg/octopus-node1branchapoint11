@@ -84,10 +84,6 @@ const KonvaStage: React.FC<KonvaStageProps> = ({
     if (!container || isReadOnly) return;
 
     const pasteHandler = (e: ClipboardEvent) => {
-      console.log(`[${whiteboardId}] Paste event detected in container`);
-      console.log(`[${whiteboardId}] Active element:`, document.activeElement);
-      console.log(`[${whiteboardId}] Container:`, container);
-      
       // Handle paste event - the event listener is already on the correct container
       handlePaste(e, stageRef.current);
     };
@@ -118,14 +114,13 @@ const KonvaStage: React.FC<KonvaStageProps> = ({
     };
 
     const focusHandler = () => {
-      console.log(`[${whiteboardId}] Container focused, paste events should work`);
+      // Container focused, paste events should work
     };
 
     const clickHandler = (e: MouseEvent) => {
       // Ensure container can receive paste events
       if (container && e.target && container.contains(e.target as Node)) {
         container.focus();
-        console.log(`[${whiteboardId}] Container clicked and focused for paste`);
       }
     };
 
@@ -141,15 +136,11 @@ const KonvaStage: React.FC<KonvaStageProps> = ({
     container.addEventListener('keydown', keyDownHandler);
     container.addEventListener('focus', focusHandler);
     container.addEventListener('click', (e: MouseEvent) => {
-      // Only focus this container, and log which one is being focused
+      // Only focus this container
       container.focus();
-      setTimeout(() => {
-        console.log(`[${whiteboardId}] Container clicked and focused for paste. document.activeElement.id:`, (document.activeElement as HTMLElement)?.id);
-      }, 0);
     });
 
     // Don't auto-focus the container - only focus when explicitly clicked
-    console.log(`[${whiteboardId}] Container setup complete for paste events and keyboard shortcuts`);
 
     return () => {
       container.removeEventListener('paste', pasteHandler);
