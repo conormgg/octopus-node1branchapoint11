@@ -152,7 +152,7 @@ const WhiteboardContainer: React.FC<WhiteboardContainerProps> = ({
         className={`
           flex flex-col bg-white border-2 border-gray-200 rounded-lg shadow-sm hover:shadow-md transition-all duration-200 relative
           ${isMaximized 
-            ? 'fixed inset-4 z-[9999] shadow-2xl' 
+            ? 'fixed inset-0 z-[9999] shadow-2xl rounded-none border-0' 
             : 'h-full w-full'
           }
         `}
