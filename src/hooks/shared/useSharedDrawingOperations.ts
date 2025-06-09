@@ -87,6 +87,8 @@ export const useSharedDrawingOperations = (
 
   // Update line position/transformation
   const updateLine = useCallback((lineId: string, updates: Partial<LineObject>) => {
+    console.log(`[${whiteboardId}] Updating line state:`, lineId, updates);
+    
     setState((prev: any) => ({
       ...prev,
       lines: prev.lines.map((line: LineObject) =>
@@ -94,14 +96,17 @@ export const useSharedDrawingOperations = (
       )
     }));
     
-    // Add to history after transformation
-    addToHistory();
-    
-    // Sync line transformation
+    // Sync line transformation ONLY if we're on the teacher's main board
+    // and not in receive-only mode
     if (sendOperation && !isApplyingRemoteOperation.current && whiteboardId && whiteboardId.includes('-main')) {
       console.log(`[${whiteboardId}] Syncing line transformation:`, lineId, updates);
       sendOperation(serializeUpdateLineOperation(lineId, updates));
+    } else {
+      console.log(`[${whiteboardId}] Not syncing line update - whiteboard ID: ${whiteboardId}, has sendOperation: ${!!sendOperation}`);
     }
+    
+    // Add to history after state update
+    setTimeout(() => addToHistory(), 0);
   }, [setState, addToHistory, sendOperation, isApplyingRemoteOperation, whiteboardId]);
 
   // Delete selected objects
