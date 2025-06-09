@@ -1,6 +1,6 @@
 
 import React, { createContext, useContext } from 'react';
-import { useSessionExpiration } from '@/hooks/useSessionExpiration';
+import { useSessionExpiration } from '@/hooks/sessionExpiration';
 import { SessionExpirationContextType, SessionExpirationProviderProps } from './types';
 
 const SessionExpirationContext = createContext<SessionExpirationContextType | undefined>(undefined);
