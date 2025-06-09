@@ -124,13 +124,18 @@ const WhiteboardContainer: React.FC<WhiteboardContainerProps> = ({
     return undefined;
   }, [id, sessionId, senderId]);
 
-  // Calculate whiteboard dimensions - much simpler approach
-  const whiteboardWidth = containerDimensions.width > 0 
-    ? containerDimensions.width - 16 // Small padding for borders/margins
-    : initialWidth || 800;
-  const whiteboardHeight = containerDimensions.height > 0 
-    ? containerDimensions.height - 60 // Account for buttons and status indicators
-    : initialHeight || 600;
+  // Calculate whiteboard dimensions
+  const whiteboardWidth = isMaximized 
+    ? window.innerWidth 
+    : containerDimensions.width > 0 
+      ? containerDimensions.width - 16 
+      : initialWidth || 800;
+      
+  const whiteboardHeight = isMaximized 
+    ? window.innerHeight - 60 // Account for controls and status
+    : containerDimensions.height > 0 
+      ? containerDimensions.height - 60 
+      : initialHeight || 600;
 
   console.log(`[${id}] Final whiteboard dimensions:`, { 
     whiteboardWidth, 

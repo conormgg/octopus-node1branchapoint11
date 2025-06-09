@@ -19,14 +19,14 @@ const WhiteboardContent: React.FC<WhiteboardContentProps> = ({
 }) => {
   if (whiteboardWidth <= 0 || whiteboardHeight <= 0) {
     return (
-      <div className="flex-1 flex items-center justify-center bg-gray-25 relative overflow-hidden rounded-lg p-2">
+      <div className="flex-1 flex items-center justify-center bg-gray-25 relative overflow-hidden">
         <div className="text-gray-500">Loading whiteboard...</div>
       </div>
     );
   }
 
   return (
-    <div className="flex-1 flex items-center justify-center bg-gray-25 relative overflow-hidden rounded-lg p-2">
+    <div className="flex-1 flex items-center justify-center bg-white relative overflow-hidden">
       {syncConfig ? (
         <SyncWhiteboard 
           key={`sync-${id}-stable`}
