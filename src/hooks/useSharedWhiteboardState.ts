@@ -1,4 +1,5 @@
 
+import { useCallback } from 'react';
 import { SyncConfig } from '@/types/sync';
 import { useSelectionState } from './useSelectionState';
 import { usePanZoom } from './usePanZoom';
@@ -41,6 +42,14 @@ export const useSharedWhiteboardState = (syncConfig?: SyncConfig, whiteboardId?:
     selection
   );
 
+  // Delete selected objects wrapper
+  const deleteSelectedObjects = useCallback(() => {
+    if (selection.selectionState.selectedObjects && operations.deleteSelectedObjects) {
+      operations.deleteSelectedObjects(selection.selectionState.selectedObjects);
+      selection.clearSelection();
+    }
+  }, [selection, operations]);
+
   return {
     state,
     syncState: operations.syncState,
@@ -60,6 +69,7 @@ export const useSharedWhiteboardState = (syncConfig?: SyncConfig, whiteboardId?:
     updateImageState: operations.updateImageState,
     updateLine: operations.updateLine,
     updateImage: operations.updateImage,
+    deleteSelectedObjects,
     selection,
     isReadOnly: syncConfig?.isReceiveOnly || false,
     whiteboardId // Expose whiteboard ID for component identification

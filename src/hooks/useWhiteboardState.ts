@@ -249,6 +249,33 @@ export const useWhiteboardState = () => {
     }
   }, [state.currentTool, state.lines, state.images, stopDrawing, stopErasing, selection]);
 
+  // Delete selected objects
+  const deleteSelectedObjects = useCallback(() => {
+    const selectedObjects = selection.selectionState.selectedObjects;
+    if (!selectedObjects || selectedObjects.length === 0) return;
+
+    setState(prev => {
+      const selectedLineIds = selectedObjects
+        .filter(obj => obj.type === 'line')
+        .map(obj => obj.id);
+      const selectedImageIds = selectedObjects
+        .filter(obj => obj.type === 'image')
+        .map(obj => obj.id);
+
+      return {
+        ...prev,
+        lines: prev.lines.filter(line => !selectedLineIds.includes(line.id)),
+        images: prev.images.filter(image => !selectedImageIds.includes(image.id))
+      };
+    });
+
+    // Clear selection after deletion
+    selection.clearSelection();
+    
+    // Add to history
+    addToHistory();
+  }, [selection.selectionState.selectedObjects, selection, addToHistory]);
+
   return {
     state,
     setTool,
@@ -266,6 +293,7 @@ export const useWhiteboardState = () => {
     panZoom,
     selection,
     updateLine,
-    updateImage
+    updateImage,
+    deleteSelectedObjects
   };
 };

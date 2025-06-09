@@ -103,6 +103,34 @@ export const useSharedDrawingOperations = (
     }
   }, [setState, addToHistory, sendOperation, isApplyingRemoteOperation, whiteboardId]);
 
+  // Delete selected objects
+  const deleteSelectedObjects = useCallback((selectedObjects: Array<{ id: string; type: 'line' | 'image' }>) => {
+    if (!selectedObjects || selectedObjects.length === 0) return;
+
+    setState((prev: any) => {
+      const selectedLineIds = selectedObjects
+        .filter(obj => obj.type === 'line')
+        .map(obj => obj.id);
+      const selectedImageIds = selectedObjects
+        .filter(obj => obj.type === 'image')
+        .map(obj => obj.id);
+
+      return {
+        ...prev,
+        lines: prev.lines.filter((line: LineObject) => !selectedLineIds.includes(line.id)),
+        images: prev.images.filter((image: any) => !selectedImageIds.includes(image.id))
+      };
+    });
+
+    // Add to history
+    addToHistory();
+
+    // TODO: Sync deletion in future stages
+    if (sendOperation && !isApplyingRemoteOperation.current && whiteboardId === 'teacher-main') {
+      console.log(`[${whiteboardId}] Object deletion sync not yet implemented`);
+    }
+  }, [setState, addToHistory, sendOperation, isApplyingRemoteOperation, whiteboardId]);
+
   return {
     startDrawing,
     continueDrawing,
@@ -110,6 +138,7 @@ export const useSharedDrawingOperations = (
     startErasing,
     continueErasing,
     stopErasing,
-    updateLine
+    updateLine,
+    deleteSelectedObjects
   };
 };

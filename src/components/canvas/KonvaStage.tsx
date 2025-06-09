@@ -104,10 +104,15 @@ const KonvaStage: React.FC<KonvaStageProps> = ({
         e.preventDefault();
       }
       
-      // Delete key - remove selected objects (placeholder for future implementation)
-      if (e.key === 'Delete' && selection?.selectionState?.selectedObjects?.length > 0) {
-        // TODO: Implement delete functionality in later stages
+      // Delete key - remove selected objects
+      if ((e.key === 'Delete' || e.key === 'Backspace') && selection?.selectionState?.selectedObjects?.length > 0) {
         console.log(`[${whiteboardId}] Delete key pressed - selected objects:`, selection.selectionState.selectedObjects);
+        
+        // Check if whiteboardState has deleteSelectedObjects method
+        if ('deleteSelectedObjects' in whiteboardState && typeof whiteboardState.deleteSelectedObjects === 'function') {
+          whiteboardState.deleteSelectedObjects();
+        }
+        
         e.preventDefault();
       }
     };
