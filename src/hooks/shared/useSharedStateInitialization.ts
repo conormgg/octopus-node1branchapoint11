@@ -1,0 +1,33 @@
+
+import { useState } from 'react';
+import { WhiteboardState } from '@/types/whiteboard';
+import { useWhiteboardStateContext } from '@/contexts/WhiteboardStateContext';
+
+export const useSharedStateInitialization = (whiteboardId?: string) => {
+  const { getWhiteboardState } = useWhiteboardStateContext();
+  
+  // Initialize state with shared state if available
+  const [state, setState] = useState<WhiteboardState>(() => {
+    // First try to get from context (for in-memory state)
+    const sharedLines = whiteboardId ? getWhiteboardState(whiteboardId) : [];
+    return {
+      lines: sharedLines,
+      images: [],
+      currentTool: 'pencil',
+      currentColor: '#000000',
+      currentStrokeWidth: 5,
+      isDrawing: false,
+      panZoomState: { x: 0, y: 0, scale: 1 },
+      selectionState: {
+        selectedObjects: [],
+        selectionBounds: null,
+        isSelecting: false,
+        transformationData: {}
+      },
+      history: [{ lines: sharedLines, images: [] }],
+      historyIndex: 0
+    };
+  });
+
+  return { state, setState };
+};

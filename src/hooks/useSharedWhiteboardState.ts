@@ -1,71 +1,22 @@
 
-import { useState, useCallback, useEffect } from 'react';
-import { WhiteboardState } from '@/types/whiteboard';
 import { SyncConfig } from '@/types/sync';
-import { useHistoryState } from './useHistoryState';
-import { useSyncState } from './useSyncState';
-import { useRemoteOperationHandler } from './useRemoteOperationHandler';
-import { useWhiteboardStateContext } from '@/contexts/WhiteboardStateContext';
-import { usePanZoom } from './usePanZoom';
-import { useSharedDrawingOperations } from './shared/useSharedDrawingOperations';
-import { useSharedImageOperations } from './shared/useSharedImageOperations';
-import { useSharedPointerHandlers } from './shared/useSharedPointerHandlers';
-import { useSharedStateManagement } from './shared/useSharedStateManagement';
-import { useWhiteboardPersistence } from './useWhiteboardPersistence';
 import { useSelectionState } from './useSelectionState';
+import { usePanZoom } from './usePanZoom';
+import { useSharedStateManagement } from './shared/useSharedStateManagement';
+import { useSharedPointerHandlers } from './shared/useSharedPointerHandlers';
+import { useSharedStateInitialization } from './shared/useSharedStateInitialization';
+import { useSharedPersistenceIntegration } from './shared/useSharedPersistenceIntegration';
+import { useSharedOperationsCoordinator } from './shared/useSharedOperationsCoordinator';
 
 export const useSharedWhiteboardState = (syncConfig?: SyncConfig, whiteboardId?: string) => {
-  const { getWhiteboardState, updateWhiteboardState } = useWhiteboardStateContext();
-  
-  // Load persisted whiteboard data if available
-  const persistence = syncConfig && whiteboardId ? useWhiteboardPersistence({
-    whiteboardId,
-    sessionId: syncConfig.sessionId
-  }) : { isLoading: false, error: null, lines: [], images: [] };
-  
-  // Initialize state with shared state if available
-  const [state, setState] = useState<WhiteboardState>(() => {
-    // First try to get from context (for in-memory state)
-    const sharedLines = whiteboardId ? getWhiteboardState(whiteboardId) : [];
-    return {
-      lines: sharedLines,
-      images: [],
-      currentTool: 'pencil',
-      currentColor: '#000000',
-      currentStrokeWidth: 5,
-      isDrawing: false,
-      panZoomState: { x: 0, y: 0, scale: 1 },
-      selectionState: {
-        selectedObjects: [],
-        selectionBounds: null,
-        isSelecting: false,
-        transformationData: {}
-      },
-      history: [{ lines: sharedLines, images: [] }],
-      historyIndex: 0
-    };
-  });
+  // Initialize state
+  const { state, setState } = useSharedStateInitialization(whiteboardId);
 
   // Selection state management
   const selection = useSelectionState();
 
-  // Update state when persisted data is loaded
-  useEffect(() => {
-    if (!persistence.isLoading && persistence.lines.length > 0) {
-      setState(prevState => ({
-        ...prevState,
-        lines: persistence.lines,
-        images: persistence.images,
-        history: [{ lines: persistence.lines, images: persistence.images }, ...prevState.history],
-        historyIndex: 0
-      }));
-      
-      // Also update the shared state context
-      if (whiteboardId) {
-        updateWhiteboardState(whiteboardId, persistence.lines);
-      }
-    }
-  }, [persistence.isLoading, persistence.lines, persistence.images, whiteboardId, updateWhiteboardState]);
+  // Handle persistence and context integration
+  useSharedPersistenceIntegration(syncConfig, whiteboardId, state, setState);
 
   // State management functions
   const { setPanZoomState, setTool, setColor, setStrokeWidth } = useSharedStateManagement(setState);
@@ -73,72 +24,33 @@ export const useSharedWhiteboardState = (syncConfig?: SyncConfig, whiteboardId?:
   // Pan/zoom operations
   const panZoom = usePanZoom(state.panZoomState, setPanZoomState);
 
-  // Update shared state whenever lines change
-  useEffect(() => {
-    if (whiteboardId) {
-      updateWhiteboardState(whiteboardId, state.lines);
-    }
-  }, [state.lines, whiteboardId, updateWhiteboardState]);
-
-  // Handle remote operations
-  const { handleRemoteOperation, isApplyingRemoteOperation } = useRemoteOperationHandler(setState);
-
-  // Set up sync if config is provided
-  const { syncState, sendOperation } = syncConfig 
-    ? useSyncState(syncConfig, handleRemoteOperation)
-    : { syncState: null, sendOperation: null };
-
-  // Enhanced add to history that syncs operations
-  const {
-    addToHistory: baseAddToHistory,
-    undo,
-    redo,
-    canUndo,
-    canRedo
-  } = useHistoryState(state, setState);
-
-  const addToHistory = useCallback(() => {
-    baseAddToHistory({ lines: state.lines, images: state.images });
-  }, [baseAddToHistory, state.lines, state.images]);
-
-  // Drawing and erasing operations
-  const {
-    startDrawing,
-    continueDrawing,
-    stopDrawing,
-    startErasing,
-    continueErasing,
-    stopErasing
-  } = useSharedDrawingOperations(state, setState, addToHistory, sendOperation, isApplyingRemoteOperation);
-
-  // Image operations
-  const { updateImageState, handlePaste } = useSharedImageOperations(
-    state, setState, addToHistory, sendOperation, isApplyingRemoteOperation
-  );
+  // Coordinate all operations (drawing, sync, history, etc.)
+  const operations = useSharedOperationsCoordinator(syncConfig, state, setState);
 
   // Pointer event handlers
   const { handlePointerDown, handlePointerMove, handlePointerUp } = useSharedPointerHandlers(
-    state, startDrawing, continueDrawing, stopDrawing, startErasing, continueErasing, stopErasing,
+    state, operations.startDrawing, operations.continueDrawing, operations.stopDrawing, 
+    operations.startErasing, operations.continueErasing, operations.stopErasing,
     syncConfig, panZoom
   );
 
   return {
     state,
-    syncState,
+    syncState: operations.syncState,
     setTool,
     setColor,
     setStrokeWidth,
     handlePointerDown,
     handlePointerMove,
     handlePointerUp,
-    handlePaste,
-    addToHistory,
-    undo,
-    redo,
-    canUndo,
-    canRedo,
+    handlePaste: operations.handlePaste,
+    addToHistory: operations.addToHistory,
+    undo: operations.undo,
+    redo: operations.redo,
+    canUndo: operations.canUndo,
+    canRedo: operations.canRedo,
     panZoom,
-    updateImageState,
+    updateImageState: operations.updateImageState,
     selection,
     isReadOnly: syncConfig?.isReceiveOnly || false
   };
