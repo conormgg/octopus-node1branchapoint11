@@ -1,3 +1,4 @@
+
 import React, { useRef, useEffect, useState } from 'react';
 import Konva from 'konva';
 import { useWhiteboardState } from '@/hooks/useWhiteboardState';
@@ -78,7 +79,7 @@ const KonvaStage: React.FC<KonvaStageProps> = ({
       // Only handle paste if this container is focused/active
       if (document.activeElement === container || container.contains(document.activeElement)) {
         console.log(`[${whiteboardId}] Container is focused, handling paste`);
-        handlePaste(e, stageRef.current, whiteboardId);
+        handlePaste(e, stageRef.current);
       } else {
         console.log(`[${whiteboardId}] Container not focused, ignoring paste`);
       }

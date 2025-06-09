@@ -35,15 +35,9 @@ export const useSharedImageOperations = (
   }, [setState, sendOperation, isApplyingRemoteOperation, addToHistory, whiteboardId]);
 
   // Handle paste functionality with whiteboard-specific focus
-  const handlePaste = useCallback((e: ClipboardEvent, stage: Konva.Stage | null, targetWhiteboardId?: string) => {
-    console.log(`[${whiteboardId}] Paste event triggered for whiteboard:`, targetWhiteboardId);
+  const handlePaste = useCallback((e: ClipboardEvent, stage: Konva.Stage | null) => {
+    console.log(`[${whiteboardId}] Paste event triggered`);
     e.preventDefault();
-    
-    // Only process paste if this is the target whiteboard
-    if (targetWhiteboardId && whiteboardId && targetWhiteboardId !== whiteboardId) {
-      console.log(`[${whiteboardId}] Ignoring paste - target is ${targetWhiteboardId}`);
-      return;
-    }
     
     const items = e.clipboardData?.items;
     if (!items || !stage) {
