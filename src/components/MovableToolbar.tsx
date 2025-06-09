@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
@@ -64,6 +65,17 @@ const MovableToolbar: React.FC<MovableToolbarProps> = ({
     document.removeEventListener('mouseup', handleMouseUp);
   };
 
+  const handleToolChange = (tool: Tool, event: React.MouseEvent) => {
+    // Prevent any default behavior and stop propagation
+    event.preventDefault();
+    event.stopPropagation();
+    
+    if (!isReadOnly) {
+      console.log('Changing tool to:', tool);
+      onToolChange(tool);
+    }
+  };
+
   return (
     <Card
       className="absolute shadow-md rounded-lg z-10 select-none bg-black text-white"
@@ -82,8 +94,9 @@ const MovableToolbar: React.FC<MovableToolbarProps> = ({
             variant="ghost"
             size="icon"
             className={`h-8 w-8 ${currentTool === 'pencil' ? 'bg-gray-700' : ''}`}
-            onClick={() => !isReadOnly && onToolChange('pencil')}
+            onClick={(e) => handleToolChange('pencil', e)}
             disabled={isReadOnly}
+            type="button"
           >
             <Pen className="h-4 w-4" />
           </Button>
@@ -92,8 +105,9 @@ const MovableToolbar: React.FC<MovableToolbarProps> = ({
             variant="ghost"
             size="icon"
             className={`h-8 w-8 ${currentTool === 'eraser' ? 'bg-gray-700' : ''}`}
-            onClick={() => !isReadOnly && onToolChange('eraser')}
+            onClick={(e) => handleToolChange('eraser', e)}
             disabled={isReadOnly}
+            type="button"
           >
             <Eraser className="h-4 w-4" />
           </Button>
@@ -102,8 +116,9 @@ const MovableToolbar: React.FC<MovableToolbarProps> = ({
             variant="ghost"
             size="icon"
             className={`h-8 w-8 ${currentTool === 'select' ? 'bg-gray-700' : ''}`}
-            onClick={() => !isReadOnly && onToolChange('select')}
+            onClick={(e) => handleToolChange('select', e)}
             disabled={isReadOnly}
+            type="button"
           >
             <MousePointer className="h-4 w-4" />
           </Button>
