@@ -1,6 +1,37 @@
 import { useCallback, useRef } from 'react';
 import { LineObject, Tool } from '@/types/whiteboard';
 
+// Apply transformation matrix to a point
+const transformPoint = (
+  point: { x: number; y: number },
+  line: LineObject
+): { x: number; y: number } => {
+  // Get transformation values with defaults
+  const lineX = line.x || 0;
+  const lineY = line.y || 0;
+  const scaleX = line.scaleX || 1;
+  const scaleY = line.scaleY || 1;
+  const rotation = line.rotation || 0;
+  
+  // Apply scale
+  let transformedX = point.x * scaleX;
+  let transformedY = point.y * scaleY;
+  
+  // Apply rotation (convert degrees to radians)
+  const rad = (rotation * Math.PI) / 180;
+  const cos = Math.cos(rad);
+  const sin = Math.sin(rad);
+  
+  const rotatedX = transformedX * cos - transformedY * sin;
+  const rotatedY = transformedX * sin + transformedY * cos;
+  
+  // Apply translation
+  return {
+    x: rotatedX + lineX,
+    y: rotatedY + lineY
+  };
+};
+
 // Utility function to check if a point is near a line stroke
 const isPointNearStroke = (
   point: { x: number; y: number },
@@ -12,10 +43,16 @@ const isPointNearStroke = (
   const points = line.points;
   if (points.length < 4) return false; // Need at least 2 points (x,y pairs)
   
-  // Check distance to line segments
+  // Check distance to line segments with transformation applied
   for (let i = 0; i < points.length - 2; i += 2) {
-    const lineStart = { x: points[i], y: points[i + 1] };
-    const lineEnd = { x: points[i + 2], y: points[i + 3] };
+    const lineStart = transformPoint(
+      { x: points[i], y: points[i + 1] },
+      line
+    );
+    const lineEnd = transformPoint(
+      { x: points[i + 2], y: points[i + 3] },
+      line
+    );
     
     const distance = distanceToLineSegment(point, lineStart, lineEnd);
     if (distance < threshold) {
