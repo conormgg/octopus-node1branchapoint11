@@ -48,7 +48,8 @@ const KonvaStage: React.FC<KonvaStageProps> = ({
     handlePointerUp,
     handlePaste,
     addToHistory,
-    panZoom
+    panZoom,
+    selection
   } = whiteboardState;
 
   const palmRejection = usePalmRejection(palmRejectionConfig);
@@ -64,7 +65,7 @@ const KonvaStage: React.FC<KonvaStageProps> = ({
     stage.scaleY(state.panZoomState.scale);
   }, [state.panZoomState]);
 
-  // Add paste event listener with proper focus handling
+  // Add paste event listener and keyboard shortcuts
   useEffect(() => {
     const container = containerRef.current;
     if (!container || isReadOnly) return;
@@ -72,6 +73,21 @@ const KonvaStage: React.FC<KonvaStageProps> = ({
     const pasteHandler = (e: ClipboardEvent) => {
       console.log('Paste event detected in container');
       handlePaste(e, stageRef.current);
+    };
+
+    const keyDownHandler = (e: KeyboardEvent) => {
+      // Escape key - clear selection
+      if (e.key === 'Escape') {
+        selection.clearSelection();
+        e.preventDefault();
+      }
+      
+      // Delete key - remove selected objects (placeholder for future implementation)
+      if (e.key === 'Delete' && selection.selectionState.selectedObjects.length > 0) {
+        // TODO: Implement delete functionality in later stages
+        console.log('Delete key pressed - selected objects:', selection.selectionState.selectedObjects);
+        e.preventDefault();
+      }
     };
 
     const focusHandler = () => {
@@ -90,19 +106,21 @@ const KonvaStage: React.FC<KonvaStageProps> = ({
     container.setAttribute('tabIndex', '0');
     container.style.outline = 'none'; // Remove focus outline
     container.addEventListener('paste', pasteHandler);
+    container.addEventListener('keydown', keyDownHandler);
     container.addEventListener('focus', focusHandler);
     container.addEventListener('click', clickHandler);
 
     // Focus the container initially to enable paste
     container.focus();
-    console.log('Container setup complete for paste events');
+    console.log('Container setup complete for paste events and keyboard shortcuts');
 
     return () => {
       container.removeEventListener('paste', pasteHandler);
+      container.removeEventListener('keydown', keyDownHandler);
       container.removeEventListener('focus', focusHandler);
       container.removeEventListener('click', clickHandler);
     };
-  }, [handlePaste, isReadOnly]);
+  }, [handlePaste, isReadOnly, selection]);
 
   // Set up all event handlers
   useStageEventHandlers({
@@ -163,6 +181,8 @@ const KonvaStage: React.FC<KonvaStageProps> = ({
         handlePointerUp={handlePointerUp}
         isReadOnly={isReadOnly}
         onStageClick={checkDeselect}
+        selectionBounds={selection.selectionState.selectionBounds}
+        isSelecting={selection.selectionState.isSelecting}
         extraContent={
           <>
             {state.images?.map((image) => (

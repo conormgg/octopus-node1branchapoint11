@@ -3,8 +3,9 @@ import React from 'react';
 import { Stage, Layer } from 'react-konva';
 import Konva from 'konva';
 import { useStageCoordinates } from '@/hooks/useStageCoordinates';
-import { PanZoomState, Tool } from '@/types/whiteboard';
+import { PanZoomState, Tool, SelectionBounds } from '@/types/whiteboard';
 import LineRenderer from './LineRenderer';
+import SelectionRect from './SelectionRect';
 
 interface KonvaStageCanvasProps {
   width: number;
@@ -28,6 +29,8 @@ interface KonvaStageCanvasProps {
   isReadOnly: boolean;
   onStageClick?: (e: Konva.KonvaEventObject<MouseEvent | TouchEvent>) => void;
   extraContent?: React.ReactNode;
+  selectionBounds?: SelectionBounds | null;
+  isSelecting?: boolean;
 }
 
 const KonvaStageCanvas: React.FC<KonvaStageCanvasProps> = ({
@@ -45,7 +48,9 @@ const KonvaStageCanvas: React.FC<KonvaStageCanvasProps> = ({
   handlePointerUp,
   isReadOnly,
   onStageClick,
-  extraContent
+  extraContent,
+  selectionBounds,
+  isSelecting = false
 }) => {
   const { getRelativePointerPosition } = useStageCoordinates(panZoomState);
 
@@ -125,6 +130,12 @@ const KonvaStageCanvas: React.FC<KonvaStageCanvasProps> = ({
         {lines.map((line) => (
           <LineRenderer key={line.id} line={line} />
         ))}
+        
+        {/* Selection rectangle - rendered on top of everything */}
+        <SelectionRect
+          selectionBounds={selectionBounds}
+          isVisible={isSelecting}
+        />
       </Layer>
     </Stage>
   );
