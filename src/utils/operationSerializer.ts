@@ -1,6 +1,6 @@
 
 import { LineObject, ImageObject } from '@/types/whiteboard';
-import { WhiteboardOperation } from '@/types/sync';
+import { WhiteboardOperation, TransformObjectOperationData } from '@/types/sync';
 
 export const serializeDrawOperation = (line: LineObject): Omit<WhiteboardOperation, 'id' | 'timestamp' | 'sender_id'> => ({
   whiteboard_id: '', // Will be set by the calling function
@@ -40,6 +40,20 @@ export const serializeDeleteImageOperation = (imageId: string): Omit<WhiteboardO
   operation_type: 'delete_image',
   data: {
     image_id: imageId
+  }
+});
+
+export const serializeTransformObjectOperation = (
+  objectId: string, 
+  objectType: 'line' | 'image', 
+  transforms: TransformObjectOperationData['transforms']
+): Omit<WhiteboardOperation, 'id' | 'timestamp' | 'sender_id'> => ({
+  whiteboard_id: '', // Will be set by the calling function
+  operation_type: 'transform_object',
+  data: {
+    object_id: objectId,
+    object_type: objectType,
+    transforms
   }
 });
 
@@ -115,6 +129,29 @@ export const applyOperation = (
         ...state,
         images: filteredImages
       };
+    }
+    case 'transform_object': {
+      const { object_id, object_type, transforms } = operation.data;
+      console.log('Transforming object:', object_id, object_type, transforms);
+      
+      if (object_type === 'line') {
+        const updatedLines = state.lines.map(line =>
+          line.id === object_id ? { ...line, ...transforms } : line
+        );
+        return {
+          ...state,
+          lines: updatedLines
+        };
+      } else if (object_type === 'image') {
+        const updatedImages = state.images.map(image =>
+          image.id === object_id ? { ...image, ...transforms } : image
+        );
+        return {
+          ...state,
+          images: updatedImages
+        };
+      }
+      return state;
     }
     default:
       console.log('Unknown operation type:', operation.operation_type);

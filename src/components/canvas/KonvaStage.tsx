@@ -6,6 +6,8 @@ import { usePalmRejection } from '@/hooks/usePalmRejection';
 import { useStageEventHandlers } from '@/hooks/useStageEventHandlers';
 import KonvaStageCanvas from './KonvaStageCanvas';
 import ImageRenderer from './ImageRenderer';
+import LineRenderer from './LineRenderer';
+import SelectionRect from './SelectionRect';
 
 interface KonvaStageProps {
   width: number;
@@ -48,7 +50,11 @@ const KonvaStage: React.FC<KonvaStageProps> = ({
     handlePointerUp,
     handlePaste,
     addToHistory,
-    panZoom
+    panZoom,
+    clearSelection,
+    selectObject,
+    setTransforming,
+    applyTransformation
   } = whiteboardState;
 
   const palmRejection = usePalmRejection(palmRejectionConfig);
@@ -120,8 +126,12 @@ const KonvaStage: React.FC<KonvaStageProps> = ({
 
   // Handle shape selection/deselection
   const checkDeselect = (e: Konva.KonvaEventObject<MouseEvent | TouchEvent>) => {
+    // Only handle deselection when in select mode
+    if (state.currentTool !== 'select') return;
+    
     const clickedOnEmpty = e.target === e.target.getStage();
     if (clickedOnEmpty) {
+      clearSelection();
       selectShape(null);
     }
   };
@@ -132,9 +142,64 @@ const KonvaStage: React.FC<KonvaStageProps> = ({
     if ('updateImageState' in whiteboardState && typeof whiteboardState.updateImageState === 'function') {
       whiteboardState.updateImageState(imageId, newAttrs);
     } else {
-      // This path is for non-sync version, which is acceptable.
-      console.log('Image update requested but no updateImageState available on the provided state object.');
+      // Update the image directly in the state
+      const updatedImages = state.images.map(img => 
+        img.id === imageId ? { ...img, ...newAttrs } : img
+      );
+      
+      // Update the state
+      whiteboardState.setState((prev: any) => ({
+        ...prev,
+        images: updatedImages
+      }));
+      
+      // Add to history after transformation is complete
+      applyTransformation();
     }
+  };
+  
+  // Helper function to update line state
+  const updateLineState = (lineId: string, newAttrs: any) => {
+    // Update the line directly in the state
+    const updatedLines = state.lines.map(line => 
+      line.id === lineId ? { ...line, ...newAttrs } : line
+    );
+    
+    // Update the state
+    whiteboardState.setState((prev: any) => ({
+      ...prev,
+      lines: updatedLines
+    }));
+    
+    // Add to history after transformation is complete
+    applyTransformation();
+  };
+  
+  // Handle image selection
+  const handleImageSelect = (id: string) => {
+    if (state.currentTool === 'select') {
+      selectObject(id);
+      selectShape(id);
+    }
+  };
+  
+  // Handle line selection
+  const handleLineSelect = (id: string) => {
+    if (state.currentTool === 'select') {
+      selectObject(id);
+      selectShape(id);
+    }
+  };
+  
+  // Handle transformation start
+  const handleTransformStart = () => {
+    setTransforming(true);
+  };
+  
+  // Handle transformation end
+  const handleTransformEnd = () => {
+    setTransforming(false);
+    applyTransformation();
   };
 
   return (
@@ -165,14 +230,39 @@ const KonvaStage: React.FC<KonvaStageProps> = ({
         onStageClick={checkDeselect}
         extraContent={
           <>
+            {/* Selection Rectangle */}
+            {state.currentTool === 'select' && state.selectionState.selectionRect && (
+              <SelectionRect
+                x1={state.selectionState.selectionRect.x1}
+                y1={state.selectionState.selectionRect.y1}
+                x2={state.selectionState.selectionRect.x2}
+                y2={state.selectionState.selectionRect.y2}
+              />
+            )}
+            
+            {/* Lines */}
+            {state.lines.map((line) => (
+              <LineRenderer
+                key={line.id}
+                line={line}
+                isSelected={state.currentTool === 'select' && state.selectionState.selectedIds.includes(line.id)}
+                onSelect={() => handleLineSelect(line.id)}
+                onChange={(newAttrs) => updateLineState(line.id, newAttrs)}
+                onUpdateState={handleTransformEnd}
+                onTransformStart={handleTransformStart}
+              />
+            ))}
+            
+            {/* Images */}
             {state.images?.map((image) => (
               <ImageRenderer
                 key={image.id}
                 imageObject={image}
-                isSelected={image.id === selectedId}
-                onSelect={() => selectShape(image.id)}
+                isSelected={state.currentTool === 'select' && state.selectionState.selectedIds.includes(image.id)}
+                onSelect={() => handleImageSelect(image.id)}
                 onChange={(newAttrs) => updateImageState(image.id, newAttrs)}
-                onUpdateState={() => {}}
+                onUpdateState={handleTransformEnd}
+                onTransformStart={handleTransformStart}
               />
             )) || null}
           </>

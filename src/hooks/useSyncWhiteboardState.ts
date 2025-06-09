@@ -5,6 +5,7 @@ import { SyncConfig } from '@/types/sync';
 import { useDrawingState } from './useDrawingState';
 import { useEraserState } from './useEraserState';
 import { useHistoryState } from './useHistoryState';
+import { useSelectionState } from './useSelectionState';
 import { useSyncState } from './useSyncState';
 import { useRemoteOperationHandler } from './useRemoteOperationHandler';
 import { usePanZoom } from './usePanZoom';
@@ -20,7 +21,12 @@ export const useSyncWhiteboardState = (syncConfig: SyncConfig) => {
     isDrawing: false,
     panZoomState: { x: 0, y: 0, scale: 1 },
     history: [{ lines: [], images: [] }],
-    historyIndex: 0
+    historyIndex: 0,
+    selectionState: {
+      selectedIds: [],
+      isTransforming: false,
+      selectionRect: null
+    }
   });
 
   // Pan/zoom operations
@@ -87,6 +93,20 @@ export const useSyncWhiteboardState = (syncConfig: SyncConfig) => {
     
     // Add sync logic for erasing if needed
   }, [state.isDrawing, baseStopErasing]);
+  
+  // Selection operations
+  const {
+    selectObject,
+    addToSelection,
+    removeFromSelection,
+    clearSelection,
+    selectAll,
+    startSelectionRect,
+    updateSelectionRect,
+    completeSelectionRect,
+    setTransforming,
+    applyTransformation
+  } = useSelectionState(state, setState, addToHistory);
 
   // Tool change
   const setTool = useCallback((tool: Tool) => {
@@ -120,8 +140,11 @@ export const useSyncWhiteboardState = (syncConfig: SyncConfig) => {
       startDrawing(x, y);
     } else if (state.currentTool === 'eraser') {
       startErasing(x, y);
+    } else if (state.currentTool === 'select') {
+      // Start selection rectangle
+      startSelectionRect(x, y);
     }
-  }, [state.currentTool, startDrawing, startErasing, syncConfig.isReceiveOnly, panZoom]);
+  }, [state.currentTool, startDrawing, startErasing, startSelectionRect, syncConfig.isReceiveOnly, panZoom]);
 
   // Handle pointer move
   const handlePointerMove = useCallback((x: number, y: number) => {
@@ -131,8 +154,11 @@ export const useSyncWhiteboardState = (syncConfig: SyncConfig) => {
       continueDrawing(x, y);
     } else if (state.currentTool === 'eraser') {
       continueErasing(x, y);
+    } else if (state.currentTool === 'select' && state.selectionState.selectionRect) {
+      // Update selection rectangle
+      updateSelectionRect(x, y);
     }
-  }, [state.currentTool, continueDrawing, continueErasing, syncConfig.isReceiveOnly, panZoom]);
+  }, [state.currentTool, state.selectionState.selectionRect, continueDrawing, continueErasing, updateSelectionRect, syncConfig.isReceiveOnly, panZoom]);
 
   // Handle pointer up
   const handlePointerUp = useCallback(() => {
@@ -142,12 +168,16 @@ export const useSyncWhiteboardState = (syncConfig: SyncConfig) => {
       stopDrawing();
     } else if (state.currentTool === 'eraser') {
       stopErasing();
+    } else if (state.currentTool === 'select' && state.selectionState.selectionRect) {
+      // Complete selection rectangle and select objects within it
+      completeSelectionRect();
     }
-  }, [state.currentTool, stopDrawing, stopErasing, syncConfig.isReceiveOnly]);
+  }, [state.currentTool, state.selectionState.selectionRect, stopDrawing, stopErasing, completeSelectionRect, syncConfig.isReceiveOnly]);
 
   return {
     state,
     syncState,
+    setState,
     setTool,
     setColor,
     setStrokeWidth,
@@ -159,6 +189,15 @@ export const useSyncWhiteboardState = (syncConfig: SyncConfig) => {
     canUndo,
     canRedo,
     panZoom,
+    // Selection methods
+    selectObject,
+    addToSelection,
+    removeFromSelection,
+    clearSelection,
+    selectAll,
+    setTransforming,
+    applyTransformation,
+    addToHistory,
     isReadOnly: syncConfig.isReceiveOnly
   };
 };

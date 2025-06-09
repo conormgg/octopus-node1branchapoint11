@@ -11,6 +11,7 @@ interface ImageRendererProps {
   onSelect: () => void;
   onChange: (newAttrs: Partial<ImageObject>) => void;
   onUpdateState: () => void;
+  onTransformStart?: () => void;
 }
 
 const ImageRenderer: React.FC<ImageRendererProps> = ({
@@ -19,6 +20,7 @@ const ImageRenderer: React.FC<ImageRendererProps> = ({
   onSelect,
   onChange,
   onUpdateState,
+  onTransformStart,
 }) => {
   const [image] = useImage(imageObject.src);
   const imageRef = useRef<Konva.Image>(null);
@@ -37,6 +39,12 @@ const ImageRenderer: React.FC<ImageRendererProps> = ({
       y: e.target.y(),
     });
     onUpdateState();
+  };
+
+  const handleTransformStart = () => {
+    if (onTransformStart) {
+      onTransformStart();
+    }
   };
 
   const handleTransformEnd = () => {
@@ -65,9 +73,10 @@ const ImageRenderer: React.FC<ImageRendererProps> = ({
         image={image}
         x={imageObject.x}
         y={imageObject.y}
-        draggable
+        draggable={isSelected}
         onDragStart={onSelect}
         onDragEnd={handleDragEnd}
+        onTransformStart={handleTransformStart}
         onTransformEnd={handleTransformEnd}
         {...(imageObject.width && { width: imageObject.width })}
         {...(imageObject.height && { height: imageObject.height })}

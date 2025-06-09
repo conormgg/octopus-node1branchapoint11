@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
-import { Pen, Eraser } from 'lucide-react';
+import { Pen, Eraser, MousePointer } from 'lucide-react';
 import { Tool } from '@/types/whiteboard';
 
 interface MovableToolbarProps {
@@ -96,6 +96,16 @@ const MovableToolbar: React.FC<MovableToolbarProps> = ({
             disabled={isReadOnly}
           >
             <Eraser className="h-4 w-4" />
+          </Button>
+          
+          <Button
+            variant="ghost"
+            size="icon"
+            className={`h-8 w-8 ${currentTool === 'select' ? 'bg-gray-700' : ''}`}
+            onClick={() => !isReadOnly && onToolChange('select')}
+            disabled={isReadOnly}
+          >
+            <MousePointer className="h-4 w-4" />
           </Button>
           
           <Separator orientation="vertical" className="mx-1 h-8 bg-gray-600" />
