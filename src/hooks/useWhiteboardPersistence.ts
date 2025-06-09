@@ -65,12 +65,35 @@ export const useWhiteboardPersistence = ({
               lineIds.forEach(id => linesMap.delete(id));
             }
             break;
+          case 'update_line':
+            // Update line attributes
+            const lineId = operationData.line_id as string;
+            const lineUpdates = operationData.updates as Partial<LineObject>;
+            if (lineId && lineUpdates && linesMap.has(lineId)) {
+              const existingLine = linesMap.get(lineId)!;
+              linesMap.set(lineId, { ...existingLine, ...lineUpdates });
+            }
+            break;
           case 'add_image':
-          case 'update_image':
-            // Add or update image
+            // Add image
             const image = operationData.image as ImageObject;
             if (image && image.id) {
               imagesMap.set(image.id, image);
+            }
+            break;
+          case 'update_image':
+            // Update image attributes
+            const imageIdToUpdate = operationData.image_id as string;
+            const imageUpdates = operationData.updates as Partial<ImageObject>;
+            if (imageIdToUpdate && imageUpdates) {
+              // For backward compatibility, also check if image is directly in data
+              const imageFromData = operationData.image as ImageObject;
+              if (imageFromData && imageFromData.id) {
+                imagesMap.set(imageFromData.id, imageFromData);
+              } else if (imagesMap.has(imageIdToUpdate)) {
+                const existingImage = imagesMap.get(imageIdToUpdate)!;
+                imagesMap.set(imageIdToUpdate, { ...existingImage, ...imageUpdates });
+              }
             }
             break;
           case 'delete_image':
@@ -78,6 +101,17 @@ export const useWhiteboardPersistence = ({
             const imageId = operationData.image_id as string;
             if (imageId) {
               imagesMap.delete(imageId);
+            }
+            break;
+          case 'delete_objects':
+            // Delete multiple objects
+            const deleteLineIds = operationData.line_ids as string[];
+            const deleteImageIds = operationData.image_ids as string[];
+            if (deleteLineIds && Array.isArray(deleteLineIds)) {
+              deleteLineIds.forEach(id => linesMap.delete(id));
+            }
+            if (deleteImageIds && Array.isArray(deleteImageIds)) {
+              deleteImageIds.forEach(id => imagesMap.delete(id));
             }
             break;
         }
