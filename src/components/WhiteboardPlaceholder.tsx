@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Maximize2, Minimize2, AlertCircle } from 'lucide-react';
 import Whiteboard from './Whiteboard';
@@ -49,6 +50,22 @@ const WhiteboardPlaceholder: React.FC<WhiteboardPlaceholderProps> = ({
     };
   }, []);
 
+  // Add escape key listener when maximized
+  useEffect(() => {
+    if (!isMaximized) return;
+
+    const handleEscape = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && onMinimize) {
+        onMinimize();
+      }
+    };
+
+    document.addEventListener('keydown', handleEscape);
+    return () => {
+      document.removeEventListener('keydown', handleEscape);
+    };
+  }, [isMaximized, onMinimize]);
+
   const handleMaximizeClick = () => {
     if (isMaximized && onMinimize) {
       onMinimize();
@@ -99,40 +116,78 @@ const WhiteboardPlaceholder: React.FC<WhiteboardPlaceholderProps> = ({
 
   const syncConfig = getSyncConfig(id);
 
+  if (isMaximized) {
+    return (
+      <>
+        {/* Backdrop overlay */}
+        <div className="fixed inset-0 bg-black/50 z-[9998]" onClick={onMinimize} />
+        
+        {/* Maximized whiteboard container */}
+        <div className="fixed inset-0 z-[9999] p-4 bg-background">
+          <div className="flex flex-col bg-white border-2 border-gray-200 rounded-lg shadow-lg h-full relative">
+            {/* Minimize Button */}
+            <button
+              onClick={handleMaximizeClick}
+              className="absolute top-3 right-3 z-10 p-2 rounded-lg bg-white/90 hover:bg-white border border-gray-200 shadow-sm transition-all duration-150"
+              title="Minimize (Press Esc)"
+            >
+              <Minimize2 size={16} className="text-gray-600" />
+            </button>
+            
+            {/* Session Status Indicator */}
+            {sessionId && expiresAt && !isExpired && (
+              <div className="absolute top-3 left-3 z-10 p-2 rounded-lg bg-white/90 hover:bg-white border border-gray-200 shadow-sm transition-all duration-150 flex items-center space-x-2">
+                <div className="w-2 h-2 rounded-full bg-green-500"></div>
+                <span className="text-xs text-gray-600">
+                  Session active until {expiresAt.toLocaleTimeString()}
+                </span>
+              </div>
+            )}
+            
+            {/* Session Status Warning */}
+            {sessionId && isExpired && !isRedirecting && (
+              <div className="absolute top-3 left-3 z-10 p-2 rounded-lg bg-red-50 border border-red-200 shadow-sm transition-all duration-150 flex items-center space-x-2">
+                <AlertCircle size={14} className="text-red-500" />
+                <span className="text-xs text-red-600">
+                  {sessionEndReason === 'ended_by_teacher' ? 'Session ended' : 'Session expired'}
+                </span>
+              </div>
+            )}
+            
+            {/* Whiteboard Content Area */}
+            <div className="flex-1 flex items-center justify-center bg-gray-25 relative overflow-hidden rounded-lg mt-12">
+              {syncConfig ? (
+                <SyncWhiteboard 
+                  syncConfig={syncConfig}
+                  width={window.innerWidth - 64}
+                  height={window.innerHeight - 128}
+                />
+              ) : (
+                <Whiteboard isReadOnly={false} />
+              )}
+            </div>
+          </div>
+        </div>
+      </>
+    );
+  }
+
   return (
     <div 
       ref={containerRef}
-      className={`flex flex-col bg-white border-2 border-gray-200 rounded-lg shadow-sm hover:shadow-md transition-all duration-200 relative ${
-        isMaximized 
-          ? 'fixed z-50' 
-          : 'h-full'
-      }`}
+      className="flex flex-col bg-white border-2 border-gray-200 rounded-lg shadow-sm hover:shadow-md transition-all duration-200 relative h-full"
       style={{ 
-        ...(isMaximized ? {
-          top: '0',
-          left: '0',
-          right: '0',
-          bottom: '0',
-          width: '100vw',
-          height: '100vh',
-          zIndex: 9999
-        } : {
-          width: initialWidth ? `${initialWidth}px` : '100%',
-          height: initialHeight ? `${initialHeight}px` : '100%'
-        })
+        width: initialWidth ? `${initialWidth}px` : '100%',
+        height: initialHeight ? `${initialHeight}px` : '100%'
       }}
     >
-      {/* Maximize/Minimize Button */}
+      {/* Maximize Button */}
       <button
         onClick={handleMaximizeClick}
         className="absolute top-3 right-3 z-10 p-2 rounded-lg bg-white/80 hover:bg-white border border-gray-200 shadow-sm transition-all duration-150"
-        title={isMaximized ? "Minimize" : "Maximize"}
+        title="Maximize"
       >
-        {isMaximized ? (
-          <Minimize2 size={16} className="text-gray-600" />
-        ) : (
-          <Maximize2 size={16} className="text-gray-600" />
-        )}
+        <Maximize2 size={16} className="text-gray-600" />
       </button>
       
       {/* Session Status Indicator */}
@@ -160,8 +215,8 @@ const WhiteboardPlaceholder: React.FC<WhiteboardPlaceholderProps> = ({
         {syncConfig ? (
           <SyncWhiteboard 
             syncConfig={syncConfig}
-            width={isMaximized ? window.innerWidth - 32 : dimensions.width}
-            height={isMaximized ? window.innerHeight - 32 : dimensions.height}
+            width={dimensions.width}
+            height={dimensions.height}
           />
         ) : (
           <Whiteboard isReadOnly={false} />

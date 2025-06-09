@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from '@/components/ui/resizable';
 import WhiteboardPlaceholder from '../WhiteboardPlaceholder';
@@ -144,22 +145,14 @@ const TeacherSessionView: React.FC<TeacherSessionViewProps> = ({
           {isSplitViewActive ? (
             // Single panel view - only teacher's board when split view is active
             <div className="h-full relative">
-              <div 
-                className={`h-full ${
-                  maximizedBoard === "teacher-main" 
-                    ? "fixed inset-4 z-50 bg-gray-100" 
-                    : ""
-                }`}
-              >
-                <TeacherMainBoard 
-                  onMaximize={onMaximize}
-                  onMinimize={onMinimize}
-                  maximizedBoard={maximizedBoard}
-                  isHeaderCollapsed={isControlsCollapsed}
-                  sessionId={activeSession.id}
-                  senderId={activeSession.teacher_id}
-                />
-              </div>
+              <TeacherMainBoard 
+                onMaximize={onMaximize}
+                onMinimize={onMinimize}
+                maximizedBoard={maximizedBoard}
+                isHeaderCollapsed={isControlsCollapsed}
+                sessionId={activeSession.id}
+                senderId={activeSession.teacher_id}
+              />
             </div>
           ) : (
             // Normal split panel view
@@ -167,22 +160,14 @@ const TeacherSessionView: React.FC<TeacherSessionViewProps> = ({
               {/* Left Pane - Teacher's Main Board */}
               <ResizablePanel defaultSize={60} minSize={40}>
                 <div className="h-full relative">
-                  <div 
-                    className={`h-full ${
-                      maximizedBoard === "teacher-main" 
-                        ? "fixed inset-4 z-50 bg-gray-100" 
-                        : ""
-                    }`}
-                  >
-                    <TeacherMainBoard 
-                      onMaximize={onMaximize}
-                      onMinimize={onMinimize}
-                      maximizedBoard={maximizedBoard}
-                      isHeaderCollapsed={isControlsCollapsed}
-                      sessionId={activeSession.id}
-                      senderId={activeSession.teacher_id}
-                    />
-                  </div>
+                  <TeacherMainBoard 
+                    onMaximize={onMaximize}
+                    onMinimize={onMinimize}
+                    maximizedBoard={maximizedBoard}
+                    isHeaderCollapsed={isControlsCollapsed}
+                    sessionId={activeSession.id}
+                    senderId={activeSession.teacher_id}
+                  />
                 </div>
               </ResizablePanel>
 
@@ -191,30 +176,22 @@ const TeacherSessionView: React.FC<TeacherSessionViewProps> = ({
               {/* Right Pane - Student Boards Grid */}
               <ResizablePanel defaultSize={40} minSize={30}>
                 <div className="h-full relative">
-                  <div 
-                    className={`h-full ${
-                      maximizedBoard && maximizedBoard.startsWith("student-board-") 
-                        ? "fixed inset-4 z-50 bg-gray-100" 
-                        : ""
-                    }`}
-                  >
-                    <StudentBoardsGrid
-                      studentCount={studentCount}
-                      currentLayout={currentLayout}
-                      currentStudentBoards={currentStudentBoards}
-                      currentPage={currentPage}
-                      totalPages={totalPages}
-                      gridOrientation={gridOrientation}
-                      maximizedBoard={maximizedBoard}
-                      onMaximize={onMaximize}
-                      onMinimize={onMinimize}
-                      onPreviousPage={onPreviousPage}
-                      onNextPage={onNextPage}
-                      isHeaderCollapsed={isControlsCollapsed}
-                      sessionId={activeSession.id}
-                      senderId={activeSession.teacher_id}
-                    />
-                  </div>
+                  <StudentBoardsGrid
+                    studentCount={studentCount}
+                    currentLayout={currentLayout}
+                    currentStudentBoards={currentStudentBoards}
+                    currentPage={currentPage}
+                    totalPages={totalPages}
+                    gridOrientation={gridOrientation}
+                    maximizedBoard={maximizedBoard}
+                    onMaximize={onMaximize}
+                    onMinimize={onMinimize}
+                    onPreviousPage={onPreviousPage}
+                    onNextPage={onNextPage}
+                    isHeaderCollapsed={isControlsCollapsed}
+                    sessionId={activeSession.id}
+                    senderId={activeSession.teacher_id}
+                  />
                 </div>
               </ResizablePanel>
             </ResizablePanelGroup>
