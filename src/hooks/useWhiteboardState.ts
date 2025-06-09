@@ -1,5 +1,5 @@
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { v4 as uuidv4 } from 'uuid';
 import { WhiteboardState, Tool, PanZoomState, ImageObject } from '@/types/whiteboard';
 import { useDrawingState } from './useDrawingState';
@@ -10,6 +10,9 @@ import { useSelectionState } from './useSelectionState';
 import Konva from 'konva';
 
 export const useWhiteboardState = () => {
+  // Selection operations - initialize first so we can use its state
+  const selection = useSelectionState();
+
   const [state, setState] = useState<WhiteboardState>({
     lines: [],
     images: [],
@@ -18,15 +21,18 @@ export const useWhiteboardState = () => {
     currentStrokeWidth: 5,
     isDrawing: false,
     panZoomState: { x: 0, y: 0, scale: 1 },
-    selectionState: {
-      selectedObjects: [],
-      selectionBounds: null,
-      isSelecting: false,
-      transformationData: {}
-    },
+    selectionState: selection.selectionState,
     history: [{ lines: [], images: [] }],
     historyIndex: 0
   });
+
+  // Update state when selection state changes
+  useEffect(() => {
+    setState(prev => ({
+      ...prev,
+      selectionState: selection.selectionState
+    }));
+  }, [selection.selectionState]);
 
   // Pan/zoom state management
   const setPanZoomState = useCallback((panZoomState: PanZoomState) => {
@@ -38,9 +44,6 @@ export const useWhiteboardState = () => {
 
   // Pan/zoom operations
   const panZoom = usePanZoom(state.panZoomState, setPanZoomState);
-
-  // Selection operations
-  const selection = useSelectionState();
 
   // History operations
   const {
@@ -168,6 +171,8 @@ export const useWhiteboardState = () => {
         // Select the first found object
         selection.selectObjects([foundObjects[0]]);
       } else {
+        // Clear selection when clicking on empty space
+        selection.clearSelection();
         // Start drag-to-select
         selection.setIsSelecting(true);
         selection.setSelectionBounds({ x, y, width: 0, height: 0 });

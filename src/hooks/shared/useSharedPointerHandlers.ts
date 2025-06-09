@@ -26,13 +26,15 @@ export const useSharedPointerHandlers = (
       startErasing(x, y);
     } else if (state.currentTool === 'select' && selection) {
       // Handle selection logic with safety checks
-      if (selection.findObjectsAtPoint && selection.selectObjects && selection.setIsSelecting && selection.setSelectionBounds) {
+      if (selection.findObjectsAtPoint && selection.selectObjects && selection.setIsSelecting && selection.setSelectionBounds && selection.clearSelection) {
         const foundObjects = selection.findObjectsAtPoint({ x, y }, state.lines, state.images);
         
         if (foundObjects.length > 0) {
           // Select the first found object
           selection.selectObjects([foundObjects[0]]);
         } else {
+          // Clear selection when clicking on empty space
+          selection.clearSelection();
           // Start drag-to-select
           selection.setIsSelecting(true);
           selection.setSelectionBounds({ x, y, width: 0, height: 0 });

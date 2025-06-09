@@ -241,6 +241,7 @@ const KonvaStage: React.FC<KonvaStageProps> = ({
         }}
         selectionBounds={selection?.selectionState?.selectionBounds || null}
         isSelecting={selection?.selectionState?.isSelecting || false}
+        selection={selection}
         extraContent={
           <>
             {state.images?.map((image) => (

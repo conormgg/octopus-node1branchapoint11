@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { SelectionState, SelectedObject, SelectionBounds, LineObject, ImageObject, TransformationData } from '@/types/whiteboard';
 
 export const useSelectionState = () => {
@@ -70,14 +70,28 @@ export const useSelectionState = () => {
     }));
   }, []);
 
-  // Hit detection for lines
+  // Hit detection for lines with rotation support
   const isPointOnLine = useCallback((point: { x: number; y: number }, line: LineObject, tolerance: number = 10): boolean => {
     const points = line.points;
     if (points.length < 4) return false;
 
-    // Transform point to line's local coordinate system
-    const localX = (point.x - line.x) / line.scaleX;
-    const localY = (point.y - line.y) / line.scaleY;
+    // Apply inverse transformation to the point to get it in the line's local coordinate system
+    // First handle rotation
+    const rotationRad = (line.rotation || 0) * Math.PI / 180;
+    const cosRotation = Math.cos(-rotationRad);
+    const sinRotation = Math.sin(-rotationRad);
+    
+    // Translate point to origin relative to line's position
+    const translatedX = point.x - line.x;
+    const translatedY = point.y - line.y;
+    
+    // Rotate point around origin (inverse rotation)
+    const rotatedX = translatedX * cosRotation - translatedY * sinRotation;
+    const rotatedY = translatedX * sinRotation + translatedY * cosRotation;
+    
+    // Scale point (inverse scaling)
+    const localX = rotatedX / line.scaleX;
+    const localY = rotatedY / line.scaleY;
 
     // Check each line segment
     for (let i = 0; i < points.length - 2; i += 2) {
@@ -115,15 +129,37 @@ export const useSelectionState = () => {
     return false;
   }, []);
 
-  // Hit detection for images
+  // Hit detection for images with rotation support
   const isPointOnImage = useCallback((point: { x: number; y: number }, image: ImageObject): boolean => {
     const width = image.width || 100;
     const height = image.height || 100;
     
-    return point.x >= image.x && 
-           point.x <= image.x + width && 
-           point.y >= image.y && 
-           point.y <= image.y + height;
+    // If no rotation, use simple bounding box check
+    if (!(image as any).rotation) {
+      return point.x >= image.x && 
+             point.x <= image.x + width && 
+             point.y >= image.y && 
+             point.y <= image.y + height;
+    }
+    
+    // For rotated images, transform the point to the image's local coordinate system
+    const rotationRad = ((image as any).rotation || 0) * Math.PI / 180;
+    const cosRotation = Math.cos(-rotationRad);
+    const sinRotation = Math.sin(-rotationRad);
+    
+    // Translate point to origin relative to image's position
+    const translatedX = point.x - image.x;
+    const translatedY = point.y - image.y;
+    
+    // Rotate point around origin (inverse rotation)
+    const rotatedX = translatedX * cosRotation - translatedY * sinRotation;
+    const rotatedY = translatedX * sinRotation + translatedY * cosRotation;
+    
+    // Check if the rotated point is within the image bounds
+    return rotatedX >= 0 && 
+           rotatedX <= width && 
+           rotatedY >= 0 && 
+           rotatedY <= height;
   }, []);
 
   // Find objects at point
@@ -151,7 +187,7 @@ export const useSelectionState = () => {
     return foundObjects;
   }, [isPointOnLine, isPointOnImage]);
 
-  // Find objects within selection bounds
+  // Find objects within selection bounds with transformation support
   const findObjectsInBounds = useCallback((
     bounds: SelectionBounds,
     lines: LineObject[],
@@ -164,24 +200,106 @@ export const useSelectionState = () => {
       const imageWidth = image.width || 100;
       const imageHeight = image.height || 100;
       
-      // Check if image intersects with selection bounds
-      if (image.x < bounds.x + bounds.width &&
-          image.x + imageWidth > bounds.x &&
-          image.y < bounds.y + bounds.height &&
-          image.y + imageHeight > bounds.y) {
+      // For non-rotated images, use simple bounding box check
+      if (!(image as any).rotation) {
+        if (image.x < bounds.x + bounds.width &&
+            image.x + imageWidth > bounds.x &&
+            image.y < bounds.y + bounds.height &&
+            image.y + imageHeight > bounds.y) {
+          foundObjects.push({ id: image.id, type: 'image' });
+        }
+        continue;
+      }
+      
+      // For rotated images, check if any corner is within bounds
+      // or if the bounds intersect with the image
+      const corners = [
+        { x: image.x, y: image.y },
+        { x: image.x + imageWidth, y: image.y },
+        { x: image.x + imageWidth, y: image.y + imageHeight },
+        { x: image.x, y: image.y + imageHeight }
+      ];
+      
+      // Apply rotation to corners
+      const rotationRad = ((image as any).rotation || 0) * Math.PI / 180;
+      const cosRotation = Math.cos(rotationRad);
+      const sinRotation = Math.sin(rotationRad);
+      
+      const rotatedCorners = corners.map(corner => {
+        // Translate to origin
+        const translatedX = corner.x - image.x;
+        const translatedY = corner.y - image.y;
+        
+        // Rotate
+        const rotatedX = translatedX * cosRotation - translatedY * sinRotation;
+        const rotatedY = translatedX * sinRotation + translatedY * cosRotation;
+        
+        // Translate back
+        return {
+          x: rotatedX + image.x,
+          y: rotatedY + image.y
+        };
+      });
+      
+      // Check if any corner is within bounds
+      const anyCornerInBounds = rotatedCorners.some(corner => 
+        corner.x >= bounds.x && 
+        corner.x <= bounds.x + bounds.width &&
+        corner.y >= bounds.y && 
+        corner.y <= bounds.y + bounds.height
+      );
+      
+      if (anyCornerInBounds) {
+        foundObjects.push({ id: image.id, type: 'image' });
+        continue;
+      }
+      
+      // Check if bounds corners are within the rotated image
+      // This handles the case where the selection is inside the image
+      const boundsCorners = [
+        { x: bounds.x, y: bounds.y },
+        { x: bounds.x + bounds.width, y: bounds.y },
+        { x: bounds.x + bounds.width, y: bounds.y + bounds.height },
+        { x: bounds.x, y: bounds.y + bounds.height }
+      ];
+      
+      const anyBoundsCornerInImage = boundsCorners.some(corner => 
+        isPointOnImage(corner, image)
+      );
+      
+      if (anyBoundsCornerInImage) {
         foundObjects.push({ id: image.id, type: 'image' });
       }
     }
 
-    // Check lines (simplified - check if any point is within bounds)
+    // Check lines with transformation support
     for (const line of lines) {
       let lineInBounds = false;
       const points = line.points;
       
-      for (let i = 0; i < points.length - 1; i += 2) {
-        const x = line.x + points[i] * line.scaleX;
-        const y = line.y + points[i + 1] * line.scaleY;
+      // Apply transformation to each point
+      for (let i = 0; i < points.length; i += 2) {
+        // Get point in local coordinates
+        const localX = points[i];
+        const localY = points[i + 1];
         
+        // Apply scaling
+        const scaledX = localX * line.scaleX;
+        const scaledY = localY * line.scaleY;
+        
+        // Apply rotation
+        const rotationRad = (line.rotation || 0) * Math.PI / 180;
+        const cosRotation = Math.cos(rotationRad);
+        const sinRotation = Math.sin(rotationRad);
+        
+        const rotatedX = scaledX * cosRotation - scaledY * sinRotation;
+        const rotatedY = scaledX * sinRotation + scaledY * cosRotation;
+        
+        // Apply translation
+        const x = rotatedX + line.x;
+        const y = rotatedY + line.y;
+        
+        // Check if point is within bounds
         if (x >= bounds.x && x <= bounds.x + bounds.width &&
             y >= bounds.y && y <= bounds.y + bounds.height) {
           lineInBounds = true;
@@ -195,7 +313,7 @@ export const useSelectionState = () => {
     }
 
     return foundObjects;
-  }, []);
+  }, [isPointOnImage]);
 
   // Check if object is selected
   const isObjectSelected = useCallback((objectId: string): boolean => {
@@ -206,6 +324,127 @@ export const useSelectionState = () => {
   const getSelectedObjectIds = useCallback((): string[] => {
     return selectionState.selectedObjects.map(obj => obj.id);
   }, [selectionState.selectedObjects]);
+
+  // Calculate bounding box for selected objects
+  const calculateSelectionBounds = useCallback((
+    selectedObjects: SelectedObject[],
+    lines: LineObject[],
+    images: ImageObject[]
+  ): SelectionBounds | null => {
+    if (selectedObjects.length === 0) return null;
+    
+    let minX = Infinity;
+    let minY = Infinity;
+    let maxX = -Infinity;
+    let maxY = -Infinity;
+    
+    // Process selected lines
+    const selectedLines = selectedObjects
+      .filter(obj => obj.type === 'line')
+      .map(obj => lines.find(line => line.id === obj.id))
+      .filter(Boolean) as LineObject[];
+      
+    for (const line of selectedLines) {
+      const points = line.points;
+      
+      for (let i = 0; i < points.length; i += 2) {
+        // Get point in local coordinates
+        const localX = points[i];
+        const localY = points[i + 1];
+        
+        // Apply scaling
+        const scaledX = localX * line.scaleX;
+        const scaledY = localY * line.scaleY;
+        
+        // Apply rotation
+        const rotationRad = (line.rotation || 0) * Math.PI / 180;
+        const cosRotation = Math.cos(rotationRad);
+        const sinRotation = Math.sin(rotationRad);
+        
+        const rotatedX = scaledX * cosRotation - scaledY * sinRotation;
+        const rotatedY = scaledX * sinRotation + scaledY * cosRotation;
+        
+        // Apply translation
+        const x = rotatedX + line.x;
+        const y = rotatedY + line.y;
+        
+        // Update bounds
+        minX = Math.min(minX, x);
+        minY = Math.min(minY, y);
+        maxX = Math.max(maxX, x);
+        maxY = Math.max(maxY, y);
+      }
+    }
+    
+    // Process selected images
+    const selectedImages = selectedObjects
+      .filter(obj => obj.type === 'image')
+      .map(obj => images.find(img => img.id === obj.id))
+      .filter(Boolean) as ImageObject[];
+      
+    for (const image of selectedImages) {
+      const width = image.width || 100;
+      const height = image.height || 100;
+      
+      // For non-rotated images
+      if (!(image as any).rotation) {
+        minX = Math.min(minX, image.x);
+        minY = Math.min(minY, image.y);
+        maxX = Math.max(maxX, image.x + width);
+        maxY = Math.max(maxY, image.y + height);
+        continue;
+      }
+      
+      // For rotated images, check all corners
+      const corners = [
+        { x: 0, y: 0 },
+        { x: width, y: 0 },
+        { x: width, y: height },
+        { x: 0, y: height }
+      ];
+      
+      // Apply rotation to corners
+      const rotationRad = ((image as any).rotation || 0) * Math.PI / 180;
+      const cosRotation = Math.cos(rotationRad);
+      const sinRotation = Math.sin(rotationRad);
+      
+      for (const corner of corners) {
+        // Rotate
+        const rotatedX = corner.x * cosRotation - corner.y * sinRotation;
+        const rotatedY = corner.x * sinRotation + corner.y * cosRotation;
+        
+        // Translate
+        const x = rotatedX + image.x;
+        const y = rotatedY + image.y;
+        
+        // Update bounds
+        minX = Math.min(minX, x);
+        minY = Math.min(minY, y);
+        maxX = Math.max(maxX, x);
+        maxY = Math.max(maxY, y);
+      }
+    }
+    
+    // If no objects were found or bounds are invalid
+    if (minX === Infinity || minY === Infinity || maxX === -Infinity || maxY === -Infinity) {
+      return null;
+    }
+    
+    return {
+      x: minX,
+      y: minY,
+      width: maxX - minX,
+      height: maxY - minY
+    };
+  }, []);
+
+  // Sync selection bounds with selected objects
+  useEffect(() => {
+    if (selectionState.selectedObjects.length > 0 && !selectionState.isSelecting) {
+      // We'll implement this when we have access to the lines and images
+      // This is just a placeholder for now
+    }
+  }, [selectionState.selectedObjects, selectionState.isSelecting]);
 
   return {
     selectionState,
@@ -219,6 +458,7 @@ export const useSelectionState = () => {
     findObjectsAtPoint,
     findObjectsInBounds,
     isObjectSelected,
-    getSelectedObjectIds
+    getSelectedObjectIds,
+    calculateSelectionBounds
   };
 };

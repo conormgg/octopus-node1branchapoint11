@@ -31,6 +31,7 @@ interface KonvaStageCanvasProps {
   extraContent?: React.ReactNode;
   selectionBounds?: SelectionBounds | null;
   isSelecting?: boolean;
+  selection?: any;
 }
 
 const KonvaStageCanvas: React.FC<KonvaStageCanvasProps> = ({
@@ -50,19 +51,42 @@ const KonvaStageCanvas: React.FC<KonvaStageCanvasProps> = ({
   onStageClick,
   extraContent,
   selectionBounds,
-  isSelecting = false
+  isSelecting = false,
+  selection
 }) => {
   const { getRelativePointerPosition } = useStageCoordinates(panZoomState);
 
   // Fallback mouse handlers for devices without pointer events
   const handleMouseDown = (e: Konva.KonvaEventObject<MouseEvent>) => {
-    if (onStageClick) onStageClick(e);
-    
     // Handle right-click pan - works for everyone, including read-only users
     if (e.evt.button === 2) {
       panZoom.startPan(e.evt.clientX, e.evt.clientY);
       return;
     }
+    
+    // Handle selection tool clicks
+    if (currentTool === 'select' && selection && !isReadOnly) {
+      // Check if we clicked on a line
+      const clickedShape = e.target;
+      if (clickedShape && clickedShape !== e.target.getStage()) {
+        // Find the line by ID
+        const lineId = clickedShape.id();
+        if (lineId) {
+          const clickedLine = lines.find(l => l.id === lineId);
+          if (clickedLine) {
+            selection.selectObjects([{ id: lineId, type: 'line' }]);
+            return;
+          }
+        }
+      } else {
+        // Clicked on empty space - call the stage click handler for deselection
+        if (onStageClick) onStageClick(e);
+        return;
+      }
+    }
+    
+    // Call the stage click handler for other tools
+    if (onStageClick) onStageClick(e);
     
     // Only proceed with drawing if not in read-only mode or palm rejection is disabled
     if (isReadOnly || palmRejectionConfig.enabled) return;
@@ -131,11 +155,12 @@ const KonvaStageCanvas: React.FC<KonvaStageCanvasProps> = ({
           <LineRenderer 
             key={line.id} 
             line={line}
-            isSelected={false} // TODO: Will be updated when selection state is properly passed
-            onSelect={() => {
-              // TODO: Will be implemented when selection handlers are properly passed
-              console.log('Line selected:', line.id);
-            }}
+            isSelected={selection?.isObjectSelected?.(line.id) || false}
+            onSelect={currentTool === 'select' ? () => {
+              if (selection) {
+                selection.selectObjects([{ id: line.id, type: 'line' }]);
+              }
+            } : undefined}
           />
         ))}
         

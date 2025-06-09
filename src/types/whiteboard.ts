@@ -21,6 +21,9 @@ export interface ImageObject {
   src: string;
   width?: number;
   height?: number;
+  rotation?: number;
+  scaleX?: number;
+  scaleY?: number;
 }
 
 export interface PanZoomState {
