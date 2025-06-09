@@ -1,5 +1,5 @@
 
-export type Tool = 'pencil' | 'eraser';
+export type Tool = 'pencil' | 'eraser' | 'select';
 
 export interface LineObject {
   id: string;
@@ -29,6 +29,33 @@ export interface PanZoomState {
   scale: number;
 }
 
+export interface SelectionBounds {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+}
+
+export interface SelectedObject {
+  id: string;
+  type: 'line' | 'image';
+}
+
+export interface TransformationData {
+  x: number;
+  y: number;
+  scaleX: number;
+  scaleY: number;
+  rotation: number;
+}
+
+export interface SelectionState {
+  selectedObjects: SelectedObject[];
+  selectionBounds: SelectionBounds | null;
+  isSelecting: boolean;
+  transformationData: Record<string, TransformationData>;
+}
+
 export interface WhiteboardState {
   lines: LineObject[];
   images: ImageObject[];
@@ -37,6 +64,7 @@ export interface WhiteboardState {
   currentStrokeWidth: number;
   isDrawing: boolean;
   panZoomState: PanZoomState;
+  selectionState: SelectionState;
   history: { lines: LineObject[]; images: ImageObject[] }[];
   historyIndex: number;
 }
