@@ -4,7 +4,7 @@ import { Tool } from '@/types/whiteboard';
 import { SyncConfig } from '@/types/sync';
 
 export const useSharedPointerHandlers = (
-  state: { currentTool: Tool },
+  state: { currentTool: Tool; lines: any[]; images: any[] },
   startDrawing: (x: number, y: number) => void,
   continueDrawing: (x: number, y: number) => void,
   stopDrawing: () => void,
@@ -12,43 +12,80 @@ export const useSharedPointerHandlers = (
   continueErasing: (x: number, y: number) => void,
   stopErasing: () => void,
   syncConfig: SyncConfig | undefined,
-  panZoom: any
+  panZoom: any,
+  selection?: any
 ) => {
-  // Handle pointer down - only for drawing operations
+  // Handle pointer down - for drawing and selection operations
   const handlePointerDown = useCallback((x: number, y: number) => {
-    // Don't allow drawing in receive-only mode or during pan/zoom gestures
+    // Don't allow operations in receive-only mode or during pan/zoom gestures
     if (syncConfig?.isReceiveOnly || panZoom.isGestureActive()) return;
     
     if (state.currentTool === 'pencil') {
       startDrawing(x, y);
     } else if (state.currentTool === 'eraser') {
       startErasing(x, y);
+    } else if (state.currentTool === 'select' && selection) {
+      // Handle selection logic
+      const foundObjects = selection.findObjectsAtPoint({ x, y }, state.lines, state.images);
+      
+      if (foundObjects.length > 0) {
+        // Select the first found object
+        selection.selectObjects([foundObjects[0]]);
+      } else {
+        // Start drag-to-select
+        selection.setIsSelecting(true);
+        selection.setSelectionBounds({ x, y, width: 0, height: 0 });
+      }
     }
-  }, [state.currentTool, startDrawing, startErasing, syncConfig?.isReceiveOnly, panZoom]);
+  }, [state.currentTool, state.lines, state.images, startDrawing, startErasing, syncConfig?.isReceiveOnly, panZoom, selection]);
 
-  // Handle pointer move - only for drawing operations
+  // Handle pointer move - for drawing and selection operations
   const handlePointerMove = useCallback((x: number, y: number) => {
-    // Don't allow drawing in receive-only mode or during pan/zoom gestures
+    // Don't allow operations in receive-only mode or during pan/zoom gestures
     if (syncConfig?.isReceiveOnly || panZoom.isGestureActive()) return;
     
     if (state.currentTool === 'pencil') {
       continueDrawing(x, y);
     } else if (state.currentTool === 'eraser') {
       continueErasing(x, y);
+    } else if (state.currentTool === 'select' && selection && selection.selectionState.isSelecting) {
+      // Update drag-to-select rectangle
+      const bounds = selection.selectionState.selectionBounds;
+      if (bounds) {
+        const newBounds = {
+          x: Math.min(bounds.x, x),
+          y: Math.min(bounds.y, y),
+          width: Math.abs(x - bounds.x),
+          height: Math.abs(y - bounds.y)
+        };
+        selection.setSelectionBounds(newBounds);
+      }
     }
-  }, [state.currentTool, continueDrawing, continueErasing, syncConfig?.isReceiveOnly, panZoom]);
+  }, [state.currentTool, continueDrawing, continueErasing, syncConfig?.isReceiveOnly, panZoom, selection]);
 
-  // Handle pointer up - only for drawing operations
+  // Handle pointer up - for drawing and selection operations
   const handlePointerUp = useCallback(() => {
-    // Don't allow drawing in receive-only mode
+    // Don't allow operations in receive-only mode
     if (syncConfig?.isReceiveOnly) return;
     
     if (state.currentTool === 'pencil') {
       stopDrawing();
     } else if (state.currentTool === 'eraser') {
       stopErasing();
+    } else if (state.currentTool === 'select' && selection && selection.selectionState.isSelecting) {
+      // Complete drag-to-select
+      const bounds = selection.selectionState.selectionBounds;
+      if (bounds && (bounds.width > 5 || bounds.height > 5)) {
+        // Find objects within selection bounds
+        const objectsInBounds = selection.findObjectsInBounds(bounds, state.lines, state.images);
+        selection.selectObjects(objectsInBounds);
+      }
+      
+      // End selection
+      selection.setIsSelecting(false);
+      selection.setSelectionBounds(null);
     }
-  }, [state.currentTool, stopDrawing, stopErasing, syncConfig?.isReceiveOnly]);
+  }, [state.currentTool, state.lines, state.images, stopDrawing, stopErasing, syncConfig?.isReceiveOnly, selection]);
 
   return {
     handlePointerDown,
