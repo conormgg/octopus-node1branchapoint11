@@ -70,6 +70,18 @@ export const useSessionChecker = ({
     // Update last known status
     setState({ lastKnownStatus: data.status });
 
+    // Only check expiration if session has a duration set
+    if (!data.duration_minutes) {
+      // Session has no duration limit, so it won't expire
+      setState({
+        expiresAt: null,
+        isExpired: false,
+        sessionEndReason: null,
+        timeRemaining: null,
+      });
+      return;
+    }
+
     // Calculate session limits
     const createdAt = new Date(data.created_at);
     const sessionDurationMs = data.duration_minutes * 60 * 1000;
@@ -87,8 +99,8 @@ export const useSessionChecker = ({
       console.log('Session expiring:', { 
         shouldExpireIdle, 
         shouldExpireMaxTime, 
-        timeSinceLastActivity: timeSinceLastActivity / 1000 / 60,
-        timeUntilMaxSession: timeUntilMaxSession / 1000 / 60 
+        timeSinceLastActivity: Math.round(timeSinceLastActivity / 1000 / 60 * 100) / 100,
+        timeUntilMaxSession: Math.round(timeUntilMaxSession / 1000 / 60 * 100) / 100 
       });
       await handleSessionEnd('expired', sessionId);
     } else {

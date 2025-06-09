@@ -77,13 +77,13 @@ const KonvaStage: React.FC<KonvaStageProps> = ({
 
     const keyDownHandler = (e: KeyboardEvent) => {
       // Escape key - clear selection
-      if (e.key === 'Escape') {
+      if (e.key === 'Escape' && selection?.clearSelection) {
         selection.clearSelection();
         e.preventDefault();
       }
       
       // Delete key - remove selected objects (placeholder for future implementation)
-      if (e.key === 'Delete' && selection.selectionState.selectedObjects.length > 0) {
+      if (e.key === 'Delete' && selection?.selectionState?.selectedObjects?.length > 0) {
         // TODO: Implement delete functionality in later stages
         console.log('Delete key pressed - selected objects:', selection.selectionState.selectedObjects);
         e.preventDefault();
@@ -181,8 +181,8 @@ const KonvaStage: React.FC<KonvaStageProps> = ({
         handlePointerUp={handlePointerUp}
         isReadOnly={isReadOnly}
         onStageClick={checkDeselect}
-        selectionBounds={selection.selectionState.selectionBounds}
-        isSelecting={selection.selectionState.isSelecting}
+        selectionBounds={selection?.selectionState?.selectionBounds || null}
+        isSelecting={selection?.selectionState?.isSelecting || false}
         extraContent={
           <>
             {state.images?.map((image) => (

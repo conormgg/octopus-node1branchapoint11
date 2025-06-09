@@ -51,8 +51,24 @@ export const useSessionExpiration = ({ sessionId, onSessionExpired }: UseSession
 
   // Reset state when sessionId changes
   useEffect(() => {
-    if (!sessionId) return;
+    if (!sessionId) {
+      // Clear all state when no session
+      setState({
+        hasShownToast: false,
+        isExpired: false,
+        sessionEndReason: null,
+        lastKnownStatus: null,
+        hasProcessedEndState: false,
+        isRedirecting: false,
+        toastShownForSession: null,
+        sessionData: null,
+        expiresAt: null,
+        timeRemaining: null,
+      });
+      return;
+    }
 
+    // Reset state for new session
     setState({
       hasShownToast: false,
       isExpired: false,
@@ -72,8 +88,10 @@ export const useSessionExpiration = ({ sessionId, onSessionExpired }: UseSession
   useEffect(() => {
     if (!sessionId) return;
 
-    // Initial check
-    checkSessionExpiration();
+    // Initial check after a short delay to allow state to settle
+    const initialCheckTimeout = setTimeout(() => {
+      checkSessionExpiration();
+    }, 1000);
 
     // Set up interval to check every 30 seconds
     const intervalId = setInterval(() => {
@@ -81,6 +99,7 @@ export const useSessionExpiration = ({ sessionId, onSessionExpired }: UseSession
     }, 30000);
 
     return () => {
+      clearTimeout(initialCheckTimeout);
       clearInterval(intervalId);
     };
   }, [sessionId, checkSessionExpiration]);
