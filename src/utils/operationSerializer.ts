@@ -43,6 +43,24 @@ export const serializeDeleteImageOperation = (imageId: string): Omit<WhiteboardO
   }
 });
 
+export const serializeUpdateLineOperation = (lineId: string, updates: Partial<LineObject>): Omit<WhiteboardOperation, 'id' | 'timestamp' | 'sender_id'> => ({
+  whiteboard_id: '', // Will be set by the calling function
+  operation_type: 'update_line',
+  data: {
+    line_id: lineId,
+    updates
+  }
+});
+
+export const serializeDeleteObjectsOperation = (lineIds: string[], imageIds: string[]): Omit<WhiteboardOperation, 'id' | 'timestamp' | 'sender_id'> => ({
+  whiteboard_id: '', // Will be set by the calling function
+  operation_type: 'delete_objects',
+  data: {
+    line_ids: lineIds,
+    image_ids: imageIds
+  }
+});
+
 export const applyOperation = (
   state: { lines: LineObject[]; images: ImageObject[] },
   operation: WhiteboardOperation
@@ -113,6 +131,36 @@ export const applyOperation = (
       const filteredImages = state.images.filter(image => image.id !== imageIdToRemove);
       return {
         ...state,
+        images: filteredImages
+      };
+    }
+    case 'update_line': {
+      const { line_id, updates } = operation.data;
+      console.log('Updating line:', line_id, updates);
+      
+      const updatedLines = state.lines.map(line =>
+        line.id === line_id ? { ...line, ...updates } : line
+      );
+      return {
+        ...state,
+        lines: updatedLines
+      };
+    }
+    case 'delete_objects': {
+      const { line_ids, image_ids } = operation.data;
+      console.log('Deleting objects - lines:', line_ids, 'images:', image_ids);
+      
+      const filteredLines = line_ids && line_ids.length > 0 
+        ? state.lines.filter(line => !line_ids.includes(line.id))
+        : state.lines;
+      
+      const filteredImages = image_ids && image_ids.length > 0
+        ? state.images.filter(image => !image_ids.includes(image.id))
+        : state.images;
+      
+      return {
+        ...state,
+        lines: filteredLines,
         images: filteredImages
       };
     }

@@ -1,7 +1,7 @@
 
 import { LineObject, ImageObject, SelectedObject, TransformationData } from './whiteboard';
 
-export type OperationType = 'draw' | 'erase' | 'add_image' | 'update_image' | 'delete_image' | 'select_objects' | 'deselect_objects' | 'transform_objects';
+export type OperationType = 'draw' | 'erase' | 'add_image' | 'update_image' | 'delete_image' | 'select_objects' | 'deselect_objects' | 'transform_objects' | 'update_line' | 'delete_objects';
 
 export interface WhiteboardOperation {
   whiteboard_id: string;
@@ -42,6 +42,16 @@ export interface DeselectObjectsOperationData {
 
 export interface TransformObjectsOperationData {
   transformations: Record<string, TransformationData>;
+}
+
+export interface UpdateLineOperationData {
+  line_id: string;
+  updates: Partial<LineObject>;
+}
+
+export interface DeleteObjectsOperationData {
+  line_ids: string[];
+  image_ids: string[];
 }
 
 export interface SyncConfig {

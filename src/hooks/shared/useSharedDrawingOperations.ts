@@ -3,7 +3,7 @@ import { useCallback, useRef } from 'react';
 import { LineObject } from '@/types/whiteboard';
 import { useDrawingState } from '../useDrawingState';
 import { useEraserState } from '../useEraserState';
-import { serializeDrawOperation, serializeEraseOperation } from '@/utils/operationSerializer';
+import { serializeDrawOperation, serializeEraseOperation, serializeUpdateLineOperation, serializeDeleteObjectsOperation } from '@/utils/operationSerializer';
 
 export const useSharedDrawingOperations = (
   state: any,
@@ -97,9 +97,10 @@ export const useSharedDrawingOperations = (
     // Add to history after transformation
     addToHistory();
     
-    // TODO: Sync line transformation in future stages
+    // Sync line transformation
     if (sendOperation && !isApplyingRemoteOperation.current && whiteboardId === 'teacher-main') {
-      console.log(`[${whiteboardId}] Line transformation sync not yet implemented`);
+      console.log(`[${whiteboardId}] Syncing line transformation:`, lineId, updates);
+      sendOperation(serializeUpdateLineOperation(lineId, updates));
     }
   }, [setState, addToHistory, sendOperation, isApplyingRemoteOperation, whiteboardId]);
 
@@ -107,27 +108,26 @@ export const useSharedDrawingOperations = (
   const deleteSelectedObjects = useCallback((selectedObjects: Array<{ id: string; type: 'line' | 'image' }>) => {
     if (!selectedObjects || selectedObjects.length === 0) return;
 
-    setState((prev: any) => {
-      const selectedLineIds = selectedObjects
-        .filter(obj => obj.type === 'line')
-        .map(obj => obj.id);
-      const selectedImageIds = selectedObjects
-        .filter(obj => obj.type === 'image')
-        .map(obj => obj.id);
+    const selectedLineIds = selectedObjects
+      .filter(obj => obj.type === 'line')
+      .map(obj => obj.id);
+    const selectedImageIds = selectedObjects
+      .filter(obj => obj.type === 'image')
+      .map(obj => obj.id);
 
-      return {
-        ...prev,
-        lines: prev.lines.filter((line: LineObject) => !selectedLineIds.includes(line.id)),
-        images: prev.images.filter((image: any) => !selectedImageIds.includes(image.id))
-      };
-    });
+    setState((prev: any) => ({
+      ...prev,
+      lines: prev.lines.filter((line: LineObject) => !selectedLineIds.includes(line.id)),
+      images: prev.images.filter((image: any) => !selectedImageIds.includes(image.id))
+    }));
 
     // Add to history
     addToHistory();
 
-    // TODO: Sync deletion in future stages
+    // Sync deletion
     if (sendOperation && !isApplyingRemoteOperation.current && whiteboardId === 'teacher-main') {
-      console.log(`[${whiteboardId}] Object deletion sync not yet implemented`);
+      console.log(`[${whiteboardId}] Syncing object deletion - lines:`, selectedLineIds, 'images:', selectedImageIds);
+      sendOperation(serializeDeleteObjectsOperation(selectedLineIds, selectedImageIds));
     }
   }, [setState, addToHistory, sendOperation, isApplyingRemoteOperation, whiteboardId]);
 
