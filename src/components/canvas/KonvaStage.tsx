@@ -181,24 +181,14 @@ const KonvaStage: React.FC<KonvaStageProps> = ({
     }
   };
 
-  // Helper function to update image state - use the sync-enabled version
+  // Helper function to update image state
   const updateImageState = (imageId: string, newAttrs: any) => {
-    // Always use the sync-enabled updateImage function if available
-    if (updateImage) {
-      updateImage(imageId, newAttrs);
+    // Check if whiteboardState has updateImageState method (sync version)
+    if ('updateImageState' in whiteboardState && typeof whiteboardState.updateImageState === 'function') {
+      whiteboardState.updateImageState(imageId, newAttrs);
     } else {
-      console.log(`[${whiteboardId}] Image update requested but no updateImage available on the provided state object.`);
-    }
-  };
-
-  // Helper function to update line state - use the sync-enabled version
-  const updateLineState = (lineId: string, newAttrs: any) => {
-    // Always use the sync-enabled updateLine function if available
-    if (updateLine) {
-      console.log(`[${whiteboardId}] Updating line ${lineId} with sync-enabled function:`, newAttrs);
-      updateLine(lineId, newAttrs);
-    } else {
-      console.log(`[${whiteboardId}] Line update requested but no updateLine available on the provided state object.`);
+      // This path is for non-sync version, which is acceptable.
+      console.log(`[${whiteboardId}] Image update requested but no updateImageState available on the provided state object.`);
     }
   };
 
@@ -237,7 +227,7 @@ const KonvaStage: React.FC<KonvaStageProps> = ({
         selectionBounds={selection?.selectionState?.selectionBounds || null}
         isSelecting={selection?.selectionState?.isSelecting || false}
         selection={selection}
-        onUpdateLine={updateLineState}
+        onUpdateLine={updateLine}
         extraContent={
           <>
             {state.images?.map((image) => (
@@ -252,7 +242,11 @@ const KonvaStage: React.FC<KonvaStageProps> = ({
                   }
                 }}
                 onChange={(newAttrs) => {
-                  updateImageState(image.id, newAttrs);
+                  if (updateImage) {
+                    updateImage(image.id, newAttrs);
+                  } else {
+                    updateImageState(image.id, newAttrs);
+                  }
                 }}
                 onUpdateState={() => {
                   if (addToHistory) {
