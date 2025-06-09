@@ -78,18 +78,16 @@ const KonvaStageCanvas: React.FC<KonvaStageCanvasProps> = ({
         // Don't handle the click here - let the shape's onClick handler deal with it
         // This allows dragging to work properly
         return;
-      } else {
-        // Clicked on empty space - call the stage click handler for deselection
-        if (onStageClick) onStageClick(e);
-        return;
       }
+      // For empty space clicks with select tool, let handlePointerDown handle it
+      // so that drag-to-select can work
+    } else if (onStageClick && currentTool !== 'select') {
+      // Call the stage click handler for other tools
+      onStageClick(e);
     }
     
-    // Call the stage click handler for other tools
-    if (onStageClick && currentTool !== 'select') onStageClick(e);
-    
-    // Only proceed with drawing if not in read-only mode or palm rejection is disabled
-    if (isReadOnly || palmRejectionConfig.enabled) return;
+    // Only proceed with drawing/selection if not in read-only mode or palm rejection is disabled
+    if (isReadOnly || (palmRejectionConfig.enabled && currentTool !== 'select')) return;
     
     const stage = e.target.getStage();
     if (!stage) return;
@@ -109,8 +107,8 @@ const KonvaStageCanvas: React.FC<KonvaStageCanvasProps> = ({
       return;
     }
     
-    // Only proceed with drawing if not in read-only mode or palm rejection is disabled
-    if (isReadOnly || palmRejectionConfig.enabled) return;
+    // Only proceed with drawing/selection if not in read-only mode or palm rejection is disabled
+    if (isReadOnly || (palmRejectionConfig.enabled && currentTool !== 'select')) return;
     
     const stage = e.target.getStage();
     if (!stage) return;
@@ -126,8 +124,8 @@ const KonvaStageCanvas: React.FC<KonvaStageCanvasProps> = ({
       return;
     }
     
-    // Only proceed with drawing if not in read-only mode or palm rejection is disabled
-    if (isReadOnly || palmRejectionConfig.enabled) return;
+    // Only proceed with drawing/selection if not in read-only mode or palm rejection is disabled
+    if (isReadOnly || (palmRejectionConfig.enabled && currentTool !== 'select')) return;
     
     handlePointerUp();
   };
