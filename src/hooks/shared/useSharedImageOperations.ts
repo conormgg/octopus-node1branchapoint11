@@ -15,8 +15,6 @@ export const useSharedImageOperations = (
 ) => {
   // Image update function with sync
   const updateImageState = useCallback((imageId: string, newAttrs: Partial<ImageObject>) => {
-    console.log(`[${whiteboardId}] Updating image state:`, imageId, newAttrs);
-    
     setState((prev: any) => ({
       ...prev,
       images: prev.images.map((img: ImageObject) =>
@@ -24,49 +22,42 @@ export const useSharedImageOperations = (
       )
     }));
 
-    // Sync the image update ONLY if we're on the teacher's main board
-    // and not in receive-only mode
-    if (sendOperation && !isApplyingRemoteOperation.current && whiteboardId && whiteboardId.includes('-main')) {
-      console.log(`[${whiteboardId}] Syncing image update:`, imageId, newAttrs);
-      sendOperation(serializeUpdateImageOperation(imageId, newAttrs));
-    } else {
-      console.log(`[${whiteboardId}] Not syncing image update - whiteboard ID: ${whiteboardId}, has sendOperation: ${!!sendOperation}`);
+    // Always send the operation to the database for persistence
+    // But only sync to other clients if we're on the teacher's main board
+    if (sendOperation && !isApplyingRemoteOperation.current) {
+      // Create the operation
+      const operation = serializeUpdateImageOperation(imageId, newAttrs);
+      
+      // Send it to the database/sync system
+      sendOperation(operation);
     }
 
     // Add to history after state update
     setTimeout(() => addToHistory(), 0);
-  }, [setState, sendOperation, isApplyingRemoteOperation, addToHistory, whiteboardId]);
+  }, [setState, sendOperation, isApplyingRemoteOperation, addToHistory]);
 
   // Handle paste functionality - fixed to accept correct parameters
   const handlePaste = useCallback((e: ClipboardEvent, stage: Konva.Stage | null) => {
-    console.log(`[${whiteboardId}] Paste event triggered`);
     e.preventDefault();
     
     const items = e.clipboardData?.items;
     if (!items || !stage) {
-      console.log(`[${whiteboardId}] No clipboard items or stage available`);
       return;
     }
   
-    console.log(`[${whiteboardId}] Processing clipboard items:`, items.length);
     for (let i = 0; i < items.length; i++) {
-      console.log(`[${whiteboardId}] Item type:`, items[i].type);
       if (items[i].type.indexOf('image') !== -1) {
         const file = items[i].getAsFile();
         if (!file) {
-          console.log(`[${whiteboardId}] Could not get file from clipboard item`);
           continue;
         }
   
-        console.log(`[${whiteboardId}] Processing image file:`, file.name, file.type);
         const reader = new FileReader();
         reader.onload = (event) => {
           const imageUrl = event.target?.result as string;
           const image = new window.Image();
           image.src = imageUrl;
           image.onload = () => {
-            console.log(`[${whiteboardId}] Image loaded, creating image object`);
-            
             // Get pointer position relative to this specific stage
             const pointerPosition = stage.getPointerPosition() ?? { x: stage.width() / 2, y: stage.height() / 2 };
             const position = {
@@ -83,7 +74,6 @@ export const useSharedImageOperations = (
               height: image.height / 2,
             };
             
-            console.log(`[${whiteboardId}] Adding image to whiteboard:`, newImage);
             setState((prev: any) => ({
               ...prev,
               images: [...prev.images, newImage]
@@ -92,22 +82,21 @@ export const useSharedImageOperations = (
             // Add to history after state update
             setTimeout(() => addToHistory(), 0);
             
-            // Sync the new image ONLY if we're on the teacher's main board
-            // and not in receive-only mode
-            if (sendOperation && !isApplyingRemoteOperation.current && whiteboardId && whiteboardId.includes('-main')) {
-              console.log(`[${whiteboardId}] Syncing new image to other clients:`, newImage);
-              sendOperation(serializeAddImageOperation(newImage));
-            } else {
-              console.log(`[${whiteboardId}] Not syncing image - whiteboard ID: ${whiteboardId}, has sendOperation: ${!!sendOperation}`);
+            // Always send the operation to the database for persistence
+            // But only sync to other clients if we're on the teacher's main board
+            if (sendOperation && !isApplyingRemoteOperation.current) {
+              // Create the operation
+              const operation = serializeAddImageOperation(newImage);
+              
+              // Send it to the database/sync system
+              sendOperation(operation);
             }
-            
-            console.log(`[${whiteboardId}] Image added to whiteboard`);
           };
         };
         reader.readAsDataURL(file);
       }
     }
-  }, [state.panZoomState, addToHistory, sendOperation, isApplyingRemoteOperation, setState, whiteboardId]);
+  }, [state.panZoomState, addToHistory, sendOperation, isApplyingRemoteOperation, setState]);
 
   // Alias for updateImageState to match expected interface
   const updateImage = updateImageState;

@@ -28,18 +28,19 @@ export const useSharedDrawingOperations = (
 
     baseStopDrawing();
 
-    // Sync the drawn line ONLY if we're on the teacher's main board
-    // and not in receive-only mode
-    if (sendOperation && !isApplyingRemoteOperation.current && whiteboardId && whiteboardId.includes('-main')) {
+    // Always send the operation to the database for persistence
+    // But only sync to other clients if we're on the teacher's main board
+    if (sendOperation && !isApplyingRemoteOperation.current) {
       const drawnLine = state.lines[state.lines.length - 1];
       if (drawnLine && drawnLine.tool === 'pencil') {
-        console.log(`[${whiteboardId}] Syncing drawn line to other clients:`, drawnLine.id);
-        sendOperation(serializeDrawOperation(drawnLine));
+        // Create the operation
+        const operation = serializeDrawOperation(drawnLine);
+        
+        // Send it to the database/sync system
+        sendOperation(operation);
       }
-    } else {
-      console.log(`[${whiteboardId}] Not syncing drawn line - whiteboard ID: ${whiteboardId}, has sendOperation: ${!!sendOperation}`);
     }
-  }, [state.isDrawing, state.lines, baseStopDrawing, sendOperation, isApplyingRemoteOperation, whiteboardId]);
+  }, [state.isDrawing, state.lines, baseStopDrawing, sendOperation, isApplyingRemoteOperation]);
 
   // Eraser operations with sync
   const {
@@ -61,29 +62,24 @@ export const useSharedDrawingOperations = (
 
     baseStopErasing();
     
-    // Sync the erased lines ONLY if we're on the teacher's main board
-    // and not in receive-only mode
-    if (sendOperation && !isApplyingRemoteOperation.current && whiteboardId && whiteboardId.includes('-main')) {
-      // Find the IDs of lines that were erased by comparing with the lines before erasing
-      const erasedLineIds = linesBeforeErasingRef.current
-        .filter(line => !state.lines.some(l => l.id === line.id))
-        .map(line => line.id);
+    // Find the IDs of lines that were erased
+    const erasedLineIds = linesBeforeErasingRef.current
+      .filter(line => !state.lines.some(l => l.id === line.id))
+      .map(line => line.id);
+    
+    // Always send the operation to the database for persistence
+    // But only sync to other clients if we're on the teacher's main board
+    if (sendOperation && !isApplyingRemoteOperation.current && erasedLineIds.length > 0) {
+      // Create the operation
+      const operation = serializeEraseOperation(erasedLineIds);
       
-      console.log(`[${whiteboardId}] Lines before erasing:`, linesBeforeErasingRef.current.length);
-      console.log(`[${whiteboardId}] Lines after erasing:`, state.lines.length);
-      console.log(`[${whiteboardId}] Erased line IDs:`, erasedLineIds);
-      
-      if (erasedLineIds.length > 0) {
-        console.log(`[${whiteboardId}] Syncing erased lines to other clients:`, erasedLineIds);
-        sendOperation(serializeEraseOperation(erasedLineIds));
-      }
-    } else {
-      console.log(`[${whiteboardId}] Not syncing erased lines - whiteboard ID: ${whiteboardId}, has sendOperation: ${!!sendOperation}`);
+      // Send it to the database/sync system
+      sendOperation(operation);
     }
     
     // Clear the reference
     linesBeforeErasingRef.current = [];
-  }, [state.isDrawing, state.lines, baseStopErasing, sendOperation, isApplyingRemoteOperation, whiteboardId]);
+  }, [state.isDrawing, state.lines, baseStopErasing, sendOperation, isApplyingRemoteOperation]);
 
   // Update line position/transformation
   const updateLine = useCallback((lineId: string, updates: Partial<LineObject>) => {
@@ -94,15 +90,19 @@ export const useSharedDrawingOperations = (
       )
     }));
     
-    // Sync line transformation ONLY if we're on the teacher's main board
-    // and not in receive-only mode
-    if (sendOperation && !isApplyingRemoteOperation.current && whiteboardId && whiteboardId.includes('-main')) {
-      sendOperation(serializeUpdateLineOperation(lineId, updates));
+    // Always send the operation to the database for persistence
+    // But only sync to other clients if we're on the teacher's main board
+    if (sendOperation && !isApplyingRemoteOperation.current) {
+      // Create the operation
+      const operation = serializeUpdateLineOperation(lineId, updates);
+      
+      // Send it to the database/sync system
+      sendOperation(operation);
     }
     
     // Add to history after state update
     setTimeout(() => addToHistory(), 0);
-  }, [setState, addToHistory, sendOperation, isApplyingRemoteOperation, whiteboardId]);
+  }, [setState, addToHistory, sendOperation, isApplyingRemoteOperation]);
 
   // Delete selected objects
   const deleteSelectedObjects = useCallback((selectedObjects: Array<{ id: string; type: 'line' | 'image' }>) => {
@@ -124,12 +124,16 @@ export const useSharedDrawingOperations = (
     // Add to history
     addToHistory();
 
-    // Sync deletion
-    if (sendOperation && !isApplyingRemoteOperation.current && whiteboardId && whiteboardId.includes('-main')) {
-      console.log(`[${whiteboardId}] Syncing object deletion - lines:`, selectedLineIds, 'images:', selectedImageIds);
-      sendOperation(serializeDeleteObjectsOperation(selectedLineIds, selectedImageIds));
+    // Always send the operation to the database for persistence
+    // But only sync to other clients if we're on the teacher's main board
+    if (sendOperation && !isApplyingRemoteOperation.current) {
+      // Create the operation
+      const operation = serializeDeleteObjectsOperation(selectedLineIds, selectedImageIds);
+      
+      // Send it to the database/sync system
+      sendOperation(operation);
     }
-  }, [setState, addToHistory, sendOperation, isApplyingRemoteOperation, whiteboardId]);
+  }, [setState, addToHistory, sendOperation, isApplyingRemoteOperation]);
 
   return {
     startDrawing,
