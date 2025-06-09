@@ -1,6 +1,5 @@
 
 import React, { useState, useEffect } from 'react';
-import ReactDOM from 'react-dom';
 import { Maximize2, Minimize2, AlertCircle } from 'lucide-react';
 import Whiteboard from './Whiteboard';
 import { SyncWhiteboard } from './SyncWhiteboard';
@@ -76,6 +75,13 @@ const WhiteboardPlaceholder: React.FC<WhiteboardPlaceholderProps> = ({
     }
   };
 
+  // Handle backdrop click when maximized
+  const handleBackdropClick = (e: React.MouseEvent) => {
+    if (e.target === e.currentTarget && onMinimize) {
+      onMinimize();
+    }
+  };
+
   // Memoize sync config to prevent recreating it on every render
   const syncConfig = React.useMemo(() => {
     if (!sessionId) return undefined;
@@ -128,26 +134,6 @@ const WhiteboardPlaceholder: React.FC<WhiteboardPlaceholderProps> = ({
     containerDimensions: dimensions 
   });
 
-  // Create the whiteboard content that will be reused
-  const whiteboardContent = (
-    <div className="flex-1 flex items-center justify-center bg-gray-25 relative overflow-hidden rounded-lg">
-      {whiteboardWidth > 0 && whiteboardHeight > 0 ? (
-        syncConfig ? (
-          <SyncWhiteboard 
-            key={`sync-${id}`} // Stable key to prevent remounting
-            syncConfig={syncConfig}
-            width={whiteboardWidth}
-            height={whiteboardHeight}
-          />
-        ) : (
-          <Whiteboard isReadOnly={false} />
-        )
-      ) : (
-        <div className="text-gray-500">Loading whiteboard...</div>
-      )}
-    </div>
-  );
-
   // Common UI elements
   const maximizeButton = (
     <button
@@ -181,45 +167,58 @@ const WhiteboardPlaceholder: React.FC<WhiteboardPlaceholderProps> = ({
     </div>
   );
 
-  // Render the maximized view in a portal to escape parent constraints
-  if (isMaximized) {
-    return ReactDOM.createPortal(
-      <>
-        {/* Backdrop overlay */}
+  // Create the whiteboard content - this will NEVER be remounted
+  const whiteboardContent = (
+    <div className="flex-1 flex items-center justify-center bg-gray-25 relative overflow-hidden rounded-lg">
+      {whiteboardWidth > 0 && whiteboardHeight > 0 ? (
+        syncConfig ? (
+          <SyncWhiteboard 
+            key={`sync-${id}-stable`} // Stable key to prevent remounting
+            syncConfig={syncConfig}
+            width={whiteboardWidth}
+            height={whiteboardHeight}
+          />
+        ) : (
+          <Whiteboard isReadOnly={false} />
+        )
+      ) : (
+        <div className="text-gray-500">Loading whiteboard...</div>
+      )}
+    </div>
+  );
+
+  // Single container approach - no conditional returns, no portals
+  return (
+    <>
+      {/* Backdrop overlay - only shown when maximized */}
+      {isMaximized && (
         <div 
           className="fixed inset-0 bg-black/50 z-[9998]" 
-          onClick={onMinimize} 
+          onClick={handleBackdropClick}
         />
-        
-        {/* Maximized whiteboard */}
-        <div className="fixed inset-0 z-[9999] p-4">
-          <div className="w-full h-full flex flex-col bg-white border-2 border-gray-200 rounded-lg shadow-2xl">
-            {maximizeButton}
-            {sessionStatus}
-            {sessionWarning}
-            {whiteboardContent}
-          </div>
-        </div>
-      </>,
-      document.body
-    );
-  }
-
-  // Normal (non-maximized) view
-  return (
-    <div 
-      ref={containerRef}
-      className="flex flex-col bg-white border-2 border-gray-200 rounded-lg shadow-sm hover:shadow-md transition-all duration-200 relative h-full"
-      style={{ 
-        width: initialWidth ? `${initialWidth}px` : '100%',
-        height: initialHeight ? `${initialHeight}px` : '100%'
-      }}
-    >
-      {maximizeButton}
-      {sessionStatus}
-      {sessionWarning}
-      {whiteboardContent}
-    </div>
+      )}
+      
+      {/* Main container - always in the same position */}
+      <div 
+        ref={containerRef}
+        className={`
+          flex flex-col bg-white border-2 border-gray-200 rounded-lg shadow-sm hover:shadow-md transition-all duration-200 relative
+          ${isMaximized 
+            ? 'fixed inset-4 z-[9999] shadow-2xl' 
+            : 'h-full'
+          }
+        `}
+        style={!isMaximized ? { 
+          width: initialWidth ? `${initialWidth}px` : '100%',
+          height: initialHeight ? `${initialHeight}px` : '100%'
+        } : undefined}
+      >
+        {maximizeButton}
+        {sessionStatus}
+        {sessionWarning}
+        {whiteboardContent}
+      </div>
+    </>
   );
 };
 
