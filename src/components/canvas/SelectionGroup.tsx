@@ -1,6 +1,6 @@
 
 import React, { useRef, useEffect, useState } from 'react';
-import { Group, Transformer } from 'react-konva';
+import { Group, Transformer, Rect } from 'react-konva';
 import Konva from 'konva';
 import { LineObject, ImageObject, SelectedObject } from '@/types/whiteboard';
 import LineRenderer from './LineRenderer';
@@ -30,6 +30,7 @@ const SelectionGroup: React.FC<SelectionGroupProps> = ({
   const groupRef = useRef<Konva.Group>(null);
   const transformerRef = useRef<Konva.Transformer>(null);
   const [isTransforming, setIsTransforming] = useState(false);
+  const [groupBounds, setGroupBounds] = useState<{ x: number; y: number; width: number; height: number } | null>(null);
 
   // Get selected lines and images
   const selectedLines = selectedObjects
@@ -44,6 +45,116 @@ const SelectionGroup: React.FC<SelectionGroupProps> = ({
 
   // Only show group if multiple objects are selected
   const shouldShowGroup = selectedObjects.length > 1 && isVisible && currentTool === 'select';
+
+  // Calculate group bounds
+  const calculateGroupBounds = () => {
+    if (!shouldShowGroup || selectedObjects.length === 0) {
+      setGroupBounds(null);
+      return;
+    }
+
+    let minX = Infinity;
+    let minY = Infinity;
+    let maxX = -Infinity;
+    let maxY = -Infinity;
+
+    // Process selected lines
+    for (const line of selectedLines) {
+      const points = line.points;
+      
+      for (let i = 0; i < points.length; i += 2) {
+        // Get point in local coordinates
+        const localX = points[i];
+        const localY = points[i + 1];
+        
+        // Apply scaling
+        const scaledX = localX * line.scaleX;
+        const scaledY = localY * line.scaleY;
+        
+        // Apply rotation
+        const rotationRad = (line.rotation || 0) * Math.PI / 180;
+        const cosRotation = Math.cos(rotationRad);
+        const sinRotation = Math.sin(rotationRad);
+        
+        const rotatedX = scaledX * cosRotation - scaledY * sinRotation;
+        const rotatedY = scaledX * sinRotation + scaledY * cosRotation;
+        
+        // Apply translation
+        const x = rotatedX + line.x;
+        const y = rotatedY + line.y;
+        
+        // Update bounds
+        minX = Math.min(minX, x);
+        minY = Math.min(minY, y);
+        maxX = Math.max(maxX, x);
+        maxY = Math.max(maxY, y);
+      }
+    }
+
+    // Process selected images
+    for (const image of selectedImages) {
+      const width = image.width || 100;
+      const height = image.height || 100;
+      
+      // For non-rotated images
+      if (!(image as any).rotation) {
+        minX = Math.min(minX, image.x);
+        minY = Math.min(minY, image.y);
+        maxX = Math.max(maxX, image.x + width);
+        maxY = Math.max(maxY, image.y + height);
+        continue;
+      }
+      
+      // For rotated images, check all corners
+      const corners = [
+        { x: 0, y: 0 },
+        { x: width, y: 0 },
+        { x: width, y: height },
+        { x: 0, y: height }
+      ];
+      
+      // Apply rotation to corners
+      const rotationRad = ((image as any).rotation || 0) * Math.PI / 180;
+      const cosRotation = Math.cos(rotationRad);
+      const sinRotation = Math.sin(rotationRad);
+      
+      for (const corner of corners) {
+        // Rotate
+        const rotatedX = corner.x * cosRotation - corner.y * sinRotation;
+        const rotatedY = corner.x * sinRotation + corner.y * cosRotation;
+        
+        // Translate
+        const x = rotatedX + image.x;
+        const y = rotatedY + image.y;
+        
+        // Update bounds
+        minX = Math.min(minX, x);
+        minY = Math.min(minY, y);
+        maxX = Math.max(maxX, x);
+        maxY = Math.max(maxY, y);
+      }
+    }
+
+    // If no objects were found or bounds are invalid
+    if (minX === Infinity || minY === Infinity || maxX === -Infinity || maxY === -Infinity) {
+      setGroupBounds(null);
+      return;
+    }
+
+    // Add some padding for easier selection
+    const padding = 5;
+    setGroupBounds({
+      x: minX - padding,
+      y: minY - padding,
+      width: (maxX - minX) + (padding * 2),
+      height: (maxY - minY) + (padding * 2)
+    });
+  };
+
+  // Recalculate bounds when objects change
+  useEffect(() => {
+    calculateGroupBounds();
+  }, [selectedLines, selectedImages, shouldShowGroup]);
 
   // Set up transformer when group is created
   useEffect(() => {
@@ -81,8 +192,8 @@ const SelectionGroup: React.FC<SelectionGroupProps> = ({
 
     const group = groupRef.current;
     
-    // Apply group transformation to all child objects
-    const children = group.getChildren();
+    // Apply group transformation to all child objects (excluding the background rect)
+    const children = group.getChildren().filter(child => child.name() !== 'group-background');
     
     children.forEach((child, index) => {
       // Get the child's transformed position and attributes
@@ -152,6 +263,19 @@ const SelectionGroup: React.FC<SelectionGroupProps> = ({
         onDragMove={handleDragMove}
         onDragEnd={handleTransformEnd}
       >
+        {/* Invisible background rectangle for dragging */}
+        {groupBounds && (
+          <Rect
+            name="group-background"
+            x={groupBounds.x}
+            y={groupBounds.y}
+            width={groupBounds.width}
+            height={groupBounds.height}
+            fill="transparent"
+            listening={true}
+          />
+        )}
+        
         {/* Render selected lines in the group */}
         {selectedLines.map((line) => (
           <LineRenderer
