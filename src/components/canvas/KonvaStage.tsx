@@ -208,6 +208,7 @@ const KonvaStage: React.FC<KonvaStageProps> = ({
         stageRef={stageRef}
         layerRef={layerRef}
         lines={state.lines}
+        images={state.images}
         currentTool={state.currentTool}
         panZoomState={state.panZoomState}
         palmRejectionConfig={palmRejectionConfig}
@@ -226,44 +227,61 @@ const KonvaStage: React.FC<KonvaStageProps> = ({
         isSelecting={selection?.selectionState?.isSelecting || false}
         selection={selection}
         onUpdateLine={updateLine}
+        onUpdateImage={(imageId, updates) => {
+          if (updateImage) {
+            updateImage(imageId, updates);
+          } else {
+            updateImageState(imageId, updates);
+          }
+        }}
+        onTransformEnd={() => {
+          if (addToHistory) {
+            addToHistory();
+          }
+        }}
         extraContent={
           <>
-            {state.images?.map((image) => (
-              <ImageRenderer
-                key={image.id}
-                imageObject={image}
-                isSelected={selection?.isObjectSelected(image.id) || false}
-                isHovered={selection?.hoveredObjectId === image.id}
-                onSelect={() => {
-                  if (selection && state.currentTool === 'select') {
-                    selection.selectObjects([{ id: image.id, type: 'image' }]);
-                  }
-                }}
-                onChange={(newAttrs) => {
-                  if (updateImage) {
-                    updateImage(image.id, newAttrs);
-                  } else {
-                    updateImageState(image.id, newAttrs);
-                  }
-                }}
-                onUpdateState={() => {
-                  if (addToHistory) {
-                    addToHistory();
-                  }
-                }}
-                currentTool={state.currentTool}
-                onMouseEnter={state.currentTool === 'select' ? () => {
-                  if (selection?.setHoveredObjectId) {
-                    selection.setHoveredObjectId(image.id);
-                  }
-                } : undefined}
-                onMouseLeave={state.currentTool === 'select' ? () => {
-                  if (selection?.setHoveredObjectId) {
-                    selection.setHoveredObjectId(null);
-                  }
-                } : undefined}
-              />
-            )) || null}
+            {state.images?.map((image) => {
+              const isSelected = selection?.isObjectSelected(image.id) || false;
+              const isInGroup = selection?.selectionState?.selectedObjects?.length > 1 && isSelected;
+              
+              return (
+                <ImageRenderer
+                  key={image.id}
+                  imageObject={image}
+                  isSelected={isSelected && !isInGroup} // Hide individual selection when in group
+                  isHovered={selection?.hoveredObjectId === image.id}
+                  onSelect={() => {
+                    if (selection && state.currentTool === 'select') {
+                      selection.selectObjects([{ id: image.id, type: 'image' }]);
+                    }
+                  }}
+                  onChange={(newAttrs) => {
+                    if (updateImage) {
+                      updateImage(image.id, newAttrs);
+                    } else {
+                      updateImageState(image.id, newAttrs);
+                    }
+                  }}
+                  onUpdateState={() => {
+                    if (addToHistory) {
+                      addToHistory();
+                    }
+                  }}
+                  currentTool={state.currentTool}
+                  onMouseEnter={state.currentTool === 'select' ? () => {
+                    if (selection?.setHoveredObjectId) {
+                      selection.setHoveredObjectId(image.id);
+                    }
+                  } : undefined}
+                  onMouseLeave={state.currentTool === 'select' ? () => {
+                    if (selection?.setHoveredObjectId) {
+                      selection.setHoveredObjectId(null);
+                    }
+                  } : undefined}
+                />
+              );
+            }) || null}
           </>
         }
       />
