@@ -69,6 +69,7 @@ export const useSharedWhiteboardState = (syncConfig?: SyncConfig, whiteboardId?:
     updateImageState: operations.updateImageState,
     updateLine: operations.updateLine,
     updateImage: operations.updateImage,
+    toggleImageLock: operations.toggleImageLock,
     deleteSelectedObjects,
     selection,
     isReadOnly: syncConfig?.isReceiveOnly || false,

@@ -6,6 +6,7 @@ import { usePalmRejection } from '@/hooks/usePalmRejection';
 import { useStageEventHandlers } from '@/hooks/useStageEventHandlers';
 import KonvaStageCanvas from './KonvaStageCanvas';
 import ImageRenderer from './ImageRenderer';
+import ImageContextMenu from './ImageContextMenu';
 
 interface KonvaStageProps {
   width: number;
@@ -40,6 +41,7 @@ const KonvaStage: React.FC<KonvaStageProps> = ({
   const layerRef = useRef<Konva.Layer>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const [selectedId, selectShape] = useState<string | null>(null);
+  const [contextMenu, setContextMenu] = useState<{ imageId: string; x: number; y: number } | null>(null);
 
   const {
     state,
@@ -279,12 +281,37 @@ const KonvaStage: React.FC<KonvaStageProps> = ({
                       selection.setHoveredObjectId(null);
                     }
                   } : undefined}
+                  onToggleLock={(imageId) => {
+                    // Check if whiteboardState has toggleImageLock method (sync version)
+                    if ('toggleImageLock' in whiteboardState && typeof whiteboardState.toggleImageLock === 'function') {
+                      whiteboardState.toggleImageLock(imageId);
+                    } else {
+                      console.log(`[${whiteboardId}] Image lock toggle requested but no toggleImageLock available on the provided state object.`);
+                    }
+                  }}
+                  onContextMenu={(imageId, x, y) => {
+                    setContextMenu({ imageId, x, y });
+                  }}
                 />
               );
             }) || null}
           </>
         }
       />
+      {contextMenu && (
+        <ImageContextMenu
+          x={contextMenu.x}
+          y={contextMenu.y}
+          isLocked={state.images?.find(img => img.id === contextMenu.imageId)?.locked || false}
+          onToggleLock={() => {
+            if ('toggleImageLock' in whiteboardState && typeof whiteboardState.toggleImageLock === 'function') {
+              whiteboardState.toggleImageLock(contextMenu.imageId);
+            }
+            setContextMenu(null);
+          }}
+          onClose={() => setContextMenu(null)}
+        />
+      )}
     </div>
   );
 };

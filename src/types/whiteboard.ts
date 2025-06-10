@@ -1,5 +1,5 @@
 
-export type Tool = 'pencil' | 'eraser' | 'select';
+export type Tool = 'pencil' | 'eraser' | 'select' | 'highlighter';
 
 export interface LineObject {
   id: string;
@@ -24,6 +24,7 @@ export interface ImageObject {
   rotation?: number;
   scaleX?: number;
   scaleY?: number;
+  locked?: boolean;
 }
 
 export interface PanZoomState {

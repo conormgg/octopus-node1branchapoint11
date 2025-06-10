@@ -290,6 +290,19 @@ export const useWhiteboardState = () => {
     }
   }, [state.currentTool, state.lines, state.images, stopDrawing, stopErasing, selection]);
 
+  // Toggle image lock state
+  const toggleImageLock = useCallback((imageId: string) => {
+    setState(prev => ({
+      ...prev,
+      images: prev.images.map(img =>
+        img.id === imageId ? { ...img, locked: !img.locked } : img
+      )
+    }));
+
+    // Add to history after state update
+    setTimeout(() => addToHistory(), 0);
+  }, [addToHistory]);
+
   // Delete selected objects
   const deleteSelectedObjects = useCallback(() => {
     const selectedObjects = selection.selectionState.selectedObjects;
@@ -335,6 +348,7 @@ export const useWhiteboardState = () => {
     selection,
     updateLine,
     updateImage,
+    toggleImageLock,
     deleteSelectedObjects
   };
 };

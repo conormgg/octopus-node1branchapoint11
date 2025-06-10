@@ -15,6 +15,8 @@ interface ImageRendererProps {
   currentTool?: string;
   onMouseEnter?: () => void;
   onMouseLeave?: () => void;
+  onToggleLock?: (imageId: string) => void;
+  onContextMenu?: (imageId: string, x: number, y: number) => void;
 }
 
 const ImageRenderer: React.FC<ImageRendererProps> = React.memo(({
@@ -27,6 +29,8 @@ const ImageRenderer: React.FC<ImageRendererProps> = React.memo(({
   currentTool = 'pencil',
   onMouseEnter,
   onMouseLeave,
+  onToggleLock,
+  onContextMenu,
 }) => {
   const [image] = useImage(imageObject.src);
   const imageRef = useRef<Konva.Image>(null);
@@ -65,6 +69,27 @@ const ImageRenderer: React.FC<ImageRendererProps> = React.memo(({
     }
   };
 
+  const handleRightClick = (e: Konva.KonvaEventObject<PointerEvent>) => {
+    e.evt.preventDefault();
+    if (onContextMenu) {
+      const stage = e.target.getStage();
+      if (stage) {
+        const pointerPosition = stage.getPointerPosition();
+        if (pointerPosition) {
+          onContextMenu(imageObject.id, pointerPosition.x, pointerPosition.y);
+        }
+      }
+    }
+  };
+
+  const handleToggleLock = () => {
+    if (onToggleLock) {
+      onToggleLock(imageObject.id);
+    }
+  };
+
+  const isLocked = imageObject.locked || false;
+
   return (
     <>
       <Image
@@ -72,21 +97,23 @@ const ImageRenderer: React.FC<ImageRendererProps> = React.memo(({
         onTap={onSelect}
         onMouseEnter={onMouseEnter}
         onMouseLeave={onMouseLeave}
+        onContextMenu={handleRightClick}
         ref={imageRef}
         image={image}
         x={imageObject.x}
         y={imageObject.y}
-        rotation={imageObject.rotation || 0} // Apply rotation from imageObject
-        draggable={currentTool === 'select' && isSelected}
+        rotation={imageObject.rotation || 0}
+        draggable={currentTool === 'select' && isSelected && !isLocked}
         onDragStart={onSelect}
         onDragEnd={handleDragEnd}
         onTransformEnd={handleTransformEnd}
-        stroke={isHovered && !isSelected ? 'rgba(0, 123, 255, 0.3)' : undefined}
-        strokeWidth={isHovered && !isSelected ? 2 : 0}
+        stroke={isHovered && !isSelected ? 'rgba(0, 123, 255, 0.3)' : isLocked ? 'rgba(255, 165, 0, 0.5)' : undefined}
+        strokeWidth={isHovered && !isSelected ? 2 : isLocked ? 3 : 0}
+        opacity={isLocked ? 0.8 : 1}
         {...(imageObject.width && { width: imageObject.width })}
         {...(imageObject.height && { height: imageObject.height })}
       />
-      {isSelected && currentTool === 'select' && (
+      {isSelected && currentTool === 'select' && !isLocked && (
         <Transformer
           ref={trRef}
           boundBoxFunc={(oldBox, newBox) => {
@@ -110,6 +137,7 @@ const ImageRenderer: React.FC<ImageRendererProps> = React.memo(({
     prevProps.imageObject.width === nextProps.imageObject.width &&
     prevProps.imageObject.height === nextProps.imageObject.height &&
     prevProps.imageObject.rotation === nextProps.imageObject.rotation &&
+    prevProps.imageObject.locked === nextProps.imageObject.locked &&
     prevProps.isSelected === nextProps.isSelected &&
     prevProps.isHovered === nextProps.isHovered &&
     prevProps.currentTool === nextProps.currentTool

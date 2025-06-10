@@ -98,12 +98,40 @@ export const useSharedImageOperations = (
     }
   }, [state.panZoomState, addToHistory, sendOperation, isApplyingRemoteOperation, setState]);
 
+  // Toggle image lock state
+  const toggleImageLock = useCallback((imageId: string) => {
+    setState((prev: any) => ({
+      ...prev,
+      images: prev.images.map((img: ImageObject) =>
+        img.id === imageId ? { ...img, locked: !img.locked } : img
+      )
+    }));
+
+    // Always send the operation to the database for persistence
+    // But only sync to other clients if we're on the teacher's main board
+    if (sendOperation && !isApplyingRemoteOperation.current) {
+      // Get the current image to determine new lock state
+      const currentImage = state.images.find((img: ImageObject) => img.id === imageId);
+      const newLockState = !currentImage?.locked;
+      
+      // Create the operation
+      const operation = serializeUpdateImageOperation(imageId, { locked: newLockState });
+      
+      // Send it to the database/sync system
+      sendOperation(operation);
+    }
+
+    // Add to history after state update
+    setTimeout(() => addToHistory(), 0);
+  }, [setState, sendOperation, isApplyingRemoteOperation, addToHistory, state.images]);
+
   // Alias for updateImageState to match expected interface
   const updateImage = updateImageState;
 
   return {
     updateImageState,
     updateImage,
-    handlePaste
+    handlePaste,
+    toggleImageLock
   };
 };
