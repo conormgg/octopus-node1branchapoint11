@@ -11,9 +11,6 @@ interface LineRendererProps {
   onMouseEnter?: () => void;
   onMouseLeave?: () => void;
   onDragEnd?: (updates: { x: number; y: number; scaleX?: number; scaleY?: number; rotation?: number }) => void;
-  onGroupDragStart?: (objectId: string) => void;
-  onGroupDragMove?: (objectId: string, x: number, y: number) => void;
-  onGroupDragEnd?: () => void;
   currentTool?: string;
 }
 
@@ -25,9 +22,6 @@ const LineRenderer: React.FC<LineRendererProps> = React.memo(({
   onMouseEnter,
   onMouseLeave,
   onDragEnd,
-  onGroupDragStart,
-  onGroupDragMove,
-  onGroupDragEnd,
   currentTool = 'pencil'
 }) => {
   const lineRef = useRef<Konva.Line>(null);
@@ -110,17 +104,6 @@ const LineRenderer: React.FC<LineRendererProps> = React.memo(({
         onTap={onSelect}
         onMouseEnter={onMouseEnter}
         onMouseLeave={onMouseLeave}
-        onDragStart={(e) => {
-          if (onGroupDragStart) {
-            onGroupDragStart(line.id);
-          }
-        }}
-        onDragMove={(e) => {
-          if (onGroupDragMove) {
-            const node = e.target;
-            onGroupDragMove(line.id, node.x(), node.y());
-          }
-        }}
         onDragEnd={(e) => {
           if (onDragEnd) {
             const node = e.target;
@@ -128,9 +111,6 @@ const LineRenderer: React.FC<LineRendererProps> = React.memo(({
               x: node.x(),
               y: node.y()
             });
-          }
-          if (onGroupDragEnd) {
-            onGroupDragEnd();
           }
         }}
         onTransformEnd={(e) => {

@@ -337,69 +337,6 @@ export const useSelectionState = () => {
     selectObjects(allObjects);
   }, [selectObjects]);
 
-  // Group dragging state
-  const [groupDragState, setGroupDragState] = useState<{
-    isDragging: boolean;
-    draggedObjectId: string | null;
-    initialPositions: Record<string, { x: number; y: number }>;
-  }>({
-    isDragging: false,
-    draggedObjectId: null,
-    initialPositions: {}
-  });
-
-  // Start group drag
-  const startGroupDrag = useCallback((draggedObjectId: string, lines: LineObject[], images: ImageObject[]) => {
-    if (selectionState.selectedObjects.length <= 1) return;
-
-    const initialPositions: Record<string, { x: number; y: number }> = {};
-    
-    // Store initial positions of all selected objects
-    selectionState.selectedObjects.forEach(obj => {
-      if (obj.type === 'line') {
-        const line = lines.find(l => l.id === obj.id);
-        if (line) {
-          initialPositions[obj.id] = { x: line.x, y: line.y };
-        }
-      } else if (obj.type === 'image') {
-        const image = images.find(i => i.id === obj.id);
-        if (image) {
-          initialPositions[obj.id] = { x: image.x, y: image.y };
-        }
-      }
-    });
-
-    setGroupDragState({
-      isDragging: true,
-      draggedObjectId,
-      initialPositions
-    });
-  }, [selectionState.selectedObjects]);
-
-  // End group drag
-  const endGroupDrag = useCallback(() => {
-    setGroupDragState({
-      isDragging: false,
-      draggedObjectId: null,
-      initialPositions: {}
-    });
-  }, []);
-
-  // Calculate group drag delta
-  const calculateGroupDragDelta = useCallback((draggedObjectId: string, newX: number, newY: number) => {
-    if (!groupDragState.isDragging || groupDragState.draggedObjectId !== draggedObjectId) {
-      return null;
-    }
-
-    const initialPos = groupDragState.initialPositions[draggedObjectId];
-    if (!initialPos) return null;
-
-    return {
-      deltaX: newX - initialPos.x,
-      deltaY: newY - initialPos.y
-    };
-  }, [groupDragState]);
-
   // Calculate bounding box for selected objects
   const calculateSelectionBounds = useCallback((
     selectedObjects: SelectedObject[],
@@ -537,10 +474,6 @@ export const useSelectionState = () => {
     selectAll,
     calculateSelectionBounds,
     hoveredObjectId,
-    setHoveredObjectId,
-    groupDragState,
-    startGroupDrag,
-    endGroupDrag,
-    calculateGroupDragDelta
+    setHoveredObjectId
   };
 };

@@ -12,9 +12,6 @@ interface ImageRendererProps {
   onSelect: () => void;
   onChange: (newAttrs: Partial<ImageObject>) => void;
   onUpdateState: () => void;
-  onGroupDragStart?: (objectId: string) => void;
-  onGroupDragMove?: (objectId: string, x: number, y: number) => void;
-  onGroupDragEnd?: () => void;
   currentTool?: string;
   onMouseEnter?: () => void;
   onMouseLeave?: () => void;
@@ -27,9 +24,6 @@ const ImageRenderer: React.FC<ImageRendererProps> = React.memo(({
   onSelect,
   onChange,
   onUpdateState,
-  onGroupDragStart,
-  onGroupDragMove,
-  onGroupDragEnd,
   currentTool = 'pencil',
   onMouseEnter,
   onMouseLeave,
@@ -84,24 +78,8 @@ const ImageRenderer: React.FC<ImageRendererProps> = React.memo(({
         y={imageObject.y}
         rotation={imageObject.rotation || 0} // Apply rotation from imageObject
         draggable={currentTool === 'select' && isSelected}
-        onDragStart={(e) => {
-          onSelect();
-          if (onGroupDragStart) {
-            onGroupDragStart(imageObject.id);
-          }
-        }}
-        onDragMove={(e) => {
-          if (onGroupDragMove) {
-            const node = e.target;
-            onGroupDragMove(imageObject.id, node.x(), node.y());
-          }
-        }}
-        onDragEnd={(e) => {
-          handleDragEnd(e);
-          if (onGroupDragEnd) {
-            onGroupDragEnd();
-          }
-        }}
+        onDragStart={onSelect}
+        onDragEnd={handleDragEnd}
         onTransformEnd={handleTransformEnd}
         stroke={isHovered && !isSelected ? 'rgba(0, 123, 255, 0.3)' : undefined}
         strokeWidth={isHovered && !isSelected ? 2 : 0}
