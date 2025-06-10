@@ -74,7 +74,8 @@ class SyncConnectionManager {
               connectionInfo.lastActivity = Date.now();
               connectionInfo.handlers.forEach(h => {
                 // Don't send operations back to the sender
-                if (operation.sender_id !== config.senderId) {
+                // Use the current config's senderId, not the closure's config
+                if (operation.sender_id !== connectionInfo.config.senderId) {
                   h(operation);
                 }
               });
@@ -104,6 +105,9 @@ class SyncConnectionManager {
       console.log(`[SyncConnectionManager] Reusing existing connection for ${connectionId}`);
       connectionInfo.handlers.add(handler);
       connectionInfo.lastActivity = Date.now();
+      
+      // Update the config in case it has changed (e.g., different senderId)
+      connectionInfo.config = config;
     }
     
     return {

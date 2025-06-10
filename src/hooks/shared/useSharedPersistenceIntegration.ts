@@ -19,32 +19,39 @@ export const useSharedPersistenceIntegration = (
     sessionId: syncConfig.sessionId
   }) : { isLoading: false, error: null, lines: [], images: [] };
 
-  // Update state when persisted data is loaded
+  // Update state when persisted data is loaded, but only if we don't already have data
   useEffect(() => {
     if (!persistence.isLoading && persistence.lines && persistence.lines.length > 0) {
-      setState(prevState => ({
-        ...prevState,
-        lines: persistence.lines,
-        images: persistence.images || [],
-        history: [{ 
-          lines: persistence.lines, 
-          images: persistence.images || [],
-          selectionState: {
-            selectedObjects: [],
-            selectionBounds: null,
-            isSelecting: false,
-            transformationData: {}
-          }
-        }, ...prevState.history],
-        historyIndex: 0
-      }));
+      setState(prevState => {
+        // Only load persisted data if we don't have any lines yet
+        // This prevents overriding current state when component remounts
+        if (prevState.lines.length === 0) {
+          return {
+            ...prevState,
+            lines: persistence.lines,
+            images: persistence.images || [],
+            history: [{ 
+              lines: persistence.lines, 
+              images: persistence.images || [],
+              selectionState: {
+                selectedObjects: [],
+                selectionBounds: null,
+                isSelecting: false,
+                transformationData: {}
+              }
+            }, ...prevState.history],
+            historyIndex: 0
+          };
+        }
+        return prevState;
+      });
       
-      // Also update the shared state context if available
-      if (whiteboardId && updateWhiteboardState) {
+      // Also update the shared state context if available and we don't have data
+      if (whiteboardId && updateWhiteboardState && state.lines.length === 0) {
         updateWhiteboardState(whiteboardId, persistence.lines);
       }
     }
-  }, [persistence.isLoading, persistence.lines, persistence.images, whiteboardId, updateWhiteboardState, setState]);
+  }, [persistence.isLoading, persistence.lines, persistence.images, whiteboardId, updateWhiteboardState, setState, state.lines.length]);
 
   // Update shared state whenever lines change
   useEffect(() => {

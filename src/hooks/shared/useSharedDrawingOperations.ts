@@ -126,6 +126,9 @@ export const useSharedDrawingOperations = (
       .filter(obj => obj.type === 'image')
       .map(obj => obj.id);
 
+    console.log(`[DeleteObjects] Deleting ${selectedLineIds.length} lines and ${selectedImageIds.length} images`);
+    console.log(`[DeleteObjects] isApplyingRemoteOperation: ${isApplyingRemoteOperation.current}`);
+
     setState((prev: any) => ({
       ...prev,
       lines: prev.lines.filter((line: LineObject) => !selectedLineIds.includes(line.id)),
@@ -138,11 +141,14 @@ export const useSharedDrawingOperations = (
     // Always send the operation to the database for persistence
     // But only sync to other clients if we're on the teacher's main board
     if (sendOperation && !isApplyingRemoteOperation.current) {
+      console.log(`[DeleteObjects] Sending delete operation to sync`);
       // Create the operation
       const operation = serializeDeleteObjectsOperation(selectedLineIds, selectedImageIds);
       
       // Send it to the database/sync system
       sendOperation(operation);
+    } else {
+      console.log(`[DeleteObjects] Not sending operation - sendOperation: ${!!sendOperation}, isApplyingRemoteOperation: ${isApplyingRemoteOperation.current}`);
     }
   }, [setState, addToHistory, sendOperation, isApplyingRemoteOperation]);
 

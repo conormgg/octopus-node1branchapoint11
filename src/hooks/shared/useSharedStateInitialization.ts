@@ -10,6 +10,8 @@ export const useSharedStateInitialization = (whiteboardId?: string) => {
   const [state, setState] = useState<WhiteboardState>(() => {
     // First try to get from context (for in-memory state)
     const sharedLines = whiteboardId ? getWhiteboardState(whiteboardId) : [];
+    console.log(`[StateInit] Initializing whiteboard ${whiteboardId} with ${sharedLines.length} lines from context`);
+    
     return {
       lines: sharedLines,
       images: [],
