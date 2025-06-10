@@ -1,14 +1,9 @@
-
 import React, { useRef, useEffect, useState } from 'react';
-import { Group } from 'react-konva';
+import { Group, Transformer } from 'react-konva';
 import Konva from 'konva';
 import { LineObject, ImageObject, SelectedObject } from '@/types/whiteboard';
 import LineRenderer from './LineRenderer';
 import ImageRenderer from './ImageRenderer';
-import GroupTransformer from './GroupTransformer';
-import SelectionGroupBackground from './SelectionGroupBackground';
-import { calculateGroupBounds, GroupBounds } from '@/utils/groupBoundsCalculator';
-import { useGroupTransform } from '@/hooks/useGroupTransform';
 
 interface SelectionGroupProps {
   selectedObjects: SelectedObject[];
@@ -32,8 +27,8 @@ const SelectionGroup: React.FC<SelectionGroupProps> = ({
   isVisible = true
 }) => {
   const groupRef = useRef<Konva.Group>(null);
+  const transformerRef = useRef<Konva.Transformer>(null);
   const [isTransforming, setIsTransforming] = useState(false);
-  const [groupBounds, setGroupBounds] = useState<GroupBounds | null>(null);
 
   // Get selected lines and images
   const selectedLines = selectedObjects
@@ -49,25 +44,13 @@ const SelectionGroup: React.FC<SelectionGroupProps> = ({
   // Only show group if multiple objects are selected
   const shouldShowGroup = selectedObjects.length > 1 && isVisible && currentTool === 'select';
 
-  // Use the group transform hook
-  const { handleTransformEnd: onGroupTransformEnd } = useGroupTransform({
-    selectedLines,
-    selectedImages,
-    onUpdateLine,
-    onUpdateImage,
-    onTransformEnd
-  });
-
-  // Calculate group bounds
+  // Set up transformer when group is created
   useEffect(() => {
-    if (!shouldShowGroup) {
-      setGroupBounds(null);
-      return;
+    if (shouldShowGroup && groupRef.current && transformerRef.current) {
+      transformerRef.current.nodes([groupRef.current]);
+      transformerRef.current.getLayer()?.batchDraw();
     }
-
-    const bounds = calculateGroupBounds(selectedObjects, selectedLines, selectedImages);
-    setGroupBounds(bounds);
-  }, [selectedLines, selectedImages, shouldShowGroup, selectedObjects]);
+  }, [shouldShowGroup, selectedObjects.length]);
 
   // Handle group transformation
   const handleTransformStart = () => {
@@ -75,17 +58,94 @@ const SelectionGroup: React.FC<SelectionGroupProps> = ({
   };
 
   const handleDragMove = () => {
-    // This will be handled by the GroupTransformer component
+    // Update transformer bounds during drag to keep it following the group
+    if (transformerRef.current && groupRef.current) {
+      transformerRef.current.forceUpdate();
+    }
   };
 
   const handleTransformEnd = () => {
     setIsTransforming(false);
-    onGroupTransformEnd(groupRef);
+    
+    if (!groupRef.current) return;
 
-    // Force transformer update after reset with a slight delay to ensure state updates
-    setTimeout(() => {
-      // This will be handled by the GroupTransformer component
-    }, 0);
+    const group = groupRef.current;
+    const groupTransform = {
+      x: group.x(),
+      y: group.y(),
+      scaleX: group.scaleX(),
+      scaleY: group.scaleY(),
+      rotation: group.rotation()
+    };
+    
+    // Apply group transformation to all child objects with improved precision
+    const children = group.getChildren();
+    
+    children.forEach((child, index) => {
+      // Get the child's current attributes before transformation
+      const childAttrs = child.getAttrs();
+      
+      // Calculate the child's new position after group transformation
+      const localTransform = child.getTransform().copy();
+      const groupTransformMatrix = group.getTransform().copy();
+      const finalTransform = groupTransformMatrix.multiply(localTransform);
+      const decomposed = finalTransform.decompose();
+      
+      // Find the corresponding object and apply updates
+      if (index < selectedLines.length) {
+        // This is a line
+        const line = selectedLines[index];
+        if (onUpdateLine) {
+          // For lines, preserve the original points but update position and transform
+          const updatedLine = {
+            x: decomposed.x,
+            y: decomposed.y,
+            scaleX: (line.scaleX || 1) * groupTransform.scaleX,
+            scaleY: (line.scaleY || 1) * groupTransform.scaleY,
+            rotation: (line.rotation || 0) + groupTransform.rotation
+          };
+          
+          onUpdateLine(line.id, updatedLine);
+        }
+      } else {
+        // This is an image
+        const imageIndex = index - selectedLines.length;
+        const image = selectedImages[imageIndex];
+        if (image && onUpdateImage) {
+          const currentWidth = image.width || 100;
+          const currentHeight = image.height || 100;
+          
+          const updatedImage = {
+            x: decomposed.x,
+            y: decomposed.y,
+            width: currentWidth * groupTransform.scaleX,
+            height: currentHeight * groupTransform.scaleY,
+            rotation: (image.rotation || 0) + groupTransform.rotation
+          };
+          
+          onUpdateImage(image.id, updatedImage);
+        }
+      }
+    });
+
+    // Reset group transform to identity
+    group.x(0);
+    group.y(0);
+    group.scaleX(1);
+    group.scaleY(1);
+    group.rotation(0);
+
+    // Force transformer update after reset with improved timing
+    requestAnimationFrame(() => {
+      if (transformerRef.current) {
+        transformerRef.current.forceUpdate();
+        transformerRef.current.getLayer()?.batchDraw();
+      }
+    });
+
+    if (onTransformEnd) {
+      onTransformEnd();
+    }
   };
 
   if (!shouldShowGroup) {
@@ -102,9 +162,6 @@ const SelectionGroup: React.FC<SelectionGroupProps> = ({
         onDragMove={handleDragMove}
         onDragEnd={handleTransformEnd}
       >
-        {/* Invisible background rectangle for dragging */}
-        <SelectionGroupBackground groupBounds={groupBounds} />
-        
         {/* Render selected lines in the group */}
         {selectedLines.map((line) => (
           <LineRenderer
@@ -131,12 +188,21 @@ const SelectionGroup: React.FC<SelectionGroupProps> = ({
       </Group>
       
       {/* Transformer for the group */}
-      <GroupTransformer
-        targetRef={groupRef}
-        isVisible={shouldShowGroup}
-        selectedObjectsLength={selectedObjects.length}
-        onTransformStart={handleTransformStart}
-        onTransformEnd={handleTransformEnd}
+      <Transformer
+        ref={transformerRef}
+        boundBoxFunc={(oldBox, newBox) => {
+          // Limit minimum size
+          if (newBox.width < 10 || newBox.height < 10) {
+            return oldBox;
+          }
+          return newBox;
+        }}
+        enabledAnchors={[
+          'top-left', 'top-right', 'bottom-left', 'bottom-right',
+          'middle-left', 'middle-right', 'top-center', 'bottom-center'
+        ]}
+        rotateEnabled={true}
+        resizeEnabled={true}
       />
     </>
   );
