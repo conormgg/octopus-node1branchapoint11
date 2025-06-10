@@ -176,7 +176,7 @@ const KonvaStageCanvas: React.FC<KonvaStageCanvasProps> = ({
               isSelected={isSelected && !isInGroup} // Hide individual selection when in group
               isHovered={selection?.hoveredObjectId === line.id}
               currentTool={currentTool}
-              onSelect={currentTool === 'select' && !isInGroup ? () => {
+              onSelect={currentTool === 'select' ? () => {
                 if (selection) {
                   selection.selectObjects([{ id: line.id, type: 'line' }]);
                 }
@@ -192,7 +192,7 @@ const KonvaStageCanvas: React.FC<KonvaStageCanvasProps> = ({
                 }
               } : undefined}
               onDragEnd={(newPosition) => {
-                if (onUpdateLine && !isInGroup) {
+                if (onUpdateLine) {
                   onUpdateLine(line.id, newPosition);
                 }
               }}
