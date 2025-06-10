@@ -26,7 +26,16 @@ export const useSharedPersistenceIntegration = (
         ...prevState,
         lines: persistence.lines,
         images: persistence.images || [],
-        history: [{ lines: persistence.lines, images: persistence.images || [] }, ...prevState.history],
+        history: [{ 
+          lines: persistence.lines, 
+          images: persistence.images || [],
+          selectionState: {
+            selectedObjects: [],
+            selectionBounds: null,
+            isSelecting: false,
+            transformationData: {}
+          }
+        }, ...prevState.history],
         historyIndex: 0
       }));
       

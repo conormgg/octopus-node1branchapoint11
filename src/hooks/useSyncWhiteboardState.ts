@@ -1,19 +1,20 @@
-
 import { useState, useCallback } from 'react';
-import { WhiteboardState, Tool, LineObject, ImageObject } from '@/types/whiteboard';
-import { SyncConfig } from '@/types/sync';
+import { v4 as uuidv4 } from 'uuid';
+import { WhiteboardState, Tool, PanZoomState, ImageObject } from '@/types/whiteboard';
 import { useDrawingState } from './useDrawingState';
 import { useEraserState } from './useEraserState';
 import { useHistoryState } from './useHistoryState';
-import { useSyncState } from './useSyncState';
-import { useRemoteOperationHandler } from './useRemoteOperationHandler';
 import { usePanZoom } from './usePanZoom';
 import { useSelectionState } from './useSelectionState';
-import { serializeDrawOperation, serializeEraseOperation } from '@/utils/operationSerializer';
-import { v4 as uuidv4 } from 'uuid';
+import { useSyncState } from './useSyncState';
+import { SyncConfig } from '@/types/sync';
+import { useRemoteOperationHandler } from './useRemoteOperationHandler';
 import Konva from 'konva';
 
 export const useSyncWhiteboardState = (syncConfig: SyncConfig) => {
+  // Selection operations - initialize first so we can use its state
+  const selection = useSelectionState();
+
   const [state, setState] = useState<WhiteboardState>({
     lines: [],
     images: [],
@@ -22,28 +23,19 @@ export const useSyncWhiteboardState = (syncConfig: SyncConfig) => {
     currentStrokeWidth: 5,
     isDrawing: false,
     panZoomState: { x: 0, y: 0, scale: 1 },
-    selectionState: {
-      selectedObjects: [],
-      selectionBounds: null,
-      isSelecting: false,
-      transformationData: {}
-    },
-    history: [{ lines: [], images: [] }],
+    selectionState: selection.selectionState,
+    history: [{
+      lines: [],
+      images: [],
+      selectionState: {
+        selectedObjects: [],
+        selectionBounds: null,
+        isSelecting: false,
+        transformationData: {}
+      }
+    }],
     historyIndex: 0
   });
-
-  // Pan/zoom operations
-  const setPanZoomState = useCallback((panZoomState: any) => {
-    setState(prev => ({
-      ...prev,
-      panZoomState
-    }));
-  }, []);
-
-  const panZoom = usePanZoom(state.panZoomState, setPanZoomState);
-
-  // Selection operations
-  const selection = useSelectionState();
 
   // Handle remote operations
   const { handleRemoteOperation, isApplyingRemoteOperation } = useRemoteOperationHandler(setState);
@@ -51,54 +43,93 @@ export const useSyncWhiteboardState = (syncConfig: SyncConfig) => {
   // Set up sync
   const { syncState, sendOperation } = useSyncState(syncConfig, handleRemoteOperation);
 
-  // History management
+  // Pan/zoom state management
+  const setPanZoomState = useCallback((panZoomState: PanZoomState) => {
+    setState(prev => ({
+      ...prev,
+      panZoomState
+    }));
+  }, []);
+
+  // Pan/zoom operations
+  const panZoom = usePanZoom(state.panZoomState, setPanZoomState);
+
+  // Enhanced add to history that syncs operations
   const {
     addToHistory: baseAddToHistory,
     undo,
     redo,
     canUndo,
     canRedo
-  } = useHistoryState(state, setState);
+  } = useHistoryState(state, setState, selection.updateSelectionState);
 
   const addToHistory = useCallback(() => {
-    baseAddToHistory({ lines: state.lines, images: state.images });
-  }, [baseAddToHistory, state.lines, state.images]);
+    baseAddToHistory({
+      lines: state.lines,
+      images: state.images,
+      selectionState: state.selectionState
+    });
+  }, [baseAddToHistory, state.lines, state.images, state.selectionState]);
 
-  // Drawing operations with sync
+  // Drawing operations (pencil only)
   const {
     startDrawing,
     continueDrawing,
-    stopDrawing: baseStopDrawing
+    stopDrawing
   } = useDrawingState(state, setState, addToHistory);
 
-  const stopDrawing = useCallback(() => {
-    if (!state.isDrawing) return;
-
-    baseStopDrawing();
-
-    // Sync the drawn line if we're not in receive-only mode
-    if (sendOperation && !isApplyingRemoteOperation.current && !syncConfig.isReceiveOnly) {
-      const drawnLine = state.lines[state.lines.length - 1];
-      if (drawnLine && drawnLine.tool === 'pencil') {
-        sendOperation(serializeDrawOperation(drawnLine));
-      }
-    }
-  }, [state.isDrawing, state.lines, baseStopDrawing, sendOperation, isApplyingRemoteOperation, syncConfig.isReceiveOnly]);
-
-  // Eraser operations with sync  
+  // Eraser operations
   const {
     startErasing,
     continueErasing,
-    stopErasing: baseStopErasing
+    stopErasing
   } = useEraserState(state, setState, addToHistory);
 
-  const stopErasing = useCallback(() => {
-    if (!state.isDrawing) return;
+  // Handle paste functionality
+  const handlePaste = useCallback((e: ClipboardEvent, stage: Konva.Stage | null) => {
+    e.preventDefault();
+    const items = e.clipboardData?.items;
+    if (!items || !stage) return;
 
-    baseStopErasing();
-    
-    // Add sync logic for erasing if needed
-  }, [state.isDrawing, baseStopErasing]);
+    for (let i = 0; i < items.length; i++) {
+      if (items[i].type.indexOf('image') !== -1) {
+        const file = items[i].getAsFile();
+        if (!file) continue;
+
+        const reader = new FileReader();
+        reader.onload = (event) => {
+          const imageUrl = event.target?.result as string;
+          const image = new window.Image();
+          image.src = imageUrl;
+          image.onload = () => {
+            const pointerPosition = stage.getPointerPosition() ?? { x: stage.width() / 2, y: stage.height() / 2 };
+            const position = {
+              x: (pointerPosition.x - state.panZoomState.x) / state.panZoomState.scale,
+              y: (pointerPosition.y - state.panZoomState.y) / state.panZoomState.scale,
+            };
+
+            const newImage: ImageObject = {
+              id: `image_${uuidv4()}`,
+              src: imageUrl,
+              x: position.x - (image.width / 4),
+              y: position.y - (image.height / 4),
+              width: image.width / 2,
+              height: image.height / 2,
+            };
+            
+            setState(prev => ({
+              ...prev,
+              images: [...prev.images, newImage]
+            }));
+            
+            // Add to history after state update
+            setTimeout(() => addToHistory(), 0);
+          };
+        };
+        reader.readAsDataURL(file);
+      }
+    }
+  }, [state.panZoomState, addToHistory]);
 
   // Tool change
   const setTool = useCallback((tool: Tool) => {
@@ -124,32 +155,78 @@ export const useSyncWhiteboardState = (syncConfig: SyncConfig) => {
     }));
   }, []);
 
+  // Update line position
+  const updateLine = useCallback((lineId: string, updates: Partial<typeof state.lines[0]>) => {
+    setState(prev => ({
+      ...prev,
+      lines: prev.lines.map(line => 
+        line.id === lineId ? { ...line, ...updates } : line
+      )
+    }));
+    // Add to history after state update
+    setTimeout(() => addToHistory(), 0);
+  }, [addToHistory]);
+
+  // Update image position/attributes
+  const updateImage = useCallback((imageId: string, updates: Partial<ImageObject>) => {
+    setState(prev => ({
+      ...prev,
+      images: prev.images.map(image => 
+        image.id === imageId ? { ...image, ...updates } : image
+      )
+    }));
+    // Add to history after state update
+    setTimeout(() => addToHistory(), 0);
+  }, [addToHistory]);
+
   // Handle pointer down
   const handlePointerDown = useCallback((x: number, y: number) => {
-    if (syncConfig.isReceiveOnly || panZoom.isGestureActive()) return;
+    // Don't start drawing if a pan/zoom gesture is active
+    if (panZoom.isGestureActive()) return;
     
     if (state.currentTool === 'pencil') {
       startDrawing(x, y);
     } else if (state.currentTool === 'eraser') {
       startErasing(x, y);
     } else if (state.currentTool === 'select') {
-      // Handle selection logic
+      // Handle selection logic with priority:
+      // 1. Check if clicking within existing selection bounds (for group dragging)
+      // 2. Check if clicking on individual objects
+      // 3. Start new selection or clear existing selection
+      
+      const isInSelectionBounds = selection.isPointInSelectionBounds({ x, y });
+      
+      if (isInSelectionBounds && selection.selectionState.selectedObjects.length > 0) {
+        // Clicking within selection bounds - this will allow dragging the entire group
+        // The actual dragging logic will be handled by the SelectionGroup component
+        // We don't need to change the selection here, just maintain it
+        return;
+      }
+      
+      // Check for individual objects
       const foundObjects = selection.findObjectsAtPoint({ x, y }, state.lines, state.images);
       
       if (foundObjects.length > 0) {
         // Select the first found object
         selection.selectObjects([foundObjects[0]]);
+        // Update selection bounds for the selected object
+        setTimeout(() => {
+          selection.updateSelectionBounds([foundObjects[0]], state.lines, state.images);
+        }, 0);
       } else {
+        // Clear selection when clicking on empty space
+        selection.clearSelection();
         // Start drag-to-select
         selection.setIsSelecting(true);
         selection.setSelectionBounds({ x, y, width: 0, height: 0 });
       }
     }
-  }, [state.currentTool, state.lines, state.images, startDrawing, startErasing, syncConfig.isReceiveOnly, panZoom, selection]);
+  }, [state.currentTool, state.lines, state.images, startDrawing, startErasing, panZoom, selection]);
 
   // Handle pointer move
   const handlePointerMove = useCallback((x: number, y: number) => {
-    if (syncConfig.isReceiveOnly || panZoom.isGestureActive()) return;
+    // Don't continue drawing if a pan/zoom gesture is active
+    if (panZoom.isGestureActive()) return;
     
     if (state.currentTool === 'pencil') {
       continueDrawing(x, y);
@@ -168,12 +245,10 @@ export const useSyncWhiteboardState = (syncConfig: SyncConfig) => {
         selection.setSelectionBounds(newBounds);
       }
     }
-  }, [state.currentTool, continueDrawing, continueErasing, syncConfig.isReceiveOnly, panZoom, selection]);
+  }, [state.currentTool, continueDrawing, continueErasing, panZoom, selection]);
 
   // Handle pointer up
   const handlePointerUp = useCallback(() => {
-    if (syncConfig.isReceiveOnly) return;
-    
     if (state.currentTool === 'pencil') {
       stopDrawing();
     } else if (state.currentTool === 'eraser') {
@@ -185,117 +260,17 @@ export const useSyncWhiteboardState = (syncConfig: SyncConfig) => {
         // Find objects within selection bounds
         const objectsInBounds = selection.findObjectsInBounds(bounds, state.lines, state.images);
         selection.selectObjects(objectsInBounds);
+        // Update selection bounds for the selected objects
+        setTimeout(() => {
+          selection.updateSelectionBounds(objectsInBounds, state.lines, state.images);
+        }, 0);
       }
       
       // End selection
       selection.setIsSelecting(false);
       selection.setSelectionBounds(null);
     }
-  }, [state.currentTool, state.lines, state.images, stopDrawing, stopErasing, syncConfig.isReceiveOnly, selection]);
-
-  // Update line position/attributes
-  const updateLine = useCallback((lineId: string, updates: Partial<LineObject>) => {
-    setState(prev => ({
-      ...prev,
-      lines: prev.lines.map(line => 
-        line.id === lineId ? { ...line, ...updates } : line
-      )
-    }));
-    // Add to history after state update
-    setTimeout(() => addToHistory(), 0);
-    
-    // TODO: Add sync logic for line updates in future stages
-    // if (sendOperation && !isApplyingRemoteOperation.current && !syncConfig.isReceiveOnly) {
-    //   sendOperation(serializeUpdateOperation('line', lineId, updates));
-    // }
-  }, [addToHistory]);
-
-  // Update image position/attributes
-  const updateImage = useCallback((imageId: string, updates: Partial<ImageObject>) => {
-    setState(prev => ({
-      ...prev,
-      images: prev.images.map(image => 
-        image.id === imageId ? { ...image, ...updates } : image
-      )
-    }));
-    // Add to history after state update
-    setTimeout(() => addToHistory(), 0);
-    
-    // TODO: Add sync logic for image updates in future stages
-    // if (sendOperation && !isApplyingRemoteOperation.current && !syncConfig.isReceiveOnly) {
-    //   sendOperation(serializeUpdateOperation('image', imageId, updates));
-    // }
-  }, [addToHistory]);
-
-  // Handle paste functionality
-  const handlePaste = useCallback((e: ClipboardEvent, stage: Konva.Stage | null) => {
-    console.log('Paste event triggered in sync whiteboard state');
-    
-    // Don't allow paste in receive-only mode
-    if (syncConfig.isReceiveOnly) {
-      console.log('Paste blocked - receive-only mode');
-      return;
-    }
-    
-    e.preventDefault();
-    const items = e.clipboardData?.items;
-    if (!items || !stage) {
-      console.log('No clipboard items or stage available');
-      return;
-    }
-
-    console.log('Processing clipboard items:', items.length);
-    for (let i = 0; i < items.length; i++) {
-      console.log('Item type:', items[i].type);
-      if (items[i].type.indexOf('image') !== -1) {
-        const file = items[i].getAsFile();
-        if (!file) {
-          console.log('Could not get file from clipboard item');
-          continue;
-        }
-
-        console.log('Processing image file:', file.name, file.type);
-        const reader = new FileReader();
-        reader.onload = (event) => {
-          const imageUrl = event.target?.result as string;
-          const image = new window.Image();
-          image.src = imageUrl;
-          image.onload = () => {
-            console.log('Image loaded, creating image object');
-            const pointerPosition = stage.getPointerPosition() ?? { x: stage.width() / 2, y: stage.height() / 2 };
-            const position = {
-              x: (pointerPosition.x - state.panZoomState.x) / state.panZoomState.scale,
-              y: (pointerPosition.y - state.panZoomState.y) / state.panZoomState.scale,
-            };
-
-            const newImage: ImageObject = {
-              id: `image_${uuidv4()}`,
-              src: imageUrl,
-              x: position.x - (image.width / 4),
-              y: position.y - (image.height / 4),
-              width: image.width / 2,
-              height: image.height / 2,
-            };
-            
-            setState(prev => ({
-              ...prev,
-              images: [...prev.images, newImage]
-            }));
-            
-            // Add to history after state update
-            setTimeout(() => addToHistory(), 0);
-            console.log('Image added to sync whiteboard');
-            
-            // TODO: Add sync logic for image paste in future stages
-            // if (sendOperation && !isApplyingRemoteOperation.current) {
-            //   sendOperation(serializeImageOperation(newImage));
-            // }
-          };
-        };
-        reader.readAsDataURL(file);
-      }
-    }
-  }, [state.panZoomState, addToHistory, syncConfig.isReceiveOnly]);
+  }, [state.currentTool, state.lines, state.images, stopDrawing, stopErasing, selection]);
 
   return {
     state,
@@ -307,6 +282,7 @@ export const useSyncWhiteboardState = (syncConfig: SyncConfig) => {
     handlePointerMove,
     handlePointerUp,
     handlePaste,
+    addToHistory,
     undo,
     redo,
     canUndo,
@@ -314,7 +290,6 @@ export const useSyncWhiteboardState = (syncConfig: SyncConfig) => {
     panZoom,
     selection,
     updateLine,
-    updateImage,
-    isReadOnly: syncConfig.isReceiveOnly
+    updateImage
   };
 };
