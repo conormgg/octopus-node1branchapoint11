@@ -1,3 +1,4 @@
+
 import React, { useRef, useEffect, useState } from 'react';
 import { Group, Transformer } from 'react-konva';
 import Konva from 'konva';
@@ -51,6 +52,15 @@ const SelectionGroup: React.FC<SelectionGroupProps> = ({
       transformerRef.current.getLayer()?.batchDraw();
     }
   }, [shouldShowGroup, selectedObjects.length]);
+
+  // Update transformer bounds when objects change position
+  useEffect(() => {
+    if (shouldShowGroup && transformerRef.current && groupRef.current && !isTransforming) {
+      // Force transformer to recalculate bounds
+      transformerRef.current.forceUpdate();
+      transformerRef.current.getLayer()?.batchDraw();
+    }
+  }, [selectedLines, selectedImages, shouldShowGroup, isTransforming]);
 
   // Handle group transformation
   const handleTransformStart = () => {
@@ -115,10 +125,13 @@ const SelectionGroup: React.FC<SelectionGroupProps> = ({
     group.scaleY(1);
     group.rotation(0);
 
-    // Force transformer update after reset
-    if (transformerRef.current) {
-      transformerRef.current.forceUpdate();
-    }
+    // Force transformer update after reset with a slight delay to ensure state updates
+    setTimeout(() => {
+      if (transformerRef.current && groupRef.current) {
+        transformerRef.current.forceUpdate();
+        transformerRef.current.getLayer()?.batchDraw();
+      }
+    }, 0);
 
     if (onTransformEnd) {
       onTransformEnd();
