@@ -32,8 +32,12 @@ export const useSharedOperationsCoordinator = (
   } = useHistoryState(state, setState);
 
   const addToHistory = useCallback(() => {
-    baseAddToHistory({ lines: state.lines, images: state.images });
-  }, [baseAddToHistory, state.lines, state.images]);
+    baseAddToHistory({
+      lines: state.lines,
+      images: state.images,
+      selectionState: state.selectionState
+    });
+  }, [baseAddToHistory, state.lines, state.images, state.selectionState]);
 
   // Drawing and erasing operations with whiteboard ID
   // Use the full whiteboard ID from sync config or fallback to provided ID

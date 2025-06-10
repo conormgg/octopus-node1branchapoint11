@@ -81,13 +81,17 @@ const Whiteboard: React.FC<WhiteboardProps> = ({ isReadOnly = false }) => {
       <MovableToolbar
         currentTool={whiteboardState.state.currentTool}
         currentStrokeWidth={whiteboardState.state.currentStrokeWidth}
+        currentStrokeColor={whiteboardState.state.currentColor}
         canUndo={whiteboardState.canUndo}
         canRedo={whiteboardState.canRedo}
         onToolChange={whiteboardState.setTool}
         onStrokeWidthChange={handleStrokeWidthChange}
+        onStrokeColorChange={whiteboardState.setColor}
         onUndo={whiteboardState.undo}
         onRedo={whiteboardState.redo}
         isReadOnly={isReadOnly}
+        containerWidth={dimensions.width}
+        containerHeight={dimensions.height}
       />
     </div>
   );

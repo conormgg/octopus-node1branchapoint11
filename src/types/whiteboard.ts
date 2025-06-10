@@ -59,6 +59,12 @@ export interface SelectionState {
   transformationData: Record<string, TransformationData>;
 }
 
+export interface HistorySnapshot {
+  lines: LineObject[];
+  images: ImageObject[];
+  selectionState: SelectionState;
+}
+
 export interface WhiteboardState {
   lines: LineObject[];
   images: ImageObject[];
@@ -68,6 +74,6 @@ export interface WhiteboardState {
   isDrawing: boolean;
   panZoomState: PanZoomState;
   selectionState: SelectionState;
-  history: { lines: LineObject[]; images: ImageObject[] }[];
+  history: HistorySnapshot[];
   historyIndex: number;
 }

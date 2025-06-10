@@ -24,7 +24,16 @@ export const useSharedStateInitialization = (whiteboardId?: string) => {
         isSelecting: false,
         transformationData: {}
       },
-      history: [{ lines: sharedLines, images: [] }],
+      history: [{
+        lines: sharedLines,
+        images: [],
+        selectionState: {
+          selectedObjects: [],
+          selectionBounds: null,
+          isSelecting: false,
+          transformationData: {}
+        }
+      }],
       historyIndex: 0
     };
   });

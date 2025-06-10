@@ -450,13 +450,43 @@ export const useSelectionState = () => {
     };
   }, []);
 
-  // Sync selection bounds with selected objects
-  useEffect(() => {
-    if (selectionState.selectedObjects.length > 0 && !selectionState.isSelecting) {
-      // We'll implement this when we have access to the lines and images
-      // This is just a placeholder for now
+  // Check if a point is within the current selection bounds
+  const isPointInSelectionBounds = useCallback((point: { x: number; y: number }): boolean => {
+    if (!selectionState.selectionBounds || selectionState.selectedObjects.length === 0) {
+      return false;
     }
-  }, [selectionState.selectedObjects, selectionState.isSelecting]);
+    
+    const bounds = selectionState.selectionBounds;
+    return point.x >= bounds.x && 
+           point.x <= bounds.x + bounds.width &&
+           point.y >= bounds.y && 
+           point.y <= bounds.y + bounds.height;
+  }, [selectionState.selectionBounds, selectionState.selectedObjects]);
+
+  // Update selection state from history (for undo/redo)
+  const updateSelectionState = useCallback((newSelectionState: SelectionState) => {
+    setSelectionState(newSelectionState);
+  }, []);
+
+  // Auto-update selection bounds when objects are selected (but not during drag-to-select)
+  const updateSelectionBounds = useCallback((
+    selectedObjects: SelectedObject[],
+    lines: LineObject[],
+    images: ImageObject[]
+  ) => {
+    if (selectedObjects.length > 0 && !selectionState.isSelecting) {
+      const bounds = calculateSelectionBounds(selectedObjects, lines, images);
+      setSelectionState(prev => ({
+        ...prev,
+        selectionBounds: bounds
+      }));
+    } else if (selectedObjects.length === 0) {
+      setSelectionState(prev => ({
+        ...prev,
+        selectionBounds: null
+      }));
+    }
+  }, [calculateSelectionBounds, selectionState.isSelecting]);
 
   return {
     selectionState,
@@ -467,12 +497,15 @@ export const useSelectionState = () => {
     setSelectionBounds,
     setIsSelecting,
     updateTransformationData,
+    updateSelectionState,
     findObjectsAtPoint,
     findObjectsInBounds,
     isObjectSelected,
     getSelectedObjectIds,
     selectAll,
     calculateSelectionBounds,
+    isPointInSelectionBounds,
+    updateSelectionBounds,
     hoveredObjectId,
     setHoveredObjectId
   };

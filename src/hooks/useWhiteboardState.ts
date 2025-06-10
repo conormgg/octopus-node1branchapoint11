@@ -22,16 +22,31 @@ export const useWhiteboardState = () => {
     isDrawing: false,
     panZoomState: { x: 0, y: 0, scale: 1 },
     selectionState: selection.selectionState,
-    history: [{ lines: [], images: [] }],
+    history: [{
+      lines: [],
+      images: [],
+      selectionState: {
+        selectedObjects: [],
+        selectionBounds: null,
+        isSelecting: false,
+        transformationData: {}
+      }
+    }],
     historyIndex: 0
   });
 
-  // Update state when selection state changes
+  // Update state when selection state changes (but not from history operations)
   useEffect(() => {
-    setState(prev => ({
-      ...prev,
-      selectionState: selection.selectionState
-    }));
+    setState(prev => {
+      // Only update if the selection state is actually different
+      if (JSON.stringify(prev.selectionState) !== JSON.stringify(selection.selectionState)) {
+        return {
+          ...prev,
+          selectionState: selection.selectionState
+        };
+      }
+      return prev;
+    });
   }, [selection.selectionState]);
 
   // Pan/zoom state management
@@ -52,11 +67,15 @@ export const useWhiteboardState = () => {
     redo,
     canUndo,
     canRedo
-  } = useHistoryState(state, setState);
+  } = useHistoryState(state, setState, selection.updateSelectionState);
 
   const addToHistory = useCallback(() => {
-    baseAddToHistory({ lines: state.lines, images: state.images });
-  }, [baseAddToHistory, state.lines, state.images]);
+    baseAddToHistory({
+      lines: state.lines,
+      images: state.images,
+      selectionState: state.selectionState
+    });
+  }, [baseAddToHistory, state.lines, state.images, state.selectionState]);
 
   // Drawing operations (pencil only)
   const {
@@ -188,12 +207,30 @@ export const useWhiteboardState = () => {
     } else if (state.currentTool === 'eraser') {
       startErasing(x, y);
     } else if (state.currentTool === 'select') {
-      // Handle selection logic
+      // Handle selection logic with priority:
+      // 1. Check if clicking within existing selection bounds (for group dragging)
+      // 2. Check if clicking on individual objects
+      // 3. Start new selection or clear existing selection
+      
+      const isInSelectionBounds = selection.isPointInSelectionBounds({ x, y });
+      
+      if (isInSelectionBounds && selection.selectionState.selectedObjects.length > 0) {
+        // Clicking within selection bounds - this will allow dragging the entire group
+        // The actual dragging logic will be handled by the SelectionGroup component
+        // We don't need to change the selection here, just maintain it
+        return;
+      }
+      
+      // Check for individual objects
       const foundObjects = selection.findObjectsAtPoint({ x, y }, state.lines, state.images);
       
       if (foundObjects.length > 0) {
         // Select the first found object
         selection.selectObjects([foundObjects[0]]);
+        // Update selection bounds for the selected object
+        setTimeout(() => {
+          selection.updateSelectionBounds([foundObjects[0]], state.lines, state.images);
+        }, 0);
       } else {
         // Clear selection when clicking on empty space
         selection.clearSelection();
@@ -241,6 +278,10 @@ export const useWhiteboardState = () => {
         // Find objects within selection bounds
         const objectsInBounds = selection.findObjectsInBounds(bounds, state.lines, state.images);
         selection.selectObjects(objectsInBounds);
+        // Update selection bounds for the selected objects
+        setTimeout(() => {
+          selection.updateSelectionBounds(objectsInBounds, state.lines, state.images);
+        }, 0);
       }
       
       // End selection

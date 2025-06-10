@@ -25,8 +25,22 @@ export const useSharedPointerHandlers = (
     } else if (state.currentTool === 'eraser') {
       startErasing(x, y);
     } else if (state.currentTool === 'select' && selection) {
-      // Handle selection logic with safety checks
-      if (selection.findObjectsAtPoint && selection.selectObjects && selection.setIsSelecting && selection.setSelectionBounds && selection.clearSelection) {
+      // Handle selection logic with priority and safety checks:
+      // 1. Check if clicking within existing selection bounds (for group dragging)
+      // 2. Check if clicking on individual objects
+      // 3. Start new selection or clear existing selection
+      
+      if (selection.isPointInSelectionBounds && selection.findObjectsAtPoint && selection.selectObjects && selection.setIsSelecting && selection.setSelectionBounds && selection.clearSelection) {
+        const isInSelectionBounds = selection.isPointInSelectionBounds({ x, y });
+        
+        if (isInSelectionBounds && selection.selectionState?.selectedObjects?.length > 0) {
+          // Clicking within selection bounds - this will allow dragging the entire group
+          // The actual dragging logic will be handled by the SelectionGroup component
+          // We don't need to change the selection here, just maintain it
+          return;
+        }
+        
+        // Check for individual objects
         const foundObjects = selection.findObjectsAtPoint({ x, y }, state.lines, state.images);
         
         if (foundObjects.length > 0) {

@@ -4,6 +4,8 @@ import Konva from 'konva';
 import { LineObject, ImageObject, SelectedObject } from '@/types/whiteboard';
 import LineRenderer from './LineRenderer';
 import ImageRenderer from './ImageRenderer';
+import SelectionGroupBackground from './SelectionGroupBackground';
+import { calculateGroupBounds } from '@/utils/groupBoundsCalculator';
 
 interface SelectionGroupProps {
   selectedObjects: SelectedObject[];
@@ -44,6 +46,9 @@ const SelectionGroup: React.FC<SelectionGroupProps> = ({
   // Only show group if multiple objects are selected
   const shouldShowGroup = selectedObjects.length > 1 && isVisible && currentTool === 'select';
 
+  // Calculate group bounds for the background
+  const groupBounds = shouldShowGroup ? calculateGroupBounds(selectedObjects, selectedLines, selectedImages) : null;
+
   // Set up transformer when group is created
   useEffect(() => {
     if (shouldShowGroup && groupRef.current && transformerRef.current) {
@@ -78,55 +83,79 @@ const SelectionGroup: React.FC<SelectionGroupProps> = ({
       rotation: group.rotation()
     };
     
-    // Apply group transformation to all child objects with improved precision
-    const children = group.getChildren();
-    
-    children.forEach((child, index) => {
-      // Get the child's current attributes before transformation
-      const childAttrs = child.getAttrs();
-      
-      // Calculate the child's new position after group transformation
-      const localTransform = child.getTransform().copy();
-      const groupTransformMatrix = group.getTransform().copy();
-      const finalTransform = groupTransformMatrix.multiply(localTransform);
-      const decomposed = finalTransform.decompose();
-      
-      // Find the corresponding object and apply updates
-      if (index < selectedLines.length) {
-        // This is a line
-        const line = selectedLines[index];
+    // For simple translation (dragging), just apply the offset to each object
+    if (groupTransform.scaleX === 1 && groupTransform.scaleY === 1 && groupTransform.rotation === 0) {
+      // Simple translation - just move each object by the group offset
+      selectedLines.forEach((line) => {
         if (onUpdateLine) {
-          // For lines, preserve the original points but update position and transform
-          const updatedLine = {
-            x: decomposed.x,
-            y: decomposed.y,
-            scaleX: (line.scaleX || 1) * groupTransform.scaleX,
-            scaleY: (line.scaleY || 1) * groupTransform.scaleY,
-            rotation: (line.rotation || 0) + groupTransform.rotation
-          };
-          
-          onUpdateLine(line.id, updatedLine);
+          onUpdateLine(line.id, {
+            x: line.x + groupTransform.x,
+            y: line.y + groupTransform.y
+          });
         }
-      } else {
-        // This is an image
-        const imageIndex = index - selectedLines.length;
-        const image = selectedImages[imageIndex];
-        if (image && onUpdateImage) {
-          const currentWidth = image.width || 100;
-          const currentHeight = image.height || 100;
-          
-          const updatedImage = {
-            x: decomposed.x,
-            y: decomposed.y,
-            width: currentWidth * groupTransform.scaleX,
-            height: currentHeight * groupTransform.scaleY,
-            rotation: (image.rotation || 0) + groupTransform.rotation
-          };
-          
-          onUpdateImage(image.id, updatedImage);
+      });
+      
+      selectedImages.forEach((image) => {
+        if (onUpdateImage) {
+          onUpdateImage(image.id, {
+            x: image.x + groupTransform.x,
+            y: image.y + groupTransform.y
+          });
         }
-      }
-    });
+      });
+    } else {
+      // Complex transformation (scaling/rotation) - use matrix calculations
+      const children = group.getChildren();
+      
+      children.forEach((child, index) => {
+        // Skip the background rectangle (first child)
+        if (index === 0) return;
+        
+        // Calculate the child's new position after group transformation
+        const localTransform = child.getTransform().copy();
+        const groupTransformMatrix = group.getTransform().copy();
+        const finalTransform = groupTransformMatrix.multiply(localTransform);
+        const decomposed = finalTransform.decompose();
+        
+        // Adjust index for background rectangle
+        const adjustedIndex = index - 1;
+        
+        // Find the corresponding object and apply updates
+        if (adjustedIndex < selectedLines.length) {
+          // This is a line
+          const line = selectedLines[adjustedIndex];
+          if (onUpdateLine) {
+            const updatedLine = {
+              x: decomposed.x,
+              y: decomposed.y,
+              scaleX: (line.scaleX || 1) * groupTransform.scaleX,
+              scaleY: (line.scaleY || 1) * groupTransform.scaleY,
+              rotation: (line.rotation || 0) + groupTransform.rotation
+            };
+            
+            onUpdateLine(line.id, updatedLine);
+          }
+        } else {
+          // This is an image
+          const imageIndex = adjustedIndex - selectedLines.length;
+          const image = selectedImages[imageIndex];
+          if (image && onUpdateImage) {
+            const currentWidth = image.width || 100;
+            const currentHeight = image.height || 100;
+            
+            const updatedImage = {
+              x: decomposed.x,
+              y: decomposed.y,
+              width: currentWidth * groupTransform.scaleX,
+              height: currentHeight * groupTransform.scaleY,
+              rotation: (image.rotation || 0) + groupTransform.rotation
+            };
+            
+            onUpdateImage(image.id, updatedImage);
+          }
+        }
+      });
+    }
 
     // Reset group transform to identity
     group.x(0);
@@ -135,7 +164,7 @@ const SelectionGroup: React.FC<SelectionGroupProps> = ({
     group.scaleY(1);
     group.rotation(0);
 
-    // Force transformer update after reset with improved timing
+    // Force transformer update after reset
     requestAnimationFrame(() => {
       if (transformerRef.current) {
         transformerRef.current.forceUpdate();
@@ -162,6 +191,9 @@ const SelectionGroup: React.FC<SelectionGroupProps> = ({
         onDragMove={handleDragMove}
         onDragEnd={handleTransformEnd}
       >
+        {/* Background rectangle for easier selection and dragging */}
+        <SelectionGroupBackground groupBounds={groupBounds} />
+        
         {/* Render selected lines in the group */}
         {selectedLines.map((line) => (
           <LineRenderer
