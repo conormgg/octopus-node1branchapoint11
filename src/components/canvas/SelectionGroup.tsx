@@ -151,6 +151,7 @@ const SelectionGroup: React.FC<SelectionGroupProps> = ({
         onTransformEnd={handleTransformEnd}
         onDragMove={handleDragMove}
         onDragEnd={handleTransformEnd}
+        listening={true} // Ensure the group can receive events
       >
         {/* Render selected lines in the group */}
         {selectedLines.map((line) => (
@@ -160,6 +161,7 @@ const SelectionGroup: React.FC<SelectionGroupProps> = ({
             isSelected={false} // Don't show individual selection in group
             currentTool={currentTool}
             onDragEnd={() => {}} // Group handles dragging
+            onSelect={() => {}} // Disable individual selection when in group
           />
         ))}
         
@@ -193,6 +195,7 @@ const SelectionGroup: React.FC<SelectionGroupProps> = ({
         ]}
         rotateEnabled={true}
         resizeEnabled={true}
+        listening={false} // Transformer shouldn't interfere with group dragging
       />
     </>
   );
