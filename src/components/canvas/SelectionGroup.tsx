@@ -57,20 +57,20 @@ const SelectionGroup: React.FC<SelectionGroupProps> = ({
     setIsTransforming(true);
   };
 
-  const handleDragMove = () => {
-    // Update transformer bounds during drag to keep it following the group
-    if (transformerRef.current && groupRef.current) {
-      transformerRef.current.forceUpdate();
-    }
-  };
-
   const handleTransformEnd = () => {
     setIsTransforming(false);
     
     if (!groupRef.current) return;
 
     const group = groupRef.current;
-    
+    const groupTransform = {
+      x: group.x(),
+      y: group.y(),
+      scaleX: group.scaleX(),
+      scaleY: group.scaleY(),
+      rotation: group.rotation()
+    };
+
     // Apply group transformation to all child objects
     const children = group.getChildren();
     
@@ -115,11 +115,6 @@ const SelectionGroup: React.FC<SelectionGroupProps> = ({
     group.scaleY(1);
     group.rotation(0);
 
-    // Force transformer update after reset
-    if (transformerRef.current) {
-      transformerRef.current.forceUpdate();
-    }
-
     if (onTransformEnd) {
       onTransformEnd();
     }
@@ -136,7 +131,6 @@ const SelectionGroup: React.FC<SelectionGroupProps> = ({
         draggable={true}
         onTransformStart={handleTransformStart}
         onTransformEnd={handleTransformEnd}
-        onDragMove={handleDragMove}
         onDragEnd={handleTransformEnd}
       >
         {/* Render selected lines in the group */}
