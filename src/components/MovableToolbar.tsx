@@ -150,11 +150,12 @@ const MovableToolbar: React.FC<MovableToolbarProps> = ({
                 </Button>
               </DropdownMenuTrigger>
             <DropdownMenuContent 
-              className="w-48 p-3 bg-gray-800 border-gray-700 z-50" 
+              className="w-48 p-3 bg-gray-800 border-gray-700 z-[100000]" 
               align="start"
               side="bottom"
               sideOffset={5}
               avoidCollisions={true}
+              style={{ zIndex: 100000 }}
             >
               <div className="space-y-3">
                 {/* Thickness slider */}
