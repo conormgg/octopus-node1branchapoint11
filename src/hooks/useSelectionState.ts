@@ -327,6 +327,16 @@ export const useSelectionState = () => {
     return selectionState.selectedObjects.map(obj => obj.id);
   }, [selectionState.selectedObjects]);
 
+  // Select all objects
+  const selectAll = useCallback((lines: LineObject[], images: ImageObject[]) => {
+    const allObjects: SelectedObject[] = [
+      ...lines.map(line => ({ id: line.id, type: 'line' as const })),
+      ...images.map(image => ({ id: image.id, type: 'image' as const }))
+    ];
+    
+    selectObjects(allObjects);
+  }, [selectObjects]);
+
   // Calculate bounding box for selected objects
   const calculateSelectionBounds = useCallback((
     selectedObjects: SelectedObject[],
@@ -461,6 +471,7 @@ export const useSelectionState = () => {
     findObjectsInBounds,
     isObjectSelected,
     getSelectedObjectIds,
+    selectAll,
     calculateSelectionBounds,
     hoveredObjectId,
     setHoveredObjectId

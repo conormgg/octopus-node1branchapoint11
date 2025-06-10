@@ -94,6 +94,13 @@ const KonvaStage: React.FC<KonvaStageProps> = ({
         return;
       }
 
+      // Ctrl+A - select all objects (only when select tool is active)
+      if (e.ctrlKey && e.key === 'a' && state.currentTool === 'select' && selection?.selectAll) {
+        selection.selectAll(state.lines || [], state.images || []);
+        e.preventDefault();
+        return;
+      }
+
       // Escape key - clear selection
       if (e.key === 'Escape' && selection?.clearSelection) {
         selection.clearSelection();
