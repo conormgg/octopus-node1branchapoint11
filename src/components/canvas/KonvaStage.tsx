@@ -21,7 +21,6 @@ interface KonvaStageProps {
     preferStylus: boolean;
     enabled: boolean;
   };
-  portalContainer?: Element | null;
 }
 
 const KonvaStage: React.FC<KonvaStageProps> = ({
@@ -36,8 +35,7 @@ const KonvaStage: React.FC<KonvaStageProps> = ({
     clusterDistance: 100,
     preferStylus: true,
     enabled: true
-  },
-  portalContainer
+  }
 }) => {
   const stageRef = useRef<Konva.Stage>(null);
   const layerRef = useRef<Konva.Layer>(null);
@@ -87,28 +85,19 @@ const KonvaStage: React.FC<KonvaStageProps> = ({
     const container = containerRef.current;
     if (!container || isReadOnly) return;
 
-    // Use the correct document context for popup windows
-    const targetDocument = portalContainer?.ownerDocument || document;
-    
-    console.log(`[${whiteboardId}] Setting up keyboard handlers for document:`, targetDocument === document ? 'main window' : 'popup window');
-
     const pasteHandler = (e: ClipboardEvent) => {
       // Handle paste event - the event listener is already on the correct container
       handlePaste(e, stageRef.current);
     };
 
     const keyDownHandler = (e: KeyboardEvent) => {
-      // Use the correct document's activeElement for focus checking
-      const activeElement = targetDocument.activeElement;
-      
       // Only handle keyboard events if this container is focused
-      if (activeElement !== container && !container.contains(activeElement as Node)) {
+      if (document.activeElement !== container && !container.contains(document.activeElement)) {
         return;
       }
 
       // Ctrl+A - select all objects (only when select tool is active)
       if (e.ctrlKey && e.key === 'a' && state.currentTool === 'select' && selection?.selectAll) {
-        console.log(`[${whiteboardId}] Ctrl+A pressed - selecting all objects`);
         selection.selectAll(state.lines || [], state.images || []);
         e.preventDefault();
         return;
@@ -122,7 +111,7 @@ const KonvaStage: React.FC<KonvaStageProps> = ({
       
       // Delete key - remove selected objects
       if ((e.key === 'Delete' || e.key === 'Backspace') && selection?.selectionState?.selectedObjects?.length > 0) {
-        console.log(`[${whiteboardId}] Delete key pressed - deleting ${selection.selectionState.selectedObjects.length} objects`);
+        console.log(`[${whiteboardId}] Delete key pressed - selected objects:`, selection.selectionState.selectedObjects);
         
         // Check if whiteboardState has deleteSelectedObjects method
         if ('deleteSelectedObjects' in whiteboardState && typeof whiteboardState.deleteSelectedObjects === 'function') {
@@ -152,22 +141,23 @@ const KonvaStage: React.FC<KonvaStageProps> = ({
     container.setAttribute('tabIndex', tabIndexValue);
     container.setAttribute('id', `whiteboard-container-${whiteboardId || 'unknown'}`);
     container.style.outline = 'none'; // Remove focus outline
-    
-    // Add event listeners to the correct document
     container.addEventListener('paste', pasteHandler);
-    targetDocument.addEventListener('keydown', keyDownHandler);
+    container.addEventListener('keydown', keyDownHandler);
     container.addEventListener('focus', focusHandler);
-    container.addEventListener('click', clickHandler);
+    container.addEventListener('click', (e: MouseEvent) => {
+      // Only focus this container
+      container.focus();
+    });
 
     // Don't auto-focus the container - only focus when explicitly clicked
 
     return () => {
       container.removeEventListener('paste', pasteHandler);
-      targetDocument.removeEventListener('keydown', keyDownHandler);
+      container.removeEventListener('keydown', keyDownHandler);
       container.removeEventListener('focus', focusHandler);
       container.removeEventListener('click', clickHandler);
     };
-  }, [handlePaste, isReadOnly, selection, whiteboardId, portalContainer]);
+  }, [handlePaste, isReadOnly, selection, whiteboardId]);
 
   // Set up all event handlers
   useStageEventHandlers({

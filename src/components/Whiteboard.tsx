@@ -10,10 +10,9 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 
 interface WhiteboardProps {
   isReadOnly?: boolean;
-  portalContainer?: Element | null;
 }
 
-const Whiteboard: React.FC<WhiteboardProps> = ({ isReadOnly = false, portalContainer }) => {
+const Whiteboard: React.FC<WhiteboardProps> = ({ isReadOnly = false }) => {
   const [dimensions, setDimensions] = useState({ width: 0, height: 0 });
   const containerRef = React.useRef<HTMLDivElement>(null);
   const whiteboardState = useWhiteboardState();
@@ -78,7 +77,6 @@ const Whiteboard: React.FC<WhiteboardProps> = ({ isReadOnly = false, portalConta
         whiteboardState={whiteboardState}
         isReadOnly={isReadOnly}
         palmRejectionConfig={palmRejectionConfig}
-        portalContainer={portalContainer}
       />
       <MovableToolbar
         currentTool={whiteboardState.state.currentTool}

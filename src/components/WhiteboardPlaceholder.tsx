@@ -59,20 +59,17 @@ const WhiteboardPlaceholder: React.FC<WhiteboardPlaceholderProps> = ({
   useEffect(() => {
     if (!isMaximized) return;
 
-    // Use the correct document context for popup windows
-    const targetDocument = portalContainer?.ownerDocument || document;
-    
     const handleEscape = (e: KeyboardEvent) => {
       if (e.key === 'Escape' && onMinimize) {
         onMinimize();
       }
     };
 
-    targetDocument.addEventListener('keydown', handleEscape);
+    document.addEventListener('keydown', handleEscape);
     return () => {
-      targetDocument.removeEventListener('keydown', handleEscape);
+      document.removeEventListener('keydown', handleEscape);
     };
-  }, [isMaximized, onMinimize, portalContainer]);
+  }, [isMaximized, onMinimize]);
 
   const handleMaximizeClick = () => {
     if (isMaximized && onMinimize) {
@@ -149,7 +146,7 @@ const WhiteboardPlaceholder: React.FC<WhiteboardPlaceholderProps> = ({
             portalContainer={portalContainer}
           />
         ) : (
-          <Whiteboard isReadOnly={false} portalContainer={portalContainer} />
+          <Whiteboard isReadOnly={false} />
         )
       ) : (
         <div className="flex items-center justify-center h-full text-gray-500">Loading whiteboard...</div>

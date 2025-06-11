@@ -18,7 +18,6 @@ interface WhiteboardCanvasProps {
   whiteboardState: ReturnType<typeof useWhiteboardState>;
   isReadOnly?: boolean;
   palmRejectionConfig?: PalmRejectionConfig;
-  portalContainer?: Element | null;
 }
 
 const WhiteboardCanvas: React.FC<WhiteboardCanvasProps> = ({
@@ -26,8 +25,7 @@ const WhiteboardCanvas: React.FC<WhiteboardCanvasProps> = ({
   height,
   whiteboardState,
   isReadOnly = false,
-  palmRejectionConfig,
-  portalContainer
+  palmRejectionConfig
 }) => {
   return (
     <div className="relative w-full h-full bg-white rounded-lg overflow-hidden select-none" style={{ 
@@ -41,7 +39,6 @@ const WhiteboardCanvas: React.FC<WhiteboardCanvasProps> = ({
         whiteboardState={whiteboardState}
         isReadOnly={isReadOnly}
         palmRejectionConfig={palmRejectionConfig}
-        portalContainer={portalContainer}
       />
       
       {/* Zoom indicator */}

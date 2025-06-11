@@ -1,5 +1,6 @@
+
 import React, { useState } from 'react';
-import { GraduationCap, Users, Plus, Minus, UserPlus, Monitor, ChevronUp, ChevronDown, Columns2, Rows2, Settings, Copy, Check, ExternalLink, LogOut, X, MonitorSpeaker } from 'lucide-react';
+import { GraduationCap, Users, Plus, Minus, UserPlus, Monitor, ChevronUp, ChevronDown, Columns2, Rows2, Settings, Copy, Check, ExternalLink, LogOut, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
@@ -27,7 +28,6 @@ interface TeacherHeaderProps {
   onLayoutChange: (layoutId: string) => void;
   onOrientationChange: (orientation: GridOrientation) => void;
   onToggleSplitView?: () => void;
-  onToggleSplitView2?: () => void;
   isSplitViewActive?: boolean;
   isCollapsed?: boolean;
   onToggleCollapse?: () => void;
@@ -47,7 +47,6 @@ const TeacherHeader: React.FC<TeacherHeaderProps> = ({
   onLayoutChange,
   onOrientationChange,
   onToggleSplitView,
-  onToggleSplitView2,
   isSplitViewActive = false,
   isCollapsed = false,
   onToggleCollapse,
@@ -87,25 +86,6 @@ const TeacherHeader: React.FC<TeacherHeaderProps> = ({
     if (sessionUrl) {
       window.open(sessionUrl, '_blank');
     }
-  };
-
-  const handleSplitView2 = () => {
-    if (!activeSession) return;
-    
-    const url = `/student-monitor/${activeSession.id}?layout=${selectedLayoutId}&orientation=${gridOrientation}`;
-    const windowFeatures = 'width=1400,height=900,scrollbars=yes,resizable=yes,location=no,menubar=no,toolbar=no';
-    
-    window.open(url, 'student-monitor-v2', windowFeatures);
-    
-    // Call the toggle function passed from parent to update state
-    if (onToggleSplitView2) {
-      onToggleSplitView2();
-    }
-    
-    toast({
-      title: "Split View 2 Opened",
-      description: "Student boards monitor opened in new window.",
-    });
   };
 
   return (
@@ -189,19 +169,6 @@ const TeacherHeader: React.FC<TeacherHeaderProps> = ({
                 >
                   <Monitor className="w-4 h-4" />
                   <span>{isSplitViewActive ? 'Close Split View' : 'Split View'}</span>
-                </Button>
-              )}
-
-              {/* Split View 2 Button */}
-              {activeSession && (
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={handleSplitView2}
-                  className="flex items-center space-x-2"
-                >
-                  <MonitorSpeaker className="w-4 h-4" />
-                  <span>Split View 2</span>
                 </Button>
               )}
               

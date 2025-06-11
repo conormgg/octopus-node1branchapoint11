@@ -32,7 +32,6 @@ interface TeacherSessionViewProps {
   currentPage: number;
   selectedLayoutId: string;
   isSplitViewActive: boolean;
-  isSplitView2Active: boolean;
   gridOrientation: GridOrientation;
   isControlsCollapsed: boolean;
   availableLayouts: any[];
@@ -44,8 +43,6 @@ interface TeacherSessionViewProps {
   onOrientationChange: (orientation: GridOrientation) => void;
   onToggleSplitView: () => void;
   onCloseSplitView: () => void;
-  onToggleSplitView2: () => void;
-  onCloseSplitView2: () => void;
   onToggleControlsCollapse: () => void;
   onPreviousPage: () => void;
   onNextPage: () => void;
@@ -62,7 +59,6 @@ const TeacherSessionView: React.FC<TeacherSessionViewProps> = ({
   currentPage,
   selectedLayoutId,
   isSplitViewActive,
-  isSplitView2Active,
   gridOrientation,
   isControlsCollapsed,
   availableLayouts,
@@ -74,8 +70,6 @@ const TeacherSessionView: React.FC<TeacherSessionViewProps> = ({
   onOrientationChange,
   onToggleSplitView,
   onCloseSplitView,
-  onToggleSplitView2,
-  onCloseSplitView2,
   onToggleControlsCollapse,
   onPreviousPage,
   onNextPage,
@@ -116,7 +110,6 @@ const TeacherSessionView: React.FC<TeacherSessionViewProps> = ({
           onLayoutChange={onLayoutChange}
           onOrientationChange={onOrientationChange}
           onToggleSplitView={onToggleSplitView}
-          onToggleSplitView2={onToggleSplitView2}
           isSplitViewActive={isSplitViewActive}
           isCollapsed={isControlsCollapsed}
           onToggleCollapse={onToggleControlsCollapse}
@@ -149,8 +142,8 @@ const TeacherSessionView: React.FC<TeacherSessionViewProps> = ({
 
         {/* Main Content */}
         <div className={`flex-1 ${isControlsCollapsed ? 'h-screen' : 'h-[calc(100vh-5rem)]'} p-4`}>
-          {isSplitViewActive || isSplitView2Active ? (
-            // Single panel view - only teacher's board when split view or split view 2 is active
+          {isSplitViewActive ? (
+            // Single panel view - only teacher's board when split view is active
             <div className="h-full relative">
               <TeacherMainBoard 
                 onMaximize={onMaximize}
