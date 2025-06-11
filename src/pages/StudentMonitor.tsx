@@ -50,6 +50,7 @@ const StudentMonitorPage: React.FC = () => {
     fetchSession();
   }, [sessionId]);
 
+  // Use the real session data to get students - this will now sync with the main window
   const { sessionStudents, handleStudentCountChange, studentCount } = useSessionStudents(session);
   
   const {
@@ -113,11 +114,11 @@ const StudentMonitorPage: React.FC = () => {
 
   // Set document title
   useEffect(() => {
-    document.title = `Student Boards Monitor - ${sessionId || 'Session'}`;
+    document.title = `Student Boards Monitor - ${session?.title || sessionId || 'Session'}`;
     return () => {
       document.title = 'Octopus Whiteboard';
     };
-  }, [sessionId]);
+  }, [session, sessionId]);
 
   const handleCloseSplitView = () => {
     window.close();
@@ -131,20 +132,18 @@ const StudentMonitorPage: React.FC = () => {
     handleStudentCountChange(studentCount - 1);
   };
 
-  // Generate current student boards based on pagination
+  // Generate current student boards based on pagination and actual session students
   const currentStudentBoards = React.useMemo(() => {
-    if (!currentLayout) return [];
+    if (!currentLayout || !sessionStudents.length) return [];
     
     const boardsPerPage = currentLayout.studentsPerPage;
     const startIndex = currentPage * boardsPerPage;
-    const endIndex = Math.min(startIndex + boardsPerPage, studentCount);
+    const endIndex = Math.min(startIndex + boardsPerPage, sessionStudents.length);
     
-    return Array.from({ length: endIndex - startIndex }, (_, i) => {
-      const studentIndex = startIndex + i;
-      const suffix = String.fromCharCode(65 + studentIndex); // A, B, C, etc.
-      return `student-board-${suffix}`;
-    });
-  }, [currentLayout, currentPage, studentCount]);
+    return sessionStudents.slice(startIndex, endIndex).map(student => 
+      `student-board-${student.assigned_board_suffix}`
+    );
+  }, [currentLayout, currentPage, sessionStudents]);
 
   if (!sessionId) {
     return (

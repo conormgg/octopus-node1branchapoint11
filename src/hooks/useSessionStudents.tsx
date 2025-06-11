@@ -23,6 +23,28 @@ export const useSessionStudents = (activeSession: Session | null | undefined) =>
   useEffect(() => {
     if (activeSession) {
       fetchSessionStudents();
+      
+      // Set up real-time subscription for session participants
+      const channel = supabase
+        .channel(`session-participants-${activeSession.id}`)
+        .on(
+          'postgres_changes',
+          {
+            event: '*',
+            schema: 'public',
+            table: 'session_participants',
+            filter: `session_id=eq.${activeSession.id}`
+          },
+          () => {
+            // Refetch when participants change
+            fetchSessionStudents();
+          }
+        )
+        .subscribe();
+
+      return () => {
+        supabase.removeChannel(channel);
+      };
     }
   }, [activeSession]);
 
@@ -44,19 +66,49 @@ export const useSessionStudents = (activeSession: Session | null | undefined) =>
     }
   };
 
-  const handleStudentCountChange = (newCount: number) => {
-    // For now, this creates a simulation of students for UI testing
-    // In real implementation, this would add/remove students from the session
+  const handleStudentCountChange = async (newCount: number) => {
+    if (!activeSession) return;
+    
     const clampedCount = Math.max(1, Math.min(8, newCount));
+    const currentCount = sessionStudents.length;
     
-    // Create mock student data for UI testing
-    const mockStudents: SessionStudent[] = Array.from({ length: clampedCount }, (_, i) => ({
-      id: i + 1,
-      student_name: `Student ${String.fromCharCode(65 + i)}`,
-      assigned_board_suffix: String.fromCharCode(65 + i),
-    }));
-    
-    setSessionStudents(mockStudents);
+    try {
+      if (clampedCount > currentCount) {
+        // Add new students
+        const studentsToAdd = clampedCount - currentCount;
+        const newStudents = [];
+        
+        for (let i = 0; i < studentsToAdd; i++) {
+          const suffix = String.fromCharCode(65 + currentCount + i); // A, B, C, etc.
+          newStudents.push({
+            session_id: activeSession.id,
+            student_name: `Student ${suffix}`,
+            assigned_board_suffix: suffix,
+          });
+        }
+        
+        const { error } = await supabase
+          .from('session_participants')
+          .insert(newStudents);
+          
+        if (error) throw error;
+      } else if (clampedCount < currentCount) {
+        // Remove students (remove from the end)
+        const studentsToRemove = currentCount - clampedCount;
+        const idsToRemove = sessionStudents
+          .slice(-studentsToRemove)
+          .map(student => student.id);
+          
+        const { error } = await supabase
+          .from('session_participants')
+          .delete()
+          .in('id', idsToRemove);
+          
+        if (error) throw error;
+      }
+    } catch (error) {
+      console.error('Error updating session students:', error);
+    }
   };
 
   return {
