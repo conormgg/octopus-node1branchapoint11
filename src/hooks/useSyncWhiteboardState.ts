@@ -39,10 +39,10 @@ export const useSyncWhiteboardState = (syncConfig: SyncConfig) => {
   });
 
   // Handle received operations
-  const { applyOperation } = useRemoteOperationHandler(state, setState);
+  const { handleRemoteOperation } = useRemoteOperationHandler(setState);
 
   // Set up sync with proper operation handling
-  const { syncState, sendOperation } = useSyncState(syncConfig, applyOperation);
+  const { syncState, sendOperation } = useSyncState(syncConfig, handleRemoteOperation);
 
   const saveToHistory = useCallback(() => {
     setState(prev => {
