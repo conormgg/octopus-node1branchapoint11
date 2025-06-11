@@ -1,11 +1,12 @@
+
 import React, { useEffect, useState } from 'react';
 import { useParams, useSearchParams } from 'react-router-dom';
 import StudentBoardsGrid from '@/components/StudentBoardsGrid';
 import StudentBoardsWindowHeader from '@/components/StudentBoardsWindowHeader';
 import { useSessionStudents } from '@/hooks/useSessionStudents';
-import { useTeacherViewState } from '@/hooks/useTeacherViewState';
 import { GridOrientation } from '@/components/TeacherView';
 import { supabase } from '@/integrations/supabase/client';
+import { calculateLayoutOptions } from '@/utils/layoutCalculator';
 
 interface Session {
   id: string;
@@ -21,6 +22,13 @@ const StudentMonitorPage: React.FC = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
+
+  // Independent state management for this window
+  const [maximizedBoard, setMaximizedBoard] = useState<string | null>(null);
+  const [currentPage, setCurrentPage] = useState(0);
+  const [selectedLayoutId, setSelectedLayoutId] = useState<string>('2x2');
+  const [gridOrientation, setGridOrientation] = useState<GridOrientation>('columns-first');
+  const [isControlsCollapsed, setIsControlsCollapsed] = useState(false);
 
   // Fetch the actual session data
   useEffect(() => {
@@ -53,25 +61,20 @@ const StudentMonitorPage: React.FC = () => {
   // Use the real session data to get students - this will now sync with the main window
   const { sessionStudents, handleStudentCountChange, studentCount } = useSessionStudents(session);
   
-  const {
-    maximizedBoard,
-    currentPage,
-    selectedLayoutId,
-    gridOrientation,
-    isControlsCollapsed,
-    availableLayouts,
-    currentLayout,
-    totalPages,
-    handleMaximize,
-    handleMinimize,
-    handleLayoutChange,
-    handleOrientationChange,
-    handleToggleControlsCollapse,
-    handlePreviousPage,
-    handleNextPage,
-  } = useTeacherViewState(studentCount);
+  // Calculate layout options and current layout
+  const availableLayouts = calculateLayoutOptions(studentCount);
+  const currentLayout = availableLayouts.find(layout => layout.id === selectedLayoutId) || availableLayouts[0];
+  const totalPages = currentLayout?.totalPages || 1;
 
-  // Get initial values from URL params
+  // Reset layout when student count changes
+  useEffect(() => {
+    if (availableLayouts.length > 0 && studentCount > 0) {
+      setSelectedLayoutId(availableLayouts[0].id);
+    }
+    setCurrentPage(0);
+  }, [studentCount]);
+
+  // Get initial values from URL params only once
   useEffect(() => {
     const layoutParam = searchParams.get('layout');
     const pageParam = searchParams.get('page');
@@ -81,27 +84,27 @@ const StudentMonitorPage: React.FC = () => {
     if (layoutParam) {
       const layout = availableLayouts.find(l => l.id === layoutParam);
       if (layout) {
-        handleLayoutChange(layoutParam);
+        setSelectedLayoutId(layoutParam);
       }
     }
     
     if (pageParam) {
       const page = parseInt(pageParam) - 1; // Convert to 0-based index
       if (page >= 0 && page < totalPages) {
-        // We'll need to implement page navigation
+        setCurrentPage(page);
       }
     }
     
     if (orientationParam === 'rows-first') {
-      handleOrientationChange('rows-first');
+      setGridOrientation('rows-first');
     }
     
     if (controlsParam === 'true') {
-      handleToggleControlsCollapse();
+      setIsControlsCollapsed(true);
     }
-  }, [searchParams, availableLayouts, totalPages]);
+  }, []); // Only run once on mount
 
-  // Update URL params when state changes
+  // Update URL params when state changes (but don't cause re-renders)
   useEffect(() => {
     const params = new URLSearchParams();
     params.set('layout', selectedLayoutId);
@@ -119,6 +122,35 @@ const StudentMonitorPage: React.FC = () => {
       document.title = 'Octopus Whiteboard';
     };
   }, [session, sessionId]);
+
+  const handleMaximize = (boardId: string) => {
+    setMaximizedBoard(boardId);
+  };
+
+  const handleMinimize = () => {
+    setMaximizedBoard(null);
+  };
+
+  const handleLayoutChange = (layoutId: string) => {
+    setSelectedLayoutId(layoutId);
+    setCurrentPage(0); // Reset to first page when layout changes
+  };
+
+  const handleOrientationChange = (orientation: GridOrientation) => {
+    setGridOrientation(orientation);
+  };
+
+  const handleToggleControlsCollapse = () => {
+    setIsControlsCollapsed(!isControlsCollapsed);
+  };
+
+  const handlePreviousPage = () => {
+    setCurrentPage(prev => Math.max(0, prev - 1));
+  };
+
+  const handleNextPage = () => {
+    setCurrentPage(prev => Math.min(totalPages - 1, prev + 1));
+  };
 
   const handleCloseSplitView = () => {
     window.close();
