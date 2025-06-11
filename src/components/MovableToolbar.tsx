@@ -109,71 +109,54 @@ const MovableToolbar: React.FC<MovableToolbarProps> = ({
     setIsDragging(true);
   };
 
-  const handleMouseMove = (e: MouseEvent) => {
-    if (!isDragging || !toolbarRef.current) return;
-    e.preventDefault();
-    
-    let newX, newY;
-    
-    if (externalPortalContainer) {
-      // Calculate position relative to the container
-      const containerRect = externalPortalContainer.getBoundingClientRect();
-      
-      // Convert window coordinates to container-relative coordinates
-      newX = e.clientX - containerRect.left - dragOffset.x;
-      newY = e.clientY - containerRect.top - dragOffset.y;
-      
-      console.log('[MovableToolbar] Mouse move in popup:', {
-        clientX: e.clientX,
-        clientY: e.clientY,
-        containerRect,
-        dragOffset,
-        newX,
-        newY
-      });
-    } else {
-      // Fallback for main window
-      newX = e.clientX - dragOffset.x;
-      newY = e.clientY - dragOffset.y;
-    }
-    
-    // Apply boundary constraints if container dimensions are available
-    if (containerWidth > 0 && containerHeight > 0) {
-      const toolbarRect = toolbarRef.current.getBoundingClientRect();
-      const toolbarWidth = toolbarRect.width;
-      const toolbarHeight = toolbarRect.height;
-      
-      // Constrain to container bounds
-      newX = Math.max(0, Math.min(newX, containerWidth - toolbarWidth));
-      newY = Math.max(0, Math.min(newY, containerHeight - toolbarHeight));
-    }
-    
-    setPosition({ x: newX, y: newY });
-  };
-
-  const handleMouseUp = (e: MouseEvent) => {
-    if (isDragging) {
-      e.preventDefault();
-      console.log('[MovableToolbar] Mouse up, stopping drag');
-      setIsDragging(false);
-    }
-  };
-
-  // Enhanced event listeners with proper window context
+  // REVISED event listener effect to fix dragging in pop-up window
   React.useEffect(() => {
-    if (isDragging) {
-      console.log(`[MovableToolbar] Adding event listeners to ${targetDocument === document ? 'main' : 'popup'} window`);
+    // Define handlers inside the effect to avoid stale closures
+    const handleMouseMove = (e: MouseEvent) => {
+      if (!isDragging || !toolbarRef.current) return;
+      e.preventDefault();
       
+      let newX, newY;
+      
+      if (externalPortalContainer) {
+        const containerRect = externalPortalContainer.getBoundingClientRect();
+        newX = e.clientX - containerRect.left - dragOffset.x;
+        newY = e.clientY - containerRect.top - dragOffset.y;
+      } else {
+        newX = e.clientX - dragOffset.x;
+        newY = e.clientY - dragOffset.y;
+      }
+      
+      if (containerWidth > 0 && containerHeight > 0) {
+        const toolbarRect = toolbarRef.current.getBoundingClientRect();
+        const toolbarWidth = toolbarRect.width;
+        const toolbarHeight = toolbarRect.height;
+        
+        newX = Math.max(0, Math.min(newX, containerWidth - toolbarWidth));
+        newY = Math.max(0, Math.min(newY, containerHeight - toolbarHeight));
+      }
+      
+      setPosition({ x: newX, y: newY });
+    };
+
+    const handleMouseUp = (e: MouseEvent) => {
+      if (isDragging) {
+        e.preventDefault();
+        setIsDragging(false);
+      }
+    };
+
+    if (isDragging) {
+      // Attach listeners to the correct document (main window or pop-up)
       targetDocument.addEventListener('mousemove', handleMouseMove);
       targetDocument.addEventListener('mouseup', handleMouseUp);
       
       return () => {
-        console.log(`[MovableToolbar] Removing event listeners from ${targetDocument === document ? 'main' : 'popup'} window`);
         targetDocument.removeEventListener('mousemove', handleMouseMove);
         targetDocument.removeEventListener('mouseup', handleMouseUp);
       };
     }
-  }, [isDragging, dragOffset.x, dragOffset.y, targetDocument, externalPortalContainer, containerWidth, containerHeight]);
+  }, [isDragging, dragOffset, targetDocument, externalPortalContainer, containerWidth, containerHeight]);
 
   const colorOptions = [
     '#000000', // Black
