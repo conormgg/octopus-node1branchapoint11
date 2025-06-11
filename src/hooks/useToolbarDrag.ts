@@ -39,15 +39,6 @@ export const useToolbarDrag = ({
       const offsetX = e.clientX - toolbarRect.left;
       const offsetY = e.clientY - toolbarRect.top;
       
-      console.log('[MovableToolbar] Mouse down:', {
-        clientX: e.clientX,
-        clientY: e.clientY,
-        toolbarRect,
-        containerRect,
-        offsetX,
-        offsetY,
-        currentPosition: position
-      });
       
       setDragOffset({ x: offsetX, y: offsetY });
     } else {

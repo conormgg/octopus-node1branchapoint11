@@ -15,6 +15,7 @@ import StudentJoinPage from "@/components/session/StudentJoinPage";
 import StudentSessionView from "@/components/session/StudentSessionView";
 import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
+import StudentMonitorPage from "./pages/StudentMonitor";
 import { Loader2 } from "lucide-react";
 import { useCallback } from "react";
 
@@ -106,6 +107,7 @@ const TeacherRoutes = () => {
           {(user || isDemoMode) ? (
             <>
               <Route path="/dashboard" element={<TeacherDashboard />} />
+              <Route path="/student-monitor/:sessionId" element={<StudentMonitorPage />} />
               <Route path="/auth" element={<Navigate to="/dashboard" replace />} />
               <Route path="/" element={<Navigate to="/dashboard" replace />} />
             </>
