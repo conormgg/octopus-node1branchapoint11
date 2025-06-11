@@ -1,4 +1,3 @@
-
 import { useCallback, useRef } from 'react';
 import { LineObject } from '@/types/whiteboard';
 import { useDrawingState } from '../useDrawingState';
@@ -35,9 +34,12 @@ export const useSharedDrawingOperations = (
     // But only sync to other clients if we're on the teacher's main board
     if (sendOperation && !isApplyingRemoteOperation.current) {
       const drawnLine = state.lines[state.lines.length - 1];
-      if (drawnLine && drawnLine.tool === 'pencil') {
+      // Fix: Include both pencil and highlighter tools for sync
+      if (drawnLine && (drawnLine.tool === 'pencil' || drawnLine.tool === 'highlighter')) {
         // Create the operation
         const operation = serializeDrawOperation(drawnLine);
+        
+        console.log(`[DrawingOperations] Sending ${drawnLine.tool} operation to sync:`, operation);
         
         // Send it to the database/sync system
         sendOperation(operation);
