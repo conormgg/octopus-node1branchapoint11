@@ -1,3 +1,4 @@
+
 import { useCallback, useRef } from 'react';
 import { LineObject } from '@/types/whiteboard';
 import { useDrawingState } from '../useDrawingState';
@@ -28,24 +29,34 @@ export const useSharedDrawingOperations = (
   const stopDrawing = useCallback(() => {
     if (!state.isDrawing) return;
 
+    console.log(`[DrawingOperations] stopDrawing called - current tool: ${state.currentTool}, lines count: ${state.lines.length}`);
+
     baseStopDrawing();
 
     // Always send the operation to the database for persistence
     // But only sync to other clients if we're on the teacher's main board
     if (sendOperation && !isApplyingRemoteOperation.current) {
       const drawnLine = state.lines[state.lines.length - 1];
+      console.log(`[DrawingOperations] Last drawn line:`, drawnLine);
+      
       // Fix: Include both pencil and highlighter tools for sync
       if (drawnLine && (drawnLine.tool === 'pencil' || drawnLine.tool === 'highlighter')) {
         // Create the operation
         const operation = serializeDrawOperation(drawnLine);
         
         console.log(`[DrawingOperations] Sending ${drawnLine.tool} operation to sync:`, operation);
+        console.log(`[DrawingOperations] sendOperation function exists:`, !!sendOperation);
+        console.log(`[DrawingOperations] isApplyingRemoteOperation:`, isApplyingRemoteOperation.current);
         
         // Send it to the database/sync system
         sendOperation(operation);
+      } else {
+        console.log(`[DrawingOperations] NOT sending operation - drawnLine:`, drawnLine, 'tool check:', drawnLine?.tool);
       }
+    } else {
+      console.log(`[DrawingOperations] NOT sending operation - sendOperation:`, !!sendOperation, 'isApplyingRemoteOperation:', isApplyingRemoteOperation.current);
     }
-  }, [state.isDrawing, state.lines, baseStopDrawing, sendOperation, isApplyingRemoteOperation]);
+  }, [state.isDrawing, state.lines, state.currentTool, baseStopDrawing, sendOperation, isApplyingRemoteOperation]);
 
   // Eraser operations with sync
   const {
