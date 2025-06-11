@@ -68,12 +68,6 @@ const StudentBoardsWindow: React.FC<StudentBoardsWindowProps> = ({
   // Use the container div as portal container instead of document.body
   const portalContainer = container || null;
 
-  // ADD DEBUG LOG
-  console.log('[StudentBoardsWindow] Portal container status:', { 
-    hasContainer: !!portalContainer,
-    isCorrectDocument: portalContainer ? portalContainer.ownerDocument !== document : 'N/A'
-  });
-
   const toggleHeaderCollapse = () => {
     setIsHeaderCollapsed(prev => !prev);
   };

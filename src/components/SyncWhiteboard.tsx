@@ -27,11 +27,6 @@ export const SyncWhiteboard: React.FC<SyncWhiteboardProps> = ({
     whiteboardState.setStrokeWidth(width);
   };
 
-  // ADD DEBUG LOG
-  console.log(`[SyncWhiteboard-${whiteboardId}] Received portalContainer. Is popup:`, 
-    portalContainer ? portalContainer.ownerDocument !== document : 'N/A'
-  );
-
   // Log portal container for debugging
   React.useEffect(() => {
     console.log('[SyncWhiteboard] Portal container:', {

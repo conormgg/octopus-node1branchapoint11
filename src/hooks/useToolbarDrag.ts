@@ -17,9 +17,6 @@ export const useToolbarDrag = ({
   const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
   const toolbarRef = React.useRef<HTMLDivElement>(null);
 
-  // ADD DEBUG LOG 1
-  console.log('[useToolbarDrag] Hook initialized. externalPortalContainer:', externalPortalContainer);
-
   // Determine the correct document context
   const targetDocument = React.useMemo(() => {
     if (externalPortalContainer) {
@@ -27,12 +24,6 @@ export const useToolbarDrag = ({
     }
     return document;
   }, [externalPortalContainer]);
-
-  // ADD DEBUG LOG 2
-  console.log(
-    '[useToolbarDrag] targetDocument is:', 
-    targetDocument === document ? 'Main Window Document' : 'Popup Window Document'
-  );
 
   const handleMouseDown = (e: React.MouseEvent) => {
     if (e.button !== 0) return; // Only left mouse button
@@ -74,11 +65,6 @@ export const useToolbarDrag = ({
   useEffect(() => {
     // Define handlers inside the effect to avoid stale closures
     const handleMouseMove = (e: MouseEvent) => {
-      // ADD DEBUG LOG 3
-      console.log(
-        `[useToolbarDrag] MOUSE MOVE in ${targetDocument === document ? 'MAIN' : 'POPUP'} window. ClientX:`, e.clientX
-      );
-
       if (!isDragging || !toolbarRef.current) return;
       e.preventDefault();
       
@@ -113,20 +99,11 @@ export const useToolbarDrag = ({
     };
 
     if (isDragging) {
-      // ADD DEBUG LOG 4
-      console.log(
-        `[useToolbarDrag] ATTACHING DRAG LISTENERS to ${targetDocument === document ? 'Main' : 'Popup'} document.`
-      );
-      
       // Attach listeners to the correct document (main window or pop-up)
       targetDocument.addEventListener('mousemove', handleMouseMove);
       targetDocument.addEventListener('mouseup', handleMouseUp);
       
       return () => {
-        // ADD DEBUG LOG 5
-        console.log(
-          `[useToolbarDrag] REMOVING DRAG LISTENERS from ${targetDocument === document ? 'Main' : 'Popup'} document.`
-        );
         targetDocument.removeEventListener('mousemove', handleMouseMove);
         targetDocument.removeEventListener('mouseup', handleMouseUp);
       };
