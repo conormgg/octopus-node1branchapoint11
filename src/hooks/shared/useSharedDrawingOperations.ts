@@ -88,6 +88,7 @@ export const useSharedDrawingOperations = (
     if (sendOperation && !isApplyingRemoteOperation.current && erasedLineIds.length > 0) {
       // Create the operation
       const operation = serializeEraseOperation(erasedLineIds);
+      console.log(`[DrawingOperations] Sending erase operation with ${erasedLineIds.length} lines:`, operation);
       
       // Send it to the database/sync system
       sendOperation(operation);
@@ -157,6 +158,7 @@ export const useSharedDrawingOperations = (
       console.log(`[DeleteObjects] Sending delete operation to sync`);
       // Create the operation
       const operation = serializeDeleteObjectsOperation(selectedLineIds, selectedImageIds);
+      console.log(`[DeleteObjects] Delete operation:`, operation);
       
       // Send it to the database/sync system
       sendOperation(operation);

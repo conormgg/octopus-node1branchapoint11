@@ -14,7 +14,7 @@ export const serializeEraseOperation = (erasedLineIds: string[]): Omit<Whiteboar
   whiteboard_id: '', // Will be set by the calling function
   operation_type: 'erase',
   data: {
-    lineIds: erasedLineIds
+    line_ids: erasedLineIds
   }
 });
 
@@ -45,7 +45,7 @@ export const serializeDeleteImageOperation = (imageId: string): Omit<WhiteboardO
 
 export const serializeUpdateLineOperation = (lineId: string, updates: Partial<LineObject>): Omit<WhiteboardOperation, 'id' | 'timestamp' | 'sender_id'> => ({
   whiteboard_id: '', // Will be set by the calling function
-  operation_type: 'transform_objects', // Use 'transform_objects' for line updates
+  operation_type: 'update_line',
   data: {
     line_id: lineId,
     updates
@@ -65,6 +65,8 @@ export const applyOperation = (
   state: { lines: LineObject[]; images: ImageObject[] },
   operation: WhiteboardOperation
 ): { lines: LineObject[]; images: ImageObject[] } => {
+  console.log(`[OperationSerializer] Applying operation: ${operation.operation_type}`, operation.data);
+  
   switch (operation.operation_type) {
     case 'draw': {
       const newLine = operation.data.line;
@@ -79,16 +81,17 @@ export const applyOperation = (
       };
     }
     case 'erase': {
-      const lineIdsToRemove = operation.data.lineIds || operation.data.line_ids; // Handle both formats
-      console.log('Removing lines:', lineIdsToRemove);
+      // Ensure we check both formats (lineIds and line_ids)
+      const lineIdsToRemove = operation.data.line_ids || operation.data.lineIds;
+      console.log('[OperationSerializer] Removing lines:', lineIdsToRemove);
       
       if (!lineIdsToRemove || lineIdsToRemove.length === 0) {
-        console.log('No lines to remove');
+        console.log('[OperationSerializer] No lines to remove');
         return state;
       }
       
       const filteredLines = state.lines.filter(line => !lineIdsToRemove.includes(line.id));
-      console.log(`Removed ${state.lines.length - filteredLines.length} lines`);
+      console.log(`[OperationSerializer] Removed ${state.lines.length - filteredLines.length} lines`);
       return {
         ...state,
         lines: filteredLines
@@ -96,11 +99,11 @@ export const applyOperation = (
     }
     case 'add_image': {
       const newImage = operation.data.image;
-      console.log('Adding new image:', newImage);
+      console.log('[OperationSerializer] Adding new image:', newImage);
       
       // Don't add if image already exists (prevent duplicates)
       if (state.images.some(image => image.id === newImage.id)) {
-        console.log('Image already exists, skipping');
+        console.log('[OperationSerializer] Image already exists, skipping');
         return state;
       }
       return {
@@ -110,7 +113,7 @@ export const applyOperation = (
     }
     case 'update_image': {
       const { image_id, updates } = operation.data;
-      console.log('Updating image:', image_id, updates);
+      console.log('[OperationSerializer] Updating image:', image_id, updates);
       
       const updatedImages = state.images.map(image =>
         image.id === image_id ? { ...image, ...updates } : image
@@ -122,7 +125,7 @@ export const applyOperation = (
     }
     case 'delete_image': {
       const imageIdToRemove = operation.data.image_id;
-      console.log('Removing image:', imageIdToRemove);
+      console.log('[OperationSerializer] Removing image:', imageIdToRemove);
       
       const filteredImages = state.images.filter(image => image.id !== imageIdToRemove);
       return {
@@ -154,15 +157,22 @@ export const applyOperation = (
     }
     case 'delete_objects': {
       const { line_ids, image_ids } = operation.data;
-      console.log('Deleting objects - lines:', line_ids, 'images:', image_ids);
+      console.log('[OperationSerializer] Deleting objects - lines:', line_ids, 'images:', image_ids);
       
-      const filteredLines = line_ids && line_ids.length > 0 
-        ? state.lines.filter(line => !line_ids.includes(line.id))
+      // Properly handle case where arrays might be undefined or null
+      const linesToRemove = line_ids || [];
+      const imagesToRemove = image_ids || [];
+      
+      const filteredLines = linesToRemove.length > 0 
+        ? state.lines.filter(line => !linesToRemove.includes(line.id))
         : state.lines;
       
-      const filteredImages = image_ids && image_ids.length > 0
-        ? state.images.filter(image => !image_ids.includes(image.id))
+      const filteredImages = imagesToRemove.length > 0
+        ? state.images.filter(image => !imagesToRemove.includes(image.id))
         : state.images;
+      
+      console.log(`[OperationSerializer] Lines before: ${state.lines.length}, after: ${filteredLines.length}`);
+      console.log(`[OperationSerializer] Images before: ${state.images.length}, after: ${filteredImages.length}`);
       
       return {
         ...state,
@@ -171,7 +181,7 @@ export const applyOperation = (
       };
     }
     default:
-      console.log('Unknown operation type:', operation.operation_type);
+      console.log('[OperationSerializer] Unknown operation type:', operation.operation_type);
       return state;
   }
 };

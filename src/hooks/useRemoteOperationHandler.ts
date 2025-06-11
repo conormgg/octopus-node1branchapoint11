@@ -19,10 +19,21 @@ export const useRemoteOperationHandler = (
       
       console.log(`[RemoteOperationHandler] State updated - Lines: ${prev.lines.length} -> ${updatedState.lines.length}, Images: ${prev.images.length} -> ${updatedState.images.length}`);
       
+      // Ensure we do a deep copy of the state to force a re-render
       return {
         ...prev,
-        lines: updatedState.lines,
-        images: updatedState.images
+        lines: [...updatedState.lines],
+        images: [...updatedState.images],
+        // Update history to reflect the new state
+        history: [
+          {
+            lines: [...updatedState.lines],
+            images: [...updatedState.images],
+            selectionState: prev.selectionState
+          },
+          ...prev.history.slice(0, 9) // Keep only the last 10 history entries
+        ],
+        historyIndex: 0
       };
     });
     

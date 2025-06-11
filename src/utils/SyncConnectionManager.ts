@@ -1,3 +1,4 @@
+
 import { supabase } from '@/integrations/supabase/client';
 import { WhiteboardOperation, SyncConfig } from '@/types/sync';
 
@@ -68,6 +69,8 @@ class SyncConnectionManager {
               data: data.object_data
             };
             
+            console.log('[SyncConnectionManager] Converted operation:', operation);
+            
             // Notify all registered handlers except the sender
             const connectionInfo = this.connections.get(connectionId);
             if (connectionInfo) {
@@ -76,7 +79,10 @@ class SyncConnectionManager {
                 // Don't send operations back to the sender
                 // Use the current config's senderId, not the closure's config
                 if (operation.sender_id !== connectionInfo.config.senderId) {
+                  console.log(`[SyncConnectionManager] Dispatching operation to handler, operation from: ${operation.sender_id}, local sender: ${connectionInfo.config.senderId}`);
                   h(operation);
+                } else {
+                  console.log(`[SyncConnectionManager] Skipping operation from self (${operation.sender_id})`);
                 }
               });
             }
@@ -165,6 +171,8 @@ class SyncConnectionManager {
       sender_id: config.senderId
     };
     
+    console.log(`[SyncConnectionManager] Sending operation type ${fullOperation.operation_type} to database`);
+    
     // Send to Supabase
     supabase
       .from('whiteboard_data')
@@ -176,10 +184,11 @@ class SyncConnectionManager {
         session_id: config.sessionId,
         user_id: fullOperation.sender_id
       })
-      .then(({ error }) => {
+      .then(({ error, data }) => {
         if (error) {
           console.error('[SyncConnectionManager] Error sending operation:', error);
         } else {
+          console.log('[SyncConnectionManager] Successfully sent operation:', data);
           connectionInfo.lastActivity = Date.now();
         }
       });
