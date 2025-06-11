@@ -65,9 +65,8 @@ const StudentBoardsWindow: React.FC<StudentBoardsWindowProps> = ({
     onClose,
   });
 
-  // Get the new window's document and body for portal container
-  const newWindowDocument = windowRef.current?.document;
-  const portalContainer = newWindowDocument?.body || null;
+  // Use the container div as portal container instead of document.body
+  const portalContainer = container || null;
 
   const toggleHeaderCollapse = () => {
     setIsHeaderCollapsed(prev => !prev);

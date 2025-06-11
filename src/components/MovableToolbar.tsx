@@ -70,39 +70,75 @@ const MovableToolbar: React.FC<MovableToolbarProps> = ({
     return targetDocument.defaultView || window;
   }, [targetDocument]);
 
-  // Use external portal container if provided, otherwise use the target document's body
-  const portalContainer = React.useMemo(() => {
-    if (externalPortalContainer) {
-      return externalPortalContainer;
-    }
-    return targetDocument.body;
-  }, [externalPortalContainer, targetDocument]);
+  // Use external portal container directly instead of falling back to body
+  const portalContainer = externalPortalContainer;
 
   const handleMouseDown = (e: React.MouseEvent) => {
     if (e.button !== 0) return; // Only left mouse button
     e.preventDefault();
     e.stopPropagation();
     
-    // Get coordinates relative to the target window
-    const clientX = e.clientX;
-    const clientY = e.clientY;
+    // Get toolbar's current position relative to its container
+    if (toolbarRef.current && externalPortalContainer) {
+      const toolbarRect = toolbarRef.current.getBoundingClientRect();
+      const containerRect = externalPortalContainer.getBoundingClientRect();
+      
+      // Calculate click offset relative to toolbar's top-left corner
+      const offsetX = e.clientX - toolbarRect.left;
+      const offsetY = e.clientY - toolbarRect.top;
+      
+      console.log('[MovableToolbar] Mouse down:', {
+        clientX: e.clientX,
+        clientY: e.clientY,
+        toolbarRect,
+        containerRect,
+        offsetX,
+        offsetY,
+        currentPosition: position
+      });
+      
+      setDragOffset({ x: offsetX, y: offsetY });
+    } else {
+      // Fallback for main window
+      setDragOffset({
+        x: e.clientX - position.x,
+        y: e.clientY - position.y
+      });
+    }
     
-    setDragOffset({
-      x: clientX - position.x,
-      y: clientY - position.y
-    });
     setIsDragging(true);
   };
 
   const handleMouseMove = (e: MouseEvent) => {
-    if (!isDragging) return;
+    if (!isDragging || !toolbarRef.current) return;
     e.preventDefault();
     
-    let newX = e.clientX - dragOffset.x;
-    let newY = e.clientY - dragOffset.y;
+    let newX, newY;
+    
+    if (externalPortalContainer) {
+      // Calculate position relative to the container
+      const containerRect = externalPortalContainer.getBoundingClientRect();
+      
+      // Convert window coordinates to container-relative coordinates
+      newX = e.clientX - containerRect.left - dragOffset.x;
+      newY = e.clientY - containerRect.top - dragOffset.y;
+      
+      console.log('[MovableToolbar] Mouse move in popup:', {
+        clientX: e.clientX,
+        clientY: e.clientY,
+        containerRect,
+        dragOffset,
+        newX,
+        newY
+      });
+    } else {
+      // Fallback for main window
+      newX = e.clientX - dragOffset.x;
+      newY = e.clientY - dragOffset.y;
+    }
     
     // Apply boundary constraints if container dimensions are available
-    if (containerWidth > 0 && containerHeight > 0 && toolbarRef.current) {
+    if (containerWidth > 0 && containerHeight > 0) {
       const toolbarRect = toolbarRef.current.getBoundingClientRect();
       const toolbarWidth = toolbarRect.width;
       const toolbarHeight = toolbarRect.height;
@@ -112,15 +148,13 @@ const MovableToolbar: React.FC<MovableToolbarProps> = ({
       newY = Math.max(0, Math.min(newY, containerHeight - toolbarHeight));
     }
     
-    setPosition({
-      x: newX,
-      y: newY
-    });
+    setPosition({ x: newX, y: newY });
   };
 
   const handleMouseUp = (e: MouseEvent) => {
     if (isDragging) {
       e.preventDefault();
+      console.log('[MovableToolbar] Mouse up, stopping drag');
       setIsDragging(false);
     }
   };
@@ -139,7 +173,7 @@ const MovableToolbar: React.FC<MovableToolbarProps> = ({
         targetDocument.removeEventListener('mouseup', handleMouseUp);
       };
     }
-  }, [isDragging, dragOffset.x, dragOffset.y, targetDocument]);
+  }, [isDragging, dragOffset.x, dragOffset.y, targetDocument, externalPortalContainer, containerWidth, containerHeight]);
 
   const colorOptions = [
     '#000000', // Black
