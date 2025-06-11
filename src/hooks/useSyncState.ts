@@ -1,7 +1,6 @@
-
 import { useEffect, useRef, useCallback, useState } from 'react';
 import { WhiteboardOperation, SyncConfig, SyncState, OperationType } from '@/types/sync';
-import SyncConnectionManager from '@/utils/SyncConnectionManager';
+import { SyncConnectionManager } from '@/utils/sync';
 
 export const useSyncState = (
   config: SyncConfig,
