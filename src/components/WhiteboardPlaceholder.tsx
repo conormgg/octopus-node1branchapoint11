@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import ReactDOM from 'react-dom';
 import { Maximize2, Minimize2, AlertCircle } from 'lucide-react';
@@ -17,6 +16,7 @@ interface WhiteboardPlaceholderProps {
   isTeacher?: boolean;
   sessionId?: string;
   senderId?: string;
+  portalContainer?: Element | null;
 }
 
 const WhiteboardPlaceholder: React.FC<WhiteboardPlaceholderProps> = ({
@@ -28,7 +28,8 @@ const WhiteboardPlaceholder: React.FC<WhiteboardPlaceholderProps> = ({
   onMinimize,
   isTeacher = false,
   sessionId,
-  senderId
+  senderId,
+  portalContainer
 }) => {
   const [dimensions, setDimensions] = useState({ width: 0, height: 0 });
   const containerRef = React.useRef<HTMLDivElement>(null);
@@ -39,7 +40,10 @@ const WhiteboardPlaceholder: React.FC<WhiteboardPlaceholderProps> = ({
   const updateDimensions = () => {
     if (containerRef.current && !isMaximized) {
       const { width, height } = containerRef.current.getBoundingClientRect();
-      setDimensions({ width, height });
+      // Account for border and padding - subtract 4px for 2px border on each side
+      const adjustedWidth = Math.max(0, width - 4);
+      const adjustedHeight = Math.max(0, height - 4);
+      setDimensions({ width: adjustedWidth, height: adjustedHeight });
     }
   };
 
@@ -122,7 +126,16 @@ const WhiteboardPlaceholder: React.FC<WhiteboardPlaceholderProps> = ({
 
   // Create the whiteboard content that will be reused
   const whiteboardContent = (
-    <div className="flex-1 flex items-center justify-center bg-gray-25 relative overflow-hidden rounded-lg">
+    <div 
+      className="absolute inset-0 bg-gray-25 overflow-hidden rounded-lg"
+      style={{
+        // Account for the maximize button and any padding
+        top: '2px',
+        left: '2px',
+        right: '2px',
+        bottom: '2px'
+      }}
+    >
       {whiteboardWidth > 0 && whiteboardHeight > 0 ? (
         syncConfig ? (
           <SyncWhiteboard 
@@ -130,12 +143,13 @@ const WhiteboardPlaceholder: React.FC<WhiteboardPlaceholderProps> = ({
             syncConfig={syncConfig}
             width={whiteboardWidth}
             height={whiteboardHeight}
+            portalContainer={portalContainer}
           />
         ) : (
           <Whiteboard isReadOnly={false} />
         )
       ) : (
-        <div className="text-gray-500">Loading whiteboard...</div>
+        <div className="flex items-center justify-center h-full text-gray-500">Loading whiteboard...</div>
       )}
     </div>
   );
@@ -193,7 +207,7 @@ const WhiteboardPlaceholder: React.FC<WhiteboardPlaceholderProps> = ({
           </div>
         </div>
       </>,
-      document.body
+      portalContainer || document.body
     );
   }
 

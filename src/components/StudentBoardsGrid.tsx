@@ -21,6 +21,7 @@ interface StudentBoardsGridProps {
   isHeaderCollapsed?: boolean;
   sessionId?: string;
   senderId?: string;
+  portalContainer?: Element | null;
 }
 
 const StudentBoardsGrid: React.FC<StudentBoardsGridProps> = ({
@@ -38,6 +39,7 @@ const StudentBoardsGrid: React.FC<StudentBoardsGridProps> = ({
   isHeaderCollapsed = false,
   sessionId,
   senderId,
+  portalContainer,
 }) => {
   const renderStudentGrid = () => {
     if (!currentLayout) return null;
@@ -47,7 +49,7 @@ const StudentBoardsGrid: React.FC<StudentBoardsGridProps> = ({
     return (
       <div className={`grid ${gridClass} gap-3 h-full`}>
         {currentStudentBoards.map((boardId) => (
-          <div key={boardId} className="min-h-0">
+          <div key={boardId} className="min-h-0 h-full">
             <WhiteboardPlaceholder
               id={boardId}
               isMaximized={maximizedBoard === boardId}
@@ -55,6 +57,7 @@ const StudentBoardsGrid: React.FC<StudentBoardsGridProps> = ({
               onMinimize={onMinimize}
               sessionId={sessionId}
               senderId={senderId}
+              portalContainer={portalContainer}
             />
           </div>
         ))}

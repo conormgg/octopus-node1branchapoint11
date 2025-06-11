@@ -64,6 +64,10 @@ const StudentBoardsWindow: React.FC<StudentBoardsWindowProps> = ({
     onClose,
   });
 
+  // Get the new window's document for portal container
+  const newWindowDocument = windowRef.current?.document;
+  const portalContainer = newWindowDocument?.body || null;
+
   const toggleHeaderCollapse = () => {
     setIsHeaderCollapsed(prev => !prev);
   };
@@ -105,6 +109,7 @@ const StudentBoardsWindow: React.FC<StudentBoardsWindowProps> = ({
           onMinimize={handleMinimizeInWindow}
           sessionId={sessionId}
           senderId={senderId}
+          portalContainer={portalContainer}
         />
       </div>,
       container
@@ -181,6 +186,7 @@ const StudentBoardsWindow: React.FC<StudentBoardsWindowProps> = ({
           isHeaderCollapsed={isHeaderCollapsed}
           sessionId={sessionId}
           senderId={senderId}
+          portalContainer={portalContainer}
         />
       </div>
     </div>,

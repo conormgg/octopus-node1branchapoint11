@@ -30,6 +30,7 @@ interface MovableToolbarProps {
   isReadOnly?: boolean;
   containerWidth?: number;
   containerHeight?: number;
+  portalContainer?: Element | null;
 }
 
 const MovableToolbar: React.FC<MovableToolbarProps> = ({
@@ -49,12 +50,24 @@ const MovableToolbar: React.FC<MovableToolbarProps> = ({
   onRedo,
   isReadOnly = false,
   containerWidth = 0,
-  containerHeight = 0
+  containerHeight = 0,
+  portalContainer: externalPortalContainer
 }) => {
   const [position, setPosition] = useState({ x: 20, y: 20 });
   const [isDragging, setIsDragging] = useState(false);
   const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
   const toolbarRef = React.useRef<HTMLDivElement>(null);
+
+  // Use external portal container if provided, otherwise detect current window's document body
+  const portalContainer = React.useMemo(() => {
+    if (externalPortalContainer) {
+      return externalPortalContainer;
+    }
+    if (typeof window !== 'undefined') {
+      return document.body;
+    }
+    return null;
+  }, [externalPortalContainer]);
 
   const handleMouseDown = (e: React.MouseEvent) => {
     if (e.button !== 0) return; // Only left mouse button
@@ -103,15 +116,18 @@ const MovableToolbar: React.FC<MovableToolbarProps> = ({
   // Use useEffect to manage event listeners
   React.useEffect(() => {
     if (isDragging) {
-      document.addEventListener('mousemove', handleMouseMove);
-      document.addEventListener('mouseup', handleMouseUp);
+      // Use the correct document based on the portal container
+      const targetDocument = externalPortalContainer?.ownerDocument || document;
+      
+      targetDocument.addEventListener('mousemove', handleMouseMove);
+      targetDocument.addEventListener('mouseup', handleMouseUp);
       
       return () => {
-        document.removeEventListener('mousemove', handleMouseMove);
-        document.removeEventListener('mouseup', handleMouseUp);
+        targetDocument.removeEventListener('mousemove', handleMouseMove);
+        targetDocument.removeEventListener('mouseup', handleMouseUp);
       };
     }
-  }, [isDragging, dragOffset.x, dragOffset.y]);
+  }, [isDragging, dragOffset.x, dragOffset.y, externalPortalContainer]);
 
   const colorOptions = [
     '#000000', // Black
@@ -158,12 +174,13 @@ const MovableToolbar: React.FC<MovableToolbarProps> = ({
                 </Button>
               </DropdownMenuTrigger>
             <DropdownMenuContent 
-              className="w-48 p-3 bg-gray-800 border-gray-700 z-[100000]" 
+              className="w-48 p-3 bg-gray-800 border-gray-700" 
               align="start"
               side="bottom"
               sideOffset={5}
               avoidCollisions={true}
-              style={{ zIndex: 100000 }}
+              style={{ zIndex: 50 }}
+              container={portalContainer}
             >
               <div className="space-y-3">
                 {/* Thickness slider */}
@@ -232,12 +249,13 @@ const MovableToolbar: React.FC<MovableToolbarProps> = ({
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent 
-                className="w-48 p-3 bg-gray-800 border-gray-700 z-[100000]" 
+                className="w-48 p-3 bg-gray-800 border-gray-700" 
                 align="start"
                 side="bottom"
                 sideOffset={5}
                 avoidCollisions={true}
-                style={{ zIndex: 100000 }}
+                style={{ zIndex: 50 }}
+                container={portalContainer}
               >
                 <div className="space-y-3">
                   {/* Thickness slider */}

@@ -9,12 +9,14 @@ interface SyncWhiteboardProps {
   syncConfig?: SyncConfig;
   width: number;
   height: number;
+  portalContainer?: Element | null;
 }
 
 export const SyncWhiteboard: React.FC<SyncWhiteboardProps> = ({
   syncConfig,
   width,
-  height
+  height,
+  portalContainer
 }) => {
   // Use the whiteboard ID from sync config to maintain shared state
   const whiteboardId = syncConfig?.whiteboardId;
@@ -26,11 +28,16 @@ export const SyncWhiteboard: React.FC<SyncWhiteboardProps> = ({
   };
 
   return (
-    <div className="relative w-full h-full select-none" style={{ 
-      WebkitUserSelect: 'none',
-      WebkitTouchCallout: 'none',
-      touchAction: 'none'
-    }}>
+    <div 
+      className="relative w-full h-full select-none" 
+      data-whiteboard-container
+      style={{ 
+        WebkitUserSelect: 'none',
+        WebkitTouchCallout: 'none',
+        touchAction: 'none',
+        overflow: 'hidden' // Ensure dropdowns don't escape container
+      }}
+    >
       {/* Sync status indicator */}
       {syncConfig && (
         <div className="absolute top-2 right-2 z-20 flex items-center space-x-2 text-sm">
@@ -78,6 +85,7 @@ export const SyncWhiteboard: React.FC<SyncWhiteboardProps> = ({
         isReadOnly={isReadOnly}
         containerWidth={width}
         containerHeight={height}
+        portalContainer={portalContainer}
       />
     </div>
   );
