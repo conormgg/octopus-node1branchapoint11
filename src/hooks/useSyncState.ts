@@ -1,3 +1,4 @@
+
 import { useEffect, useRef, useCallback, useState } from 'react';
 import { WhiteboardOperation, SyncConfig, SyncState, OperationType } from '@/types/sync';
 import { SyncConnectionManager } from '@/utils/sync';
@@ -29,16 +30,24 @@ export const useSyncState = (
   // Send operation to other clients using the connection manager
   const sendOperation = useCallback((operation: Omit<WhiteboardOperation, 'id' | 'timestamp' | 'sender_id'>) => {
     if (configRef.current.isReceiveOnly) return null;
+    
+    console.log(`[useSyncState] Sending operation of type ${operation.operation_type} for whiteboard: ${config.whiteboardId}`);
 
     const fullOperation = SyncConnectionManager.sendOperation(configRef.current, operation);
     
     if (!fullOperation) {
-      console.error('Failed to send operation through connection manager');
+      console.error('[useSyncState] Failed to send operation through connection manager');
       return null;
     }
     
+    // Update last sync timestamp
+    setSyncState(prev => ({
+      ...prev,
+      lastSyncTimestamp: Date.now()
+    }));
+    
     return fullOperation;
-  }, []);
+  }, [config.whiteboardId]);
 
   // Register with the connection manager
   useEffect(() => {
@@ -47,6 +56,14 @@ export const useSyncState = (
     // Create a stable handler reference that always calls the latest handler function
     const stableHandler = (operation: WhiteboardOperation) => {
       console.log('[useSyncState] Received operation via connection manager:', operation);
+      
+      // Update last sync timestamp
+      setSyncState(prev => ({
+        ...prev,
+        lastSyncTimestamp: Date.now()
+      }));
+      
+      // Call the handler
       handlerRef.current(operation);
     };
     

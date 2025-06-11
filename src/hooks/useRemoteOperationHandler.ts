@@ -15,9 +15,21 @@ export const useRemoteOperationHandler = (
     isApplyingRemoteOperation.current = true;
     
     setState(prev => {
-      const updatedState = applyOperation(prev, operation);
+      // First, make sure we have the original state saved to apply the operation to
+      const originalState = {
+        lines: [...prev.lines],
+        images: [...prev.images]
+      };
+      
+      // Apply the operation to get the updated state
+      const updatedState = applyOperation(originalState, operation);
       
       console.log(`[RemoteOperationHandler] State updated - Lines: ${prev.lines.length} -> ${updatedState.lines.length}, Images: ${prev.images.length} -> ${updatedState.images.length}`);
+      
+      // Check for deletions
+      if (operation.operation_type === 'delete_objects' || operation.operation_type === 'erase') {
+        console.log('[RemoteOperationHandler] Processing deletion operation', operation.data);
+      }
       
       // Ensure we do a deep copy of the state to force a re-render
       return {
