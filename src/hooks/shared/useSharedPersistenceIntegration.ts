@@ -1,5 +1,5 @@
 
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { SyncConfig } from '@/types/sync';
 import { WhiteboardState } from '@/types/whiteboard';
 import { useWhiteboardPersistence } from '../useWhiteboardPersistence';
@@ -9,9 +9,17 @@ export const useSharedPersistenceIntegration = (
   state: WhiteboardState,
   setState: (updater: (prev: WhiteboardState) => WhiteboardState) => void,
   syncConfig?: SyncConfig,
-  whiteboardId?: string
+  whiteboardId?: string,
+  isApplyingRemoteOperation?: React.MutableRefObject<boolean>
 ) => {
   const { updateWhiteboardState } = useWhiteboardStateContext();
+  
+  // Track if we've loaded initial data to prevent re-loading
+  const hasLoadedInitialData = useRef(false);
+  // Track previous line count to detect deletions
+  const previousLineCount = useRef(0);
+  // Track if we're currently processing a delete operation
+  const isProcessingDelete = useRef(false);
   
   // Load persisted whiteboard data if available
   const persistence = syncConfig && whiteboardId ? useWhiteboardPersistence({
@@ -19,9 +27,9 @@ export const useSharedPersistenceIntegration = (
     sessionId: syncConfig.sessionId
   }) : { isLoading: false, error: null, lines: [], images: [] };
 
-  // Update state when persisted data is loaded, but only if we don't already have data
+  // Update state when persisted data is loaded, but only once on initial load
   useEffect(() => {
-    if (!persistence.isLoading && persistence.lines) {
+    if (!persistence.isLoading && persistence.lines && !hasLoadedInitialData.current) {
       console.log(`[PersistenceIntegration] Loaded ${persistence.lines.length} lines and ${persistence.images?.length || 0} images from persistence for ${whiteboardId}`);
       
       setState(prevState => {
@@ -29,6 +37,10 @@ export const useSharedPersistenceIntegration = (
         // This prevents overriding current state when component remounts
         if (prevState.lines.length === 0) {
           console.log(`[PersistenceIntegration] Applying persisted data to state for ${whiteboardId}`);
+          
+          // Mark that we've loaded initial data
+          hasLoadedInitialData.current = true;
+          previousLineCount.current = persistence.lines.length;
           
           // Create a new history snapshot with the loaded data
           const newHistory = [{
@@ -66,10 +78,28 @@ export const useSharedPersistenceIntegration = (
     }
   }, [persistence.isLoading, persistence.lines, persistence.images, whiteboardId, updateWhiteboardState, setState, state.lines.length]);
 
-  // Update shared state whenever lines change
+  // Update shared state only for additions, not deletions (to prevent race condition)
   useEffect(() => {
-    if (whiteboardId && updateWhiteboardState) {
-      updateWhiteboardState(whiteboardId, state.lines);
+    if (whiteboardId && updateWhiteboardState && hasLoadedInitialData.current) {
+      const currentLineCount = state.lines.length;
+      
+      // Detect if this is a deletion operation
+      if (currentLineCount < previousLineCount.current) {
+        console.log(`[PersistenceIntegration] Detected deletion: ${previousLineCount.current} -> ${currentLineCount} lines. NOT updating shared context to prevent race condition.`);
+        isProcessingDelete.current = true;
+        
+        // Clear the delete flag after a short delay
+        setTimeout(() => {
+          isProcessingDelete.current = false;
+        }, 100);
+      } else if (currentLineCount > previousLineCount.current && !isProcessingDelete.current) {
+        // Only update shared context for additions, not deletions
+        console.log(`[PersistenceIntegration] Detected addition: ${previousLineCount.current} -> ${currentLineCount} lines. Updating shared context.`);
+        updateWhiteboardState(whiteboardId, state.lines);
+      }
+      
+      // Update the previous count
+      previousLineCount.current = currentLineCount;
     }
   }, [state.lines, whiteboardId, updateWhiteboardState]);
 

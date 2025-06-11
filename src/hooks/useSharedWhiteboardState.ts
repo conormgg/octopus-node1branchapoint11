@@ -16,6 +16,9 @@ export const useSharedWhiteboardState = (syncConfig?: SyncConfig, whiteboardId?:
   // Selection state management
   const selection = useSelectionState();
 
+  // Coordinate all operations (drawing, sync, history, etc.) with whiteboard ID
+  const operations = useSharedOperationsCoordinator(syncConfig, state, setState, whiteboardId);
+
   // Handle persistence and context integration
   useSharedPersistenceIntegration(state, setState, syncConfig, whiteboardId);
 
@@ -24,9 +27,6 @@ export const useSharedWhiteboardState = (syncConfig?: SyncConfig, whiteboardId?:
 
   // Pan/zoom operations
   const panZoom = usePanZoom(state.panZoomState, setPanZoomState);
-
-  // Coordinate all operations (drawing, sync, history, etc.) with whiteboard ID
-  const operations = useSharedOperationsCoordinator(syncConfig, state, setState, whiteboardId);
 
   // Pointer event handlers with proper safety checks
   const { handlePointerDown, handlePointerMove, handlePointerUp } = useSharedPointerHandlers(

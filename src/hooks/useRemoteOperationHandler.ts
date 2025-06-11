@@ -49,9 +49,11 @@ export const useRemoteOperationHandler = (
       };
     });
     
+    // Keep the flag set longer for delete operations to prevent persistence interference
+    const clearDelay = (operation.operation_type === 'delete_objects' || operation.operation_type === 'erase') ? 200 : 0;
     setTimeout(() => {
       isApplyingRemoteOperation.current = false;
-    }, 0);
+    }, clearDelay);
   }, [setState]);
 
   return {

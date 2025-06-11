@@ -6,14 +6,12 @@ import { useWhiteboardStateContext } from '@/contexts/WhiteboardStateContext';
 export const useSharedStateInitialization = (whiteboardId?: string) => {
   const { getWhiteboardState } = useWhiteboardStateContext();
   
-  // Initialize state with shared state if available
+  // Initialize state with empty state - persistence will load data if needed
   const [state, setState] = useState<WhiteboardState>(() => {
-    // First try to get from context (for in-memory state)
-    const sharedLines = whiteboardId ? getWhiteboardState(whiteboardId) : [];
-    console.log(`[StateInit] Initializing whiteboard ${whiteboardId} with ${sharedLines.length} lines from context`);
+    console.log(`[StateInit] Initializing whiteboard ${whiteboardId} with empty state - persistence will load data if available`);
     
     return {
-      lines: sharedLines,
+      lines: [], // Start with empty lines - persistence will populate if needed
       images: [],
       currentTool: 'pencil',
       currentColor: '#000000',
@@ -35,7 +33,7 @@ export const useSharedStateInitialization = (whiteboardId?: string) => {
         transformationData: {}
       },
       history: [{
-        lines: sharedLines,
+        lines: [], // Start with empty history
         images: [],
         selectionState: {
           selectedObjects: [],
