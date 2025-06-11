@@ -11,7 +11,7 @@ export const useWindowManager = ({ onWindowReady, onClose }: WindowManagerProps)
   const containerRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
-    console.log('Opening student boards window...');
+    console.log('[WindowManager] Opening student boards window...');
     
     // Open new window
     const newWindow = window.open(
@@ -21,7 +21,7 @@ export const useWindowManager = ({ onWindowReady, onClose }: WindowManagerProps)
     );
 
     if (newWindow) {
-      console.log('New window opened successfully');
+      console.log('[WindowManager] New window opened successfully');
       windowRef.current = newWindow;
       
       // Set up the new window
@@ -45,11 +45,11 @@ export const useWindowManager = ({ onWindowReady, onClose }: WindowManagerProps)
       
       // Wait for Tailwind to load, then copy other styles
       tailwindLink.onload = () => {
-        console.log('Tailwind CSS loaded in new window');
+        console.log('[WindowManager] Tailwind CSS loaded in new window');
         
         // Copy all stylesheets from parent window
         const parentStylesheets = document.querySelectorAll('link[rel="stylesheet"], style');
-        console.log(`Found ${parentStylesheets.length} stylesheets to copy`);
+        console.log(`[WindowManager] Found ${parentStylesheets.length} stylesheets to copy`);
         
         parentStylesheets.forEach((style, index) => {
           if (style.tagName === 'LINK') {
@@ -61,14 +61,14 @@ export const useWindowManager = ({ onWindowReady, onClose }: WindowManagerProps)
               newLink.type = 'text/css';
               newLink.href = link.href;
               newWindow.document.head.appendChild(newLink);
-              console.log(`Copied stylesheet ${index + 1}: ${link.href}`);
+              console.log(`[WindowManager] Copied stylesheet ${index + 1}: ${link.href}`);
             }
           } else if (style.tagName === 'STYLE') {
             const newStyle = newWindow.document.createElement('style');
             newStyle.type = 'text/css';
             newStyle.textContent = style.textContent;
             newWindow.document.head.appendChild(newStyle);
-            console.log(`Copied inline style ${index + 1}`);
+            console.log(`[WindowManager] Copied inline style ${index + 1}`);
           }
         });
 
@@ -101,35 +101,48 @@ export const useWindowManager = ({ onWindowReady, onClose }: WindowManagerProps)
         newWindow.document.body.appendChild(container);
         containerRef.current = container;
         
-        console.log('Container created and added to new window with flex styles');
+        console.log('[WindowManager] Container created and added to new window with flex styles');
         
         // Small delay to ensure DOM is ready, then notify parent
         setTimeout(() => {
-          console.log('Setting ready state to true');
+          console.log('[WindowManager] Setting ready state to true');
           if (containerRef.current) {
             onWindowReady(containerRef.current);
           }
         }, 100);
       };
       
-      // Handle window close
+      // Handle window close and focus events
       const handleBeforeUnload = () => {
-        console.log('New window is closing');
+        console.log('[WindowManager] New window is closing');
         onClose();
       };
       
+      const handleFocus = () => {
+        console.log('[WindowManager] New window gained focus');
+      };
+
+      const handleBlur = () => {
+        console.log('[WindowManager] New window lost focus');
+      };
+      
       newWindow.addEventListener('beforeunload', handleBeforeUnload);
+      newWindow.addEventListener('focus', handleFocus);
+      newWindow.addEventListener('blur', handleBlur);
       
       // Cleanup function
       return () => {
         newWindow.removeEventListener('beforeunload', handleBeforeUnload);
+        newWindow.removeEventListener('focus', handleFocus);
+        newWindow.removeEventListener('blur', handleBlur);
       };
     } else {
-      console.error('Failed to open new window - popup might be blocked');
+      console.error('[WindowManager] Failed to open new window - popup might be blocked');
     }
 
     return () => {
       if (windowRef.current && !windowRef.current.closed) {
+        console.log('[WindowManager] Closing window on cleanup');
         windowRef.current.close();
       }
     };
@@ -139,6 +152,7 @@ export const useWindowManager = ({ onWindowReady, onClose }: WindowManagerProps)
   useEffect(() => {
     return () => {
       if (windowRef.current && !windowRef.current.closed) {
+        console.log('[WindowManager] Closing window on component unmount');
         windowRef.current.close();
       }
     };

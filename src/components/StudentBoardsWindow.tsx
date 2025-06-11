@@ -55,6 +55,7 @@ const StudentBoardsWindow: React.FC<StudentBoardsWindowProps> = ({
   const [isHeaderCollapsed, setIsHeaderCollapsed] = useState(false);
 
   const handleWindowReady = (newContainer: HTMLDivElement) => {
+    console.log('[StudentBoardsWindow] Window ready, container received:', newContainer);
     setContainer(newContainer);
     setIsReady(true);
   };
@@ -64,7 +65,7 @@ const StudentBoardsWindow: React.FC<StudentBoardsWindowProps> = ({
     onClose,
   });
 
-  // Get the new window's document for portal container
+  // Get the new window's document and body for portal container
   const newWindowDocument = windowRef.current?.document;
   const portalContainer = newWindowDocument?.body || null;
 
@@ -81,7 +82,7 @@ const StudentBoardsWindow: React.FC<StudentBoardsWindowProps> = ({
   };
 
   useEffect(() => {
-    console.log('Props changed in StudentBoardsWindow:', {
+    console.log('[StudentBoardsWindow] Props changed:', {
       studentCount,
       currentLayout: currentLayout?.name,
       currentStudentBoards,
@@ -90,13 +91,14 @@ const StudentBoardsWindow: React.FC<StudentBoardsWindowProps> = ({
       gridOrientation,
       isReady,
       hasContainer: !!container,
+      hasPortalContainer: !!portalContainer,
       maximizedBoard,
       isHeaderCollapsed,
     });
-  }, [studentCount, currentLayout, currentStudentBoards, currentPage, totalPages, gridOrientation, isReady, container, maximizedBoard, isHeaderCollapsed]);
+  }, [studentCount, currentLayout, currentStudentBoards, currentPage, totalPages, gridOrientation, isReady, container, portalContainer, maximizedBoard, isHeaderCollapsed]);
 
   if (!container || !isReady) {
-    console.log('Container or window not ready yet', { container: !!container, isReady });
+    console.log('[StudentBoardsWindow] Container or window not ready yet', { container: !!container, isReady });
     return null;
   }
 

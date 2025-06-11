@@ -58,26 +58,38 @@ const MovableToolbar: React.FC<MovableToolbarProps> = ({
   const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
   const toolbarRef = React.useRef<HTMLDivElement>(null);
 
-  // Use external portal container if provided, otherwise detect current window's document body
+  // Determine the correct document and window context
+  const targetDocument = React.useMemo(() => {
+    if (externalPortalContainer) {
+      return externalPortalContainer.ownerDocument || document;
+    }
+    return document;
+  }, [externalPortalContainer]);
+
+  const targetWindow = React.useMemo(() => {
+    return targetDocument.defaultView || window;
+  }, [targetDocument]);
+
+  // Use external portal container if provided, otherwise use the target document's body
   const portalContainer = React.useMemo(() => {
     if (externalPortalContainer) {
       return externalPortalContainer;
     }
-    if (typeof window !== 'undefined') {
-      return document.body;
-    }
-    return null;
-  }, [externalPortalContainer]);
+    return targetDocument.body;
+  }, [externalPortalContainer, targetDocument]);
 
   const handleMouseDown = (e: React.MouseEvent) => {
     if (e.button !== 0) return; // Only left mouse button
     e.preventDefault();
     e.stopPropagation();
     
-    const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
+    // Get coordinates relative to the target window
+    const clientX = e.clientX;
+    const clientY = e.clientY;
+    
     setDragOffset({
-      x: e.clientX - position.x,
-      y: e.clientY - position.y
+      x: clientX - position.x,
+      y: clientY - position.y
     });
     setIsDragging(true);
   };
@@ -113,21 +125,21 @@ const MovableToolbar: React.FC<MovableToolbarProps> = ({
     }
   };
 
-  // Use useEffect to manage event listeners
+  // Enhanced event listeners with proper window context
   React.useEffect(() => {
     if (isDragging) {
-      // Use the correct document based on the portal container
-      const targetDocument = externalPortalContainer?.ownerDocument || document;
+      console.log(`[MovableToolbar] Adding event listeners to ${targetDocument === document ? 'main' : 'popup'} window`);
       
       targetDocument.addEventListener('mousemove', handleMouseMove);
       targetDocument.addEventListener('mouseup', handleMouseUp);
       
       return () => {
+        console.log(`[MovableToolbar] Removing event listeners from ${targetDocument === document ? 'main' : 'popup'} window`);
         targetDocument.removeEventListener('mousemove', handleMouseMove);
         targetDocument.removeEventListener('mouseup', handleMouseUp);
       };
     }
-  }, [isDragging, dragOffset.x, dragOffset.y, externalPortalContainer]);
+  }, [isDragging, dragOffset.x, dragOffset.y, targetDocument]);
 
   const colorOptions = [
     '#000000', // Black
@@ -174,12 +186,12 @@ const MovableToolbar: React.FC<MovableToolbarProps> = ({
                 </Button>
               </DropdownMenuTrigger>
             <DropdownMenuContent 
-              className="w-48 p-3 bg-gray-800 border-gray-700" 
+              className="w-48 p-3 bg-gray-800 border-gray-700 text-white" 
               align="start"
               side="bottom"
               sideOffset={5}
               avoidCollisions={true}
-              style={{ zIndex: 50 }}
+              style={{ zIndex: 9999 }}
               container={portalContainer}
             >
               <div className="space-y-3">
@@ -249,12 +261,12 @@ const MovableToolbar: React.FC<MovableToolbarProps> = ({
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent 
-                className="w-48 p-3 bg-gray-800 border-gray-700" 
+                className="w-48 p-3 bg-gray-800 border-gray-700 text-white" 
                 align="start"
                 side="bottom"
                 sideOffset={5}
                 avoidCollisions={true}
-                style={{ zIndex: 50 }}
+                style={{ zIndex: 9999 }}
                 container={portalContainer}
               >
                 <div className="space-y-3">
