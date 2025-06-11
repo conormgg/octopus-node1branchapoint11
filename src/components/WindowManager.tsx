@@ -101,11 +101,18 @@ export const useWindowManager = ({ onWindowReady, onClose }: WindowManagerProps)
         newWindow.document.body.appendChild(container);
         containerRef.current = container;
         
+        // ADD DEBUG LOG
+        console.log(
+          '[WindowManager] Container created in new window. Is popup:', 
+          newWindow.document !== window.document, 
+          { container }
+        );
+        
         console.log('[WindowManager] Container created and added to new window with flex styles');
         
         // Small delay to ensure DOM is ready, then notify parent
         setTimeout(() => {
-          console.log('[WindowManager] Setting ready state to true');
+          console.log('[WindowManager] Calling onWindowReady.');
           if (containerRef.current) {
             onWindowReady(containerRef.current);
           }

@@ -41,6 +41,13 @@ export const ToolDropdown: React.FC<ToolDropdownProps> = ({
   isReadOnly,
   portalContainer
 }) => {
+  // ADD DEBUG LOG
+  console.log(
+    '[ToolDropdown] Rendering with portalContainer:', 
+    portalContainer ? 'Exists' : 'NULL',
+    { portalContainer }
+  );
+
   return (
     <div className="relative flex">
       <Button
