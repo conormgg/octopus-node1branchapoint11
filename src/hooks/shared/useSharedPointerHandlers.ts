@@ -20,7 +20,7 @@ export const useSharedPointerHandlers = (
     // Don't allow operations in receive-only mode or during pan/zoom gestures
     if (syncConfig?.isReceiveOnly || panZoom.isGestureActive()) return;
     
-    if (state.currentTool === 'pencil') {
+    if (state.currentTool === 'pencil' || state.currentTool === 'highlighter') {
       startDrawing(x, y);
     } else if (state.currentTool === 'eraser') {
       startErasing(x, y);
@@ -62,7 +62,7 @@ export const useSharedPointerHandlers = (
     // Don't allow operations in receive-only mode or during pan/zoom gestures
     if (syncConfig?.isReceiveOnly || panZoom.isGestureActive()) return;
     
-    if (state.currentTool === 'pencil') {
+    if (state.currentTool === 'pencil' || state.currentTool === 'highlighter') {
       continueDrawing(x, y);
     } else if (state.currentTool === 'eraser') {
       continueErasing(x, y);
@@ -86,7 +86,7 @@ export const useSharedPointerHandlers = (
     // Don't allow operations in receive-only mode
     if (syncConfig?.isReceiveOnly) return;
     
-    if (state.currentTool === 'pencil') {
+    if (state.currentTool === 'pencil' || state.currentTool === 'highlighter') {
       stopDrawing();
     } else if (state.currentTool === 'eraser') {
       stopErasing();

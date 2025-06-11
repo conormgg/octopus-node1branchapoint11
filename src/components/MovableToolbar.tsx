@@ -9,18 +9,22 @@ import {
   DropdownMenuContent,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { Pen, Eraser, MousePointer, ChevronDown } from 'lucide-react';
+import { Pen, Eraser, MousePointer, ChevronDown, Highlighter } from 'lucide-react';
 import { Tool } from '@/types/whiteboard';
 
 interface MovableToolbarProps {
   currentTool: Tool;
   currentStrokeWidth: number;
   currentStrokeColor?: string;
+  pencilSettings?: { color: string; strokeWidth: number };
+  highlighterSettings?: { color: string; strokeWidth: number };
   canUndo: boolean;
   canRedo: boolean;
   onToolChange: (tool: Tool) => void;
   onStrokeWidthChange: (width: number) => void;
   onStrokeColorChange?: (color: string) => void;
+  onPencilColorChange?: (color: string) => void;
+  onHighlighterColorChange?: (color: string) => void;
   onUndo: () => void;
   onRedo: () => void;
   isReadOnly?: boolean;
@@ -32,11 +36,15 @@ const MovableToolbar: React.FC<MovableToolbarProps> = ({
   currentTool,
   currentStrokeWidth,
   currentStrokeColor = '#000000',
+  pencilSettings = { color: '#000000', strokeWidth: 5 },
+  highlighterSettings = { color: '#FFFF00', strokeWidth: 12 },
   canUndo,
   canRedo,
   onToolChange,
   onStrokeWidthChange,
   onStrokeColorChange,
+  onPencilColorChange,
+  onHighlighterColorChange,
   onUndo,
   onRedo,
   isReadOnly = false,
@@ -161,8 +169,13 @@ const MovableToolbar: React.FC<MovableToolbarProps> = ({
                 {/* Thickness slider */}
                 <div>
                   <Slider
-                    value={[currentStrokeWidth]}
-                    onValueChange={(value) => !isReadOnly && onStrokeWidthChange(value[0])}
+                    value={[pencilSettings.strokeWidth]}
+                    onValueChange={(value) => {
+                      if (!isReadOnly) {
+                        onToolChange('pencil');
+                        onStrokeWidthChange(value[0]);
+                      }
+                    }}
                     min={1}
                     max={20}
                     step={1}
@@ -177,18 +190,101 @@ const MovableToolbar: React.FC<MovableToolbarProps> = ({
                     <button
                       key={color}
                       className={`w-8 h-8 rounded-full border-2 ${
-                        currentStrokeColor === color 
+                        pencilSettings.color === color 
                           ? 'border-white border-4' 
                           : 'border-gray-500'
                       }`}
                       style={{ backgroundColor: color }}
-                      onClick={() => !isReadOnly && onStrokeColorChange?.(color)}
+                      onClick={() => {
+                        if (!isReadOnly) {
+                          onPencilColorChange?.(color);
+                        }
+                      }}
                       disabled={isReadOnly}
                     />
                   ))}
                 </div>
               </div>
             </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
+
+          {/* Highlighter tool with dropdown */}
+          <div className="relative flex">
+            <Button
+              variant="ghost"
+              size="icon"
+              className={`h-8 w-6 rounded-r-none ${currentTool === 'highlighter' ? 'bg-gray-700' : ''}`}
+              onClick={() => !isReadOnly && onToolChange('highlighter')}
+              disabled={isReadOnly}
+            >
+              <Highlighter className="h-4 w-4" />
+            </Button>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-8 w-4 rounded-l-none border-l border-gray-600 px-1"
+                  disabled={isReadOnly}
+                >
+                  <ChevronDown className="h-3 w-3" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent 
+                className="w-48 p-3 bg-gray-800 border-gray-700 z-[100000]" 
+                align="start"
+                side="bottom"
+                sideOffset={5}
+                avoidCollisions={true}
+                style={{ zIndex: 100000 }}
+              >
+                <div className="space-y-3">
+                  {/* Thickness slider */}
+                  <div>
+                    <Slider
+                      value={[highlighterSettings.strokeWidth]}
+                      onValueChange={(value) => {
+                        if (!isReadOnly) {
+                          onToolChange('highlighter');
+                          onStrokeWidthChange(value[0]);
+                        }
+                      }}
+                      min={8}
+                      max={30}
+                      step={2}
+                      className="w-full"
+                      disabled={isReadOnly}
+                    />
+                  </div>
+
+                  {/* Highlighter color selector */}
+                  <div className="flex space-x-2 justify-center">
+                    {[
+                      '#FFFF00', // Yellow
+                      '#FFA500', // Orange
+                      '#00BFFF', // Blue
+                      '#32CD32'  // Green
+                    ].map((color) => (
+                      <button
+                        key={color}
+                        className={`w-8 h-8 rounded-full border-2 ${
+                          highlighterSettings.color === color 
+                            ? 'border-white border-4' 
+                            : 'border-gray-500'
+                        }`}
+                        style={{ backgroundColor: color }}
+                        onClick={() => {
+                          if (!isReadOnly) {
+                            onHighlighterColorChange?.(color);
+                          }
+                        }}
+                        disabled={isReadOnly}
+                      />
+                    ))}
+                  </div>
+                </div>
+              </DropdownMenuContent>
             </DropdownMenu>
           </div>
           

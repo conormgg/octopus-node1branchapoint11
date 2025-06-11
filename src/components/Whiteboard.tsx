@@ -82,11 +82,15 @@ const Whiteboard: React.FC<WhiteboardProps> = ({ isReadOnly = false }) => {
         currentTool={whiteboardState.state.currentTool}
         currentStrokeWidth={whiteboardState.state.currentStrokeWidth}
         currentStrokeColor={whiteboardState.state.currentColor}
+        pencilSettings={whiteboardState.state.pencilSettings}
+        highlighterSettings={whiteboardState.state.highlighterSettings}
         canUndo={whiteboardState.canUndo}
         canRedo={whiteboardState.canRedo}
         onToolChange={whiteboardState.setTool}
         onStrokeWidthChange={handleStrokeWidthChange}
         onStrokeColorChange={whiteboardState.setColor}
+        onPencilColorChange={whiteboardState.setPencilColor}
+        onHighlighterColorChange={whiteboardState.setHighlighterColor}
         onUndo={whiteboardState.undo}
         onRedo={whiteboardState.redo}
         isReadOnly={isReadOnly}

@@ -19,6 +19,14 @@ export const useWhiteboardState = () => {
     currentTool: 'pencil',
     currentColor: '#000000',
     currentStrokeWidth: 5,
+    pencilSettings: {
+      color: '#000000',
+      strokeWidth: 5
+    },
+    highlighterSettings: {
+      color: '#FFFF00',
+      strokeWidth: 12
+    },
     isDrawing: false,
     panZoomState: { x: 0, y: 0, scale: 1 },
     selectionState: selection.selectionState,
@@ -149,28 +157,105 @@ export const useWhiteboardState = () => {
     }
   }, [state.panZoomState, addToHistory]);
 
-  // Tool change
+  // Tool change with settings sync
   const setTool = useCallback((tool: Tool) => {
-    setState(prev => ({
-      ...prev,
-      currentTool: tool
-    }));
+    setState(prev => {
+      let newColor = prev.currentColor;
+      let newStrokeWidth = prev.currentStrokeWidth;
+      
+      // Apply tool-specific settings when switching tools
+      if (tool === 'pencil') {
+        newColor = prev.pencilSettings.color;
+        newStrokeWidth = prev.pencilSettings.strokeWidth;
+      } else if (tool === 'highlighter') {
+        newColor = prev.highlighterSettings.color;
+        newStrokeWidth = prev.highlighterSettings.strokeWidth;
+      }
+      
+      return {
+        ...prev,
+        currentTool: tool,
+        currentColor: newColor,
+        currentStrokeWidth: newStrokeWidth
+      };
+    });
   }, []);
 
-  // Color change
+  // Color change with tool-specific storage and auto-switching
   const setColor = useCallback((color: string) => {
+    setState(prev => {
+      const newState = {
+        ...prev,
+        currentColor: color
+      };
+      
+      // Update the appropriate tool settings and switch to that tool
+      if (prev.currentTool === 'pencil' || prev.currentTool === 'highlighter') {
+        // Update current tool's settings
+        if (prev.currentTool === 'pencil') {
+          newState.pencilSettings = { ...prev.pencilSettings, color };
+        } else {
+          newState.highlighterSettings = { ...prev.highlighterSettings, color };
+        }
+      } else {
+        // If not on a drawing tool, determine which tool this color belongs to
+        const pencilColors = ['#000000', '#FF0000', '#0080FF', '#00C851'];
+        const highlighterColors = ['#FFFF00', '#FFA500', '#00BFFF', '#32CD32'];
+        
+        if (pencilColors.includes(color)) {
+          newState.currentTool = 'pencil';
+          newState.pencilSettings = { ...prev.pencilSettings, color };
+          newState.currentStrokeWidth = prev.pencilSettings.strokeWidth;
+        } else if (highlighterColors.includes(color)) {
+          newState.currentTool = 'highlighter';
+          newState.highlighterSettings = { ...prev.highlighterSettings, color };
+          newState.currentStrokeWidth = prev.highlighterSettings.strokeWidth;
+        }
+      }
+      
+      return newState;
+    });
+  }, []);
+
+  // Pencil-specific color change with auto-switching
+  const setPencilColor = useCallback((color: string) => {
     setState(prev => ({
       ...prev,
-      currentColor: color
+      currentTool: 'pencil',
+      currentColor: color,
+      currentStrokeWidth: prev.pencilSettings.strokeWidth,
+      pencilSettings: { ...prev.pencilSettings, color }
     }));
   }, []);
 
-  // Stroke width change
-  const setStrokeWidth = useCallback((width: number) => {
+  // Highlighter-specific color change with auto-switching
+  const setHighlighterColor = useCallback((color: string) => {
     setState(prev => ({
       ...prev,
-      currentStrokeWidth: width
+      currentTool: 'highlighter',
+      currentColor: color,
+      currentStrokeWidth: prev.highlighterSettings.strokeWidth,
+      highlighterSettings: { ...prev.highlighterSettings, color }
     }));
+  }, []);
+
+  // Stroke width change with tool-specific storage
+  const setStrokeWidth = useCallback((width: number) => {
+    setState(prev => {
+      const newState = {
+        ...prev,
+        currentStrokeWidth: width
+      };
+      
+      // Update the appropriate tool settings
+      if (prev.currentTool === 'pencil') {
+        newState.pencilSettings = { ...prev.pencilSettings, strokeWidth: width };
+      } else if (prev.currentTool === 'highlighter') {
+        newState.highlighterSettings = { ...prev.highlighterSettings, strokeWidth: width };
+      }
+      
+      return newState;
+    });
   }, []);
 
   // Update line position
@@ -202,7 +287,7 @@ export const useWhiteboardState = () => {
     // Don't start drawing if a pan/zoom gesture is active
     if (panZoom.isGestureActive()) return;
     
-    if (state.currentTool === 'pencil') {
+    if (state.currentTool === 'pencil' || state.currentTool === 'highlighter') {
       startDrawing(x, y);
     } else if (state.currentTool === 'eraser') {
       startErasing(x, y);
@@ -246,7 +331,7 @@ export const useWhiteboardState = () => {
     // Don't continue drawing if a pan/zoom gesture is active
     if (panZoom.isGestureActive()) return;
     
-    if (state.currentTool === 'pencil') {
+    if (state.currentTool === 'pencil' || state.currentTool === 'highlighter') {
       continueDrawing(x, y);
     } else if (state.currentTool === 'eraser') {
       continueErasing(x, y);
@@ -267,7 +352,7 @@ export const useWhiteboardState = () => {
 
   // Handle pointer up
   const handlePointerUp = useCallback(() => {
-    if (state.currentTool === 'pencil') {
+    if (state.currentTool === 'pencil' || state.currentTool === 'highlighter') {
       stopDrawing();
     } else if (state.currentTool === 'eraser') {
       stopErasing();
@@ -334,6 +419,8 @@ export const useWhiteboardState = () => {
     state,
     setTool,
     setColor,
+    setPencilColor,
+    setHighlighterColor,
     setStrokeWidth,
     handlePointerDown,
     handlePointerMove,

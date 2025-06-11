@@ -66,12 +66,19 @@ export interface HistorySnapshot {
   selectionState: SelectionState;
 }
 
+export interface ToolSettings {
+  color: string;
+  strokeWidth: number;
+}
+
 export interface WhiteboardState {
   lines: LineObject[];
   images: ImageObject[];
   currentTool: Tool;
   currentColor: string;
   currentStrokeWidth: number;
+  pencilSettings: ToolSettings;
+  highlighterSettings: ToolSettings;
   isDrawing: boolean;
   panZoomState: PanZoomState;
   selectionState: SelectionState;

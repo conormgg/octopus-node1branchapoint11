@@ -16,11 +16,11 @@ export const useDrawingState = (
   const lineIdRef = useRef(0);
 
   const startDrawing = useCallback((x: number, y: number) => {
-    if (state.currentTool !== 'pencil') return;
+    if (state.currentTool !== 'pencil' && state.currentTool !== 'highlighter') return;
 
     const newLine: LineObject = {
       id: `line_${Date.now()}_${lineIdRef.current++}`,
-      tool: 'pencil',
+      tool: state.currentTool,
       points: [x, y],
       color: state.currentColor,
       strokeWidth: state.currentStrokeWidth,
@@ -39,7 +39,7 @@ export const useDrawingState = (
   }, [state.currentTool, state.currentColor, state.currentStrokeWidth, setState]);
 
   const continueDrawing = useCallback((x: number, y: number) => {
-    if (!state.isDrawing || state.currentTool !== 'pencil') return;
+    if (!state.isDrawing || (state.currentTool !== 'pencil' && state.currentTool !== 'highlighter')) return;
 
     setState(prev => {
       const lastLine = prev.lines[prev.lines.length - 1];

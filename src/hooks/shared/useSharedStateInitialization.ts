@@ -18,6 +18,14 @@ export const useSharedStateInitialization = (whiteboardId?: string) => {
       currentTool: 'pencil',
       currentColor: '#000000',
       currentStrokeWidth: 5,
+      pencilSettings: {
+        color: '#000000',
+        strokeWidth: 5
+      },
+      highlighterSettings: {
+        color: '#FFFF00',
+        strokeWidth: 12
+      },
       isDrawing: false,
       panZoomState: { x: 0, y: 0, scale: 1 },
       selectionState: {

@@ -91,7 +91,8 @@ const LineRenderer: React.FC<LineRendererProps> = React.memo(({
         tension={0.5}
         lineCap="round"
         lineJoin="round"
-        globalCompositeOperation="source-over"
+        globalCompositeOperation={line.tool === 'highlighter' ? 'multiply' : 'source-over'}
+        opacity={line.tool === 'highlighter' ? 0.5 : 1}
         x={line.x}
         y={line.y}
         scaleX={line.scaleX}

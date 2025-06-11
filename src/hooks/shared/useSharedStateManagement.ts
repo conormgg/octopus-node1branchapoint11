@@ -11,12 +11,28 @@ export const useSharedStateManagement = (setState: any) => {
     }));
   }, [setState]);
 
-  // Tool change
+  // Tool change with settings sync
   const setTool = useCallback((tool: Tool) => {
-    setState((prev: any) => ({
-      ...prev,
-      currentTool: tool
-    }));
+    setState((prev: any) => {
+      let newColor = prev.currentColor;
+      let newStrokeWidth = prev.currentStrokeWidth;
+      
+      // Apply tool-specific settings when switching tools
+      if (tool === 'pencil') {
+        newColor = prev.pencilSettings.color;
+        newStrokeWidth = prev.pencilSettings.strokeWidth;
+      } else if (tool === 'highlighter') {
+        newColor = prev.highlighterSettings.color;
+        newStrokeWidth = prev.highlighterSettings.strokeWidth;
+      }
+      
+      return {
+        ...prev,
+        currentTool: tool,
+        currentColor: newColor,
+        currentStrokeWidth: newStrokeWidth
+      };
+    });
   }, [setState]);
 
   // Color change
@@ -27,18 +43,53 @@ export const useSharedStateManagement = (setState: any) => {
     }));
   }, [setState]);
 
-  // Stroke width change
-  const setStrokeWidth = useCallback((width: number) => {
+  // Pencil-specific color change with auto-switching
+  const setPencilColor = useCallback((color: string) => {
     setState((prev: any) => ({
       ...prev,
-      currentStrokeWidth: width
+      currentTool: 'pencil',
+      currentColor: color,
+      currentStrokeWidth: prev.pencilSettings.strokeWidth,
+      pencilSettings: { ...prev.pencilSettings, color }
     }));
+  }, [setState]);
+
+  // Highlighter-specific color change with auto-switching
+  const setHighlighterColor = useCallback((color: string) => {
+    setState((prev: any) => ({
+      ...prev,
+      currentTool: 'highlighter',
+      currentColor: color,
+      currentStrokeWidth: prev.highlighterSettings.strokeWidth,
+      highlighterSettings: { ...prev.highlighterSettings, color }
+    }));
+  }, [setState]);
+
+  // Stroke width change with tool-specific storage
+  const setStrokeWidth = useCallback((width: number) => {
+    setState((prev: any) => {
+      const newState = {
+        ...prev,
+        currentStrokeWidth: width
+      };
+      
+      // Update the appropriate tool settings
+      if (prev.currentTool === 'pencil') {
+        newState.pencilSettings = { ...prev.pencilSettings, strokeWidth: width };
+      } else if (prev.currentTool === 'highlighter') {
+        newState.highlighterSettings = { ...prev.highlighterSettings, strokeWidth: width };
+      }
+      
+      return newState;
+    });
   }, [setState]);
 
   return {
     setPanZoomState,
     setTool,
     setColor,
+    setPencilColor,
+    setHighlighterColor,
     setStrokeWidth
   };
 };

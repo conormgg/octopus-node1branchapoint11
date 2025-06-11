@@ -20,7 +20,7 @@ export const useSharedWhiteboardState = (syncConfig?: SyncConfig, whiteboardId?:
   useSharedPersistenceIntegration(state, setState, syncConfig, whiteboardId);
 
   // State management functions
-  const { setPanZoomState, setTool, setColor, setStrokeWidth } = useSharedStateManagement(setState);
+  const { setPanZoomState, setTool, setColor, setPencilColor, setHighlighterColor, setStrokeWidth } = useSharedStateManagement(setState);
 
   // Pan/zoom operations
   const panZoom = usePanZoom(state.panZoomState, setPanZoomState);
@@ -55,6 +55,8 @@ export const useSharedWhiteboardState = (syncConfig?: SyncConfig, whiteboardId?:
     syncState: operations.syncState,
     setTool,
     setColor,
+    setPencilColor,
+    setHighlighterColor,
     setStrokeWidth,
     handlePointerDown,
     handlePointerMove,
