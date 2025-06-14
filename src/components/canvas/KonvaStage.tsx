@@ -53,8 +53,10 @@ const KonvaStage: React.FC<KonvaStageProps> = ({
     updateLine
   } = whiteboardState;
 
-  // Get whiteboard ID for this instance
-  const whiteboardId = 'whiteboardId' in whiteboardState ? whiteboardState.whiteboardId : undefined;
+  // Get whiteboard ID for this instance with proper typing
+  const whiteboardId: string = 'whiteboardId' in whiteboardState && typeof whiteboardState.whiteboardId === 'string' 
+    ? whiteboardState.whiteboardId 
+    : 'default';
 
   const palmRejection = usePalmRejection(palmRejectionConfig);
 
