@@ -9,17 +9,24 @@ interface UseTouchEventHandlersProps {
     handleTouchEnd: (e: TouchEvent) => void;
   };
   logEventHandling: (eventType: string, source: 'pointer' | 'touch' | 'mouse', detail?: any) => void;
+  supportsPointerEvents: boolean;
+  palmRejectionEnabled: boolean;
 }
 
 export const useTouchEventHandlers = ({
   containerRef,
   panZoom,
-  logEventHandling
+  logEventHandling,
+  supportsPointerEvents,
+  palmRejectionEnabled
 }: UseTouchEventHandlersProps) => {
-  // Touch events for pinch/pan - always works regardless of read-only status
+  // Touch events for pinch/pan - works regardless of read-only status
   useEffect(() => {
     const container = containerRef.current;
     if (!container) return;
+
+    // STAGE 2: Only register touch events if we're NOT using pointer events
+    const shouldUseTouchEvents = !supportsPointerEvents || !palmRejectionEnabled;
 
     const handleTouchStart = (e: TouchEvent) => {
       logEventHandling('touchstart', 'touch', { touches: e.touches.length });
@@ -39,14 +46,23 @@ export const useTouchEventHandlers = ({
       panZoom.handleTouchEnd(e);
     };
 
-    container.addEventListener('touchstart', handleTouchStart, { passive: false });
-    container.addEventListener('touchmove', handleTouchMove, { passive: false });
-    container.addEventListener('touchend', handleTouchEnd, { passive: false });
+    // STAGE 2: Only add touch event listeners if we should use them
+    if (shouldUseTouchEvents) {
+      console.log('[EventDebug] Stage 2: Registering touch event listeners (pointer events not used)');
+      container.addEventListener('touchstart', handleTouchStart, { passive: false });
+      container.addEventListener('touchmove', handleTouchMove, { passive: false });
+      container.addEventListener('touchend', handleTouchEnd, { passive: false });
+    } else {
+      console.log('[EventDebug] Stage 2: Skipping touch event listeners - using pointer events instead');
+    }
 
     return () => {
-      container.removeEventListener('touchstart', handleTouchStart);
-      container.removeEventListener('touchmove', handleTouchMove);
-      container.removeEventListener('touchend', handleTouchEnd);
+      if (shouldUseTouchEvents) {
+        console.log('[EventDebug] Stage 2: Removing touch event listeners');
+        container.removeEventListener('touchstart', handleTouchStart);
+        container.removeEventListener('touchmove', handleTouchMove);
+        container.removeEventListener('touchend', handleTouchEnd);
+      }
     };
-  }, [panZoom.handleTouchStart, panZoom.handleTouchMove, panZoom.handleTouchEnd, logEventHandling]);
+  }, [panZoom.handleTouchStart, panZoom.handleTouchMove, panZoom.handleTouchEnd, logEventHandling, supportsPointerEvents, palmRejectionEnabled]);
 };

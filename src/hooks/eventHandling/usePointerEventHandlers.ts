@@ -24,6 +24,7 @@ interface UsePointerEventHandlersProps {
   isReadOnly: boolean;
   currentToolRef: React.RefObject<string>;
   logEventHandling: (eventType: string, source: 'pointer' | 'touch' | 'mouse', detail?: any) => void;
+  supportsPointerEvents: boolean;
 }
 
 export const usePointerEventHandlers = ({
@@ -38,7 +39,8 @@ export const usePointerEventHandlers = ({
   handlePointerUp,
   isReadOnly,
   currentToolRef,
-  logEventHandling
+  logEventHandling,
+  supportsPointerEvents
 }: UsePointerEventHandlersProps) => {
   const { getRelativePointerPosition } = useStageCoordinates(panZoomState);
 
@@ -48,8 +50,8 @@ export const usePointerEventHandlers = ({
     const stage = stageRef.current;
     if (!container || !stage) return;
 
-    // Check if we should use pointer events based on current tool
-    const shouldUsePointerEvents = palmRejectionConfig.enabled;
+    // STAGE 2: Only register pointer events if we should use them AND they're supported
+    const shouldUsePointerEvents = palmRejectionConfig.enabled && supportsPointerEvents;
 
     const handlePointerDownEvent = (e: PointerEvent) => {
       logEventHandling('pointerdown', 'pointer', { pointerId: e.pointerId, pointerType: e.pointerType });
@@ -143,26 +145,26 @@ export const usePointerEventHandlers = ({
       e.preventDefault(); // Prevent context menu on right-click
     };
 
-    // Only add pointer event listeners if we should use them
+    // STAGE 2: Only add pointer event listeners if we should use them AND they're supported
     if (shouldUsePointerEvents) {
-      console.log('[EventDebug] Registering pointer event listeners');
+      console.log('[EventDebug] Stage 2: Registering pointer event listeners (touch events will be skipped)');
       container.addEventListener('pointerdown', handlePointerDownEvent);
       container.addEventListener('pointermove', handlePointerMoveEvent);
       container.addEventListener('pointerup', handlePointerUpEvent);
       container.addEventListener('pointerleave', handlePointerLeaveEvent);
       container.addEventListener('pointercancel', handlePointerUpEvent);
     } else {
-      console.log('[EventDebug] Skipping pointer event listeners - palm rejection disabled');
+      console.log('[EventDebug] Stage 2: Skipping pointer event listeners - will use touch/mouse instead');
     }
     
     container.addEventListener('contextmenu', handleContextMenu);
 
-    // Set touch-action to none for better pointer event handling
-    container.style.touchAction = 'none';
+    // Set touch-action based on whether we're using pointer events
+    container.style.touchAction = shouldUsePointerEvents ? 'none' : 'manipulation';
 
     return () => {
       if (shouldUsePointerEvents) {
-        console.log('[EventDebug] Removing pointer event listeners');
+        console.log('[EventDebug] Stage 2: Removing pointer event listeners');
         container.removeEventListener('pointerdown', handlePointerDownEvent);
         container.removeEventListener('pointermove', handlePointerMoveEvent);
         container.removeEventListener('pointerup', handlePointerUpEvent);
@@ -172,5 +174,5 @@ export const usePointerEventHandlers = ({
       container.removeEventListener('contextmenu', handleContextMenu);
       container.style.touchAction = '';
     };
-  }, [palmRejection, handlePointerDown, handlePointerMove, handlePointerUp, panZoomState, isReadOnly, palmRejectionConfig.enabled, panZoom, getRelativePointerPosition, stageRef, currentToolRef, logEventHandling]);
+  }, [palmRejection, handlePointerDown, handlePointerMove, handlePointerUp, panZoomState, isReadOnly, palmRejectionConfig.enabled, panZoom, getRelativePointerPosition, stageRef, currentToolRef, logEventHandling, supportsPointerEvents]);
 };

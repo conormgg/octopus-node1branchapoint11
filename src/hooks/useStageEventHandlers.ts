@@ -53,20 +53,30 @@ export const useStageEventHandlers = ({
   // Tool tracking
   const { currentToolRef } = useCurrentToolTracking(stageRef);
 
+  // STAGE 2: Log the event system selection
+  console.log('[EventDebug] Stage 2: Event system selection', {
+    supportsPointerEvents,
+    palmRejectionEnabled: palmRejectionConfig.enabled,
+    willUsePointerEvents: supportsPointerEvents && palmRejectionConfig.enabled,
+    willUseTouchEvents: !supportsPointerEvents || !palmRejectionConfig.enabled
+  });
+
   // Wheel event handlers
   useWheelEventHandlers({
     containerRef,
     panZoom
   });
 
-  // Touch event handlers
+  // Touch event handlers - STAGE 2: Pass pointer event detection
   useTouchEventHandlers({
     containerRef,
     panZoom,
-    logEventHandling
+    logEventHandling,
+    supportsPointerEvents,
+    palmRejectionEnabled: palmRejectionConfig.enabled
   });
 
-  // Pointer event handlers
+  // Pointer event handlers - STAGE 2: Pass pointer event detection
   usePointerEventHandlers({
     containerRef,
     stageRef,
@@ -79,6 +89,7 @@ export const useStageEventHandlers = ({
     handlePointerUp,
     isReadOnly,
     currentToolRef,
-    logEventHandling
+    logEventHandling,
+    supportsPointerEvents
   });
 };
