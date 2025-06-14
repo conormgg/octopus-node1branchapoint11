@@ -42,6 +42,41 @@ export const useStageEventHandlers = ({
 }: UseStageEventHandlersProps) => {
   const currentToolRef = useRef<string>('pencil');
   const { getRelativePointerPosition } = useStageCoordinates(panZoomState);
+  
+  // Stage 1: Add debugging and detection
+  const eventSystemRef = useRef<'pointer' | 'touch' | 'mouse' | null>(null);
+  const lastEventTimestamp = useRef<number>(0);
+  const eventDebugCounter = useRef<number>(0);
+
+  // Feature detection for pointer events
+  const supportsPointerEvents = useRef<boolean>(
+    typeof window !== 'undefined' && 
+    window.PointerEvent && 
+    'onpointerdown' in window
+  );
+
+  // Debug logging function
+  const logEventHandling = (eventType: string, source: 'pointer' | 'touch' | 'mouse', detail?: any) => {
+    const now = Date.now();
+    const timeSinceLastEvent = now - lastEventTimestamp.current;
+    eventDebugCounter.current++;
+    
+    console.log(`[EventDebug ${eventDebugCounter.current}] ${eventType} from ${source}`, {
+      currentSystem: eventSystemRef.current,
+      supportsPointer: supportsPointerEvents.current,
+      palmRejectionEnabled: palmRejectionConfig.enabled,
+      timeSinceLastEvent,
+      detail
+    });
+    
+    // Detect potential duplicates (events within 10ms)
+    if (timeSinceLastEvent < 10 && eventSystemRef.current && eventSystemRef.current !== source) {
+      console.warn(`[EventDebug] Potential duplicate event detected! Previous: ${eventSystemRef.current}, Current: ${source}, Gap: ${timeSinceLastEvent}ms`);
+    }
+    
+    eventSystemRef.current = source;
+    lastEventTimestamp.current = now;
+  };
 
   // Wheel event for zoom - always works regardless of read-only status
   useEffect(() => {
@@ -61,16 +96,19 @@ export const useStageEventHandlers = ({
     if (!container) return;
 
     const handleTouchStart = (e: TouchEvent) => {
+      logEventHandling('touchstart', 'touch', { touches: e.touches.length });
       e.preventDefault(); // Prevent iOS context menu
       panZoom.handleTouchStart(e);
     };
 
     const handleTouchMove = (e: TouchEvent) => {
+      logEventHandling('touchmove', 'touch', { touches: e.touches.length });
       e.preventDefault(); // Prevent scrolling and selection
       panZoom.handleTouchMove(e);
     };
 
     const handleTouchEnd = (e: TouchEvent) => {
+      logEventHandling('touchend', 'touch', { touches: e.touches.length });
       e.preventDefault(); // Prevent default touch behaviors
       panZoom.handleTouchEnd(e);
     };
@@ -114,6 +152,8 @@ export const useStageEventHandlers = ({
     const shouldUsePointerEvents = palmRejectionConfig.enabled;
 
     const handlePointerDownEvent = (e: PointerEvent) => {
+      logEventHandling('pointerdown', 'pointer', { pointerId: e.pointerId, pointerType: e.pointerType });
+      
       // Don't prevent default for select tool - let Konva handle dragging
       if (currentToolRef.current !== 'select') {
         e.preventDefault();
@@ -140,6 +180,8 @@ export const useStageEventHandlers = ({
     };
 
     const handlePointerMoveEvent = (e: PointerEvent) => {
+      logEventHandling('pointermove', 'pointer', { pointerId: e.pointerId, pointerType: e.pointerType });
+      
       // Don't prevent default for select tool - let Konva handle dragging
       if (currentToolRef.current !== 'select') {
         e.preventDefault();
@@ -163,6 +205,8 @@ export const useStageEventHandlers = ({
     };
 
     const handlePointerUpEvent = (e: PointerEvent) => {
+      logEventHandling('pointerup', 'pointer', { pointerId: e.pointerId, pointerType: e.pointerType });
+      
       // Don't prevent default for select tool - let Konva handle dragging
       if (currentToolRef.current !== 'select') {
         e.preventDefault();
@@ -184,6 +228,8 @@ export const useStageEventHandlers = ({
     };
 
     const handlePointerLeaveEvent = (e: PointerEvent) => {
+      logEventHandling('pointerleave', 'pointer', { pointerId: e.pointerId, pointerType: e.pointerType });
+      
       palmRejection.onPointerEnd(e.pointerId);
       panZoom.stopPan(); // Always stop pan on leave
       
@@ -199,11 +245,14 @@ export const useStageEventHandlers = ({
 
     // Only add pointer event listeners if we should use them
     if (shouldUsePointerEvents) {
+      console.log('[EventDebug] Registering pointer event listeners', { supportsPointer: supportsPointerEvents.current });
       container.addEventListener('pointerdown', handlePointerDownEvent);
       container.addEventListener('pointermove', handlePointerMoveEvent);
       container.addEventListener('pointerup', handlePointerUpEvent);
       container.addEventListener('pointerleave', handlePointerLeaveEvent);
       container.addEventListener('pointercancel', handlePointerUpEvent);
+    } else {
+      console.log('[EventDebug] Skipping pointer event listeners - palm rejection disabled');
     }
     
     container.addEventListener('contextmenu', handleContextMenu);
@@ -213,6 +262,7 @@ export const useStageEventHandlers = ({
 
     return () => {
       if (shouldUsePointerEvents) {
+        console.log('[EventDebug] Removing pointer event listeners');
         container.removeEventListener('pointerdown', handlePointerDownEvent);
         container.removeEventListener('pointermove', handlePointerMoveEvent);
         container.removeEventListener('pointerup', handlePointerUpEvent);

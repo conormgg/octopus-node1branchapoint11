@@ -65,8 +65,20 @@ const KonvaStageCanvas: React.FC<KonvaStageCanvasProps> = ({
 }) => {
   const { getRelativePointerPosition } = useStageCoordinates(panZoomState);
 
+  // Stage 1: Add debug logging for mouse events
+  const logMouseEvent = (eventType: string, e: any) => {
+    console.log(`[EventDebug] ${eventType} from mouse`, {
+      button: e.evt.button,
+      buttons: e.evt.buttons,
+      currentTool,
+      palmRejectionEnabled: palmRejectionConfig.enabled
+    });
+  };
+
   // Fallback mouse handlers for devices without pointer events
   const handleMouseDown = (e: Konva.KonvaEventObject<MouseEvent>) => {
+    logMouseEvent('mousedown', e);
+    
     // Handle right-click pan - works for everyone, including read-only users
     if (e.evt.button === 2) {
       panZoom.startPan(e.evt.clientX, e.evt.clientY);
@@ -104,6 +116,8 @@ const KonvaStageCanvas: React.FC<KonvaStageCanvasProps> = ({
   };
 
   const handleMouseMove = (e: Konva.KonvaEventObject<MouseEvent>) => {
+    logMouseEvent('mousemove', e);
+    
     // Handle right-click pan - works for everyone, including read-only users
     if (e.evt.buttons === 2) {
       panZoom.continuePan(e.evt.clientX, e.evt.clientY);
@@ -125,6 +139,8 @@ const KonvaStageCanvas: React.FC<KonvaStageCanvasProps> = ({
   };
 
   const handleMouseUp = (e: Konva.KonvaEventObject<MouseEvent>) => {
+    logMouseEvent('mouseup', e);
+    
     // Handle right-click pan end - works for everyone, including read-only users
     if (e.evt.button === 2) {
       panZoom.stopPan();
@@ -138,6 +154,12 @@ const KonvaStageCanvas: React.FC<KonvaStageCanvasProps> = ({
   };
 
   const handleTouchStart = (e: Konva.KonvaEventObject<TouchEvent>) => {
+    console.log('[EventDebug] touchstart from konva', {
+      touches: e.evt.touches.length,
+      currentTool,
+      palmRejectionEnabled: palmRejectionConfig.enabled
+    });
+    
     if (onStageClick) onStageClick(e);
   };
 
