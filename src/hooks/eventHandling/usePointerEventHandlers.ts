@@ -1,9 +1,9 @@
 
-import { useEffect } from 'react';
 import Konva from 'konva';
 import { usePalmRejection } from '../usePalmRejection';
-import { useStageCoordinates } from '../useStageCoordinates';
 import { PanZoomState } from '@/types/whiteboard';
+import { usePointerEventCore } from './pointerEvents/usePointerEventCore';
+import { usePointerEventSetup } from './pointerEvents/usePointerEventSetup';
 
 interface UsePointerEventHandlersProps {
   containerRef: React.RefObject<HTMLDivElement>;
@@ -42,135 +42,32 @@ export const usePointerEventHandlers = ({
   logEventHandling,
   supportsPointerEvents
 }: UsePointerEventHandlersProps) => {
-  const { getRelativePointerPosition } = useStageCoordinates(panZoomState);
+  /**
+   * Pointer events are used when:
+   * - Palm rejection is enabled AND the device supports pointer events
+   * - This provides the most precise input handling for stylus/touch devices
+   */
+  const shouldUsePointerEvents = palmRejectionConfig.enabled && supportsPointerEvents;
 
-  // Pointer event handlers with proper separation of pan/zoom and drawing
-  useEffect(() => {
-    const container = containerRef.current;
-    const stage = stageRef.current;
-    if (!container || !stage) return;
+  // Get all pointer event handlers
+  const handlers = usePointerEventCore({
+    stageRef,
+    panZoomState,
+    palmRejection,
+    palmRejectionConfig,
+    panZoom,
+    handlePointerDown,
+    handlePointerMove,
+    handlePointerUp,
+    isReadOnly,
+    currentToolRef,
+    logEventHandling
+  });
 
-    /**
-     * Pointer events are used when:
-     * - Palm rejection is enabled AND the device supports pointer events
-     * - This provides the most precise input handling for stylus/touch devices
-     */
-    const shouldUsePointerEvents = palmRejectionConfig.enabled && supportsPointerEvents;
-
-    const handlePointerDownEvent = (e: PointerEvent) => {
-      logEventHandling('pointerdown', 'pointer', { pointerId: e.pointerId, pointerType: e.pointerType });
-      
-      // Don't prevent default for select tool - let Konva handle dragging
-      if (currentToolRef.current !== 'select') {
-        e.preventDefault();
-      }
-      
-      // Handle right-click pan - works for everyone, including read-only users
-      if (e.button === 2) {
-        e.preventDefault();
-        panZoom.startPan(e.clientX, e.clientY);
-        return;
-      }
-      
-      // Only proceed with drawing if not in read-only mode
-      if (isReadOnly) return;
-      
-      // Apply palm rejection for drawing interactions
-      if (palmRejectionConfig.enabled && !palmRejection.shouldProcessPointer(e)) {
-        return;
-      }
-
-      const { x, y } = getRelativePointerPosition(stage, e.clientX, e.clientY);
-      handlePointerDown(x, y);
-    };
-
-    const handlePointerMoveEvent = (e: PointerEvent) => {
-      logEventHandling('pointermove', 'pointer', { pointerId: e.pointerId, pointerType: e.pointerType });
-      
-      // Don't prevent default for select tool - let Konva handle dragging
-      if (currentToolRef.current !== 'select') {
-        e.preventDefault();
-      }
-      
-      // Handle right-click pan - works for everyone, including read-only users
-      if (e.buttons === 2) {
-        e.preventDefault();
-        panZoom.continuePan(e.clientX, e.clientY);
-        return;
-      }
-      
-      // Only proceed with drawing if not in read-only mode
-      if (isReadOnly) return;
-      
-      // Apply palm rejection for drawing interactions
-      if (palmRejectionConfig.enabled && !palmRejection.shouldProcessPointer(e)) return;
-
-      const { x, y } = getRelativePointerPosition(stage, e.clientX, e.clientY);
-      handlePointerMove(x, y);
-    };
-
-    const handlePointerUpEvent = (e: PointerEvent) => {
-      logEventHandling('pointerup', 'pointer', { pointerId: e.pointerId, pointerType: e.pointerType });
-      
-      // Don't prevent default for select tool - let Konva handle dragging
-      if (currentToolRef.current !== 'select') {
-        e.preventDefault();
-      }
-      
-      // Handle right-click pan end - works for everyone, including read-only users
-      if (e.button === 2) {
-        e.preventDefault();
-        panZoom.stopPan();
-        return;
-      }
-      
-      palmRejection.onPointerEnd(e.pointerId);
-      
-      // Only call handlePointerUp for drawing if not in read-only mode
-      if (!isReadOnly) {
-        handlePointerUp();
-      }
-    };
-
-    const handlePointerLeaveEvent = (e: PointerEvent) => {
-      logEventHandling('pointerleave', 'pointer', { pointerId: e.pointerId, pointerType: e.pointerType });
-      
-      palmRejection.onPointerEnd(e.pointerId);
-      panZoom.stopPan(); // Always stop pan on leave
-      
-      // Only call handlePointerUp for drawing if not in read-only mode
-      if (!isReadOnly) {
-        handlePointerUp();
-      }
-    };
-
-    const handleContextMenu = (e: Event) => {
-      e.preventDefault(); // Prevent context menu on right-click
-    };
-
-    if (shouldUsePointerEvents) {
-      container.addEventListener('pointerdown', handlePointerDownEvent);
-      container.addEventListener('pointermove', handlePointerMoveEvent);
-      container.addEventListener('pointerup', handlePointerUpEvent);
-      container.addEventListener('pointerleave', handlePointerLeaveEvent);
-      container.addEventListener('pointercancel', handlePointerUpEvent);
-    }
-    
-    container.addEventListener('contextmenu', handleContextMenu);
-
-    // Set touch-action based on event system being used
-    container.style.touchAction = shouldUsePointerEvents ? 'none' : 'manipulation';
-
-    return () => {
-      if (shouldUsePointerEvents) {
-        container.removeEventListener('pointerdown', handlePointerDownEvent);
-        container.removeEventListener('pointermove', handlePointerMoveEvent);
-        container.removeEventListener('pointerup', handlePointerUpEvent);
-        container.removeEventListener('pointerleave', handlePointerLeaveEvent);
-        container.removeEventListener('pointercancel', handlePointerUpEvent);
-      }
-      container.removeEventListener('contextmenu', handleContextMenu);
-      container.style.touchAction = '';
-    };
-  }, [palmRejection, handlePointerDown, handlePointerMove, handlePointerUp, panZoomState, isReadOnly, palmRejectionConfig.enabled, panZoom, getRelativePointerPosition, stageRef, currentToolRef, logEventHandling, supportsPointerEvents]);
+  // Set up event listeners
+  usePointerEventSetup({
+    containerRef,
+    shouldUsePointerEvents,
+    handlers
+  });
 };
