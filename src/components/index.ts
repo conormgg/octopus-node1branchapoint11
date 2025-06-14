@@ -23,7 +23,7 @@ export { default as Whiteboard } from './Whiteboard';
  * 
  * @usage For collaborative whiteboard sessions
  */
-export { default as SyncWhiteboard } from './SyncWhiteboard';
+export { SyncWhiteboard } from './SyncWhiteboard';
 
 /**
  * Lower-level Konva stage wrapper with advanced event handling
@@ -177,7 +177,7 @@ export { default as LayoutSelector } from './LayoutSelector';
  * Palm rejection configuration interface
  * Settings for stylus input and palm rejection sensitivity
  */
-export { default as PalmRejectionSettings } from './PalmRejectionSettings';
+export { PalmRejectionSettings } from './PalmRejectionSettings';
 
 /**
  * View switching controls
@@ -199,7 +199,7 @@ export { default as WhiteboardPlaceholder } from './WhiteboardPlaceholder';
  * Window management for multi-window interfaces
  * Handles popup windows and window state management
  */
-export { default as WindowManager } from './WindowManager';
+export { useWindowManager } from './WindowManager';
 
 /**
  * Generic content renderer for different window types

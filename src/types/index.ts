@@ -22,10 +22,7 @@ export type {
   Tool,
   PanZoomState,
   SelectionState,
-  SelectionBounds,
-  DrawingState,
-  EraserState,
-  ObjectReference
+  SelectionBounds
 } from './whiteboard';
 
 // ============================================================================
@@ -46,14 +43,11 @@ export type { Student, SessionParticipant } from './student';
 
 /**
  * Real-time synchronization types
- * Includes SyncConfig, Operation, and sync-related interfaces
+ * Includes SyncConfig, SyncState, and sync-related interfaces
  */
 export type {
   SyncConfig,
-  Operation,
-  SyncState,
-  ConnectionState,
-  SyncError
+  SyncState
 } from './sync';
 
 // ============================================================================
@@ -65,10 +59,7 @@ export type {
  * Includes ClassTemplate and template-related interfaces
  */
 export type {
-  ClassTemplate,
-  TemplateStudent,
-  TemplateFormData,
-  SavedTemplate
+  ClassTemplate
 } from './templates';
 
 // ============================================================================

@@ -155,7 +155,7 @@ export { useClassTemplates } from './useClassTemplates';
  * Mobile device detection and responsive behavior
  * Provides mobile-specific UI adjustments and touch optimizations
  */
-export { useMobile } from './use-mobile';
+export { useIsMobile } from './use-mobile';
 
 /**
  * Toast notification system
