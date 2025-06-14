@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 
 interface UseToolbarDragProps {
@@ -51,14 +50,19 @@ export const useToolbarDrag = ({
       
       let newX: number;
       let newY: number;
+
+      // Determine the reference container for positioning.
+      // Use the portal container if provided, otherwise use the toolbar's offsetParent.
+      const positioningContainer = externalPortalContainer || toolbarRef.current.offsetParent;
       
-      // Calculate new position based on whether we are in a portal
-      if (externalPortalContainer) {
-        const containerRect = externalPortalContainer.getBoundingClientRect();
+      if (positioningContainer) {
+        const containerRect = positioningContainer.getBoundingClientRect();
+        // Calculate position relative to the container
         newX = e.clientX - containerRect.left - dragOffset.x;
         newY = e.clientY - containerRect.top - dragOffset.y;
       } else {
-        // In the main window, position is relative to the viewport
+        // Fallback: This should not happen if the toolbar is inside a positioned container.
+        // Calculates position relative to the viewport.
         newX = e.clientX - dragOffset.x;
         newY = e.clientY - dragOffset.y;
       }
