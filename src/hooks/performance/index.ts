@@ -22,5 +22,11 @@ export { useMemoryMonitor } from './useMemoryMonitor';
 export { usePerformanceReporting } from './usePerformanceReporting';
 export { useFpsTracker } from './useFpsTracker';
 
+// Monitoring integration modules
+export { useOperationWrappers } from './useOperationWrappers';
+export { useMonitoringTypes } from './useMonitoringTypes';
+export { useMonitoringCore } from './useMonitoringCore';
+
 // Types
 export type { PerformanceMetrics, PerformanceReport } from './usePerformanceMonitor';
+export type { MonitoredOperations } from './useMonitoringTypes';
