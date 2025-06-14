@@ -1,4 +1,22 @@
 
+/**
+ * @fileoverview Shared whiteboard state management for collaborative sessions
+ * @description Coordinates whiteboard operations with real-time synchronization capabilities.
+ * This is the primary state hook for collaborative whiteboards with sync functionality.
+ * 
+ * @usage
+ * ```tsx
+ * const syncConfig = { whiteboardId: 'session-123', senderId: 'user-456' };
+ * const whiteboard = useSharedWhiteboardState(syncConfig, 'whiteboard-id');
+ * ```
+ * 
+ * @ai-context This hook extends basic whiteboard functionality with:
+ * - Real-time synchronization via WebSockets
+ * - Multi-user collaboration features
+ * - Conflict resolution for simultaneous edits
+ * - Session-based persistence
+ */
+
 import { useCallback } from 'react';
 import { SyncConfig } from '@/types/sync';
 import { useSelectionState } from './useSelectionState';
@@ -9,7 +27,44 @@ import { useSharedStateInitialization } from './shared/useSharedStateInitializat
 import { useSharedPersistenceIntegration } from './shared/useSharedPersistenceIntegration';
 import { useSharedOperationsCoordinator } from './shared/useSharedOperationsCoordinator';
 
+const DEBUG_ENABLED = process.env.NODE_ENV === 'development';
+
+/**
+ * @function debugLog
+ * @description Debug logging for shared whiteboard operations
+ */
+const debugLog = (context: string, action: string, data?: any) => {
+  if (DEBUG_ENABLED) {
+    console.log(`[SharedWhiteboardState:${context}] ${action}`, data || '');
+  }
+};
+
+/**
+ * @hook useSharedWhiteboardState
+ * @description Main hook for collaborative whiteboard state management
+ * 
+ * @param syncConfig - Configuration for real-time synchronization
+ * @param whiteboardId - Unique identifier for this whiteboard instance
+ * 
+ * @returns {Object} Extended whiteboard state with collaboration features
+ * @returns {WhiteboardState} state - Current whiteboard state
+ * @returns {SyncState} syncState - Real-time synchronization status
+ * @returns {boolean} isReadOnly - Whether this instance is read-only
+ * @returns {string} whiteboardId - The whiteboard identifier
+ * 
+ * @ai-understanding
+ * This hook orchestrates multiple collaboration-specific hooks:
+ * - useSharedStateInitialization: Sets up initial state with persistence
+ * - useSharedOperationsCoordinator: Manages drawing/sync/history operations
+ * - useSharedPersistenceIntegration: Handles database persistence
+ * - useSharedPointerHandlers: Coordinates pointer events with sync
+ */
 export const useSharedWhiteboardState = (syncConfig?: SyncConfig, whiteboardId?: string) => {
+  debugLog('Hook', 'Initializing useSharedWhiteboardState', { 
+    syncConfig: syncConfig ? 'provided' : 'none',
+    whiteboardId 
+  });
+
   // Initialize state
   const { state, setState } = useSharedStateInitialization(whiteboardId);
 
@@ -42,13 +97,33 @@ export const useSharedWhiteboardState = (syncConfig?: SyncConfig, whiteboardId?:
     selection
   );
 
-  // Delete selected objects wrapper
+  /**
+   * @function deleteSelectedObjects
+   * @description Deletes currently selected objects and syncs the operation
+   * 
+   * @ai-context This wrapper ensures proper cleanup of selection state
+   * after deletion and triggers history recording.
+   */
   const deleteSelectedObjects = useCallback(() => {
-    if (selection.selectionState.selectedObjects && operations.deleteSelectedObjects) {
-      operations.deleteSelectedObjects(selection.selectionState.selectedObjects);
+    const selectedObjects = selection.selectionState.selectedObjects;
+    debugLog('Delete', 'Delete selected objects requested', { 
+      count: selectedObjects?.length || 0 
+    });
+    
+    if (selectedObjects && operations.deleteSelectedObjects) {
+      operations.deleteSelectedObjects(selectedObjects);
       selection.clearSelection();
+      debugLog('Delete', 'Objects deleted and selection cleared');
     }
   }, [selection, operations]);
+
+  const isReadOnly = syncConfig?.isReceiveOnly || false;
+  
+  debugLog('Hook', 'useSharedWhiteboardState initialized', {
+    isReadOnly,
+    hasSync: !!syncConfig,
+    whiteboardId
+  });
 
   return {
     state,
@@ -74,7 +149,7 @@ export const useSharedWhiteboardState = (syncConfig?: SyncConfig, whiteboardId?:
     toggleImageLock: operations.toggleImageLock,
     deleteSelectedObjects,
     selection,
-    isReadOnly: syncConfig?.isReceiveOnly || false,
+    isReadOnly,
     whiteboardId // Expose whiteboard ID for component identification
   };
 };

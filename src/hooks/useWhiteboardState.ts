@@ -1,4 +1,3 @@
-
 import { useState, useCallback, useEffect } from 'react';
 import { v4 as uuidv4 } from 'uuid';
 import { WhiteboardState, Tool, PanZoomState, ImageObject } from '@/types/whiteboard';
@@ -9,7 +8,48 @@ import { usePanZoom } from './usePanZoom';
 import { useSelectionState } from './useSelectionState';
 import Konva from 'konva';
 
+const DEBUG_ENABLED = process.env.NODE_ENV === 'development';
+
+/**
+ * @function debugLog
+ * @description Centralized debug logging for whiteboard operations
+ * @param context - The context/component name
+ * @param action - The action being performed
+ * @param data - Additional data to log
+ */
+const debugLog = (context: string, action: string, data?: any) => {
+  if (DEBUG_ENABLED) {
+    console.log(`[WhiteboardState:${context}] ${action}`, data || '');
+  }
+};
+
+/**
+ * @hook useWhiteboardState
+ * @description Main hook for managing whiteboard state and operations
+ * 
+ * @returns {Object} Whiteboard state and operations
+ * @returns {WhiteboardState} state - Current whiteboard state
+ * @returns {Function} setTool - Change active drawing tool
+ * @returns {Function} setColor - Change drawing color (with tool auto-switching)
+ * @returns {Function} handlePointerDown - Start drawing/selection operation
+ * @returns {Function} handlePointerMove - Continue drawing/selection operation
+ * @returns {Function} handlePointerUp - Finish drawing/selection operation
+ * @returns {Function} undo - Undo last operation
+ * @returns {Function} redo - Redo last undone operation
+ * @returns {Object} panZoom - Pan and zoom operations
+ * @returns {Object} selection - Selection state and operations
+ * 
+ * @ai-understanding
+ * This hook coordinates multiple sub-hooks:
+ * - useDrawingState: Handles pencil/highlighter drawing
+ * - useEraserState: Handles eraser operations
+ * - useHistoryState: Manages undo/redo functionality
+ * - useSelectionState: Manages object selection
+ * - usePanZoom: Handles canvas pan and zoom
+ */
 export const useWhiteboardState = () => {
+  debugLog('Hook', 'Initializing useWhiteboardState');
+
   // Selection operations - initialize first so we can use its state
   const selection = useSelectionState();
 
@@ -48,6 +88,10 @@ export const useWhiteboardState = () => {
     setState(prev => {
       // Only update if the selection state is actually different
       if (JSON.stringify(prev.selectionState) !== JSON.stringify(selection.selectionState)) {
+        debugLog('Selection', 'Selection state updated', {
+          selectedCount: selection.selectionState.selectedObjects?.length || 0,
+          isSelecting: selection.selectionState.isSelecting
+        });
         return {
           ...prev,
           selectionState: selection.selectionState
@@ -101,32 +145,32 @@ export const useWhiteboardState = () => {
 
   // Handle paste functionality
   const handlePaste = useCallback((e: ClipboardEvent, stage: Konva.Stage | null) => {
-    console.log('Paste event triggered in whiteboard state');
+    debugLog('Paste', 'Paste event triggered');
     e.preventDefault();
     const items = e.clipboardData?.items;
     if (!items || !stage) {
-      console.log('No clipboard items or stage available');
+      debugLog('Paste', 'No clipboard items or stage available');
       return;
     }
 
-    console.log('Processing clipboard items:', items.length);
+    debugLog('Paste', 'Processing clipboard items', { count: items.length });
     for (let i = 0; i < items.length; i++) {
-      console.log('Item type:', items[i].type);
+      debugLog('Paste', 'Item type', items[i].type);
       if (items[i].type.indexOf('image') !== -1) {
         const file = items[i].getAsFile();
         if (!file) {
-          console.log('Could not get file from clipboard item');
+          debugLog('Paste', 'Could not get file from clipboard item');
           continue;
         }
 
-        console.log('Processing image file:', file.name, file.type);
+        debugLog('Paste', 'Processing image file', { name: file.name, type: file.type });
         const reader = new FileReader();
         reader.onload = (event) => {
           const imageUrl = event.target?.result as string;
           const image = new window.Image();
           image.src = imageUrl;
           image.onload = () => {
-            console.log('Image loaded, creating image object');
+            debugLog('Paste', 'Image loaded, creating image object');
             const pointerPosition = stage.getPointerPosition() ?? { x: stage.width() / 2, y: stage.height() / 2 };
             const position = {
               x: (pointerPosition.x - state.panZoomState.x) / state.panZoomState.scale,
@@ -149,7 +193,7 @@ export const useWhiteboardState = () => {
             
             // Add to history after state update
             setTimeout(() => addToHistory(), 0);
-            console.log('Image added to whiteboard');
+            debugLog('Paste', 'Image added to whiteboard', { id: newImage.id });
           };
         };
         reader.readAsDataURL(file);
@@ -159,6 +203,7 @@ export const useWhiteboardState = () => {
 
   // Tool change with settings sync
   const setTool = useCallback((tool: Tool) => {
+    debugLog('Tool', 'Tool change requested', { from: state.currentTool, to: tool });
     setState(prev => {
       let newColor = prev.currentColor;
       let newStrokeWidth = prev.currentStrokeWidth;
@@ -172,6 +217,12 @@ export const useWhiteboardState = () => {
         newStrokeWidth = prev.highlighterSettings.strokeWidth;
       }
       
+      debugLog('Tool', 'Tool changed', { 
+        tool, 
+        color: newColor, 
+        strokeWidth: newStrokeWidth 
+      });
+      
       return {
         ...prev,
         currentTool: tool,
@@ -179,10 +230,11 @@ export const useWhiteboardState = () => {
         currentStrokeWidth: newStrokeWidth
       };
     });
-  }, []);
+  }, [state.currentTool]);
 
   // Color change with tool-specific storage and auto-switching
   const setColor = useCallback((color: string) => {
+    debugLog('Color', 'Color change requested', { from: state.currentColor, to: color });
     setState(prev => {
       const newState = {
         ...prev,
@@ -213,12 +265,15 @@ export const useWhiteboardState = () => {
         }
       }
       
+      debugLog('Color', 'Color changed', { color: newState.currentColor });
+      
       return newState;
     });
-  }, []);
+  }, [state.currentColor]);
 
   // Pencil-specific color change with auto-switching
   const setPencilColor = useCallback((color: string) => {
+    debugLog('Color', 'Pencil color change requested', { from: state.pencilSettings.color, to: color });
     setState(prev => ({
       ...prev,
       currentTool: 'pencil',
@@ -226,10 +281,11 @@ export const useWhiteboardState = () => {
       currentStrokeWidth: prev.pencilSettings.strokeWidth,
       pencilSettings: { ...prev.pencilSettings, color }
     }));
-  }, []);
+  }, [state.pencilSettings.color]);
 
   // Highlighter-specific color change with auto-switching
   const setHighlighterColor = useCallback((color: string) => {
+    debugLog('Color', 'Highlighter color change requested', { from: state.highlighterSettings.color, to: color });
     setState(prev => ({
       ...prev,
       currentTool: 'highlighter',
@@ -237,10 +293,11 @@ export const useWhiteboardState = () => {
       currentStrokeWidth: prev.highlighterSettings.strokeWidth,
       highlighterSettings: { ...prev.highlighterSettings, color }
     }));
-  }, []);
+  }, [state.highlighterSettings.color]);
 
   // Stroke width change with tool-specific storage
   const setStrokeWidth = useCallback((width: number) => {
+    debugLog('StrokeWidth', 'Stroke width change requested', { from: state.currentStrokeWidth, to: width });
     setState(prev => {
       const newState = {
         ...prev,
@@ -254,9 +311,11 @@ export const useWhiteboardState = () => {
         newState.highlighterSettings = { ...prev.highlighterSettings, strokeWidth: width };
       }
       
+      debugLog('StrokeWidth', 'Stroke width changed', { width: newState.currentStrokeWidth });
+      
       return newState;
     });
-  }, []);
+  }, [state.currentStrokeWidth]);
 
   // Update line position
   const updateLine = useCallback((lineId: string, updates: Partial<typeof state.lines[0]>) => {
@@ -284,12 +343,19 @@ export const useWhiteboardState = () => {
 
   // Handle pointer down
   const handlePointerDown = useCallback((x: number, y: number) => {
+    debugLog('Pointer', 'Pointer down', { x, y, tool: state.currentTool });
+    
     // Don't start drawing if a pan/zoom gesture is active
-    if (panZoom.isGestureActive()) return;
+    if (panZoom.isGestureActive()) {
+      debugLog('Pointer', 'Ignoring pointer down - gesture active');
+      return;
+    }
     
     if (state.currentTool === 'pencil' || state.currentTool === 'highlighter') {
+      debugLog('Drawing', 'Starting drawing operation');
       startDrawing(x, y);
     } else if (state.currentTool === 'eraser') {
+      debugLog('Eraser', 'Starting eraser operation');
       startErasing(x, y);
     } else if (state.currentTool === 'select') {
       // Handle selection logic with priority:
@@ -300,6 +366,7 @@ export const useWhiteboardState = () => {
       const isInSelectionBounds = selection.isPointInSelectionBounds({ x, y });
       
       if (isInSelectionBounds && selection.selectionState.selectedObjects.length > 0) {
+        debugLog('Selection', 'Clicked within selection bounds');
         // Clicking within selection bounds - this will allow dragging the entire group
         // The actual dragging logic will be handled by the SelectionGroup component
         // We don't need to change the selection here, just maintain it
@@ -310,6 +377,7 @@ export const useWhiteboardState = () => {
       const foundObjects = selection.findObjectsAtPoint({ x, y }, state.lines, state.images);
       
       if (foundObjects.length > 0) {
+        debugLog('Selection', 'Found objects at point', { count: foundObjects.length });
         // Select the first found object
         selection.selectObjects([foundObjects[0]]);
         // Update selection bounds for the selected object
@@ -317,6 +385,7 @@ export const useWhiteboardState = () => {
           selection.updateSelectionBounds([foundObjects[0]], state.lines, state.images);
         }, 0);
       } else {
+        debugLog('Selection', 'Starting drag-to-select');
         // Clear selection when clicking on empty space
         selection.clearSelection();
         // Start drag-to-select
@@ -332,8 +401,10 @@ export const useWhiteboardState = () => {
     if (panZoom.isGestureActive()) return;
     
     if (state.currentTool === 'pencil' || state.currentTool === 'highlighter') {
+      debugLog('Drawing', 'Continuing drawing operation');
       continueDrawing(x, y);
     } else if (state.currentTool === 'eraser') {
+      debugLog('Eraser', 'Continuing eraser operation');
       continueErasing(x, y);
     } else if (state.currentTool === 'select' && selection.selectionState.isSelecting) {
       // Update drag-to-select rectangle
@@ -353,8 +424,10 @@ export const useWhiteboardState = () => {
   // Handle pointer up
   const handlePointerUp = useCallback(() => {
     if (state.currentTool === 'pencil' || state.currentTool === 'highlighter') {
+      debugLog('Drawing', 'Finishing drawing operation');
       stopDrawing();
     } else if (state.currentTool === 'eraser') {
+      debugLog('Eraser', 'Finishing eraser operation');
       stopErasing();
     } else if (state.currentTool === 'select' && selection.selectionState.isSelecting) {
       // Complete drag-to-select
@@ -377,6 +450,7 @@ export const useWhiteboardState = () => {
 
   // Toggle image lock state
   const toggleImageLock = useCallback((imageId: string) => {
+    debugLog('Image', 'Toggle image lock', { id: imageId });
     setState(prev => ({
       ...prev,
       images: prev.images.map(img =>
