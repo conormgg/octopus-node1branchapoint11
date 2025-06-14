@@ -1,11 +1,14 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 
 interface UseToolbarDragProps {
   containerWidth: number;
   containerHeight: number;
   externalPortalContainer?: Element | null;
 }
+
+// Helper to clamp a value between a min and max
+const clamp = (value: number, min: number, max: number) => Math.max(min, Math.min(value, max));
 
 export const useToolbarDrag = ({ 
   containerWidth, 
@@ -17,97 +20,72 @@ export const useToolbarDrag = ({
   const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
   const toolbarRef = React.useRef<HTMLDivElement>(null);
 
-  // Determine the correct document context
-  const targetDocument = React.useMemo(() => {
-    if (externalPortalContainer) {
-      return externalPortalContainer.ownerDocument || document;
-    }
-    return document;
+  // Determine the correct document context for event listeners
+  const targetDocument = useMemo(() => {
+    return externalPortalContainer?.ownerDocument || document;
   }, [externalPortalContainer]);
 
-  const handleMouseDown = (e: React.MouseEvent) => {
-    if (e.button !== 0) return; // Only left mouse button
+  const handleMouseDown = useCallback((e: React.MouseEvent) => {
+    if (e.button !== 0 || !toolbarRef.current) return; // Only act on left-click
+
     e.preventDefault();
     e.stopPropagation();
     
-    // Get toolbar's current position relative to its container
-    if (toolbarRef.current && externalPortalContainer) {
-      const toolbarRect = toolbarRef.current.getBoundingClientRect();
-      const containerRect = externalPortalContainer.getBoundingClientRect();
-      
-      // Calculate click offset relative to toolbar's top-left corner
-      const offsetX = e.clientX - toolbarRect.left;
-      const offsetY = e.clientY - toolbarRect.top;
-      
-      console.log('[MovableToolbar] Mouse down:', {
-        clientX: e.clientX,
-        clientY: e.clientY,
-        toolbarRect,
-        containerRect,
-        offsetX,
-        offsetY,
-        currentPosition: position
-      });
-      
-      setDragOffset({ x: offsetX, y: offsetY });
-    } else {
-      // Fallback for main window
-      setDragOffset({
-        x: e.clientX - position.x,
-        y: e.clientY - position.y
-      });
-    }
+    const toolbarRect = toolbarRef.current.getBoundingClientRect();
     
+    // Calculate click offset relative to the toolbar's top-left corner.
+    // This works for both main window and portal scenarios.
+    const offsetX = e.clientX - toolbarRect.left;
+    const offsetY = e.clientY - toolbarRect.top;
+      
+    setDragOffset({ x: offsetX, y: offsetY });
     setIsDragging(true);
-  };
+  }, []); // Empty deps because it only uses stable setters and refs
 
-  // Event listener effect to fix dragging in pop-up window
   useEffect(() => {
-    // Define handlers inside the effect to avoid stale closures
+    if (!isDragging) return;
+
     const handleMouseMove = (e: MouseEvent) => {
-      if (!isDragging || !toolbarRef.current) return;
+      if (!toolbarRef.current) return;
       e.preventDefault();
       
-      let newX, newY;
+      let newX: number;
+      let newY: number;
       
+      // Calculate new position based on whether we are in a portal
       if (externalPortalContainer) {
         const containerRect = externalPortalContainer.getBoundingClientRect();
         newX = e.clientX - containerRect.left - dragOffset.x;
         newY = e.clientY - containerRect.top - dragOffset.y;
       } else {
+        // In the main window, position is relative to the viewport
         newX = e.clientX - dragOffset.x;
         newY = e.clientY - dragOffset.y;
       }
       
+      // Constrain the position within the container boundaries
       if (containerWidth > 0 && containerHeight > 0) {
-        const toolbarRect = toolbarRef.current.getBoundingClientRect();
-        const toolbarWidth = toolbarRect.width;
-        const toolbarHeight = toolbarRect.height;
-        
-        newX = Math.max(0, Math.min(newX, containerWidth - toolbarWidth));
-        newY = Math.max(0, Math.min(newY, containerHeight - toolbarHeight));
+        const { width: toolbarWidth, height: toolbarHeight } = toolbarRef.current.getBoundingClientRect();
+        newX = clamp(newX, 0, containerWidth - toolbarWidth);
+        newY = clamp(newY, 0, containerHeight - toolbarHeight);
       }
       
       setPosition({ x: newX, y: newY });
     };
 
     const handleMouseUp = (e: MouseEvent) => {
-      if (isDragging) {
-        e.preventDefault();
-        setIsDragging(false);
-      }
+      e.preventDefault();
+      setIsDragging(false);
     };
 
-    if (isDragging) {
-      // Attach listeners to the correct document (main window or pop-up)
-      targetDocument.addEventListener('mousemove', handleMouseMove);
-      targetDocument.addEventListener('mouseup', handleMouseUp);
-      
-      return () => {
-        targetDocument.removeEventListener('mousemove', handleMouseMove);
-        targetDocument.removeEventListener('mouseup', handleMouseUp);
-      };
-    }
+    // Attach listeners to the correct document (main window or pop-up)
+    targetDocument.addEventListener('mousemove', handleMouseMove);
+    targetDocument.addEventListener('mouseup', handleMouseUp);
+    
+    return () => {
+      targetDocument.removeEventListener('mousemove', handleMouseMove);
+      targetDocument.removeEventListener('mouseup', handleMouseUp);
+    };
   }, [isDragging, dragOffset, targetDocument, externalPortalContainer, containerWidth, containerHeight]);
 
   return {
