@@ -1,6 +1,8 @@
+
 import { useToast } from '@/hooks/use-toast';
 import { useClassTemplates } from '@/hooks/useClassTemplates';
-import { Student, OriginalTemplateData, ClassTemplate } from './types';
+import { Student } from '@/types/student';
+import { OriginalTemplateData, ClassTemplate } from '@/types/templates';
 import { validateStudents, mapTemplateStudents } from './utils';
 
 interface UseTemplateOperationsProps {

@@ -1,6 +1,7 @@
 
 import { useMemo } from 'react';
-import { Student, OriginalTemplateData, TemplateButtonState } from './types';
+import { Student } from '@/types/student';
+import { OriginalTemplateData, TemplateButtonState } from '@/types/templates';
 
 interface UseTemplateButtonStateProps {
   students: Student[];

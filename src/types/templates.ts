@@ -15,3 +15,18 @@ export interface ClassTemplate {
     student_email: string | null;
   }>;
 }
+
+/**
+ * Represents the original data of a loaded template for change detection.
+ */
+export interface OriginalTemplateData {
+  id: number;
+  title: string;
+  duration: number | '';
+  students: Student[];
+}
+
+/**
+ * Represents the state of the template action buttons.
+ */
+export type TemplateButtonState = 'save' | 'update' | 'none';

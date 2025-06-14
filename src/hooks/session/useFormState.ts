@@ -1,6 +1,6 @@
 
 import { useState } from 'react';
-import { Student } from './types';
+import { Student } from '@/types/student';
 
 export const useFormState = () => {
   const [title, setTitle] = useState('');

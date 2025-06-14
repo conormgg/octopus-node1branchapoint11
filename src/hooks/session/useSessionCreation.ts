@@ -2,7 +2,7 @@
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
-import { Student } from './types';
+import { Student } from '@/types/student';
 
 interface UseSessionCreationProps {
   title: string;

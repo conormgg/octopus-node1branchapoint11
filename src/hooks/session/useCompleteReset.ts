@@ -1,6 +1,6 @@
 
 import { useToast } from '@/hooks/use-toast';
-import { OriginalTemplateData } from './types';
+import { OriginalTemplateData } from '@/types/templates';
 
 interface UseCompleteResetProps {
   setSelectedTemplateId: (id: string) => void;

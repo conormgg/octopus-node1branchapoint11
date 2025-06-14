@@ -1,17 +1,7 @@
-
 import { useState } from 'react';
 import { useToast } from '@/hooks/use-toast';
-import { Student, OriginalTemplateData } from './types';
-
-interface ClassTemplate {
-  id: number;
-  class_name: string;
-  duration_minutes: number | null;
-  students: Array<{
-    student_name: string;
-    student_email: string | null;
-  }>;
-}
+import { Student } from '@/types/student';
+import { OriginalTemplateData, ClassTemplate } from '@/types/templates';
 
 interface UseTemplateSelectionProps {
   templates: ClassTemplate[];

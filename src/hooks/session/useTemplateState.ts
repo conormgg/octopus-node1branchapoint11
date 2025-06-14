@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { useClassTemplates } from '@/hooks/useClassTemplates';
 import { useTemplateChangeDetection } from './useTemplateChangeDetection';
@@ -7,7 +8,8 @@ import { useCompleteReset } from './useCompleteReset';
 import { useTemplateOperations } from './useTemplateOperations';
 import { useTemplateActions } from './useTemplateActions';
 import { useToast } from '@/hooks/use-toast';
-import { Student, OriginalTemplateData, ClassTemplate } from './types';
+import { Student } from '@/types/student';
+import { OriginalTemplateData, ClassTemplate } from '@/types/templates';
 import { mapTemplateStudents } from './utils';
 
 interface UseTemplateStateProps {

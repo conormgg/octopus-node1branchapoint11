@@ -1,5 +1,5 @@
 
-import { Student } from './types';
+import { Student } from '@/types/student';
 
 interface UseFormDataDetectionProps {
   title: string;

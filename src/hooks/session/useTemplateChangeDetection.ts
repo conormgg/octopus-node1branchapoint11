@@ -1,6 +1,7 @@
 
 import { useMemo } from 'react';
-import { Student, OriginalTemplateData } from './types';
+import { Student } from '@/types/student';
+import { OriginalTemplateData } from '@/types/templates';
 
 interface UseTemplateChangeDetectionProps {
   title: string;

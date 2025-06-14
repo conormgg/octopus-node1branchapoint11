@@ -1,5 +1,5 @@
 
-import { Student } from './types';
+import { Student } from '@/types/student';
 
 export const validateStudents = (students: Student[]): Student[] => {
   return students.filter(student => student.name.trim());
