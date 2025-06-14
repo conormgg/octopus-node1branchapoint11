@@ -1,24 +1,11 @@
 
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-
-interface SessionStudent {
-  id: number;
-  student_name: string;
-  student_email?: string;
-  assigned_board_suffix: string;
-}
-
-interface Session {
-  id: string;
-  title: string;
-  unique_url_slug: string;
-  status: string;
-  created_at: string;
-}
+import { Session } from '@/types/session';
+import { SessionParticipant } from '@/types/student';
 
 export const useSessionStudents = (activeSession: Session | null | undefined) => {
-  const [sessionStudents, setSessionStudents] = useState<SessionStudent[]>([]);
+  const [sessionStudents, setSessionStudents] = useState<SessionParticipant[]>([]);
 
   useEffect(() => {
     if (activeSession) {
@@ -50,10 +37,13 @@ export const useSessionStudents = (activeSession: Session | null | undefined) =>
     const clampedCount = Math.max(1, Math.min(8, newCount));
     
     // Create mock student data for UI testing
-    const mockStudents: SessionStudent[] = Array.from({ length: clampedCount }, (_, i) => ({
+    const mockStudents: SessionParticipant[] = Array.from({ length: clampedCount }, (_, i) => ({
       id: i + 1,
       student_name: `Student ${String.fromCharCode(65 + i)}`,
       assigned_board_suffix: String.fromCharCode(65 + i),
+      session_id: activeSession!.id,
+      student_email: null,
+      joined_at: null,
     }));
     
     setSessionStudents(mockStudents);

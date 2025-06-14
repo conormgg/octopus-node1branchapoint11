@@ -20,7 +20,7 @@ const TeacherDashboard: React.FC = () => {
     handleEndSession,
     resumeSession,
     handleCloseUrlModal,
-  } = useSessionManagement(user, false);
+  } = useSessionManagement(user);
 
   // Update session context when active session changes
   useEffect(() => {

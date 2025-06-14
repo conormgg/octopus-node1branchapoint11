@@ -1,20 +1,11 @@
-
 import React, { useEffect, useState } from 'react';
 import SessionUrlModal from './session/SessionUrlModal';
 import TeacherSessionView from './session/TeacherSessionView';
 import { useSessionStudents } from '@/hooks/useSessionStudents';
 import { useTeacherViewState } from '@/hooks/useTeacherViewState';
+import { Session } from '@/types/session';
 
 export type GridOrientation = 'columns-first' | 'rows-first';
-
-interface Session {
-  id: string;
-  title: string;
-  unique_url_slug: string;
-  status: string;
-  created_at: string;
-  teacher_id: string;
-}
 
 interface TeacherViewProps {
   activeSession?: Session | null;

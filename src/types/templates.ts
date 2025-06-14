@@ -1,4 +1,10 @@
 
+import { Student } from './student';
+
+/**
+ * Represents a saved class template.
+ * This corresponds to the 'saved_classes' table with a join on 'saved_class_students'.
+ */
 export interface ClassTemplate {
   id: number;
   class_name: string;
@@ -8,9 +14,4 @@ export interface ClassTemplate {
     student_name: string;
     student_email: string | null;
   }>;
-}
-
-export interface Student {
-  name: string;
-  email: string;
 }

@@ -1,7 +1,9 @@
+
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
-import { ClassTemplate, Student } from './types';
+import { ClassTemplate } from '@/types/templates';
+import { Student } from '@/types/student';
 
 export const useTemplateData = (user: any) => {
   const [templates, setTemplates] = useState<ClassTemplate[]>([]);

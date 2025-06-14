@@ -1,6 +1,8 @@
+
 import { useAuth } from '@/hooks/useAuth';
 import { useTemplateData } from './templates/useTemplateData';
-import { ClassTemplate, Student } from './templates/types';
+import { ClassTemplate } from '@/types/templates';
+import { Student } from '@/types/student';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { validateStudents } from './session/utils';

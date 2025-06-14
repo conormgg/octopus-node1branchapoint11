@@ -1,19 +1,10 @@
-
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { useWhiteboardStateContext } from '@/contexts/WhiteboardStateContext';
+import { Session } from '@/types/session';
 
-interface Session {
-  id: string;
-  title: string;
-  unique_url_slug: string;
-  status: string;
-  created_at: string;
-  teacher_id: string;
-}
-
-export const useSessionManagement = (user: any, isDemoMode: boolean) => {
+export const useSessionManagement = (user: any) => {
   const [activeSession, setActiveSession] = useState<Session | null>(null);
   const [recentSessions, setRecentSessions] = useState<Session[]>([]);
   const [showUrlModal, setShowUrlModal] = useState(false);
@@ -28,7 +19,7 @@ export const useSessionManagement = (user: any, isDemoMode: boolean) => {
   }, [user]);
 
   const fetchRecentSessions = async () => {
-    if (isDemoMode) {
+    if (!user) {
       setRecentSessions([]);
       return;
     }
