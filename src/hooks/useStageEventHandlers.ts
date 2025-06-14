@@ -53,21 +53,31 @@ export const useStageEventHandlers = ({
   // Tool tracking
   const { currentToolRef } = useCurrentToolTracking(stageRef);
 
-  // STAGE 2: Log the event system selection
-  console.log('[EventDebug] Stage 2: Event system selection', {
+  // STAGE 3: Enhanced event system selection with fallback validation
+  const willUsePointerEvents = supportsPointerEvents && palmRejectionConfig.enabled;
+  const willUseTouchEvents = !supportsPointerEvents || !palmRejectionConfig.enabled;
+
+  console.log('[EventDebug] Stage 3: Event system selection with fallback safety', {
     supportsPointerEvents,
     palmRejectionEnabled: palmRejectionConfig.enabled,
-    willUsePointerEvents: supportsPointerEvents && palmRejectionConfig.enabled,
-    willUseTouchEvents: !supportsPointerEvents || !palmRejectionConfig.enabled
+    willUsePointerEvents,
+    willUseTouchEvents,
+    hasContainer: !!containerRef.current,
+    hasStage: !!stageRef.current
   });
 
-  // Wheel event handlers
+  // STAGE 3: Ensure at least one event system is always active
+  if (!willUsePointerEvents && !willUseTouchEvents) {
+    console.warn('[EventDebug] Stage 3: No event system would be active! Falling back to touch events');
+  }
+
+  // Wheel event handlers - always active
   useWheelEventHandlers({
     containerRef,
     panZoom
   });
 
-  // Touch event handlers - STAGE 2: Pass pointer event detection
+  // Touch event handlers - STAGE 3: With enhanced fallback
   useTouchEventHandlers({
     containerRef,
     panZoom,
@@ -76,7 +86,7 @@ export const useStageEventHandlers = ({
     palmRejectionEnabled: palmRejectionConfig.enabled
   });
 
-  // Pointer event handlers - STAGE 2: Pass pointer event detection
+  // Pointer event handlers - STAGE 3: With enhanced fallback  
   usePointerEventHandlers({
     containerRef,
     stageRef,

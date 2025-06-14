@@ -25,43 +25,64 @@ export const useTouchEventHandlers = ({
     const container = containerRef.current;
     if (!container) return;
 
-    // STAGE 2: Only register touch events if we're NOT using pointer events
+    // STAGE 3: Enhanced condition check with fallback safety
     const shouldUseTouchEvents = !supportsPointerEvents || !palmRejectionEnabled;
 
+    // STAGE 3: Wrap handlers in try-catch for error safety
     const handleTouchStart = (e: TouchEvent) => {
-      logEventHandling('touchstart', 'touch', { touches: e.touches.length });
-      e.preventDefault(); // Prevent iOS context menu
-      panZoom.handleTouchStart(e);
+      try {
+        logEventHandling('touchstart', 'touch', { touches: e.touches.length });
+        e.preventDefault(); // Prevent iOS context menu
+        panZoom.handleTouchStart(e);
+      } catch (error) {
+        console.error('[EventDebug] Stage 3: Error in touch start handler:', error);
+      }
     };
 
     const handleTouchMove = (e: TouchEvent) => {
-      logEventHandling('touchmove', 'touch', { touches: e.touches.length });
-      e.preventDefault(); // Prevent scrolling and selection
-      panZoom.handleTouchMove(e);
+      try {
+        logEventHandling('touchmove', 'touch', { touches: e.touches.length });
+        e.preventDefault(); // Prevent scrolling and selection
+        panZoom.handleTouchMove(e);
+      } catch (error) {
+        console.error('[EventDebug] Stage 3: Error in touch move handler:', error);
+      }
     };
 
     const handleTouchEnd = (e: TouchEvent) => {
-      logEventHandling('touchend', 'touch', { touches: e.touches.length });
-      e.preventDefault(); // Prevent default touch behaviors
-      panZoom.handleTouchEnd(e);
+      try {
+        logEventHandling('touchend', 'touch', { touches: e.touches.length });
+        e.preventDefault(); // Prevent default touch behaviors
+        panZoom.handleTouchEnd(e);
+      } catch (error) {
+        console.error('[EventDebug] Stage 3: Error in touch end handler:', error);
+      }
     };
 
-    // STAGE 2: Only add touch event listeners if we should use them
+    // STAGE 3: Add touch event listeners with error handling
     if (shouldUseTouchEvents) {
-      console.log('[EventDebug] Stage 2: Registering touch event listeners (pointer events not used)');
-      container.addEventListener('touchstart', handleTouchStart, { passive: false });
-      container.addEventListener('touchmove', handleTouchMove, { passive: false });
-      container.addEventListener('touchend', handleTouchEnd, { passive: false });
+      try {
+        console.log('[EventDebug] Stage 3: Registering touch event listeners with error boundaries');
+        container.addEventListener('touchstart', handleTouchStart, { passive: false });
+        container.addEventListener('touchmove', handleTouchMove, { passive: false });
+        container.addEventListener('touchend', handleTouchEnd, { passive: false });
+      } catch (error) {
+        console.error('[EventDebug] Stage 3: Failed to register touch events:', error);
+      }
     } else {
-      console.log('[EventDebug] Stage 2: Skipping touch event listeners - using pointer events instead');
+      console.log('[EventDebug] Stage 3: Skipping touch event listeners - pointer events are handling input');
     }
 
     return () => {
-      if (shouldUseTouchEvents) {
-        console.log('[EventDebug] Stage 2: Removing touch event listeners');
-        container.removeEventListener('touchstart', handleTouchStart);
-        container.removeEventListener('touchmove', handleTouchMove);
-        container.removeEventListener('touchend', handleTouchEnd);
+      try {
+        if (shouldUseTouchEvents) {
+          console.log('[EventDebug] Stage 3: Removing touch event listeners');
+          container.removeEventListener('touchstart', handleTouchStart);
+          container.removeEventListener('touchmove', handleTouchMove);
+          container.removeEventListener('touchend', handleTouchEnd);
+        }
+      } catch (error) {
+        console.error('[EventDebug] Stage 3: Error during touch cleanup:', error);
       }
     };
   }, [panZoom.handleTouchStart, panZoom.handleTouchMove, panZoom.handleTouchEnd, logEventHandling, supportsPointerEvents, palmRejectionEnabled]);
