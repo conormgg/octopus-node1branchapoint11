@@ -1,8 +1,6 @@
-
 import { useState, useEffect } from 'react';
 import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
-import { useDemoAuth } from './useDemoAuth';
 
 /**
  * Clears all authentication-related data from localStorage
@@ -21,13 +19,12 @@ const clearAuthLocalStorage = () => {
 };
 
 /**
- * Custom hook for managing authentication state with both real and demo modes
+ * Custom hook for managing authentication state
  */
 export const useAuth = () => {
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
-  const { isDemoMode, demoUser, setDemoMode } = useDemoAuth();
 
   useEffect(() => {
     // Set up auth state listener FIRST
@@ -54,11 +51,6 @@ export const useAuth = () => {
    */
   const signOut = async () => {
     try {
-      // Clear demo mode if active
-      if (isDemoMode) {
-        setDemoMode(false);
-      }
-      
       // Clear local auth state immediately
       setSession(null);
       setUser(null);
@@ -84,21 +76,17 @@ export const useAuth = () => {
       // Fallback: force clear state and redirect anyway
       setSession(null);
       setUser(null);
-      setDemoMode(false);
       window.location.href = '/auth';
     }
   };
 
-  // Return demo user if in demo mode, otherwise return real user
-  const effectiveUser = isDemoMode ? demoUser : user;
-  const isAuthenticated = !!effectiveUser;
+  const isAuthenticated = !!user;
 
   return {
-    user: effectiveUser,
+    user,
     session,
     loading,
     signOut,
     isAuthenticated,
-    isDemoMode,
   };
 };

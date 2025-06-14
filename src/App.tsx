@@ -1,4 +1,3 @@
-
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -85,7 +84,7 @@ const TeacherSessionWrapper = ({ children }: { children: React.ReactNode }) => {
 };
 
 const TeacherRoutes = () => {
-  const { user, loading, isDemoMode } = useAuth();
+  const { user, loading } = useAuth();
 
   // Show loading state during auth check
   if (loading) {
@@ -103,7 +102,7 @@ const TeacherRoutes = () => {
     <SessionProvider>
       <TeacherSessionWrapper>
         <Routes>
-          {(user || isDemoMode) ? (
+          {user ? (
             <>
               <Route path="/dashboard" element={<TeacherDashboard />} />
               <Route path="/auth" element={<Navigate to="/dashboard" replace />} />
@@ -136,9 +135,7 @@ const RouteDispatcher = () => {
 
   // For all other routes, use full teacher app with authentication
   return (
-    <DemoAuthProvider>
-      <TeacherRoutes />
-    </DemoAuthProvider>
+    <TeacherRoutes />
   );
 };
 

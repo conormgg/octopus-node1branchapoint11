@@ -1,4 +1,3 @@
-
 import React, { useEffect } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { useSessionManagement } from '@/hooks/useSessionManagement';
@@ -10,7 +9,7 @@ import TeacherView from '../TeacherView';
 import { LogOut, Plus, History } from 'lucide-react';
 
 const TeacherDashboard: React.FC = () => {
-  const { user, signOut, isDemoMode } = useAuth();
+  const { user, signOut } = useAuth();
   const { setCurrentSessionId } = useSessionContext();
 
   const {
@@ -21,7 +20,7 @@ const TeacherDashboard: React.FC = () => {
     handleEndSession,
     resumeSession,
     handleCloseUrlModal,
-  } = useSessionManagement(user, isDemoMode);
+  } = useSessionManagement(user, false);
 
   // Update session context when active session changes
   useEffect(() => {
@@ -56,8 +55,7 @@ const TeacherDashboard: React.FC = () => {
             <div>
               <h1 className="text-3xl font-bold text-gray-900">Dashboard</h1>
               <p className="text-gray-600">
-                Welcome back, {isDemoMode ? 'Demo Teacher' : user?.user_metadata?.full_name || user?.email}
-                {isDemoMode && <span className="ml-2 text-blue-600 font-medium">(Demo Mode)</span>}
+                Welcome back, {user?.user_metadata?.full_name || user?.email}
               </p>
             </div>
           </div>
