@@ -1,4 +1,3 @@
-
 import { useAuth } from '@/hooks/useAuth';
 import { useTemplateData } from './templates/useTemplateData';
 import { ClassTemplate, Student } from './templates/types';
@@ -7,15 +6,15 @@ import { useToast } from '@/hooks/use-toast';
 import { validateStudents } from './session/utils';
 
 export const useClassTemplates = () => {
-  const { user, isDemoMode } = useAuth();
-  const { templates, isLoading, loadTemplate, refreshTemplates } = useTemplateData(user, isDemoMode);
+  const { user } = useAuth();
+  const { templates, isLoading, loadTemplate, refreshTemplates } = useTemplateData(user);
   const { toast } = useToast();
 
   const saveTemplate = async (templateName: string, students: Student[], duration?: number | ''): Promise<ClassTemplate | null> => {
-    if (isDemoMode || !user) {
+    if (!user) {
       toast({
-        title: "Demo Mode",
-        description: "Template saving is not available in demo mode.",
+        title: "Authentication Error",
+        description: "You must be logged in to save templates.",
         variant: "destructive",
       });
       return null;
@@ -75,10 +74,10 @@ export const useClassTemplates = () => {
     students: Student[], 
     duration?: number | ''
   ): Promise<{ success: boolean, updatedTemplate?: ClassTemplate, refreshedTemplates?: ClassTemplate[] }> => {
-    if (isDemoMode || !user) {
+    if (!user) {
       toast({
-        title: "Demo Mode",
-        description: "Template updating is not available in demo mode.",
+        title: "Authentication Error",
+        description: "You must be logged in to update templates.",
         variant: "destructive",
       });
       return { success: false };
@@ -138,10 +137,10 @@ export const useClassTemplates = () => {
   };
 
   const deleteTemplate = async (templateId: number, templateName: string) => {
-    if (isDemoMode || !user) {
+    if (!user) {
       toast({
-        title: "Demo Mode",
-        description: "Template deletion is not available in demo mode.",
+        title: "Authentication Error",
+        description: "You must be logged in to delete templates.",
         variant: "destructive",
       });
       return false;

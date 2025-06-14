@@ -4,7 +4,6 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
-import { DemoAuthProvider } from "@/hooks/useDemoAuth";
 import { WhiteboardStateProvider } from "@/contexts/WhiteboardStateContext";
 import { SessionExpirationProvider } from "@/contexts/sessionExpiration";
 import { SessionProvider, useSessionContext } from "@/contexts/SessionContext";
