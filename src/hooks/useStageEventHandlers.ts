@@ -47,37 +47,28 @@ export const useStageEventHandlers = ({
   // Event debugging utilities
   const { logEventHandling } = useEventDebug(palmRejectionConfig);
   
-  // Feature detection
+  // Feature detection for pointer events
   const { supportsPointerEvents } = usePointerEventDetection();
   
   // Tool tracking
   const { currentToolRef } = useCurrentToolTracking(stageRef);
 
-  // STAGE 3: Enhanced event system selection with fallback validation
-  const willUsePointerEvents = supportsPointerEvents && palmRejectionConfig.enabled;
-  const willUseTouchEvents = !supportsPointerEvents || !palmRejectionConfig.enabled;
+  /**
+   * Event system selection logic:
+   * - Use pointer events when palm rejection is enabled AND the device supports them
+   * - Fall back to touch events when palm rejection is disabled OR pointer events aren't supported
+   * - This prevents duplicate event handling while ensuring all devices work
+   */
+  const usePointerEvents = supportsPointerEvents && palmRejectionConfig.enabled;
+  const useTouchEvents = !usePointerEvents;
 
-  console.log('[EventDebug] Stage 3: Event system selection with fallback safety', {
-    supportsPointerEvents,
-    palmRejectionEnabled: palmRejectionConfig.enabled,
-    willUsePointerEvents,
-    willUseTouchEvents,
-    hasContainer: !!containerRef.current,
-    hasStage: !!stageRef.current
-  });
-
-  // STAGE 3: Ensure at least one event system is always active
-  if (!willUsePointerEvents && !willUseTouchEvents) {
-    console.warn('[EventDebug] Stage 3: No event system would be active! Falling back to touch events');
-  }
-
-  // Wheel event handlers - always active
+  // Wheel event handlers - always active for pan/zoom
   useWheelEventHandlers({
     containerRef,
     panZoom
   });
 
-  // Touch event handlers - STAGE 3: With enhanced fallback
+  // Touch event handlers - active when pointer events are not used
   useTouchEventHandlers({
     containerRef,
     panZoom,
@@ -86,7 +77,7 @@ export const useStageEventHandlers = ({
     palmRejectionEnabled: palmRejectionConfig.enabled
   });
 
-  // Pointer event handlers - STAGE 3: With enhanced fallback  
+  // Pointer event handlers - active when palm rejection is enabled and supported
   usePointerEventHandlers({
     containerRef,
     stageRef,
