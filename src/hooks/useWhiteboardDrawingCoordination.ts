@@ -28,21 +28,24 @@ export const useWhiteboardDrawingCoordination = (
   // Memoize current tool to prevent unnecessary re-initializations
   const stableCurrentTool = useMemo(() => state?.currentTool || 'pencil', [state?.currentTool]);
 
-  // Drawing operations (pencil and highlighter) - memoized to prevent re-creation
+  // Call hooks at the top level - this is required by Rules of Hooks
+  const drawingState = useDrawingState(state, setState, addToHistory);
+  const eraserState = useEraserState(state, setState, addToHistory);
+
+  // Memoize the operations to prevent unnecessary re-renders
   const drawingOperations = useMemo(() => {
     if (!state || !setState || !addToHistory) {
       return { startDrawing: () => {}, continueDrawing: () => {}, stopDrawing: () => {} };
     }
-    return useDrawingState(state, setState, addToHistory);
-  }, [state, setState, addToHistory]);
+    return drawingState;
+  }, [drawingState, state, setState, addToHistory]);
 
-  // Eraser operations - memoized to prevent re-creation
   const eraserOperations = useMemo(() => {
     if (!state || !setState || !addToHistory) {
       return { startErasing: () => {}, continueErasing: () => {}, stopErasing: () => {} };
     }
-    return useEraserState(state, setState, addToHistory);
-  }, [state, setState, addToHistory]);
+    return eraserState;
+  }, [eraserState, state, setState, addToHistory]);
 
   // Destructure with stable references
   const { startDrawing, continueDrawing, stopDrawing } = drawingOperations;
