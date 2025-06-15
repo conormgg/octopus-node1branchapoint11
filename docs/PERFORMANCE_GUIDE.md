@@ -1,6 +1,42 @@
 
 # Performance Optimization Guide
 
+## Performance Dashboard
+
+### Accessing the Dashboard
+
+In development mode, you can access the real-time performance dashboard:
+
+```javascript
+// Show the performance dashboard
+window.debug.showPerformanceDashboard()
+
+// Hide the performance dashboard
+window.debug.hidePerformanceDashboard()
+
+// Check if dashboard is visible
+window.debug.isPerformanceDashboardVisible()
+```
+
+### Dashboard Features
+
+The performance dashboard provides:
+
+- **Overview Tab**: Real-time performance metrics and health scores
+- **Metrics Tab**: Detailed performance measurements across all operations
+- **Layer Optimization Tab**: Canvas layer optimization insights and recommendations
+- **Opportunities Tab**: Actionable performance improvement suggestions
+- **Recommendations Tab**: Priority-ordered optimization recommendations
+
+### Key Metrics Monitored
+
+- **Drawing Operations**: Stroke rendering performance and timing
+- **Image Operations**: Image loading, rendering, and manipulation metrics
+- **Sync Operations**: Real-time collaboration performance
+- **Memory Usage**: JavaScript heap usage and memory optimization
+- **Frame Rate**: Canvas rendering performance (FPS tracking)
+- **Layer Optimization**: Cache hit rates and rendering efficiency
+
 ## Canvas Performance
 
 ### 1. Object Virtualization
@@ -34,7 +70,23 @@ Separate static and dynamic content into different layers:
 </Stage>
 ```
 
-### 3. Stroke Simplification
+### 3. Performance Monitoring Integration
+
+The system automatically monitors performance across all operations:
+
+```typescript
+// Performance monitoring is automatically enabled for:
+// - Drawing operations (stroke creation, rendering)
+// - Image operations (upload, resize, transformation)
+// - Sync operations (real-time collaboration)
+// - Memory usage (heap monitoring)
+// - Canvas rendering (FPS tracking)
+
+// Access current metrics programmatically
+const metrics = window.debug.getPerformanceMetrics?.();
+```
+
+### 4. Stroke Simplification
 
 Reduce point density for smoother performance:
 
@@ -212,7 +264,20 @@ const useCanvasScaling = (canvasRef: RefObject<HTMLCanvasElement>) => {
 
 ## Debugging Performance Issues
 
-### 1. Performance Monitoring
+### 1. Real-time Performance Dashboard
+
+Use the integrated performance dashboard for live monitoring:
+
+```typescript
+// Open dashboard in development
+window.debug.showPerformanceDashboard()
+
+// Enable specific debugging subsystems
+window.debug.enableDebug('layerOptimization')
+window.debug.enableDebug('performanceMetrics')
+```
+
+### 2. Performance Monitoring Hooks
 
 ```typescript
 const usePerformanceMonitoring = () => {
@@ -242,7 +307,7 @@ const usePerformanceMonitoring = () => {
 };
 ```
 
-### 2. Memory Leak Detection
+### 3. Memory Leak Detection
 
 ```typescript
 const useMemoryMonitoring = () => {
@@ -264,7 +329,7 @@ const useMemoryMonitoring = () => {
 };
 ```
 
-### 3. Render Profiling
+### 4. Render Profiling
 
 ```typescript
 const useRenderProfiling = (componentName: string) => {
@@ -284,10 +349,33 @@ const useRenderProfiling = (componentName: string) => {
 
 ## Best Practices Summary
 
-1. **Minimize Re-renders**: Use `memo`, `useMemo`, and `useCallback` appropriately
-2. **Efficient Data Structures**: Use Maps and Sets for lookups instead of arrays
-3. **Lazy Loading**: Load images and resources only when needed
-4. **Event Debouncing**: Batch rapid events to reduce processing overhead
-5. **Progressive Enhancement**: Start with basic functionality, add advanced features progressively
-6. **Monitor Performance**: Use browser dev tools and custom metrics to identify bottlenecks
-7. **Test on Real Devices**: Performance varies significantly across devices and browsers
+1. **Use the Performance Dashboard**: Monitor real-time metrics in development
+2. **Minimize Re-renders**: Use `memo`, `useMemo`, and `useCallback` appropriately
+3. **Efficient Data Structures**: Use Maps and Sets for lookups instead of arrays
+4. **Lazy Loading**: Load images and resources only when needed
+5. **Event Debouncing**: Batch rapid events to reduce processing overhead
+6. **Progressive Enhancement**: Start with basic functionality, add advanced features progressively
+7. **Monitor Performance**: Use browser dev tools and the integrated dashboard
+8. **Test on Real Devices**: Performance varies significantly across devices and browsers
+9. **Layer Optimization**: Leverage the automatic layer caching system
+10. **Debug Systematically**: Use the debug system to isolate performance issues
+
+## Troubleshooting Common Issues
+
+### High Memory Usage
+1. Open performance dashboard
+2. Check memory metrics tab
+3. Look for memory leak patterns
+4. Use `window.debug.enableDebug('memoryMonitor')` for detailed logging
+
+### Low Frame Rate
+1. Monitor FPS in dashboard overview
+2. Check layer optimization recommendations
+3. Enable `layerOptimization` debugging
+4. Consider reducing object complexity
+
+### Slow Drawing Operations
+1. Check drawing operations metrics
+2. Review stroke simplification settings
+3. Monitor cache hit rates
+4. Consider adaptive quality adjustments
