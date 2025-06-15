@@ -1,5 +1,5 @@
 
-import { useCallback } from 'react';
+import { useCallback, useMemo } from 'react';
 import { Tool } from '@/types/whiteboard';
 import { useDrawingState } from './useDrawingState';
 import { useEraserState } from './useEraserState';
@@ -25,54 +25,57 @@ export const useWhiteboardDrawingCoordination = (
   setState: any,
   addToHistory: () => void
 ) => {
-  // Drawing operations (pencil and highlighter)
-  const {
-    startDrawing,
-    continueDrawing,
-    stopDrawing
-  } = useDrawingState(state, setState, addToHistory);
+  // Memoize current tool to prevent unnecessary re-initializations
+  const stableCurrentTool = useMemo(() => state.currentTool, [state.currentTool]);
 
-  // Eraser operations
-  const {
-    startErasing,
-    continueErasing,
-    stopErasing
-  } = useEraserState(state, setState, addToHistory);
+  // Drawing operations (pencil and highlighter) - memoized to prevent re-creation
+  const drawingOperations = useMemo(() => {
+    return useDrawingState(state, setState, addToHistory);
+  }, [state, setState, addToHistory]);
+
+  // Eraser operations - memoized to prevent re-creation
+  const eraserOperations = useMemo(() => {
+    return useEraserState(state, setState, addToHistory);
+  }, [state, setState, addToHistory]);
+
+  // Destructure with stable references
+  const { startDrawing, continueDrawing, stopDrawing } = drawingOperations;
+  const { startErasing, continueErasing, stopErasing } = eraserOperations;
 
   // Coordinate drawing start based on tool
   const handleDrawingStart = useCallback((x: number, y: number) => {
-    debugLog('Start', 'Drawing start requested', { x, y, tool: state.currentTool });
+    debugLog('Start', 'Drawing start requested', { x, y, tool: stableCurrentTool });
     
-    if (state.currentTool === 'pencil' || state.currentTool === 'highlighter') {
+    if (stableCurrentTool === 'pencil' || stableCurrentTool === 'highlighter') {
       debugLog('Drawing', 'Starting drawing operation');
       startDrawing(x, y);
-    } else if (state.currentTool === 'eraser') {
+    } else if (stableCurrentTool === 'eraser') {
       debugLog('Eraser', 'Starting eraser operation');
       startErasing(x, y);
     }
-  }, [state.currentTool, startDrawing, startErasing]);
+  }, [stableCurrentTool, startDrawing, startErasing]);
 
   // Coordinate drawing continuation based on tool
   const handleDrawingContinue = useCallback((x: number, y: number) => {
-    if (state.currentTool === 'pencil' || state.currentTool === 'highlighter') {
+    if (stableCurrentTool === 'pencil' || stableCurrentTool === 'highlighter') {
       debugLog('Drawing', 'Continuing drawing operation');
       continueDrawing(x, y);
-    } else if (state.currentTool === 'eraser') {
+    } else if (stableCurrentTool === 'eraser') {
       debugLog('Eraser', 'Continuing eraser operation');
       continueErasing(x, y);
     }
-  }, [state.currentTool, continueDrawing, continueErasing]);
+  }, [stableCurrentTool, continueDrawing, continueErasing]);
 
   // Coordinate drawing end based on tool
   const handleDrawingEnd = useCallback(() => {
-    if (state.currentTool === 'pencil' || state.currentTool === 'highlighter') {
+    if (stableCurrentTool === 'pencil' || stableCurrentTool === 'highlighter') {
       debugLog('Drawing', 'Finishing drawing operation');
       stopDrawing();
-    } else if (state.currentTool === 'eraser') {
+    } else if (stableCurrentTool === 'eraser') {
       debugLog('Eraser', 'Finishing eraser operation');
       stopErasing();
     }
-  }, [state.currentTool, stopDrawing, stopErasing]);
+  }, [stableCurrentTool, stopDrawing, stopErasing]);
 
   return {
     handleDrawingStart,

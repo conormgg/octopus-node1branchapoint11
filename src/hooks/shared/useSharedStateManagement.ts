@@ -1,9 +1,9 @@
 
-import { useCallback } from 'react';
+import { useCallback, useMemo } from 'react';
 import { Tool, PanZoomState } from '@/types/whiteboard';
 
 export const useSharedStateManagement = (setState: any) => {
-  // Pan/zoom state management
+  // Pan/zoom state management - memoized to prevent unnecessary re-renders
   const setPanZoomState = useCallback((panZoomState: PanZoomState) => {
     setState((prev: any) => ({
       ...prev,
@@ -11,7 +11,7 @@ export const useSharedStateManagement = (setState: any) => {
     }));
   }, [setState]);
 
-  // Tool change with settings sync
+  // Tool change with settings sync - memoized to prevent re-creation
   const setTool = useCallback((tool: Tool) => {
     setState((prev: any) => {
       let newColor = prev.currentColor;
@@ -35,7 +35,7 @@ export const useSharedStateManagement = (setState: any) => {
     });
   }, [setState]);
 
-  // Color change
+  // Color change - memoized to prevent re-creation
   const setColor = useCallback((color: string) => {
     setState((prev: any) => ({
       ...prev,
@@ -43,7 +43,7 @@ export const useSharedStateManagement = (setState: any) => {
     }));
   }, [setState]);
 
-  // Pencil-specific color change with auto-switching
+  // Pencil-specific color change with auto-switching - memoized
   const setPencilColor = useCallback((color: string) => {
     setState((prev: any) => ({
       ...prev,
@@ -54,7 +54,7 @@ export const useSharedStateManagement = (setState: any) => {
     }));
   }, [setState]);
 
-  // Highlighter-specific color change with auto-switching
+  // Highlighter-specific color change with auto-switching - memoized
   const setHighlighterColor = useCallback((color: string) => {
     setState((prev: any) => ({
       ...prev,
@@ -65,7 +65,7 @@ export const useSharedStateManagement = (setState: any) => {
     }));
   }, [setState]);
 
-  // Stroke width change with tool-specific storage
+  // Stroke width change with tool-specific storage - memoized
   const setStrokeWidth = useCallback((width: number) => {
     setState((prev: any) => {
       const newState = {
@@ -84,12 +84,13 @@ export const useSharedStateManagement = (setState: any) => {
     });
   }, [setState]);
 
-  return {
+  // Memoize the returned object to prevent unnecessary re-renders
+  return useMemo(() => ({
     setPanZoomState,
     setTool,
     setColor,
     setPencilColor,
     setHighlighterColor,
     setStrokeWidth
-  };
+  }), [setPanZoomState, setTool, setColor, setPencilColor, setHighlighterColor, setStrokeWidth]);
 };

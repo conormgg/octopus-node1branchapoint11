@@ -1,5 +1,5 @@
 
-import { useCallback } from 'react';
+import { useCallback, useMemo } from 'react';
 
 const DEBUG_ENABLED = process.env.NODE_ENV === 'development';
 
@@ -23,9 +23,15 @@ export const useWhiteboardPointerHandlers = (
   selection: any,
   drawingCoordination: any
 ) => {
+  // Memoize stable references to prevent unnecessary re-renders
+  const stableSelectionState = useMemo(() => selection.selectionState, [selection.selectionState]);
+  const stableCurrentTool = useMemo(() => state.currentTool, [state.currentTool]);
+  const stableLines = useMemo(() => state.lines, [state.lines]);
+  const stableImages = useMemo(() => state.images, [state.images]);
+
   // Handle pointer down
   const handlePointerDown = useCallback((x: number, y: number) => {
-    debugLog('Pointer', 'Pointer down', { x, y, tool: state.currentTool });
+    debugLog('Pointer', 'Pointer down', { x, y, tool: stableCurrentTool });
     
     // Don't start drawing if a pan/zoom gesture is active
     if (panZoom.isGestureActive()) {
@@ -33,9 +39,9 @@ export const useWhiteboardPointerHandlers = (
       return;
     }
     
-    if (state.currentTool === 'pencil' || state.currentTool === 'highlighter' || state.currentTool === 'eraser') {
+    if (stableCurrentTool === 'pencil' || stableCurrentTool === 'highlighter' || stableCurrentTool === 'eraser') {
       drawingCoordination.handleDrawingStart(x, y);
-    } else if (state.currentTool === 'select') {
+    } else if (stableCurrentTool === 'select') {
       // Handle selection logic with priority:
       // 1. Check if clicking within existing selection bounds (for group dragging)
       // 2. Check if clicking on individual objects
@@ -43,7 +49,7 @@ export const useWhiteboardPointerHandlers = (
       
       const isInSelectionBounds = selection.isPointInSelectionBounds({ x, y });
       
-      if (isInSelectionBounds && selection.selectionState.selectedObjects.length > 0) {
+      if (isInSelectionBounds && stableSelectionState.selectedObjects.length > 0) {
         debugLog('Selection', 'Clicked within selection bounds');
         // Clicking within selection bounds - this will allow dragging the entire group
         // The actual dragging logic will be handled by the SelectionGroup component
@@ -52,7 +58,7 @@ export const useWhiteboardPointerHandlers = (
       }
       
       // Check for individual objects
-      const foundObjects = selection.findObjectsAtPoint({ x, y }, state.lines, state.images);
+      const foundObjects = selection.findObjectsAtPoint({ x, y }, stableLines, stableImages);
       
       if (foundObjects.length > 0) {
         debugLog('Selection', 'Found objects at point', { count: foundObjects.length });
@@ -60,7 +66,7 @@ export const useWhiteboardPointerHandlers = (
         selection.selectObjects([foundObjects[0]]);
         // Update selection bounds for the selected object
         setTimeout(() => {
-          selection.updateSelectionBounds([foundObjects[0]], state.lines, state.images);
+          selection.updateSelectionBounds([foundObjects[0]], stableLines, stableImages);
         }, 0);
       } else {
         debugLog('Selection', 'Starting drag-to-select');
@@ -71,18 +77,18 @@ export const useWhiteboardPointerHandlers = (
         selection.setSelectionBounds({ x, y, width: 0, height: 0 });
       }
     }
-  }, [state.currentTool, state.lines, state.images, panZoom, selection, drawingCoordination]);
+  }, [stableCurrentTool, stableLines, stableImages, stableSelectionState.selectedObjects.length, panZoom, selection, drawingCoordination]);
 
   // Handle pointer move
   const handlePointerMove = useCallback((x: number, y: number) => {
     // Don't continue drawing if a pan/zoom gesture is active
     if (panZoom.isGestureActive()) return;
     
-    if (state.currentTool === 'pencil' || state.currentTool === 'highlighter' || state.currentTool === 'eraser') {
+    if (stableCurrentTool === 'pencil' || stableCurrentTool === 'highlighter' || stableCurrentTool === 'eraser') {
       drawingCoordination.handleDrawingContinue(x, y);
-    } else if (state.currentTool === 'select' && selection.selectionState.isSelecting) {
+    } else if (stableCurrentTool === 'select' && stableSelectionState.isSelecting) {
       // Update drag-to-select rectangle
-      const bounds = selection.selectionState.selectionBounds;
+      const bounds = stableSelectionState.selectionBounds;
       if (bounds) {
         const newBounds = {
           x: Math.min(bounds.x, x),
@@ -93,22 +99,22 @@ export const useWhiteboardPointerHandlers = (
         selection.setSelectionBounds(newBounds);
       }
     }
-  }, [state.currentTool, panZoom, selection, drawingCoordination]);
+  }, [stableCurrentTool, stableSelectionState.isSelecting, stableSelectionState.selectionBounds, panZoom, selection, drawingCoordination]);
 
   // Handle pointer up
   const handlePointerUp = useCallback(() => {
-    if (state.currentTool === 'pencil' || state.currentTool === 'highlighter' || state.currentTool === 'eraser') {
+    if (stableCurrentTool === 'pencil' || stableCurrentTool === 'highlighter' || stableCurrentTool === 'eraser') {
       drawingCoordination.handleDrawingEnd();
-    } else if (state.currentTool === 'select' && selection.selectionState.isSelecting) {
+    } else if (stableCurrentTool === 'select' && stableSelectionState.isSelecting) {
       // Complete drag-to-select
-      const bounds = selection.selectionState.selectionBounds;
+      const bounds = stableSelectionState.selectionBounds;
       if (bounds && (bounds.width > 5 || bounds.height > 5)) {
         // Find objects within selection bounds
-        const objectsInBounds = selection.findObjectsInBounds(bounds, state.lines, state.images);
+        const objectsInBounds = selection.findObjectsInBounds(bounds, stableLines, stableImages);
         selection.selectObjects(objectsInBounds);
         // Update selection bounds for the selected objects
         setTimeout(() => {
-          selection.updateSelectionBounds(objectsInBounds, state.lines, state.images);
+          selection.updateSelectionBounds(objectsInBounds, stableLines, stableImages);
         }, 0);
       }
       
@@ -116,7 +122,7 @@ export const useWhiteboardPointerHandlers = (
       selection.setIsSelecting(false);
       selection.setSelectionBounds(null);
     }
-  }, [state.currentTool, state.lines, state.images, selection, drawingCoordination]);
+  }, [stableCurrentTool, stableLines, stableImages, stableSelectionState.isSelecting, stableSelectionState.selectionBounds, selection, drawingCoordination]);
 
   return {
     handlePointerDown,

@@ -1,5 +1,5 @@
 
-import { useCallback } from 'react';
+import { useCallback, useMemo } from 'react';
 import { Tool } from '@/types/whiteboard';
 import { SyncConfig } from '@/types/sync';
 
@@ -15,16 +15,23 @@ export const useSharedPointerHandlers = (
   panZoom: any,
   selection?: any
 ) => {
+  // Memoize stable references to prevent unnecessary re-renders
+  const isReceiveOnly = useMemo(() => syncConfig?.isReceiveOnly, [syncConfig?.isReceiveOnly]);
+  const stableCurrentTool = useMemo(() => state.currentTool, [state.currentTool]);
+  const stableLines = useMemo(() => state.lines, [state.lines]);
+  const stableImages = useMemo(() => state.images, [state.images]);
+  const stableSelectionState = useMemo(() => selection?.selectionState, [selection?.selectionState]);
+
   // Handle pointer down - for drawing and selection operations
   const handlePointerDown = useCallback((x: number, y: number) => {
     // Don't allow operations in receive-only mode or during pan/zoom gestures
-    if (syncConfig?.isReceiveOnly || panZoom.isGestureActive()) return;
+    if (isReceiveOnly || panZoom.isGestureActive()) return;
     
-    if (state.currentTool === 'pencil' || state.currentTool === 'highlighter') {
+    if (stableCurrentTool === 'pencil' || stableCurrentTool === 'highlighter') {
       startDrawing(x, y);
-    } else if (state.currentTool === 'eraser') {
+    } else if (stableCurrentTool === 'eraser') {
       startErasing(x, y);
-    } else if (state.currentTool === 'select' && selection) {
+    } else if (stableCurrentTool === 'select' && selection) {
       // Handle selection logic with priority and safety checks:
       // 1. Check if clicking within existing selection bounds (for group dragging)
       // 2. Check if clicking on individual objects
@@ -33,7 +40,7 @@ export const useSharedPointerHandlers = (
       if (selection.isPointInSelectionBounds && selection.findObjectsAtPoint && selection.selectObjects && selection.setIsSelecting && selection.setSelectionBounds && selection.clearSelection) {
         const isInSelectionBounds = selection.isPointInSelectionBounds({ x, y });
         
-        if (isInSelectionBounds && selection.selectionState?.selectedObjects?.length > 0) {
+        if (isInSelectionBounds && stableSelectionState?.selectedObjects?.length > 0) {
           // Clicking within selection bounds - this will allow dragging the entire group
           // The actual dragging logic will be handled by the SelectionGroup component
           // We don't need to change the selection here, just maintain it
@@ -41,7 +48,7 @@ export const useSharedPointerHandlers = (
         }
         
         // Check for individual objects
-        const foundObjects = selection.findObjectsAtPoint({ x, y }, state.lines, state.images);
+        const foundObjects = selection.findObjectsAtPoint({ x, y }, stableLines, stableImages);
         
         if (foundObjects.length > 0) {
           // Select the first found object
@@ -55,21 +62,21 @@ export const useSharedPointerHandlers = (
         }
       }
     }
-  }, [state.currentTool, state.lines, state.images, startDrawing, startErasing, syncConfig?.isReceiveOnly, panZoom, selection]);
+  }, [stableCurrentTool, stableLines, stableImages, stableSelectionState?.selectedObjects?.length, startDrawing, startErasing, isReceiveOnly, panZoom, selection]);
 
   // Handle pointer move - for drawing and selection operations
   const handlePointerMove = useCallback((x: number, y: number) => {
     // Don't allow operations in receive-only mode or during pan/zoom gestures
-    if (syncConfig?.isReceiveOnly || panZoom.isGestureActive()) return;
+    if (isReceiveOnly || panZoom.isGestureActive()) return;
     
-    if (state.currentTool === 'pencil' || state.currentTool === 'highlighter') {
+    if (stableCurrentTool === 'pencil' || stableCurrentTool === 'highlighter') {
       continueDrawing(x, y);
-    } else if (state.currentTool === 'eraser') {
+    } else if (stableCurrentTool === 'eraser') {
       continueErasing(x, y);
-    } else if (state.currentTool === 'select' && selection && selection.selectionState?.isSelecting) {
+    } else if (stableCurrentTool === 'select' && selection && stableSelectionState?.isSelecting) {
       // Update drag-to-select rectangle with safety checks
-      if (selection.setSelectionBounds && selection.selectionState.selectionBounds) {
-        const bounds = selection.selectionState.selectionBounds;
+      if (selection.setSelectionBounds && stableSelectionState.selectionBounds) {
+        const bounds = stableSelectionState.selectionBounds;
         const newBounds = {
           x: Math.min(bounds.x, x),
           y: Math.min(bounds.y, y),
@@ -79,24 +86,24 @@ export const useSharedPointerHandlers = (
         selection.setSelectionBounds(newBounds);
       }
     }
-  }, [state.currentTool, continueDrawing, continueErasing, syncConfig?.isReceiveOnly, panZoom, selection]);
+  }, [stableCurrentTool, stableSelectionState?.isSelecting, stableSelectionState?.selectionBounds, continueDrawing, continueErasing, isReceiveOnly, panZoom, selection]);
 
   // Handle pointer up - for drawing and selection operations
   const handlePointerUp = useCallback(() => {
     // Don't allow operations in receive-only mode
-    if (syncConfig?.isReceiveOnly) return;
+    if (isReceiveOnly) return;
     
-    if (state.currentTool === 'pencil' || state.currentTool === 'highlighter') {
+    if (stableCurrentTool === 'pencil' || stableCurrentTool === 'highlighter') {
       stopDrawing();
-    } else if (state.currentTool === 'eraser') {
+    } else if (stableCurrentTool === 'eraser') {
       stopErasing();
-    } else if (state.currentTool === 'select' && selection && selection.selectionState?.isSelecting) {
+    } else if (stableCurrentTool === 'select' && selection && stableSelectionState?.isSelecting) {
       // Complete drag-to-select with safety checks
       if (selection.setIsSelecting && selection.setSelectionBounds && selection.findObjectsInBounds && selection.selectObjects) {
-        const bounds = selection.selectionState.selectionBounds;
+        const bounds = stableSelectionState.selectionBounds;
         if (bounds && (bounds.width > 5 || bounds.height > 5)) {
           // Find objects within selection bounds
-          const objectsInBounds = selection.findObjectsInBounds(bounds, state.lines, state.images);
+          const objectsInBounds = selection.findObjectsInBounds(bounds, stableLines, stableImages);
           selection.selectObjects(objectsInBounds);
         }
         
@@ -105,7 +112,7 @@ export const useSharedPointerHandlers = (
         selection.setSelectionBounds(null);
       }
     }
-  }, [state.currentTool, state.lines, state.images, stopDrawing, stopErasing, syncConfig?.isReceiveOnly, selection]);
+  }, [stableCurrentTool, stableLines, stableImages, stableSelectionState?.isSelecting, stableSelectionState?.selectionBounds, stopDrawing, stopErasing, isReceiveOnly, selection]);
 
   return {
     handlePointerDown,

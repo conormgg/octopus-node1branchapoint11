@@ -1,5 +1,5 @@
 
-import { useCallback } from 'react';
+import { useCallback, useMemo } from 'react';
 import Konva from 'konva';
 import { useStageCoordinates } from '@/hooks/useStageCoordinates';
 import { Tool, PanZoomState } from '@/types/whiteboard';
@@ -35,14 +35,19 @@ export const useMouseEventHandlers = ({
 }: UseMouseEventHandlersProps) => {
   const { getRelativePointerPosition } = useStageCoordinates(panZoomState);
 
+  // Memoize stable values to prevent unnecessary re-renders
+  const stableCurrentTool = useMemo(() => currentTool, [currentTool]);
+  const stablePalmRejectionEnabled = useMemo(() => palmRejectionConfig.enabled, [palmRejectionConfig.enabled]);
+  const stableIsReadOnly = useMemo(() => isReadOnly, [isReadOnly]);
+
   const logMouseEvent = useCallback((eventType: string, e: any) => {
     console.log(`[EventDebug] ${eventType} from mouse`, {
       button: e.evt.button,
       buttons: e.evt.buttons,
-      currentTool,
-      palmRejectionEnabled: palmRejectionConfig.enabled
+      currentTool: stableCurrentTool,
+      palmRejectionEnabled: stablePalmRejectionEnabled
     });
-  }, [currentTool, palmRejectionConfig.enabled]);
+  }, [stableCurrentTool, stablePalmRejectionEnabled]);
 
   const handleMouseDown = useCallback((e: Konva.KonvaEventObject<MouseEvent>) => {
     logMouseEvent('mousedown', e);
@@ -58,7 +63,7 @@ export const useMouseEventHandlers = ({
     }
     
     // Handle selection tool clicks
-    if (currentTool === 'select' && selection && !isReadOnly) {
+    if (stableCurrentTool === 'select' && selection && !stableIsReadOnly) {
       // Check if we clicked on a line or image
       const clickedShape = e.target;
       if (clickedShape && clickedShape !== e.target.getStage()) {
@@ -68,26 +73,27 @@ export const useMouseEventHandlers = ({
       }
       // For empty space clicks with select tool, let handlePointerDown handle it
       // so that drag-to-select can work
-    } else if (onStageClick && currentTool !== 'select') {
+    } else if (onStageClick && stableCurrentTool !== 'select') {
       // Call the stage click handler for other tools
       onStageClick(e);
     }
     
     // Only proceed with drawing/selection if not in read-only mode or palm rejection is disabled
-    if (isReadOnly || (palmRejectionConfig.enabled && currentTool !== 'select')) return;
+    if (stableIsReadOnly || (stablePalmRejectionEnabled && stableCurrentTool !== 'select')) return;
     
     const stage = e.target.getStage();
     if (!stage) return;
 
     const { x, y } = getRelativePointerPosition(stage, e.evt.clientX, e.evt.clientY);
     handlePointerDown(x, y);
-  }, [logMouseEvent, panZoom, selection, currentTool, isReadOnly, onStageClick, palmRejectionConfig.enabled, getRelativePointerPosition, handlePointerDown]);
+  }, [logMouseEvent, panZoom, selection, stableCurrentTool, stableIsReadOnly, onStageClick, stablePalmRejectionEnabled, getRelativePointerPosition, handlePointerDown]);
 
   const handleMouseMove = useCallback((e: Konva.KonvaEventObject<MouseEvent>) => {
     logMouseEvent('mousemove', e);
     
     // Handle right-click pan - works for everyone, including read-only users
     if (e.evt.buttons === 2) {
+      e.preventDefault();
       panZoom.continuePan(e.evt.clientX, e.evt.clientY);
       // Clear hover state during pan to prevent jerky behavior
       if (selection?.setHoveredObjectId) {
@@ -97,14 +103,14 @@ export const useMouseEventHandlers = ({
     }
     
     // Only proceed with drawing/selection if not in read-only mode or palm rejection is disabled
-    if (isReadOnly || (palmRejectionConfig.enabled && currentTool !== 'select')) return;
+    if (stableIsReadOnly || (stablePalmRejectionEnabled && stableCurrentTool !== 'select')) return;
     
     const stage = e.target.getStage();
     if (!stage) return;
 
     const { x, y } = getRelativePointerPosition(stage, e.evt.clientX, e.evt.clientY);
     handlePointerMove(x, y);
-  }, [logMouseEvent, panZoom, selection, isReadOnly, palmRejectionConfig.enabled, currentTool, getRelativePointerPosition, handlePointerMove]);
+  }, [logMouseEvent, panZoom, selection, stableIsReadOnly, stablePalmRejectionEnabled, stableCurrentTool, getRelativePointerPosition, handlePointerMove]);
 
   const handleMouseUp = useCallback((e: Konva.KonvaEventObject<MouseEvent>) => {
     logMouseEvent('mouseup', e);
@@ -116,14 +122,15 @@ export const useMouseEventHandlers = ({
     }
     
     // Only proceed with drawing/selection if not in read-only mode or palm rejection is disabled
-    if (isReadOnly || (palmRejectionConfig.enabled && currentTool !== 'select')) return;
+    if (stableIsReadOnly || (stablePalmRejectionEnabled && stableCurrentTool !== 'select')) return;
     
     handlePointerUp();
-  }, [logMouseEvent, panZoom, isReadOnly, palmRejectionConfig.enabled, currentTool, handlePointerUp]);
+  }, [logMouseEvent, panZoom, stableIsReadOnly, stablePalmRejectionEnabled, stableCurrentTool, handlePointerUp]);
 
-  return {
+  // Memoize the returned handlers to prevent unnecessary re-renders
+  return useMemo(() => ({
     handleMouseDown,
     handleMouseMove,
     handleMouseUp
-  };
+  }), [handleMouseDown, handleMouseMove, handleMouseUp]);
 };

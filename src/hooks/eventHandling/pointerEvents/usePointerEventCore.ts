@@ -1,5 +1,5 @@
 
-import { useCallback } from 'react';
+import { useCallback, useMemo } from 'react';
 import Konva from 'konva';
 import { usePalmRejection } from '../../usePalmRejection';
 import { useStageCoordinates } from '../../useStageCoordinates';
@@ -40,6 +40,10 @@ export const usePointerEventCore = ({
 }: UsePointerEventCoreProps) => {
   const { getRelativePointerPosition } = useStageCoordinates(panZoomState);
 
+  // Memoize stable values to prevent unnecessary re-renders
+  const stablePalmRejectionEnabled = useMemo(() => palmRejectionConfig.enabled, [palmRejectionConfig.enabled]);
+  const stableIsReadOnly = useMemo(() => isReadOnly, [isReadOnly]);
+
   const handlePointerDownEvent = useCallback((e: PointerEvent) => {
     const stage = stageRef.current;
     if (!stage) return;
@@ -59,16 +63,16 @@ export const usePointerEventCore = ({
     }
     
     // Only proceed with drawing if not in read-only mode
-    if (isReadOnly) return;
+    if (stableIsReadOnly) return;
     
     // Apply palm rejection for drawing interactions
-    if (palmRejectionConfig.enabled && !palmRejection.shouldProcessPointer(e)) {
+    if (stablePalmRejectionEnabled && !palmRejection.shouldProcessPointer(e)) {
       return;
     }
 
     const { x, y } = getRelativePointerPosition(stage, e.clientX, e.clientY);
     handlePointerDown(x, y);
-  }, [stageRef, logEventHandling, currentToolRef, panZoom, isReadOnly, palmRejectionConfig.enabled, palmRejection, getRelativePointerPosition, handlePointerDown]);
+  }, [stageRef, logEventHandling, currentToolRef, panZoom, stableIsReadOnly, stablePalmRejectionEnabled, palmRejection, getRelativePointerPosition, handlePointerDown]);
 
   const handlePointerMoveEvent = useCallback((e: PointerEvent) => {
     const stage = stageRef.current;
@@ -89,14 +93,14 @@ export const usePointerEventCore = ({
     }
     
     // Only proceed with drawing if not in read-only mode
-    if (isReadOnly) return;
+    if (stableIsReadOnly) return;
     
     // Apply palm rejection for drawing interactions
-    if (palmRejectionConfig.enabled && !palmRejection.shouldProcessPointer(e)) return;
+    if (stablePalmRejectionEnabled && !palmRejection.shouldProcessPointer(e)) return;
 
     const { x, y } = getRelativePointerPosition(stage, e.clientX, e.clientY);
     handlePointerMove(x, y);
-  }, [stageRef, logEventHandling, currentToolRef, panZoom, isReadOnly, palmRejectionConfig.enabled, palmRejection, getRelativePointerPosition, handlePointerMove]);
+  }, [stageRef, logEventHandling, currentToolRef, panZoom, stableIsReadOnly, stablePalmRejectionEnabled, palmRejection, getRelativePointerPosition, handlePointerMove]);
 
   const handlePointerUpEvent = useCallback((e: PointerEvent) => {
     logEventHandling('pointerup', 'pointer', { pointerId: e.pointerId, pointerType: e.pointerType });
@@ -116,10 +120,10 @@ export const usePointerEventCore = ({
     palmRejection.onPointerEnd(e.pointerId);
     
     // Only call handlePointerUp for drawing if not in read-only mode
-    if (!isReadOnly) {
+    if (!stableIsReadOnly) {
       handlePointerUp();
     }
-  }, [logEventHandling, currentToolRef, panZoom, palmRejection, isReadOnly, handlePointerUp]);
+  }, [logEventHandling, currentToolRef, panZoom, palmRejection, stableIsReadOnly, handlePointerUp]);
 
   const handlePointerLeaveEvent = useCallback((e: PointerEvent) => {
     logEventHandling('pointerleave', 'pointer', { pointerId: e.pointerId, pointerType: e.pointerType });
@@ -128,20 +132,21 @@ export const usePointerEventCore = ({
     panZoom.stopPan(); // Always stop pan on leave
     
     // Only call handlePointerUp for drawing if not in read-only mode
-    if (!isReadOnly) {
+    if (!stableIsReadOnly) {
       handlePointerUp();
     }
-  }, [logEventHandling, palmRejection, panZoom, isReadOnly, handlePointerUp]);
+  }, [logEventHandling, palmRejection, panZoom, stableIsReadOnly, handlePointerUp]);
 
   const handleContextMenu = useCallback((e: Event) => {
     e.preventDefault(); // Prevent context menu on right-click
   }, []);
 
-  return {
+  // Memoize the returned handlers to prevent unnecessary re-renders
+  return useMemo(() => ({
     handlePointerDownEvent,
     handlePointerMoveEvent,
     handlePointerUpEvent,
     handlePointerLeaveEvent,
     handleContextMenu
-  };
+  }), [handlePointerDownEvent, handlePointerMoveEvent, handlePointerUpEvent, handlePointerLeaveEvent, handleContextMenu]);
 };
