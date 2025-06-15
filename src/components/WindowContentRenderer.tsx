@@ -1,8 +1,9 @@
 
-import React, { useState } from 'react';
+import React from 'react';
 import { createPortal } from 'react-dom';
-import StudentBoardsGrid from './StudentBoardsGrid';
-import StudentBoardsWindowHeader from './StudentBoardsWindowHeader';
+import { useWindowContentState } from '@/hooks/window/useWindowContentState';
+import WindowContentHeader from './window/WindowContentHeader';
+import WindowContentBody from './window/WindowContentBody';
 import { LayoutOption } from '@/utils/layoutCalculator';
 import { GridOrientation } from './TeacherView';
 
@@ -45,51 +46,35 @@ const WindowContentRenderer: React.FC<WindowContentRendererProps> = ({
   onDecreaseStudentCount,
   onClose,
 }) => {
-  const [isHeaderCollapsed, setIsHeaderCollapsed] = useState(false);
-  const [maximizedBoard, setMaximizedBoard] = useState<string | null>(null);
-
-  const toggleHeaderCollapse = () => {
-    setIsHeaderCollapsed(prev => !prev);
-  };
-
-  const handleMaximize = (boardId: string) => {
-    setMaximizedBoard(boardId);
-    onMaximize(boardId);
-  };
-
-  const handleMinimize = () => {
-    setMaximizedBoard(null);
-  };
+  const {
+    isHeaderCollapsed,
+    maximizedBoard,
+    toggleHeaderCollapse,
+    handleMaximize,
+    handleMinimize,
+  } = useWindowContentState();
 
   console.log('Rendering portal content', { studentCount, currentLayout, currentStudentBoards });
 
   return createPortal(
     <div className="flex-1 bg-gray-100 flex flex-col min-h-0 relative group">
       {/* Collapsible Header */}
-      <div 
-        className={`transition-all duration-300 ease-in-out ${
-          isHeaderCollapsed 
-            ? 'h-0 overflow-hidden opacity-0' 
-            : 'h-auto opacity-100 p-4'
-        }`}
-      >
-        <StudentBoardsWindowHeader
-          studentCount={studentCount}
-          currentLayoutName={currentLayout?.name}
-          currentPage={currentPage}
-          totalPages={totalPages}
-          availableLayouts={availableLayouts}
-          selectedLayoutId={selectedLayoutId}
-          gridOrientation={gridOrientation}
-          onLayoutChange={onLayoutChange}
-          onOrientationChange={onOrientationChange}
-          onIncreaseStudentCount={onIncreaseStudentCount}
-          onDecreaseStudentCount={onDecreaseStudentCount}
-          onClose={onClose}
-          isCollapsed={isHeaderCollapsed}
-          onToggleCollapse={toggleHeaderCollapse}
-        />
-      </div>
+      <WindowContentHeader
+        studentCount={studentCount}
+        currentLayout={currentLayout}
+        availableLayouts={availableLayouts}
+        selectedLayoutId={selectedLayoutId}
+        currentPage={currentPage}
+        totalPages={totalPages}
+        gridOrientation={gridOrientation}
+        isHeaderCollapsed={isHeaderCollapsed}
+        onLayoutChange={onLayoutChange}
+        onOrientationChange={onOrientationChange}
+        onIncreaseStudentCount={onIncreaseStudentCount}
+        onDecreaseStudentCount={onDecreaseStudentCount}
+        onClose={onClose}
+        onToggleCollapse={toggleHeaderCollapse}
+      />
 
       {/* Toggle Button - Always visible on hover */}
       <button
@@ -117,22 +102,20 @@ const WindowContentRenderer: React.FC<WindowContentRendererProps> = ({
       </button>
       
       {/* Main Content */}
-      <div className={`flex-1 min-h-0 ${isHeaderCollapsed ? 'p-4 pt-2' : 'px-4 pb-4'}`}>
-        <StudentBoardsGrid
-          studentCount={studentCount}
-          currentLayout={currentLayout}
-          currentStudentBoards={currentStudentBoards}
-          currentPage={currentPage}
-          totalPages={totalPages}
-          gridOrientation={gridOrientation}
-          maximizedBoard={maximizedBoard}
-          onMaximize={handleMaximize}
-          onMinimize={handleMinimize}
-          onPreviousPage={onPreviousPage}
-          onNextPage={onNextPage}
-          isHeaderCollapsed={isHeaderCollapsed}
-        />
-      </div>
+      <WindowContentBody
+        studentCount={studentCount}
+        currentLayout={currentLayout}
+        currentStudentBoards={currentStudentBoards}
+        currentPage={currentPage}
+        totalPages={totalPages}
+        gridOrientation={gridOrientation}
+        maximizedBoard={maximizedBoard}
+        isHeaderCollapsed={isHeaderCollapsed}
+        onMaximize={(boardId) => handleMaximize(boardId, onMaximize)}
+        onMinimize={handleMinimize}
+        onPreviousPage={onPreviousPage}
+        onNextPage={onNextPage}
+      />
     </div>,
     container
   );
