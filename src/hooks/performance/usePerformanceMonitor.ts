@@ -1,110 +1,32 @@
 
 /**
  * @fileoverview Performance monitoring for whiteboard operations
- * @description Coordinates performance tracking modules for comprehensive monitoring
+ * @description Main interface for performance monitoring with simplified coordination
  * 
- * @ai-context This hook coordinates multiple performance monitoring modules:
- * - Core metrics tracking (drawing, sync, render operations)
- * - High-resolution timer operations
- * - Memory usage monitoring
- * - FPS tracking for canvas operations
- * - Performance report generation
+ * @ai-context This hook provides a simplified interface to the performance monitoring
+ * system, delegating to specialized modules for actual implementation.
  */
 
-import { useCallback } from 'react';
-import { usePerformanceMetrics, PerformanceMetrics } from './usePerformanceMetrics';
-import { usePerformanceTimers } from './usePerformanceTimers';
-import { useMemoryMonitor } from './useMemoryMonitor';
-import { usePerformanceReporting, PerformanceReport } from './usePerformanceReporting';
-import { useFpsTracker } from './useFpsTracker';
+import { usePerformanceCoordinator } from './monitoring/usePerformanceCoordinator';
 import { createDebugLogger } from '@/utils/debug/debugConfig';
 
 const debugLog = createDebugLogger('performance');
 
 /**
  * @hook usePerformanceMonitor
- * @description Comprehensive performance monitoring coordination hook
+ * @description Main interface for performance monitoring
  * 
  * @returns {Object} Performance monitoring interface
- * @returns {Function} startTimer - Start timing an operation
- * @returns {Function} endTimer - End timing an operation
- * @returns {Function} recordDrawingOperation - Record drawing performance
- * @returns {Function} recordSyncOperation - Record sync performance
- * @returns {Function} recordRenderOperation - Record render performance
- * @returns {Function} getMetrics - Get current performance metrics
- * @returns {Function} generateReport - Generate comprehensive performance report
- * @returns {PerformanceMetrics} metrics - Current performance metrics
  */
 export const usePerformanceMonitor = () => {
-  debugLog('Hook', 'Initializing performance monitor coordination');
+  debugLog('Hook', 'Initializing performance monitor');
 
-  // Initialize all monitoring modules
-  const metricsModule = usePerformanceMetrics();
-  const timersModule = usePerformanceTimers();
-  const reportingModule = usePerformanceReporting();
-  const fpsTracker = useFpsTracker();
+  const coordinator = usePerformanceCoordinator();
 
-  // Initialize memory monitoring with metrics update callback
-  const memoryMonitor = useMemoryMonitor(metricsModule.updateMemoryUsage);
+  debugLog('Hook', 'Performance monitor initialized');
 
-  /**
-   * @function recordRenderOperation
-   * @description Record performance metrics for render operations with FPS tracking
-   * @param duration - Operation duration in milliseconds
-   */
-  const recordRenderOperation = useCallback((duration: number) => {
-    // Track frame and get FPS if available
-    const fps = fpsTracker.trackFrame();
-    
-    // Use current FPS or maintain previous FPS
-    const currentFps = fps !== null ? fps : metricsModule.metrics.renderOperations.fps;
-    
-    // Record the render operation with FPS data
-    metricsModule.recordRenderOperation(duration, currentFps);
-  }, [fpsTracker, metricsModule]);
-
-  /**
-   * @function generateReport
-   * @description Generate comprehensive performance report
-   * @returns Complete performance report with analysis
-   */
-  const generateReport = useCallback((): PerformanceReport => {
-    const currentMetrics = metricsModule.getMetrics();
-    const report = reportingModule.generateReport(currentMetrics);
-    
-    debugLog('Coordination', 'Generated comprehensive report', {
-      warningsCount: report.warnings.length,
-      recommendationsCount: report.recommendations.length,
-      memoryApiAvailable: memoryMonitor.isMemoryApiAvailable()
-    });
-    
-    return report;
-  }, [metricsModule, reportingModule, memoryMonitor]);
-
-  debugLog('Hook', 'Performance monitor coordination initialized', {
-    memoryApiAvailable: memoryMonitor.isMemoryApiAvailable()
-  });
-
-  return {
-    // Timer operations
-    startTimer: timersModule.startTimer,
-    endTimer: timersModule.endTimer,
-    
-    // Metrics recording
-    recordDrawingOperation: metricsModule.recordDrawingOperation,
-    recordSyncOperation: metricsModule.recordSyncOperation,
-    recordRenderOperation,
-    
-    // Data access
-    getMetrics: metricsModule.getMetrics,
-    generateReport,
-    metrics: metricsModule.metrics,
-    
-    // Memory monitoring utilities
-    getMemoryUsageRatio: memoryMonitor.getMemoryUsageRatio,
-    isMemoryApiAvailable: memoryMonitor.isMemoryApiAvailable
-  };
+  return coordinator;
 };
 
 // Export types for external use
-export type { PerformanceMetrics, PerformanceReport };
+export type { PerformanceMetrics, PerformanceReport } from './monitoring/usePerformanceCoordinator';

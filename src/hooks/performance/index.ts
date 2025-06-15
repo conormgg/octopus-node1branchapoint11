@@ -15,6 +15,10 @@ export { usePerformanceMonitor } from './usePerformanceMonitor';
 export { useMonitoringIntegration } from './useMonitoringIntegration';
 export { useOptimizationTracker } from './useOptimizationTracker';
 
+// New modular architecture
+export { usePerformanceCoordinator } from './monitoring/usePerformanceCoordinator';
+export { useIntegrationCore } from './monitoring/useIntegrationCore';
+
 // Individual performance modules
 export { usePerformanceMetrics } from './usePerformanceMetrics';
 export { usePerformanceTimers } from './usePerformanceTimers';
