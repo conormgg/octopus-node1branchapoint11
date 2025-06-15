@@ -1,17 +1,8 @@
 
 import { useCallback, useMemo } from 'react';
+import { createDebugLogger } from '@/utils/debug/debugConfig';
 
-const DEBUG_ENABLED = process.env.NODE_ENV === 'development';
-
-/**
- * @function debugLog
- * @description Debug logging for pointer events
- */
-const debugLog = (context: string, action: string, data?: any) => {
-  if (DEBUG_ENABLED) {
-    console.log(`[PointerHandlers:${context}] ${action}`, data || '');
-  }
-};
+const debugLog = createDebugLogger('events');
 
 /**
  * @hook useWhiteboardPointerHandlers
@@ -31,11 +22,11 @@ export const useWhiteboardPointerHandlers = (
 
   // Handle pointer down
   const handlePointerDown = useCallback((x: number, y: number) => {
-    debugLog('Pointer', 'Pointer down', { x, y, tool: stableCurrentTool });
+    debugLog('PointerHandlers', 'Pointer down', { x, y, tool: stableCurrentTool });
     
     // Don't start drawing if a pan/zoom gesture is active
     if (panZoom.isGestureActive()) {
-      debugLog('Pointer', 'Ignoring pointer down - gesture active');
+      debugLog('PointerHandlers', 'Ignoring pointer down - gesture active');
       return;
     }
     
@@ -50,7 +41,7 @@ export const useWhiteboardPointerHandlers = (
       const isInSelectionBounds = selection.isPointInSelectionBounds({ x, y });
       
       if (isInSelectionBounds && stableSelectionState.selectedObjects.length > 0) {
-        debugLog('Selection', 'Clicked within selection bounds');
+        debugLog('PointerHandlers', 'Clicked within selection bounds');
         // Clicking within selection bounds - this will allow dragging the entire group
         // The actual dragging logic will be handled by the SelectionGroup component
         // We don't need to change the selection here, just maintain it
@@ -61,7 +52,7 @@ export const useWhiteboardPointerHandlers = (
       const foundObjects = selection.findObjectsAtPoint({ x, y }, stableLines, stableImages);
       
       if (foundObjects.length > 0) {
-        debugLog('Selection', 'Found objects at point', { count: foundObjects.length });
+        debugLog('PointerHandlers', 'Found objects at point', { count: foundObjects.length });
         // Select the first found object
         selection.selectObjects([foundObjects[0]]);
         // Update selection bounds for the selected object
@@ -69,7 +60,7 @@ export const useWhiteboardPointerHandlers = (
           selection.updateSelectionBounds([foundObjects[0]], stableLines, stableImages);
         }, 0);
       } else {
-        debugLog('Selection', 'Starting drag-to-select');
+        debugLog('PointerHandlers', 'Starting drag-to-select');
         // Clear selection when clicking on empty space
         selection.clearSelection();
         // Start drag-to-select

@@ -1,3 +1,4 @@
+
 /**
  * @fileoverview Centralized debug configuration system
  * @description Controls debug logging across the entire application
@@ -63,12 +64,12 @@ const DEFAULT_DEBUG_CONFIG: DebugConfig = {
   viewportCulling: false,
   renderOperations: false,
   
-  // Event handling - keep palm rejection enabled for user feedback
+  // Event handling - DISABLED by default to prevent console spam
   events: false,
   pointerEvents: false,
   touchEvents: false,
   wheelEvents: false,
-  palmRejection: true, // Keep enabled for user experience
+  palmRejection: false, // Changed from true to false
   
   // State management - disabled by default
   state: false,
@@ -99,7 +100,8 @@ const DEVELOPMENT_OVERRIDES: Partial<DebugConfig> = {
   // Only enable essential debugging in development
   connection: true, // Keep connection status visible
   sync: false, // Disable sync spam
-  events: false, // Disable event spam
+  events: false, // Disable event spam completely
+  palmRejection: false, // Disable palm rejection spam
 };
 
 // Create the active debug configuration

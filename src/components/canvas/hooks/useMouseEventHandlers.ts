@@ -4,6 +4,9 @@ import Konva from 'konva';
 import { useStageCoordinates } from '@/hooks/useStageCoordinates';
 import { Tool, PanZoomState } from '@/types/whiteboard';
 import { useMemoizedEventHandlers } from '@/hooks/performance/useMemoizedEventHandlers';
+import { createDebugLogger } from '@/utils/debug/debugConfig';
+
+const debugLog = createDebugLogger('events');
 
 interface UseMouseEventHandlersProps {
   currentTool: Tool;
@@ -41,9 +44,9 @@ export const useMouseEventHandlers = ({
   const stablePalmRejectionEnabled = useMemo(() => palmRejectionConfig.enabled, [palmRejectionConfig.enabled]);
   const stableIsReadOnly = useMemo(() => isReadOnly, [isReadOnly]);
 
-  // Log mouse events with stable reference
+  // Log mouse events with stable reference - using centralized debug system
   const logMouseEvent = useCallback((eventType: string, e: any) => {
-    console.log(`[EventDebug] ${eventType} from mouse`, {
+    debugLog('MouseEvents', `${eventType} from mouse`, {
       button: e.evt.button,
       buttons: e.evt.buttons,
       currentTool: stableCurrentTool,
