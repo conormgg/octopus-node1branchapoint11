@@ -1,5 +1,5 @@
 
-import React, { useEffect } from 'react';
+import React, { useEffect, useRef } from 'react';
 import { Stage } from 'react-konva';
 import Konva from 'konva';
 import { PanZoomState, Tool, SelectionBounds } from '@/types/whiteboard';
@@ -68,24 +68,51 @@ const KonvaStageCanvas: React.FC<KonvaStageCanvasProps> = ({
   onTransformEnd,
   normalizedState
 }) => {
-  // Initialize performance monitoring for render operations
-  const { wrapRenderOperation } = useMonitoringIntegration();
+  // Disable performance monitoring during canvas initialization to prevent hangs
+  const isInitializing = useRef(true);
+  const { wrapRenderOperation } = useMonitoringIntegration(false, isInitializing.current);
 
-  // Monitor canvas render performance
+  // Monitor canvas render performance with safety guards
   useEffect(() => {
     if (!stageRef.current) return;
 
     const stage = stageRef.current;
     
-    // Wrap the stage draw method to monitor render performance
-    const originalDraw = stage.draw.bind(stage);
-    stage.draw = wrapRenderOperation(originalDraw, 'canvas_render');
+    try {
+      console.log('[KonvaStageCanvas] Setting up render monitoring');
+      
+      // Only wrap draw method if monitoring is enabled and not initializing
+      if (!isInitializing.current) {
+        const originalDraw = stage.draw.bind(stage);
+        stage.draw = wrapRenderOperation(originalDraw, 'canvas_render');
+        
+        console.log('[KonvaStageCanvas] Render monitoring enabled');
+        
+        return () => {
+          // Restore original draw method on cleanup
+          try {
+            stage.draw = originalDraw;
+            console.log('[KonvaStageCanvas] Render monitoring cleanup completed');
+          } catch (error) {
+            console.error('[KonvaStageCanvas] Render monitoring cleanup failed:', error);
+          }
+        };
+      }
+    } catch (error) {
+      console.error('[KonvaStageCanvas] Failed to set up render monitoring:', error);
+      // Continue without monitoring
+    }
+  }, [stageRef, wrapRenderOperation, isInitializing.current]);
 
-    return () => {
-      // Restore original draw method on cleanup
-      stage.draw = originalDraw;
-    };
-  }, [stageRef, wrapRenderOperation]);
+  // Mark initialization as complete after first render
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      isInitializing.current = false;
+      console.log('[KonvaStageCanvas] Initialization completed');
+    }, 1000); // Wait 1 second before enabling monitoring
+    
+    return () => clearTimeout(timer);
+  }, []);
 
   const { handleMouseDown, handleMouseMove, handleMouseUp } = useMouseEventHandlers({
     currentTool,

@@ -17,8 +17,8 @@ export const useWhiteboardDrawingCoordination = (
   setState: any,
   addToHistory: () => void
 ) => {
-  // Initialize performance monitoring
-  const { wrapDrawingOperation } = useMonitoringIntegration();
+  // Temporarily disable monitoring during coordination to prevent hangs
+  const { wrapDrawingOperation } = useMonitoringIntegration(false, true);
 
   // Memoize current tool to prevent unnecessary re-initializations
   const stableCurrentTool = useMemo(() => state?.currentTool || 'pencil', [state?.currentTool]);
@@ -46,61 +46,52 @@ export const useWhiteboardDrawingCoordination = (
   const { startDrawing, continueDrawing, stopDrawing } = drawingOperations;
   const { startErasing, continueErasing, stopErasing } = eraserOperations;
 
-  // Coordinate drawing start based on tool with performance monitoring
+  // Coordinate drawing start based on tool with fallback safety
   const handleDrawingStart = useCallback((x: number, y: number) => {
     debugLog('DrawingCoordination', 'Drawing start requested', { x, y, tool: stableCurrentTool });
     
-    const wrappedOperation = wrapDrawingOperation(
-      (x: number, y: number) => {
-        if (stableCurrentTool === 'pencil' || stableCurrentTool === 'highlighter') {
-          debugLog('DrawingCoordination', 'Starting drawing operation');
-          startDrawing(x, y);
-        } else if (stableCurrentTool === 'eraser') {
-          debugLog('DrawingCoordination', 'Starting eraser operation');
-          startErasing(x, y);
-        }
-      },
-      `${stableCurrentTool}_start`
-    );
-    
-    wrappedOperation(x, y);
-  }, [stableCurrentTool, startDrawing, startErasing, wrapDrawingOperation]);
+    try {
+      if (stableCurrentTool === 'pencil' || stableCurrentTool === 'highlighter') {
+        debugLog('DrawingCoordination', 'Starting drawing operation');
+        startDrawing(x, y);
+      } else if (stableCurrentTool === 'eraser') {
+        debugLog('DrawingCoordination', 'Starting eraser operation');
+        startErasing(x, y);
+      }
+    } catch (error) {
+      console.error('[DrawingCoordination] Drawing start failed:', error);
+    }
+  }, [stableCurrentTool, startDrawing, startErasing]);
 
-  // Coordinate drawing continuation based on tool with performance monitoring
+  // Coordinate drawing continuation based on tool with fallback safety
   const handleDrawingContinue = useCallback((x: number, y: number) => {
-    const wrappedOperation = wrapDrawingOperation(
-      (x: number, y: number) => {
-        if (stableCurrentTool === 'pencil' || stableCurrentTool === 'highlighter') {
-          debugLog('DrawingCoordination', 'Continuing drawing operation');
-          continueDrawing(x, y);
-        } else if (stableCurrentTool === 'eraser') {
-          debugLog('DrawingCoordination', 'Continuing eraser operation');
-          continueErasing(x, y);
-        }
-      },
-      `${stableCurrentTool}_continue`
-    );
-    
-    wrappedOperation(x, y);
-  }, [stableCurrentTool, continueDrawing, continueErasing, wrapDrawingOperation]);
+    try {
+      if (stableCurrentTool === 'pencil' || stableCurrentTool === 'highlighter') {
+        debugLog('DrawingCoordination', 'Continuing drawing operation');
+        continueDrawing(x, y);
+      } else if (stableCurrentTool === 'eraser') {
+        debugLog('DrawingCoordination', 'Continuing eraser operation');
+        continueErasing(x, y);
+      }
+    } catch (error) {
+      console.error('[DrawingCoordination] Drawing continue failed:', error);
+    }
+  }, [stableCurrentTool, continueDrawing, continueErasing]);
 
-  // Coordinate drawing end based on tool with performance monitoring
+  // Coordinate drawing end based on tool with fallback safety
   const handleDrawingEnd = useCallback(() => {
-    const wrappedOperation = wrapDrawingOperation(
-      () => {
-        if (stableCurrentTool === 'pencil' || stableCurrentTool === 'highlighter') {
-          debugLog('DrawingCoordination', 'Finishing drawing operation');
-          stopDrawing();
-        } else if (stableCurrentTool === 'eraser') {
-          debugLog('DrawingCoordination', 'Finishing eraser operation');
-          stopErasing();
-        }
-      },
-      `${stableCurrentTool}_end`
-    );
-    
-    wrappedOperation();
-  }, [stableCurrentTool, stopDrawing, stopErasing, wrapDrawingOperation]);
+    try {
+      if (stableCurrentTool === 'pencil' || stableCurrentTool === 'highlighter') {
+        debugLog('DrawingCoordination', 'Finishing drawing operation');
+        stopDrawing();
+      } else if (stableCurrentTool === 'eraser') {
+        debugLog('DrawingCoordination', 'Finishing eraser operation');
+        stopErasing();
+      }
+    } catch (error) {
+      console.error('[DrawingCoordination] Drawing end failed:', error);
+    }
+  }, [stableCurrentTool, stopDrawing, stopErasing]);
 
   return {
     handleDrawingStart,

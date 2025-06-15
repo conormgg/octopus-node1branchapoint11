@@ -17,7 +17,7 @@
  * - Session-based persistence
  */
 
-import { useCallback } from 'react';
+import { useCallback, useRef } from 'react';
 import { SyncConfig } from '@/types/sync';
 import { useSelectionState } from './useSelectionState';
 import { usePanZoom } from './usePanZoom';
@@ -53,54 +53,136 @@ const USE_NORMALIZED_STATE = true; // Feature flag for gradual rollout
  * - useSharedPointerHandlers: Coordinates pointer events with sync
  */
 export const useSharedWhiteboardState = (syncConfig?: SyncConfig, whiteboardId?: string) => {
-  debugLog('Hook', 'Initializing useSharedWhiteboardState', { 
-    syncConfig: syncConfig ? 'provided' : 'none',
-    whiteboardId 
-  });
-
-  // Initialize state
-  const { state, setState } = useSharedStateInitialization(whiteboardId);
-
-  // Normalized state for performance optimization
-  const normalizedState = useNormalizedWhiteboardState(state.lines, state.images);
-
-  if (USE_NORMALIZED_STATE) {
-    debugLog('Performance', 'Normalized state stats', {
-      lineCount: normalizedState.lineCount,
-      imageCount: normalizedState.imageCount,
-      totalObjects: normalizedState.totalObjectCount,
-      whiteboardId
+  // Prevent duplicate initializations
+  const initializationRef = useRef<string | null>(null);
+  const currentId = syncConfig?.whiteboardId || whiteboardId;
+  
+  if (initializationRef.current !== currentId) {
+    debugLog('Hook', 'Initializing useSharedWhiteboardState', { 
+      syncConfig: syncConfig ? 'provided' : 'none',
+      whiteboardId: currentId,
+      previousId: initializationRef.current
     });
+    initializationRef.current = currentId;
   }
 
-  // Selection state management
-  const selection = useSelectionState();
+  // Add initialization state tracking
+  const isInitializing = useRef(true);
 
-  // Coordinate all operations (drawing, sync, history, etc.) with whiteboard ID
-  const operations = useSharedOperationsCoordinator(syncConfig, state, setState, whiteboardId);
+  // Initialize state with safety checks
+  let state, setState;
+  try {
+    console.log('[StateInit] Starting state initialization for:', currentId);
+    const stateInit = useSharedStateInitialization(whiteboardId);
+    state = stateInit.state;
+    setState = stateInit.setState;
+    console.log('[StateInit] State initialization completed for:', currentId);
+  } catch (error) {
+    console.error('[StateInit] State initialization failed:', error);
+    throw error;
+  }
 
-  // Handle persistence and context integration
-  useSharedPersistenceIntegration(state, setState, syncConfig, whiteboardId);
+  // Normalized state for performance optimization with safety
+  let normalizedState;
+  try {
+    if (USE_NORMALIZED_STATE && state?.lines && state?.images) {
+      normalizedState = useNormalizedWhiteboardState(state.lines, state.images);
+      debugLog('Performance', 'Normalized state stats', {
+        lineCount: normalizedState.lineCount,
+        imageCount: normalizedState.imageCount,
+        totalObjects: normalizedState.totalObjectCount,
+        whiteboardId: currentId
+      });
+    }
+  } catch (error) {
+    debugLog('Performance', 'Normalized state creation failed, continuing without optimization', { error: error.message });
+    normalizedState = undefined;
+  }
 
-  // State management functions
-  const { setPanZoomState, setTool, setColor, setPencilColor, setHighlighterColor, setStrokeWidth } = useSharedStateManagement(setState);
+  // Selection state management with safety
+  let selection;
+  try {
+    console.log('[Selection] Starting selection state initialization');
+    selection = useSelectionState();
+    console.log('[Selection] Selection state initialization completed');
+  } catch (error) {
+    console.error('[Selection] Selection state initialization failed:', error);
+    throw error;
+  }
 
-  // Pan/zoom operations
-  const panZoom = usePanZoom(state.panZoomState, setPanZoomState);
+  // Coordinate all operations with safety checks
+  let operations;
+  try {
+    console.log('[Operations] Starting operations coordinator initialization');
+    operations = useSharedOperationsCoordinator(syncConfig, state, setState, whiteboardId);
+    console.log('[Operations] Operations coordinator initialization completed');
+  } catch (error) {
+    console.error('[Operations] Operations coordinator initialization failed:', error);
+    throw error;
+  }
 
-  // Pointer event handlers with proper safety checks
-  const { handlePointerDown, handlePointerMove, handlePointerUp } = useSharedPointerHandlers(
-    state, 
-    operations.startDrawing, 
-    operations.continueDrawing, 
-    operations.stopDrawing, 
-    operations.startErasing, 
-    operations.continueErasing, 
-    operations.stopErasing,
-    syncConfig, 
-    panZoom, 
-    selection
-  );
+  // Handle persistence and context integration with safety
+  try {
+    console.log('[Persistence] Starting persistence integration');
+    useSharedPersistenceIntegration(state, setState, syncConfig, whiteboardId);
+    console.log('[Persistence] Persistence integration completed');
+  } catch (error) {
+    console.error('[Persistence] Persistence integration failed:', error);
+    // Don't throw here, persistence is not critical for basic functionality
+  }
+
+  // State management functions with safety
+  let setPanZoomState, setTool, setColor, setPencilColor, setHighlighterColor, setStrokeWidth;
+  try {
+    console.log('[StateManagement] Starting state management initialization');
+    const stateManagement = useSharedStateManagement(setState);
+    setPanZoomState = stateManagement.setPanZoomState;
+    setTool = stateManagement.setTool;
+    setColor = stateManagement.setColor;
+    setPencilColor = stateManagement.setPencilColor;
+    setHighlighterColor = stateManagement.setHighlighterColor;
+    setStrokeWidth = stateManagement.setStrokeWidth;
+    console.log('[StateManagement] State management initialization completed');
+  } catch (error) {
+    console.error('[StateManagement] State management initialization failed:', error);
+    throw error;
+  }
+
+  // Pan/zoom operations with safety
+  let panZoom;
+  try {
+    console.log('[PanZoom] Starting pan/zoom initialization');
+    panZoom = usePanZoom(state.panZoomState, setPanZoomState);
+    console.log('[PanZoom] Pan/zoom initialization completed');
+  } catch (error) {
+    console.error('[PanZoom] Pan/zoom initialization failed:', error);
+    throw error;
+  }
+
+  // Pointer event handlers with safety checks
+  let handlePointerDown, handlePointerMove, handlePointerUp;
+  try {
+    console.log('[PointerHandlers] Starting pointer handlers initialization');
+    const pointerHandlers = useSharedPointerHandlers(
+      state, 
+      operations.startDrawing, 
+      operations.continueDrawing, 
+      operations.stopDrawing, 
+      operations.startErasing, 
+      operations.continueErasing, 
+      operations.stopErasing,
+      syncConfig, 
+      panZoom, 
+      selection
+    );
+    handlePointerDown = pointerHandlers.handlePointerDown;
+    handlePointerMove = pointerHandlers.handlePointerMove;
+    handlePointerUp = pointerHandlers.handlePointerUp;
+    console.log('[PointerHandlers] Pointer handlers initialization completed');
+  } catch (error) {
+    console.error('[PointerHandlers] Pointer handlers initialization failed:', error);
+    throw error;
+  }
 
   /**
    * @function deleteSelectedObjects
@@ -110,24 +192,33 @@ export const useSharedWhiteboardState = (syncConfig?: SyncConfig, whiteboardId?:
    * after deletion and triggers history recording.
    */
   const deleteSelectedObjects = useCallback(() => {
-    const selectedObjects = selection.selectionState.selectedObjects;
-    debugLog('Delete', 'Delete selected objects requested', { 
-      count: selectedObjects?.length || 0 
-    });
-    
-    if (selectedObjects && operations.deleteSelectedObjects) {
-      operations.deleteSelectedObjects(selectedObjects);
-      selection.clearSelection();
-      debugLog('Delete', 'Objects deleted and selection cleared');
+    try {
+      const selectedObjects = selection.selectionState.selectedObjects;
+      debugLog('Delete', 'Delete selected objects requested', { 
+        count: selectedObjects?.length || 0 
+      });
+      
+      if (selectedObjects && operations.deleteSelectedObjects) {
+        operations.deleteSelectedObjects(selectedObjects);
+        selection.clearSelection();
+        debugLog('Delete', 'Objects deleted and selection cleared');
+      }
+    } catch (error) {
+      console.error('[Delete] Delete selected objects failed:', error);
     }
   }, [selection, operations]);
 
   const isReadOnly = syncConfig?.isReceiveOnly || false;
   
+  // Mark initialization as complete
+  isInitializing.current = false;
+  
+  console.log('[SharedWhiteboardState] Initialization completed successfully for:', currentId);
+  
   debugLog('Hook', 'useSharedWhiteboardState initialized', {
     isReadOnly,
     hasSync: !!syncConfig,
-    whiteboardId
+    whiteboardId: currentId
   });
 
   return {
@@ -157,6 +248,6 @@ export const useSharedWhiteboardState = (syncConfig?: SyncConfig, whiteboardId?:
     deleteSelectedObjects,
     selection,
     isReadOnly,
-    whiteboardId // Expose whiteboard ID for component identification
+    whiteboardId: currentId // Expose whiteboard ID for component identification
   };
 };
