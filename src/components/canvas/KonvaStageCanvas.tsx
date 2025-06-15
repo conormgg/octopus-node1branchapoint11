@@ -116,6 +116,7 @@ const KonvaStageCanvas: React.FC<KonvaStageCanvasProps> = ({
         onUpdateLine={onUpdateLine}
         onUpdateImage={onUpdateImage}
         onTransformEnd={onTransformEnd}
+        stageRef={stageRef} // Pass stageRef for viewport calculations
       />
     </Stage>
   );
