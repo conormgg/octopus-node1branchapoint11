@@ -2,6 +2,7 @@
 import React from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import AuthForm from './AuthForm';
+import Logo from '@/components/ui/Logo';
 
 const AuthPage: React.FC = () => {
   return (
@@ -9,15 +10,7 @@ const AuthPage: React.FC = () => {
       <Card className="w-full max-w-md">
         <CardHeader className="space-y-1 text-center">
           <div className="flex justify-center mb-4">
-            <img 
-              src="/lovable-uploads/5c508699-4155-42ef-a977-c436f4734ca4.png" 
-              alt="OctoPi Ink Logo" 
-              className="h-20 w-auto"
-              onError={(e) => {
-                console.error('Logo failed to load');
-                e.currentTarget.style.display = 'none';
-              }}
-            />
+            <Logo size="h-20" />
           </div>
           <CardTitle className="text-2xl">
             Welcome to OctoPi Ink

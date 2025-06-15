@@ -1,3 +1,4 @@
+
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -7,11 +8,13 @@ import { useAuth } from "@/hooks/useAuth";
 import { WhiteboardStateProvider } from "@/contexts/WhiteboardStateContext";
 import { SessionExpirationProvider } from "@/contexts/sessionExpiration";
 import { SessionProvider, useSessionContext } from "@/contexts/SessionContext";
+import { LogoProvider } from "@/contexts/LogoContext";
 import AuthPage from "@/components/auth/AuthPage";
 import TeacherDashboard from "@/components/session/TeacherDashboard";
 import StudentJoinPage from "@/components/session/StudentJoinPage";
 import StudentSessionView from "@/components/session/StudentSessionView";
 import Index from "./pages/Index";
+import LogoReplacer from "./pages/LogoReplacer";
 import NotFound from "./pages/NotFound";
 import { Loader2 } from "lucide-react";
 import { useCallback } from "react";
@@ -140,15 +143,22 @@ const RouteDispatcher = () => {
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
-    <WhiteboardStateProvider>
-      <TooltipProvider>
-        <Toaster />
-        <Sonner />
-        <BrowserRouter>
-          <RouteDispatcher />
-        </BrowserRouter>
-      </TooltipProvider>
-    </WhiteboardStateProvider>
+    <LogoProvider>
+      <WhiteboardStateProvider>
+        <TooltipProvider>
+          <Toaster />
+          <Sonner />
+          <BrowserRouter>
+            <Routes>
+              {/* Logo Replacer route - accessible without authentication */}
+              <Route path="/logo-replacer" element={<LogoReplacer />} />
+              {/* All other routes */}
+              <Route path="*" element={<RouteDispatcher />} />
+            </Routes>
+          </BrowserRouter>
+        </TooltipProvider>
+      </WhiteboardStateProvider>
+    </LogoProvider>
   </QueryClientProvider>
 );
 

@@ -3,24 +3,27 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Users, Zap, Shield, Monitor } from 'lucide-react';
+import { Users, Zap, Shield, Monitor, Settings } from 'lucide-react';
+import Logo from '@/components/ui/Logo';
 
 const Index = () => {
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
       <div className="container mx-auto px-4 py-16">
+        {/* Header with Logo Replacer Link */}
+        <div className="flex justify-end mb-4">
+          <Button asChild variant="outline" size="sm">
+            <Link to="/logo-replacer" className="flex items-center gap-2">
+              <Settings className="h-4 w-4" />
+              Logo Replacer
+            </Link>
+          </Button>
+        </div>
+
         {/* Hero Section */}
         <div className="text-center mb-16">
           <div className="flex justify-center mb-6">
-            <img 
-              src="/lovable-uploads/5c508699-4155-42ef-a977-c436f4734ca4.png" 
-              alt="OctoPi Ink Logo" 
-              className="h-32 w-auto"
-              onError={(e) => {
-                console.error('Logo failed to load');
-                e.currentTarget.style.display = 'none';
-              }}
-            />
+            <Logo size="h-32" />
           </div>
           <p className="text-xl text-gray-600 mb-8 max-w-3xl mx-auto">
             Create interactive whiteboard sessions for your classroom. 

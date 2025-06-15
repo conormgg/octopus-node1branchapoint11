@@ -7,6 +7,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import CreateSessionForm from './CreateSessionForm';
 import TeacherView from '../TeacherView';
 import { LogOut, Plus, History } from 'lucide-react';
+import Logo from '@/components/ui/Logo';
 
 const TeacherDashboard: React.FC = () => {
   const { user, signOut } = useAuth();
@@ -43,15 +44,7 @@ const TeacherDashboard: React.FC = () => {
       <div className="max-w-6xl mx-auto px-4">
         <div className="mb-8 flex items-center justify-between">
           <div className="flex items-center gap-4">
-            <img 
-              src="/lovable-uploads/5c508699-4155-42ef-a977-c436f4734ca4.png" 
-              alt="OctoPi Ink Logo" 
-              className="h-16 w-auto"
-              onError={(e) => {
-                console.error('Logo failed to load');
-                e.currentTarget.style.display = 'none';
-              }}
-            />
+            <Logo size="h-16" />
             <div>
               <h1 className="text-3xl font-bold text-gray-900">Dashboard</h1>
               <p className="text-gray-600">
