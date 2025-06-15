@@ -84,19 +84,24 @@ const LinesLayer: React.FC<LinesLayerProps> = ({
 
   // Trigger layer optimization when static content changes
   React.useEffect(() => {
-    if (USE_LAYER_OPTIMIZATION && !isSelecting && currentTool !== 'pencil' && currentTool !== 'eraser') {
-      const totalObjects = linesToRender.length + imagesToUse.length;
-      if (totalObjects >= 20) {
-        debugLog('Optimization', 'Considering layer cache update', {
-          totalObjects,
-          isDrawing: currentTool === 'pencil',
-          isSelecting
-        });
-        
-        // Use optimized layer update after a brief delay to ensure rendering is complete
-        setTimeout(() => {
-          layerOptimization.updateLayerOptimized();
-        }, 100);
+    if (USE_LAYER_OPTIMIZATION && !isSelecting) {
+      // Only optimize when not actively drawing or erasing
+      const isActiveDrawing = currentTool === 'pencil' || currentTool === 'eraser';
+      
+      if (!isActiveDrawing) {
+        const totalObjects = linesToRender.length + imagesToUse.length;
+        if (totalObjects >= 20) {
+          debugLog('Optimization', 'Considering layer cache update', {
+            totalObjects,
+            currentTool,
+            isSelecting
+          });
+          
+          // Use optimized layer update after a brief delay to ensure rendering is complete
+          setTimeout(() => {
+            layerOptimization.updateLayerOptimized();
+          }, 100);
+        }
       }
     }
   }, [
@@ -110,9 +115,13 @@ const LinesLayer: React.FC<LinesLayerProps> = ({
 
   // Disable cache during active drawing for best responsiveness
   React.useEffect(() => {
-    if (USE_LAYER_OPTIMIZATION && (currentTool === 'pencil' || currentTool === 'eraser' || isSelecting)) {
-      debugLog('Optimization', 'Disabling cache during active drawing/selection');
-      layerOptimization.disableStaticLayerCache();
+    if (USE_LAYER_OPTIMIZATION) {
+      const isActiveDrawing = currentTool === 'pencil' || currentTool === 'eraser';
+      
+      if (isActiveDrawing || isSelecting) {
+        debugLog('Optimization', 'Disabling cache during active drawing/selection');
+        layerOptimization.disableStaticLayerCache();
+      }
     }
   }, [currentTool, isSelecting, layerOptimization, USE_LAYER_OPTIMIZATION]);
 
