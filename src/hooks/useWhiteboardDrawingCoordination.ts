@@ -26,15 +26,21 @@ export const useWhiteboardDrawingCoordination = (
   addToHistory: () => void
 ) => {
   // Memoize current tool to prevent unnecessary re-initializations
-  const stableCurrentTool = useMemo(() => state.currentTool, [state.currentTool]);
+  const stableCurrentTool = useMemo(() => state?.currentTool || 'pencil', [state?.currentTool]);
 
   // Drawing operations (pencil and highlighter) - memoized to prevent re-creation
   const drawingOperations = useMemo(() => {
+    if (!state || !setState || !addToHistory) {
+      return { startDrawing: () => {}, continueDrawing: () => {}, stopDrawing: () => {} };
+    }
     return useDrawingState(state, setState, addToHistory);
   }, [state, setState, addToHistory]);
 
   // Eraser operations - memoized to prevent re-creation
   const eraserOperations = useMemo(() => {
+    if (!state || !setState || !addToHistory) {
+      return { startErasing: () => {}, continueErasing: () => {}, stopErasing: () => {} };
+    }
     return useEraserState(state, setState, addToHistory);
   }, [state, setState, addToHistory]);
 
