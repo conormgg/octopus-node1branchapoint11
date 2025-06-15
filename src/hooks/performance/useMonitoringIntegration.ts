@@ -1,4 +1,3 @@
-
 /**
  * @fileoverview Integration layer for performance monitoring
  * @description Connects performance monitoring with whiteboard operations,
@@ -17,15 +16,11 @@ import { createDebugLogger, isDebugEnabled } from '@/utils/debug/debugConfig';
 
 const debugLog = createDebugLogger('performance');
 
-// Feature flag to disable monitoring during critical operations
-const DISABLE_MONITORING_DURING_INIT = true;
-
 /**
  * @hook useMonitoringIntegration
  * @description Provides automatic performance monitoring integration for whiteboard operations
  * 
  * @param isEnabled - Whether monitoring is enabled
- * @param isInitializing - Whether the component is currently initializing (disables monitoring)
  * 
  * @returns {Object} Monitoring integration interface
  * @returns {MonitoredOperations} operations - Wrapped operations with automatic timing
@@ -43,110 +38,55 @@ const DISABLE_MONITORING_DURING_INIT = true;
  * 4. Generates performance reports on demand
  * 5. Can be disabled in production for performance
  */
-export const useMonitoringIntegration = (
-  isEnabled: boolean = isDebugEnabled('performance'),
-  isInitializing: boolean = false
-) => {
-  // Temporarily disable monitoring during initialization to prevent hangs
-  const actuallyEnabled = isEnabled && !isInitializing && !DISABLE_MONITORING_DURING_INIT;
-  
-  debugLog('Hook', 'Initializing monitoring integration', { 
-    isEnabled, 
-    isInitializing, 
-    actuallyEnabled 
+export const useMonitoringIntegration = (isEnabled: boolean = isDebugEnabled('performance')) => {
+  debugLog('Hook', 'Initializing monitoring integration', { isEnabled });
+
+  const {
+    startTimer,
+    endTimer,
+    recordDrawingOperation,
+    recordSyncOperation,
+    recordRenderOperation,
+    generateReport,
+    metrics
+  } = usePerformanceMonitor();
+
+  // Initialize monitoring types and utilities
+  const {
+    generateOperationId,
+    monitorOperation,
+    operations
+  } = useMonitoringTypes({
+    startTimer,
+    endTimer,
+    recordDrawingOperation,
+    recordSyncOperation,
+    recordRenderOperation
   });
 
-  let startTimer, endTimer, recordDrawingOperation, recordSyncOperation, recordRenderOperation, generateReport, metrics;
+  // Initialize operation wrappers
+  const {
+    wrapDrawingOperation,
+    wrapSyncOperation,
+    wrapRenderOperation
+  } = useOperationWrappers({
+    isEnabled,
+    generateOperationId,
+    startTimer,
+    endTimer,
+    recordDrawingOperation,
+    recordSyncOperation,
+    recordRenderOperation
+  });
 
-  try {
-    const performanceMonitor = usePerformanceMonitor();
-    startTimer = performanceMonitor.startTimer;
-    endTimer = performanceMonitor.endTimer;
-    recordDrawingOperation = performanceMonitor.recordDrawingOperation;
-    recordSyncOperation = performanceMonitor.recordSyncOperation;
-    recordRenderOperation = performanceMonitor.recordRenderOperation;
-    generateReport = performanceMonitor.generateReport;
-    metrics = performanceMonitor.metrics;
-  } catch (error) {
-    debugLog('Hook', 'Performance monitor initialization failed, creating fallbacks', { error: error.message });
-    // Fallback implementations that do nothing
-    startTimer = () => {};
-    endTimer = () => null;
-    recordDrawingOperation = () => {};
-    recordSyncOperation = () => {};
-    recordRenderOperation = () => {};
-    generateReport = () => ({ warnings: [], recommendations: [], timestamp: Date.now() });
-    metrics = {
-      drawingOperations: { count: 0, totalTime: 0, averageTime: 0, lastOperationTime: 0 },
-      syncOperations: { count: 0, totalTime: 0, averageTime: 0, lastSyncTime: 0 },
-      renderOperations: { count: 0, totalTime: 0, averageTime: 0, fps: 60 },
-      memoryUsage: { usedJSHeapSize: 0, totalJSHeapSize: 0, jsHeapSizeLimit: 0 }
-    };
-  }
-
-  let generateOperationId, monitorOperation, operations;
-
-  try {
-    // Initialize monitoring types and utilities
-    const monitoringTypes = useMonitoringTypes({
-      startTimer,
-      endTimer,
-      recordDrawingOperation,
-      recordSyncOperation,
-      recordRenderOperation
-    });
-    generateOperationId = monitoringTypes.generateOperationId;
-    monitorOperation = monitoringTypes.monitorOperation;
-    operations = monitoringTypes.operations;
-  } catch (error) {
-    debugLog('Hook', 'Monitoring types initialization failed, creating fallbacks', { error: error.message });
-    generateOperationId = () => `fallback_${Date.now()}`;
-    monitorOperation = (fn) => fn;
-    operations = {
-      drawing: { start: () => {}, continue: () => {}, end: () => {} },
-      sync: { send: () => {}, receive: () => {} },
-      render: { draw: () => {}, update: () => {} }
-    };
-  }
-
-  let wrapDrawingOperation, wrapSyncOperation, wrapRenderOperation;
-
-  try {
-    // Initialize operation wrappers
-    const operationWrappers = useOperationWrappers({
-      isEnabled: actuallyEnabled,
-      generateOperationId,
-      startTimer,
-      endTimer,
-      recordDrawingOperation,
-      recordSyncOperation,
-      recordRenderOperation
-    });
-    wrapDrawingOperation = operationWrappers.wrapDrawingOperation;
-    wrapSyncOperation = operationWrappers.wrapSyncOperation;
-    wrapRenderOperation = operationWrappers.wrapRenderOperation;
-  } catch (error) {
-    debugLog('Hook', 'Operation wrappers initialization failed, creating fallbacks', { error: error.message });
-    // Fallback wrappers that just return the original function
-    wrapDrawingOperation = (fn) => fn;
-    wrapSyncOperation = (fn) => fn;
-    wrapRenderOperation = (fn) => fn;
-  }
-
-  let getPerformanceReport;
-
-  try {
-    // Initialize core monitoring logic
-    const monitoringCore = useMonitoringCore({
-      isEnabled: actuallyEnabled,
-      generateReport,
-      metrics
-    });
-    getPerformanceReport = monitoringCore.getPerformanceReport;
-  } catch (error) {
-    debugLog('Hook', 'Monitoring core initialization failed, creating fallback', { error: error.message });
-    getPerformanceReport = () => null;
-  }
+  // Initialize core monitoring logic
+  const {
+    getPerformanceReport
+  } = useMonitoringCore({
+    isEnabled,
+    generateReport,
+    metrics
+  });
 
   return {
     operations,
@@ -156,7 +96,7 @@ export const useMonitoringIntegration = (
     monitorOperation,
     getPerformanceReport,
     metrics,
-    isEnabled: actuallyEnabled
+    isEnabled
   };
 };
 

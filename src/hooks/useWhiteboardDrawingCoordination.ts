@@ -3,23 +3,19 @@ import { useCallback, useMemo } from 'react';
 import { Tool } from '@/types/whiteboard';
 import { useDrawingState } from './useDrawingState';
 import { useEraserState } from './useEraserState';
-import { useMonitoringIntegration } from './performance/useMonitoringIntegration';
 import { createDebugLogger } from '@/utils/debug/debugConfig';
 
 const debugLog = createDebugLogger('drawing');
 
 /**
  * @hook useWhiteboardDrawingCoordination
- * @description Coordinates all drawing operations (pencil, highlighter, eraser) with performance monitoring
+ * @description Coordinates all drawing operations (pencil, highlighter, eraser)
  */
 export const useWhiteboardDrawingCoordination = (
   state: any,
   setState: any,
   addToHistory: () => void
 ) => {
-  // Temporarily disable monitoring during coordination to prevent hangs
-  const { wrapDrawingOperation } = useMonitoringIntegration(false, true);
-
   // Memoize current tool to prevent unnecessary re-initializations
   const stableCurrentTool = useMemo(() => state?.currentTool || 'pencil', [state?.currentTool]);
 
@@ -46,50 +42,38 @@ export const useWhiteboardDrawingCoordination = (
   const { startDrawing, continueDrawing, stopDrawing } = drawingOperations;
   const { startErasing, continueErasing, stopErasing } = eraserOperations;
 
-  // Coordinate drawing start based on tool with fallback safety
+  // Coordinate drawing start based on tool
   const handleDrawingStart = useCallback((x: number, y: number) => {
     debugLog('DrawingCoordination', 'Drawing start requested', { x, y, tool: stableCurrentTool });
     
-    try {
-      if (stableCurrentTool === 'pencil' || stableCurrentTool === 'highlighter') {
-        debugLog('DrawingCoordination', 'Starting drawing operation');
-        startDrawing(x, y);
-      } else if (stableCurrentTool === 'eraser') {
-        debugLog('DrawingCoordination', 'Starting eraser operation');
-        startErasing(x, y);
-      }
-    } catch (error) {
-      console.error('[DrawingCoordination] Drawing start failed:', error);
+    if (stableCurrentTool === 'pencil' || stableCurrentTool === 'highlighter') {
+      debugLog('DrawingCoordination', 'Starting drawing operation');
+      startDrawing(x, y);
+    } else if (stableCurrentTool === 'eraser') {
+      debugLog('DrawingCoordination', 'Starting eraser operation');
+      startErasing(x, y);
     }
   }, [stableCurrentTool, startDrawing, startErasing]);
 
-  // Coordinate drawing continuation based on tool with fallback safety
+  // Coordinate drawing continuation based on tool
   const handleDrawingContinue = useCallback((x: number, y: number) => {
-    try {
-      if (stableCurrentTool === 'pencil' || stableCurrentTool === 'highlighter') {
-        debugLog('DrawingCoordination', 'Continuing drawing operation');
-        continueDrawing(x, y);
-      } else if (stableCurrentTool === 'eraser') {
-        debugLog('DrawingCoordination', 'Continuing eraser operation');
-        continueErasing(x, y);
-      }
-    } catch (error) {
-      console.error('[DrawingCoordination] Drawing continue failed:', error);
+    if (stableCurrentTool === 'pencil' || stableCurrentTool === 'highlighter') {
+      debugLog('DrawingCoordination', 'Continuing drawing operation');
+      continueDrawing(x, y);
+    } else if (stableCurrentTool === 'eraser') {
+      debugLog('DrawingCoordination', 'Continuing eraser operation');
+      continueErasing(x, y);
     }
   }, [stableCurrentTool, continueDrawing, continueErasing]);
 
-  // Coordinate drawing end based on tool with fallback safety
+  // Coordinate drawing end based on tool
   const handleDrawingEnd = useCallback(() => {
-    try {
-      if (stableCurrentTool === 'pencil' || stableCurrentTool === 'highlighter') {
-        debugLog('DrawingCoordination', 'Finishing drawing operation');
-        stopDrawing();
-      } else if (stableCurrentTool === 'eraser') {
-        debugLog('DrawingCoordination', 'Finishing eraser operation');
-        stopErasing();
-      }
-    } catch (error) {
-      console.error('[DrawingCoordination] Drawing end failed:', error);
+    if (stableCurrentTool === 'pencil' || stableCurrentTool === 'highlighter') {
+      debugLog('DrawingCoordination', 'Finishing drawing operation');
+      stopDrawing();
+    } else if (stableCurrentTool === 'eraser') {
+      debugLog('DrawingCoordination', 'Finishing eraser operation');
+      stopErasing();
     }
   }, [stableCurrentTool, stopDrawing, stopErasing]);
 
