@@ -28,11 +28,21 @@ This is **OctoPi Ink**, a collaborative whiteboard application built with React,
 - **Sync State**: Real-time collaboration state management
 - **History State**: Undo/redo functionality with operation tracking
 
+### 5. Performance Monitoring System
+- **Modular Architecture**: New separated concerns with focused modules
+- **Core Coordinator**: `usePerformanceCoordinator` manages all performance modules
+- **Integration Layer**: `useIntegrationCore` handles automatic operation instrumentation
+- **Main Interfaces**: `usePerformanceMonitor` and `useMonitoringIntegration` provide simplified access
+- **Specialized Modules**: Individual hooks for metrics, timers, memory, reporting, and FPS tracking
+- **Operation Wrappers**: Automatic performance monitoring for drawing, sync, and render operations
+- **Optimization Tracking**: `useOptimizationTracker` provides performance analysis and recommendations
+
 ## Key Data Flow
 
 1. **User Input** → Event Handlers → Tool Operations → State Updates → Canvas Rendering
 2. **Collaboration** → Supabase Realtime → Operation Handler → State Sync → UI Updates
 3. **Session Management** → Database Operations → Context Updates → Component Re-renders
+4. **Performance Monitoring** → Operation Wrappers → Metrics Collection → Analysis → Reporting
 
 ## Critical Files for AI Understanding
 
@@ -41,6 +51,19 @@ This is **OctoPi Ink**, a collaborative whiteboard application built with React,
 3. `src/hooks/useStageEventHandlers.ts` - Event coordination
 4. `src/components/canvas/KonvaStage.tsx` - Main canvas component
 5. `src/hooks/shared/useSharedOperationsCoordinator.ts` - Collaboration logic
+6. `src/hooks/performance/monitoring/usePerformanceCoordinator.ts` - Performance coordination
+7. `src/hooks/performance/monitoring/useIntegrationCore.ts` - Performance integration
+
+## Performance Monitoring Architecture
+
+The performance monitoring system uses a modular architecture with clear separation of concerns:
+
+- **Coordination Layer**: `usePerformanceCoordinator` manages all performance modules
+- **Integration Layer**: `useIntegrationCore` provides automatic operation instrumentation
+- **Public Interfaces**: `usePerformanceMonitor` and `useMonitoringIntegration` for external use
+- **Specialized Modules**: Individual hooks for specific performance aspects
+- **Operation Wrappers**: Automatic timing and monitoring for all operations
+- **Analysis & Optimization**: Performance scoring and recommendation system
 
 ## Common Modification Patterns
 
@@ -48,3 +71,4 @@ This is **OctoPi Ink**, a collaborative whiteboard application built with React,
 - **Event handling changes**: Modify handlers in `src/hooks/eventHandling/`
 - **State changes**: Update whiteboard state types and management hooks
 - **UI components**: Add to appropriate canvas layers or toolbar sections
+- **Performance monitoring**: Add new metrics or analysis modules to the modular system

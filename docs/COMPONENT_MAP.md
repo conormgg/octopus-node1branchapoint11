@@ -51,6 +51,32 @@ useWhiteboardState
     └── useWheelEventHandlers
 ```
 
+## Performance Monitoring Hook Structure
+
+```
+usePerformanceMonitor
+└── usePerformanceCoordinator
+    ├── usePerformanceMetrics
+    ├── usePerformanceTimers
+    ├── useMemoryMonitor
+    ├── usePerformanceReporting
+    └── useFpsTracker
+
+useMonitoringIntegration
+└── useIntegrationCore
+    ├── usePerformanceCoordinator (shared)
+    ├── useOperationWrappers
+    ├── useMonitoringTypes
+    └── useMonitoringCore
+
+useOptimizationTracker
+├── useDrawingAnalysis
+├── useSyncAnalysis
+├── useRenderAnalysis
+├── useMemoryAnalysis
+└── usePerformanceScoring
+```
+
 ## State Flow
 
 ```
@@ -65,4 +91,22 @@ Whiteboard State Updates
 Canvas Re-rendering + History Updates
     ↓
 Sync Operations (if collaborative)
+    ↓
+Performance Monitoring (automatic via wrappers)
+```
+
+## Performance Monitoring Flow
+
+```
+Operation Execution
+    ↓
+Operation Wrappers (automatic instrumentation)
+    ↓
+Timer Management + Metrics Collection
+    ↓
+Performance Coordinator (aggregation)
+    ↓
+Analysis Modules (optimization tracking)
+    ↓
+Reporting + Recommendations
 ```
