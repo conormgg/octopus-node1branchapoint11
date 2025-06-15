@@ -176,13 +176,6 @@ const LinesLayer: React.FC<LinesLayerProps> = ({
     ? normalizedState.imageIds.map(id => normalizedState.getImageById(id)).filter(Boolean)
     : images;
 
-  // Apply viewport culling when enabled
-  React.useEffect(() => {
-    if (USE_VIEWPORT_CULLING && viewport) {
-      layerOptimization.cullObjectsOutsideViewport(viewport);
-    }
-  }, [viewport, layerOptimization]);
-
   // Trigger layer optimization when static content changes
   React.useEffect(() => {
     if (USE_LAYER_OPTIMIZATION && !isSelecting) {

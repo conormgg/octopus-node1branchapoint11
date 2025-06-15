@@ -17,7 +17,7 @@ const debugLog = (context: string, action: string, data?: any) => {
 };
 
 /**
- * Hook for optimizing canvas layer performance through caching and selective updates
+ * Hook for optimizing canvas layer performance through caching
  */
 export const useCanvasLayerOptimization = (
   layerRef: React.RefObject<Konva.Layer>,
@@ -137,47 +137,6 @@ export const useCanvasLayerOptimization = (
     }
   }, [layerRef, shouldCacheStaticLayer, enableStaticLayerCache]);
 
-  // Viewport-based culling for large numbers of objects
-  const cullObjectsOutsideViewport = useCallback((viewport: { x: number; y: number; width: number; height: number; scale: number }) => {
-    if (!layerRef.current) return;
-    
-    const layer = layerRef.current;
-    const margin = 100; // Buffer zone around viewport
-    let culledCount = 0;
-    let visibleCount = 0;
-    
-    layer.children.forEach(child => {
-      const bounds = child.getClientRect();
-      const isVisible = !(
-        bounds.x + bounds.width < viewport.x - margin ||
-        bounds.x > viewport.x + viewport.width + margin ||
-        bounds.y + bounds.height < viewport.y - margin ||
-        bounds.y > viewport.y + viewport.height + margin
-      );
-      
-      // Only update visibility if it changed to prevent unnecessary redraws
-      if (child.visible() !== isVisible) {
-        child.visible(isVisible);
-        if (isVisible) {
-          visibleCount++;
-        } else {
-          culledCount++;
-        }
-      } else if (isVisible) {
-        visibleCount++;
-      }
-    });
-
-    if (culledCount > 0 || DEBUG_ENABLED) {
-      debugLog('Culling', 'Viewport culling complete', {
-        culled: culledCount,
-        visible: visibleCount,
-        total: layer.children.length,
-        viewport
-      });
-    }
-  }, [layerRef]);
-
   // Get performance metrics for monitoring
   const getPerformanceMetrics = useCallback(() => {
     return {
@@ -192,14 +151,12 @@ export const useCanvasLayerOptimization = (
     enableStaticLayerCache,
     disableStaticLayerCache,
     updateLayerOptimized,
-    cullObjectsOutsideViewport,
     shouldCacheStaticLayer,
     getPerformanceMetrics
   }), [
     enableStaticLayerCache, 
     disableStaticLayerCache, 
     updateLayerOptimized, 
-    cullObjectsOutsideViewport, 
     shouldCacheStaticLayer,
     getPerformanceMetrics
   ]);
