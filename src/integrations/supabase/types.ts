@@ -94,6 +94,7 @@ export type Database = {
           session_id: string
           student_email: string | null
           student_name: string
+          sync_direction: string | null
         }
         Insert: {
           assigned_board_suffix: string
@@ -102,6 +103,7 @@ export type Database = {
           session_id: string
           student_email?: string | null
           student_name: string
+          sync_direction?: string | null
         }
         Update: {
           assigned_board_suffix?: string
@@ -110,6 +112,7 @@ export type Database = {
           session_id?: string
           student_email?: string | null
           student_name?: string
+          sync_direction?: string | null
         }
         Relationships: [
           {
@@ -126,6 +129,7 @@ export type Database = {
           created_at: string | null
           duration_minutes: number | null
           id: string
+          last_action: Json | null
           last_activity_at: string | null
           status: string | null
           teacher_id: string
@@ -136,6 +140,7 @@ export type Database = {
           created_at?: string | null
           duration_minutes?: number | null
           id?: string
+          last_action?: Json | null
           last_activity_at?: string | null
           status?: string | null
           teacher_id: string
@@ -146,6 +151,7 @@ export type Database = {
           created_at?: string | null
           duration_minutes?: number | null
           id?: string
+          last_action?: Json | null
           last_activity_at?: string | null
           status?: string | null
           teacher_id?: string
@@ -191,6 +197,38 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "whiteboard_data_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "sessions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      whiteboard_snapshots: {
+        Row: {
+          board_id: string
+          created_at: string
+          id: number
+          session_id: string
+          snapshot_data: Json
+        }
+        Insert: {
+          board_id: string
+          created_at?: string
+          id?: never
+          session_id: string
+          snapshot_data: Json
+        }
+        Update: {
+          board_id?: string
+          created_at?: string
+          id?: never
+          session_id?: string
+          snapshot_data?: Json
+        }
+        Relationships: [
+          {
+            foreignKeyName: "whiteboard_snapshots_session_id_fkey"
             columns: ["session_id"]
             isOneToOne: false
             referencedRelation: "sessions"
