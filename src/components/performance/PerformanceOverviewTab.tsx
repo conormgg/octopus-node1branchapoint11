@@ -1,4 +1,3 @@
-
 /**
  * @fileoverview Performance overview tab content
  */
@@ -8,7 +7,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { TrendingUp, AlertTriangle, Layers } from 'lucide-react';
-import { PerformanceMetrics } from '@/hooks/performance/useMonitoringIntegration';
+import { PerformanceMetrics } from '@/hooks/performance/usePerformanceMonitor';
 import { LayerOptimizationMetrics } from '@/hooks/performance/useLayerOptimizationMetrics';
 import { OptimizationSummary } from '@/hooks/performance/useOptimizationTracker';
 import PerformanceQuickStats from './PerformanceQuickStats';

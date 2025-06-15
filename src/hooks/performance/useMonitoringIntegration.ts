@@ -1,4 +1,3 @@
-
 /**
  * @fileoverview Integration layer for performance monitoring
  * @description Connects performance monitoring with whiteboard operations,
@@ -9,7 +8,7 @@
  * without requiring manual instrumentation in every component.
  */
 
-import { usePerformanceMonitor } from './usePerformanceMonitor';
+import { usePerformanceMonitor, PerformanceMetrics } from './usePerformanceMonitor';
 import { useOperationWrappers } from './useOperationWrappers';
 import { useMonitoringTypes } from './useMonitoringTypes';
 import { useMonitoringCore } from './useMonitoringCore';
@@ -100,3 +99,6 @@ export const useMonitoringIntegration = (isEnabled: boolean = isDebugEnabled('pe
     isEnabled
   };
 };
+
+// Export types for external use
+export type { PerformanceMetrics };

@@ -1,4 +1,3 @@
-
 /**
  * @fileoverview Detailed performance metrics tab
  */
@@ -6,7 +5,7 @@
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
-import { PerformanceMetrics } from '@/hooks/performance/useMonitoringIntegration';
+import { PerformanceMetrics } from '@/hooks/performance/usePerformanceMonitor';
 
 interface PerformanceMetricsTabProps {
   metrics: PerformanceMetrics;

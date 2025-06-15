@@ -1,4 +1,3 @@
-
 /**
  * @fileoverview Performance recommendations tab
  */

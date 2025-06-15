@@ -1,4 +1,3 @@
-
 /**
  * @fileoverview Quick performance statistics cards
  */
@@ -6,7 +5,7 @@
 import React from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Clock, Zap, Activity, MemoryStick, Layers } from 'lucide-react';
-import { PerformanceMetrics } from '@/hooks/performance/useMonitoringIntegration';
+import { PerformanceMetrics } from '@/hooks/performance/usePerformanceMonitor';
 import { LayerOptimizationMetrics } from '@/hooks/performance/useLayerOptimizationMetrics';
 
 interface PerformanceQuickStatsProps {

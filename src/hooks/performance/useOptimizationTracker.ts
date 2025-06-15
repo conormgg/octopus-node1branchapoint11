@@ -1,4 +1,3 @@
-
 /**
  * @fileoverview Optimization tracking and recommendations
  * @description Tracks optimization opportunities and provides actionable recommendations
@@ -27,7 +26,7 @@ const debugLog = (context: string, action: string, data?: any) => {
  * @interface OptimizationOpportunity
  * @description Structure for tracking optimization opportunities
  */
-interface OptimizationOpportunity {
+export interface OptimizationOpportunity {
   id: string;
   type: 'performance' | 'memory' | 'network' | 'rendering';
   severity: 'low' | 'medium' | 'high' | 'critical';
@@ -45,7 +44,7 @@ interface OptimizationOpportunity {
  * @interface OptimizationSummary
  * @description Summary of current optimization state
  */
-interface OptimizationSummary {
+export interface OptimizationSummary {
   totalOpportunities: number;
   criticalCount: number;
   highCount: number;
