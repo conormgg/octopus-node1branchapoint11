@@ -8,8 +8,10 @@ import { useWhiteboardToolManagement } from './useWhiteboardToolManagement';
 import { useWhiteboardDrawingCoordination } from './useWhiteboardDrawingCoordination';
 import { useWhiteboardImageOperations } from './useWhiteboardImageOperations';
 import { useWhiteboardPointerHandlers } from './useWhiteboardPointerHandlers';
+import { useNormalizedWhiteboardState } from './performance/useNormalizedWhiteboardState';
 
 const DEBUG_ENABLED = process.env.NODE_ENV === 'development';
+const USE_NORMALIZED_STATE = true; // Feature flag for gradual rollout
 
 /**
  * @function debugLog
@@ -57,6 +59,17 @@ export const useWhiteboardState = () => {
     }],
     historyIndex: 0
   });
+
+  // Normalized state for performance optimization
+  const normalizedState = useNormalizedWhiteboardState(state.lines, state.images);
+
+  if (DEBUG_ENABLED && USE_NORMALIZED_STATE) {
+    debugLog('Performance', 'Normalized state stats', {
+      lineCount: normalizedState.lineCount,
+      imageCount: normalizedState.imageCount,
+      totalObjects: normalizedState.totalObjectCount
+    });
+  }
 
   // Update state when tool management changes
   useEffect(() => {
@@ -171,6 +184,8 @@ export const useWhiteboardState = () => {
 
   return {
     state,
+    // Expose normalized state for components that can use it
+    normalizedState: USE_NORMALIZED_STATE ? normalizedState : undefined,
     setTool: toolManagement.setTool,
     setColor: toolManagement.setColor,
     setPencilColor: toolManagement.setPencilColor,

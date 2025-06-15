@@ -36,6 +36,17 @@ export const SyncWhiteboard: React.FC<SyncWhiteboardProps> = ({
     });
   }, [portalContainer]);
 
+  // Log normalized state usage
+  React.useEffect(() => {
+    if (whiteboardState.normalizedState && process.env.NODE_ENV === 'development') {
+      console.log('[SyncWhiteboard] Using normalized state with performance benefits', {
+        lineCount: whiteboardState.normalizedState.lineCount,
+        imageCount: whiteboardState.normalizedState.imageCount,
+        whiteboardId
+      });
+    }
+  }, [whiteboardState.normalizedState, whiteboardId]);
+
   return (
     <div 
       className="relative w-full h-full select-none" 

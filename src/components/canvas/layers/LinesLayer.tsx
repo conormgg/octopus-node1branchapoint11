@@ -2,23 +2,34 @@
 import React from 'react';
 import { Layer } from 'react-konva';
 import Konva from 'konva';
-import { Tool, SelectionBounds } from '@/types/whiteboard';
+import { Tool, SelectionBounds, LineObject, ImageObject } from '@/types/whiteboard';
+import { useNormalizedWhiteboardState } from '@/hooks/performance/useNormalizedWhiteboardState';
 import LineRenderer from '../LineRenderer';
 import SelectionRect from '../SelectionRect';
 import SelectionGroup from '../SelectionGroup';
 
 interface LinesLayerProps {
   layerRef: React.RefObject<Konva.Layer>;
-  lines: any[];
-  images: any[];
+  lines: LineObject[];
+  images: ImageObject[];
   currentTool: Tool;
   selectionBounds?: SelectionBounds | null;
   isSelecting?: boolean;
   selection?: any;
+  // Optional normalized state for performance optimization
+  normalizedState?: ReturnType<typeof useNormalizedWhiteboardState>;
   onUpdateLine?: (lineId: string, updates: any) => void;
   onUpdateImage?: (imageId: string, updates: any) => void;
   onTransformEnd?: () => void;
 }
+
+const DEBUG_ENABLED = process.env.NODE_ENV === 'development';
+
+const debugLog = (context: string, action: string, data?: any) => {
+  if (DEBUG_ENABLED) {
+    console.log(`[LinesLayer:${context}] ${action}`, data || '');
+  }
+};
 
 const LinesLayer: React.FC<LinesLayerProps> = ({
   layerRef,
@@ -28,14 +39,37 @@ const LinesLayer: React.FC<LinesLayerProps> = ({
   selectionBounds,
   isSelecting = false,
   selection,
+  normalizedState,
   onUpdateLine,
   onUpdateImage,
   onTransformEnd
 }) => {
+  // Use normalized state if available, otherwise fall back to array-based approach
+  const useNormalized = normalizedState && normalizedState.lineCount > 0;
+  
+  if (DEBUG_ENABLED && useNormalized) {
+    debugLog('Performance', 'Using normalized state for rendering', {
+      lineCount: normalizedState.lineCount,
+      imageCount: normalizedState.imageCount
+    });
+  }
+
+  // Get lines to render - either from normalized state or direct array
+  const linesToRender = useNormalized 
+    ? normalizedState.lineIds.map(id => normalizedState.getLineById(id)).filter(Boolean)
+    : lines;
+
+  // Get images for selection group - either from normalized state or direct array
+  const imagesToUse = useNormalized && normalizedState.imageCount > 0
+    ? normalizedState.imageIds.map(id => normalizedState.getImageById(id)).filter(Boolean)
+    : images;
+
   return (
     <Layer ref={layerRef}>
       {/* Individual lines - hide transformers when part of a group */}
-      {lines.map((line) => {
+      {linesToRender.map((line) => {
+        if (!line) return null; // Safety check for filtered items
+        
         const isSelected = selection?.isObjectSelected?.(line.id) || false;
         const isInGroup = selection?.selectionState?.selectedObjects?.length > 1 && isSelected;
         
@@ -74,8 +108,8 @@ const LinesLayer: React.FC<LinesLayerProps> = ({
       {selection?.selectionState?.selectedObjects && (
         <SelectionGroup
           selectedObjects={selection.selectionState.selectedObjects}
-          lines={lines}
-          images={images}
+          lines={linesToRender}
+          images={imagesToUse}
           onUpdateLine={onUpdateLine}
           onUpdateImage={onUpdateImage}
           onTransformEnd={onTransformEnd}

@@ -26,8 +26,10 @@ import { useSharedPointerHandlers } from './shared/useSharedPointerHandlers';
 import { useSharedStateInitialization } from './shared/useSharedStateInitialization';
 import { useSharedPersistenceIntegration } from './shared/useSharedPersistenceIntegration';
 import { useSharedOperationsCoordinator } from './shared/useSharedOperationsCoordinator';
+import { useNormalizedWhiteboardState } from './performance/useNormalizedWhiteboardState';
 
 const DEBUG_ENABLED = process.env.NODE_ENV === 'development';
+const USE_NORMALIZED_STATE = true; // Feature flag for gradual rollout
 
 /**
  * @function debugLog
@@ -67,6 +69,18 @@ export const useSharedWhiteboardState = (syncConfig?: SyncConfig, whiteboardId?:
 
   // Initialize state
   const { state, setState } = useSharedStateInitialization(whiteboardId);
+
+  // Normalized state for performance optimization
+  const normalizedState = useNormalizedWhiteboardState(state.lines, state.images);
+
+  if (DEBUG_ENABLED && USE_NORMALIZED_STATE) {
+    debugLog('Performance', 'Normalized state stats', {
+      lineCount: normalizedState.lineCount,
+      imageCount: normalizedState.imageCount,
+      totalObjects: normalizedState.totalObjectCount,
+      whiteboardId
+    });
+  }
 
   // Selection state management
   const selection = useSelectionState();
@@ -127,6 +141,8 @@ export const useSharedWhiteboardState = (syncConfig?: SyncConfig, whiteboardId?:
 
   return {
     state,
+    // Expose normalized state for components that can use it
+    normalizedState: USE_NORMALIZED_STATE ? normalizedState : undefined,
     syncState: operations.syncState,
     setTool,
     setColor,
