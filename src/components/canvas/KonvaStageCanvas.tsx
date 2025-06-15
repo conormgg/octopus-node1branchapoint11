@@ -3,6 +3,7 @@ import React from 'react';
 import { Stage } from 'react-konva';
 import Konva from 'konva';
 import { PanZoomState, Tool, SelectionBounds } from '@/types/whiteboard';
+import { useNormalizedWhiteboardState } from '@/hooks/performance/useNormalizedWhiteboardState';
 import { useMouseEventHandlers } from './hooks/useMouseEventHandlers';
 import { useTouchEventHandlers } from './hooks/useTouchEventHandlers';
 import { useStageCursor } from './hooks/useStageCursor';
@@ -38,6 +39,7 @@ interface KonvaStageCanvasProps {
   onUpdateLine?: (lineId: string, updates: any) => void;
   onUpdateImage?: (imageId: string, updates: any) => void;
   onTransformEnd?: () => void;
+  normalizedState?: ReturnType<typeof useNormalizedWhiteboardState>;
 }
 
 const KonvaStageCanvas: React.FC<KonvaStageCanvasProps> = ({
@@ -62,7 +64,8 @@ const KonvaStageCanvas: React.FC<KonvaStageCanvasProps> = ({
   selection,
   onUpdateLine,
   onUpdateImage,
-  onTransformEnd
+  onTransformEnd,
+  normalizedState
 }) => {
   const { handleMouseDown, handleMouseMove, handleMouseUp } = useMouseEventHandlers({
     currentTool,
@@ -109,6 +112,7 @@ const KonvaStageCanvas: React.FC<KonvaStageCanvasProps> = ({
         selectionBounds={selectionBounds}
         isSelecting={isSelecting}
         selection={selection}
+        normalizedState={normalizedState}
         onUpdateLine={onUpdateLine}
         onUpdateImage={onUpdateImage}
         onTransformEnd={onTransformEnd}

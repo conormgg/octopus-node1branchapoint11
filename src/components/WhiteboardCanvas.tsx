@@ -39,6 +39,7 @@ const WhiteboardCanvas: React.FC<WhiteboardCanvasProps> = ({
         whiteboardState={whiteboardState}
         isReadOnly={isReadOnly}
         palmRejectionConfig={palmRejectionConfig}
+        normalizedState={whiteboardState.normalizedState}
       />
       
       {/* Zoom indicator */}

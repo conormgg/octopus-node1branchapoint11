@@ -1,7 +1,7 @@
-
 import React, { useRef } from 'react';
 import Konva from 'konva';
 import { useWhiteboardState } from '@/hooks/useWhiteboardState';
+import { useNormalizedWhiteboardState } from '@/hooks/performance/useNormalizedWhiteboardState';
 import { usePalmRejection } from '@/hooks/usePalmRejection';
 import { useStageEventHandlers } from '@/hooks/useStageEventHandlers';
 import { useKonvaKeyboardHandlers } from '@/hooks/canvas/useKonvaKeyboardHandlers';
@@ -23,6 +23,7 @@ interface KonvaStageProps {
     preferStylus: boolean;
     enabled: boolean;
   };
+  normalizedState?: ReturnType<typeof useNormalizedWhiteboardState>;
 }
 
 const KonvaStage: React.FC<KonvaStageProps> = ({
@@ -37,7 +38,8 @@ const KonvaStage: React.FC<KonvaStageProps> = ({
     clusterDistance: 100,
     preferStylus: true,
     enabled: true
-  }
+  },
+  normalizedState
 }) => {
   const stageRef = useRef<Konva.Stage>(null);
   const layerRef = useRef<Konva.Layer>(null);
@@ -139,6 +141,7 @@ const KonvaStage: React.FC<KonvaStageProps> = ({
               whiteboardState.addToHistory();
             }
           }}
+          normalizedState={normalizedState}
           extraContent={
             <KonvaImageOperationsHandler
               whiteboardState={whiteboardState}
