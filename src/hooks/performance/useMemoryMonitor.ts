@@ -6,18 +6,9 @@
 
 import { useCallback, useEffect } from 'react';
 import { PerformanceMetrics } from './usePerformanceMetrics';
+import { createDebugLogger } from '@/utils/debug/debugConfig';
 
-const DEBUG_ENABLED = process.env.NODE_ENV === 'development';
-
-/**
- * @function debugLog
- * @description Memory-specific debug logging
- */
-const debugLog = (context: string, action: string, data?: any) => {
-  if (DEBUG_ENABLED) {
-    console.log(`[MemoryMonitor:${context}] ${action}`, data || '');
-  }
-};
+const debugLog = createDebugLogger('memoryMonitor');
 
 /**
  * @hook useMemoryMonitor

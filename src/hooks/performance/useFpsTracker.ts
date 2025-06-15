@@ -5,18 +5,9 @@
  */
 
 import { useRef, useCallback } from 'react';
+import { createDebugLogger } from '@/utils/debug/debugConfig';
 
-const DEBUG_ENABLED = process.env.NODE_ENV === 'development';
-
-/**
- * @function debugLog
- * @description FPS-specific debug logging
- */
-const debugLog = (context: string, action: string, data?: any) => {
-  if (DEBUG_ENABLED) {
-    console.log(`[FpsTracker:${context}] ${action}`, data || '');
-  }
-};
+const debugLog = createDebugLogger('fpsTracker');
 
 /**
  * @hook useFpsTracker

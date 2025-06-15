@@ -1,6 +1,10 @@
+
 import { SyncConfig, WhiteboardOperation } from '@/types/sync';
 import { Connection } from './Connection';
 import { OperationHandler } from './types';
+import { createDebugLogger, logError } from '@/utils/debug/debugConfig';
+
+const debugLog = createDebugLogger('connection');
 
 /**
  * Singleton manager for whiteboard sync connections
@@ -33,12 +37,12 @@ class SyncConnectionManager {
     
     // If connection doesn't exist, create it
     if (!connection) {
-      console.log(`[SyncConnectionManager] Creating new connection for ${connectionId}`);
+      debugLog('Manager', `Creating new connection for ${connectionId}`);
       connection = new Connection(config, handler);
       this.connections.set(connectionId, connection);
     } else {
       // Connection exists, just add the handler
-      console.log(`[SyncConnectionManager] Reusing existing connection for ${connectionId}`);
+      debugLog('Manager', `Reusing existing connection for ${connectionId}`);
       connection.addHandler(handler);
       
       // Update the config in case it has changed (e.g., different senderId)
@@ -62,13 +66,13 @@ class SyncConnectionManager {
     const connection = this.connections.get(connectionId);
     
     if (connection) {
-      console.log(`[SyncConnectionManager] Unregistering handler for ${connectionId}`);
+      debugLog('Manager', `Unregistering handler for ${connectionId}`);
       connection.removeHandler(handler);
       
       // Keep connection alive for a grace period (30 seconds)
       // This allows for quick reconnection if component remounts
       if (connection.handlerCount === 0) {
-        console.log(`[SyncConnectionManager] No more handlers for ${connectionId}, scheduling cleanup`);
+        debugLog('Manager', `No more handlers for ${connectionId}, scheduling cleanup`);
         setTimeout(() => {
           this.cleanupConnection(connectionId);
         }, 30000); // 30 second grace period
@@ -89,7 +93,7 @@ class SyncConnectionManager {
     const connection = this.connections.get(connectionId);
     
     if (!connection) {
-      console.error(`[SyncConnectionManager] No connection found for ${connectionId}`);
+      logError('Manager', `No connection found for ${connectionId}`);
       return null;
     }
     
@@ -106,12 +110,12 @@ class SyncConnectionManager {
       // Check if there's been any activity in the last 30 seconds
       const inactiveTime = Date.now() - connection.lastActivity;
       if (inactiveTime > 30000) {
-        console.log(`[SyncConnectionManager] Cleaning up inactive connection for ${connectionId}`);
+        debugLog('Manager', `Cleaning up inactive connection for ${connectionId}`);
         connection.close();
         this.connections.delete(connectionId);
       } else {
         // Still recent activity, reschedule cleanup
-        console.log(`[SyncConnectionManager] Connection ${connectionId} still has recent activity, rescheduling cleanup`);
+        debugLog('Manager', `Connection ${connectionId} still has recent activity, rescheduling cleanup`);
         setTimeout(() => {
           this.cleanupConnection(connectionId);
         }, 30000);

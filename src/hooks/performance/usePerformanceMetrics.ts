@@ -5,8 +5,9 @@
  */
 
 import { useState, useCallback } from 'react';
+import { createDebugLogger } from '@/utils/debug/debugConfig';
 
-const DEBUG_ENABLED = process.env.NODE_ENV === 'development';
+const debugLog = createDebugLogger('performanceMetrics');
 
 /**
  * @interface PerformanceMetrics
@@ -37,16 +38,6 @@ export interface PerformanceMetrics {
     jsHeapSizeLimit: number;
   };
 }
-
-/**
- * @function debugLog
- * @description Performance-specific debug logging
- */
-const debugLog = (context: string, action: string, data?: any) => {
-  if (DEBUG_ENABLED) {
-    console.log(`[PerformanceMetrics:${context}] ${action}`, data || '');
-  }
-};
 
 /**
  * @hook usePerformanceMetrics

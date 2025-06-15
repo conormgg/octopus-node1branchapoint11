@@ -8,14 +8,9 @@
  */
 
 import { useEffect, useCallback } from 'react';
+import { createDebugLogger } from '@/utils/debug/debugConfig';
 
-const DEBUG_ENABLED = process.env.NODE_ENV === 'development';
-
-const debugLog = (context: string, action: string, data?: any) => {
-  if (DEBUG_ENABLED) {
-    console.log(`[MonitoringCore:${context}] ${action}`, data || '');
-  }
-};
+const debugLog = createDebugLogger('performance');
 
 interface UseMonitoringCoreProps {
   isEnabled: boolean;

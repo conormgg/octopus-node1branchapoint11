@@ -2,14 +2,9 @@
 import { useCallback } from 'react';
 import Konva from 'konva';
 import { LayerCacheState } from './types';
+import { createDebugLogger } from '@/utils/debug/debugConfig';
 
-const DEBUG_ENABLED = process.env.NODE_ENV === 'development';
-
-const debugLog = (context: string, action: string, data?: any) => {
-  if (DEBUG_ENABLED) {
-    console.log(`[LayerOptimization:${context}] ${action}`, data || '');
-  }
-};
+const debugLog = createDebugLogger('layerOptimization');
 
 export const useLayerUpdater = (
   layerRef: React.RefObject<Konva.Layer>,

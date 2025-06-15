@@ -5,18 +5,9 @@
  */
 
 import { useRef, useCallback } from 'react';
+import { createDebugLogger } from '@/utils/debug/debugConfig';
 
-const DEBUG_ENABLED = process.env.NODE_ENV === 'development';
-
-/**
- * @function debugLog
- * @description Timer-specific debug logging
- */
-const debugLog = (context: string, action: string, data?: any) => {
-  if (DEBUG_ENABLED) {
-    console.log(`[PerformanceTimers:${context}] ${action}`, data || '');
-  }
-};
+const debugLog = createDebugLogger('performanceTimers');
 
 /**
  * @hook usePerformanceTimers

@@ -3,6 +3,9 @@ import { supabase } from '@/integrations/supabase/client';
 import { ConnectionInfo, OperationHandler } from './types';
 import { PayloadConverter } from './PayloadConverter';
 import { SyncConfig, WhiteboardOperation } from '@/types/sync';
+import { createDebugLogger, logError } from '@/utils/debug/debugConfig';
+
+const debugLog = createDebugLogger('connection');
 
 export class Connection {
   private info: ConnectionInfo;
@@ -25,7 +28,7 @@ export class Connection {
         (payload) => this.handlePayload(payload)
       )
       .subscribe((status) => {
-        console.log(`[Connection] Subscription status for ${this.connectionId}:`, status);
+        debugLog('Subscription', `Status for ${this.connectionId}: ${status}`);
         this.info.isConnected = status === 'SUBSCRIBED';
         this.info.lastActivity = Date.now();
       });
@@ -43,12 +46,12 @@ export class Connection {
    * Handle incoming payload from database
    */
   private handlePayload(payload: any) {
-    console.log('[Connection] Received operation:', payload);
+    debugLog('Payload', 'Received operation', payload);
     
     // Convert to our internal operation format
     const operation = PayloadConverter.toOperation(payload);
     
-    console.log('[Connection] Converted operation:', operation);
+    debugLog('Payload', 'Converted operation', operation);
     
     // Update activity timestamp
     this.info.lastActivity = Date.now();
@@ -57,10 +60,10 @@ export class Connection {
     this.info.handlers.forEach(handler => {
       // Don't send operations back to the sender
       if (operation.sender_id !== this.info.config.senderId) {
-        console.log(`[Connection] Dispatching operation to handler, operation from: ${operation.sender_id}, local sender: ${this.info.config.senderId}`);
+        debugLog('Dispatch', `Operation to handler from: ${operation.sender_id}, local: ${this.info.config.senderId}`);
         handler(operation);
       } else {
-        console.log(`[Connection] Skipping operation from self (${operation.sender_id})`);
+        debugLog('Dispatch', `Skipping operation from self (${operation.sender_id})`);
       }
     });
   }
@@ -94,7 +97,7 @@ export class Connection {
       sender_id: this.info.config.senderId
     };
     
-    console.log(`[Connection] Sending operation type ${fullOperation.operation_type} to database`);
+    debugLog('Send', `Sending ${fullOperation.operation_type} to database`);
     
     // Send to Supabase
     const dbRecord = PayloadConverter.toDatabaseRecord(
@@ -107,9 +110,9 @@ export class Connection {
       .insert(dbRecord)
       .then(({ error, data }) => {
         if (error) {
-          console.error('[Connection] Error sending operation:', error);
+          logError('Connection', 'Error sending operation', error);
         } else {
-          console.log('[Connection] Successfully sent operation:', data);
+          debugLog('Send', 'Successfully sent operation', data);
           this.info.lastActivity = Date.now();
         }
       });

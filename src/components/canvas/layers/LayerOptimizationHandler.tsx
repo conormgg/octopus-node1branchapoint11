@@ -3,15 +3,10 @@ import React from 'react';
 import { Tool } from '@/types/whiteboard';
 import { useCanvasLayerOptimization } from '@/hooks/canvas/useCanvasLayerOptimization';
 import Konva from 'konva';
+import { createDebugLogger } from '@/utils/debug/debugConfig';
 
-const DEBUG_ENABLED = process.env.NODE_ENV === 'development';
+const debugLog = createDebugLogger('layerOptimization');
 const USE_LAYER_OPTIMIZATION = false; // Feature flag - start disabled for safety
-
-const debugLog = (context: string, action: string, data?: any) => {
-  if (DEBUG_ENABLED) {
-    console.log(`[LayerOptimization:${context}] ${action}`, data || '');
-  }
-};
 
 interface LayerOptimizationHandlerProps {
   layerRef: React.RefObject<Konva.Layer>;
@@ -36,7 +31,7 @@ const LayerOptimizationHandler: React.FC<LayerOptimizationHandlerProps> = ({
   });
 
   // Log layer optimization status
-  if (DEBUG_ENABLED && USE_LAYER_OPTIMIZATION) {
+  if (USE_LAYER_OPTIMIZATION) {
     debugLog('Optimization', 'Layer optimization enabled', {
       totalObjects: lineCount + imageCount,
       cacheThreshold: 20,

@@ -27,19 +27,10 @@ import { useSharedStateInitialization } from './shared/useSharedStateInitializat
 import { useSharedPersistenceIntegration } from './shared/useSharedPersistenceIntegration';
 import { useSharedOperationsCoordinator } from './shared/useSharedOperationsCoordinator';
 import { useNormalizedWhiteboardState } from './performance/useNormalizedWhiteboardState';
+import { createDebugLogger } from '@/utils/debug/debugConfig';
 
-const DEBUG_ENABLED = process.env.NODE_ENV === 'development';
+const debugLog = createDebugLogger('state');
 const USE_NORMALIZED_STATE = true; // Feature flag for gradual rollout
-
-/**
- * @function debugLog
- * @description Debug logging for shared whiteboard operations
- */
-const debugLog = (context: string, action: string, data?: any) => {
-  if (DEBUG_ENABLED) {
-    console.log(`[SharedWhiteboardState:${context}] ${action}`, data || '');
-  }
-};
 
 /**
  * @hook useSharedWhiteboardState
@@ -73,7 +64,7 @@ export const useSharedWhiteboardState = (syncConfig?: SyncConfig, whiteboardId?:
   // Normalized state for performance optimization
   const normalizedState = useNormalizedWhiteboardState(state.lines, state.images);
 
-  if (DEBUG_ENABLED && USE_NORMALIZED_STATE) {
+  if (USE_NORMALIZED_STATE) {
     debugLog('Performance', 'Normalized state stats', {
       lineCount: normalizedState.lineCount,
       imageCount: normalizedState.imageCount,

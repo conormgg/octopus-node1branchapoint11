@@ -4,6 +4,9 @@ import { ImageObject } from '@/types/whiteboard';
 import { serializeAddImageOperation, serializeUpdateImageOperation } from '@/utils/operationSerializer';
 import { v4 as uuidv4 } from 'uuid';
 import Konva from 'konva';
+import { createDebugLogger } from '@/utils/debug/debugConfig';
+
+const debugLog = createDebugLogger('images');
 
 export const useSharedImageOperations = (
   state: any,
@@ -30,6 +33,8 @@ export const useSharedImageOperations = (
       
       // Send it to the database/sync system
       sendOperation(operation);
+      
+      debugLog('Update', 'Image operation sent', { imageId, operation: 'update' });
     }
 
     // Add to history after state update
@@ -90,6 +95,8 @@ export const useSharedImageOperations = (
               
               // Send it to the database/sync system
               sendOperation(operation);
+              
+              debugLog('Paste', 'Image pasted and operation sent', { imageId: newImage.id });
             }
           };
         };
@@ -119,6 +126,8 @@ export const useSharedImageOperations = (
       
       // Send it to the database/sync system
       sendOperation(operation);
+      
+      debugLog('Lock', 'Image lock toggled', { imageId, locked: newLockState });
     }
 
     // Add to history after state update

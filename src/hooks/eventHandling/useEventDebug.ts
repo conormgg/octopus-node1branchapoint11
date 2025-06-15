@@ -1,5 +1,8 @@
 
 import { useRef } from 'react';
+import { createDebugLogger } from '@/utils/debug/debugConfig';
+
+const debugLog = createDebugLogger('events');
 
 export const useEventDebug = (palmRejectionConfig: { enabled: boolean }) => {
   const eventSystemRef = useRef<'pointer' | 'touch' | 'mouse' | null>(null);
@@ -11,7 +14,8 @@ export const useEventDebug = (palmRejectionConfig: { enabled: boolean }) => {
     const timeSinceLastEvent = now - lastEventTimestamp.current;
     eventDebugCounter.current++;
     
-    console.log(`[EventDebug ${eventDebugCounter.current}] ${eventType} from ${source}`, {
+    debugLog('EventHandling', `${eventType} from ${source}`, {
+      counter: eventDebugCounter.current,
       currentSystem: eventSystemRef.current,
       supportsPointer: typeof window !== 'undefined' && window.PointerEvent && 'onpointerdown' in window,
       palmRejectionEnabled: palmRejectionConfig.enabled,

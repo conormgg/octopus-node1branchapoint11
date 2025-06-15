@@ -9,14 +9,9 @@
 
 import { useCallback, useRef } from 'react';
 import { WhiteboardOperation } from '@/types/sync';
+import { createDebugLogger } from '@/utils/debug/debugConfig';
 
-const DEBUG_ENABLED = process.env.NODE_ENV === 'development';
-
-const debugLog = (context: string, action: string, data?: any) => {
-  if (DEBUG_ENABLED) {
-    console.log(`[MonitoringTypes:${context}] ${action}`, data || '');
-  }
-};
+const debugLog = createDebugLogger('performance');
 
 /**
  * @interface MonitoredOperations

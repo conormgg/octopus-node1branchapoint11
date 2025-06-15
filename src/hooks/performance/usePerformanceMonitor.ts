@@ -17,18 +17,9 @@ import { usePerformanceTimers } from './usePerformanceTimers';
 import { useMemoryMonitor } from './useMemoryMonitor';
 import { usePerformanceReporting, PerformanceReport } from './usePerformanceReporting';
 import { useFpsTracker } from './useFpsTracker';
+import { createDebugLogger } from '@/utils/debug/debugConfig';
 
-const DEBUG_ENABLED = process.env.NODE_ENV === 'development';
-
-/**
- * @function debugLog
- * @description Performance monitor coordination logging
- */
-const debugLog = (context: string, action: string, data?: any) => {
-  if (DEBUG_ENABLED) {
-    console.log(`[PerformanceMonitor:${context}] ${action}`, data || '');
-  }
-};
+const debugLog = createDebugLogger('performance');
 
 /**
  * @hook usePerformanceMonitor

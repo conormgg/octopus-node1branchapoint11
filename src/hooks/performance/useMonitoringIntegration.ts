@@ -13,18 +13,9 @@ import { usePerformanceMonitor } from './usePerformanceMonitor';
 import { useOperationWrappers } from './useOperationWrappers';
 import { useMonitoringTypes } from './useMonitoringTypes';
 import { useMonitoringCore } from './useMonitoringCore';
+import { createDebugLogger, isDebugEnabled } from '@/utils/debug/debugConfig';
 
-const DEBUG_ENABLED = process.env.NODE_ENV === 'development';
-
-/**
- * @function debugLog
- * @description Monitoring integration debug logging
- */
-const debugLog = (context: string, action: string, data?: any) => {
-  if (DEBUG_ENABLED) {
-    console.log(`[MonitoringIntegration:${context}] ${action}`, data || '');
-  }
-};
+const debugLog = createDebugLogger('performance');
 
 /**
  * @hook useMonitoringIntegration
@@ -48,7 +39,7 @@ const debugLog = (context: string, action: string, data?: any) => {
  * 4. Generates performance reports on demand
  * 5. Can be disabled in production for performance
  */
-export const useMonitoringIntegration = (isEnabled: boolean = DEBUG_ENABLED) => {
+export const useMonitoringIntegration = (isEnabled: boolean = isDebugEnabled('performance')) => {
   debugLog('Hook', 'Initializing monitoring integration', { isEnabled });
 
   const {
