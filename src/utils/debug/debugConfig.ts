@@ -1,4 +1,3 @@
-
 /**
  * @fileoverview Centralized debug configuration system
  * @description Controls debug logging across the entire application
@@ -11,6 +10,7 @@ export interface DebugConfig {
   performanceTimers: boolean;
   memoryMonitor: boolean;
   fpsTracker: boolean;
+  performanceDashboard: boolean;
   
   // Canvas and rendering
   canvas: boolean;
@@ -57,6 +57,7 @@ const DEFAULT_DEBUG_CONFIG: DebugConfig = {
   performanceTimers: false,
   memoryMonitor: false,
   fpsTracker: false,
+  performanceDashboard: false,
   
   // Canvas and rendering - disabled by default
   canvas: false,
@@ -103,6 +104,7 @@ const DEVELOPMENT_OVERRIDES: Partial<DebugConfig> = {
   events: false, // Disable event spam completely
   palmRejection: false, // Disable palm rejection spam
   layerOptimization: true, // Phase 2D.1: Enable layer optimization debugging
+  performanceDashboard: true, // Enable performance dashboard in development
 };
 
 // Create the active debug configuration

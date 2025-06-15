@@ -1,3 +1,4 @@
+
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -7,6 +8,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { WhiteboardStateProvider } from "@/contexts/WhiteboardStateContext";
 import { SessionExpirationProvider } from "@/contexts/sessionExpiration";
 import { SessionProvider, useSessionContext } from "@/contexts/SessionContext";
+import { PerformanceDashboardProvider } from "@/components/performance/PerformanceDashboardProvider";
 import AuthPage from "@/components/auth/AuthPage";
 import TeacherDashboard from "@/components/session/TeacherDashboard";
 import StudentJoinPage from "@/components/session/StudentJoinPage";
@@ -141,13 +143,15 @@ const RouteDispatcher = () => {
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <WhiteboardStateProvider>
-      <TooltipProvider>
-        <Toaster />
-        <Sonner />
-        <BrowserRouter>
-          <RouteDispatcher />
-        </BrowserRouter>
-      </TooltipProvider>
+      <PerformanceDashboardProvider>
+        <TooltipProvider>
+          <Toaster />
+          <Sonner />
+          <BrowserRouter>
+            <RouteDispatcher />
+          </BrowserRouter>
+        </TooltipProvider>
+      </PerformanceDashboardProvider>
     </WhiteboardStateProvider>
   </QueryClientProvider>
 );
