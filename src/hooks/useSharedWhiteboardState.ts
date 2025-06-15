@@ -17,20 +17,13 @@
  * - Session-based persistence
  */
 
-import { useCallback } from 'react';
 import { SyncConfig } from '@/types/sync';
-import { useSelectionState } from './useSelectionState';
-import { usePanZoom } from './usePanZoom';
-import { useSharedStateManagement } from './shared/useSharedStateManagement';
-import { useSharedPointerHandlers } from './shared/useSharedPointerHandlers';
-import { useSharedStateInitialization } from './shared/useSharedStateInitialization';
-import { useSharedPersistenceIntegration } from './shared/useSharedPersistenceIntegration';
-import { useSharedOperationsCoordinator } from './shared/useSharedOperationsCoordinator';
-import { useNormalizedWhiteboardState } from './performance/useNormalizedWhiteboardState';
+import { useSharedWhiteboardCore } from './shared/useSharedWhiteboardCore';
+import { useSharedNormalizedState } from './shared/useSharedNormalizedState';
+import { useSharedOperationsHandler } from './shared/useSharedOperationsHandler';
 import { createDebugLogger } from '@/utils/debug/debugConfig';
 
 const debugLog = createDebugLogger('state');
-const USE_NORMALIZED_STATE = true; // Feature flag for gradual rollout
 
 /**
  * @hook useSharedWhiteboardState
@@ -47,10 +40,9 @@ const USE_NORMALIZED_STATE = true; // Feature flag for gradual rollout
  * 
  * @ai-understanding
  * This hook orchestrates multiple collaboration-specific hooks:
- * - useSharedStateInitialization: Sets up initial state with persistence
- * - useSharedOperationsCoordinator: Manages drawing/sync/history operations
- * - useSharedPersistenceIntegration: Handles database persistence
- * - useSharedPointerHandlers: Coordinates pointer events with sync
+ * - useSharedWhiteboardCore: Core state and basic operations
+ * - useSharedNormalizedState: Performance optimization state
+ * - useSharedOperationsHandler: Coordinates operations, persistence, and pointer handling
  */
 export const useSharedWhiteboardState = (syncConfig?: SyncConfig, whiteboardId?: string) => {
   debugLog('Hook', 'Initializing useSharedWhiteboardState', { 
@@ -58,69 +50,16 @@ export const useSharedWhiteboardState = (syncConfig?: SyncConfig, whiteboardId?:
     whiteboardId 
   });
 
-  // Initialize state
-  const { state, setState } = useSharedStateInitialization(whiteboardId);
+  // Core state management
+  const coreState = useSharedWhiteboardCore(whiteboardId);
+  const { state, setState, selection, setTool, setColor, setPencilColor, setHighlighterColor, setStrokeWidth, panZoom } = coreState;
 
   // Normalized state for performance optimization
-  const normalizedState = useNormalizedWhiteboardState(state.lines, state.images);
+  const normalizedState = useSharedNormalizedState(state.lines, state.images, whiteboardId);
 
-  if (USE_NORMALIZED_STATE) {
-    debugLog('Performance', 'Normalized state stats', {
-      lineCount: normalizedState.lineCount,
-      imageCount: normalizedState.imageCount,
-      totalObjects: normalizedState.totalObjectCount,
-      whiteboardId
-    });
-  }
-
-  // Selection state management
-  const selection = useSelectionState();
-
-  // Coordinate all operations (drawing, sync, history, etc.) with whiteboard ID
-  const operations = useSharedOperationsCoordinator(syncConfig, state, setState, whiteboardId);
-
-  // Handle persistence and context integration
-  useSharedPersistenceIntegration(state, setState, syncConfig, whiteboardId);
-
-  // State management functions
-  const { setPanZoomState, setTool, setColor, setPencilColor, setHighlighterColor, setStrokeWidth } = useSharedStateManagement(setState);
-
-  // Pan/zoom operations
-  const panZoom = usePanZoom(state.panZoomState, setPanZoomState);
-
-  // Pointer event handlers with proper safety checks
-  const { handlePointerDown, handlePointerMove, handlePointerUp } = useSharedPointerHandlers(
-    state, 
-    operations.startDrawing, 
-    operations.continueDrawing, 
-    operations.stopDrawing, 
-    operations.startErasing, 
-    operations.continueErasing, 
-    operations.stopErasing,
-    syncConfig, 
-    panZoom, 
-    selection
-  );
-
-  /**
-   * @function deleteSelectedObjects
-   * @description Deletes currently selected objects and syncs the operation
-   * 
-   * @ai-context This wrapper ensures proper cleanup of selection state
-   * after deletion and triggers history recording.
-   */
-  const deleteSelectedObjects = useCallback(() => {
-    const selectedObjects = selection.selectionState.selectedObjects;
-    debugLog('Delete', 'Delete selected objects requested', { 
-      count: selectedObjects?.length || 0 
-    });
-    
-    if (selectedObjects && operations.deleteSelectedObjects) {
-      operations.deleteSelectedObjects(selectedObjects);
-      selection.clearSelection();
-      debugLog('Delete', 'Objects deleted and selection cleared');
-    }
-  }, [selection, operations]);
+  // Operations handling
+  const operationsHandler = useSharedOperationsHandler(syncConfig, state, setState, panZoom, selection, whiteboardId);
+  const { operations, handlePointerDown, handlePointerMove, handlePointerUp, deleteSelectedObjects } = operationsHandler;
 
   const isReadOnly = syncConfig?.isReceiveOnly || false;
   
@@ -133,7 +72,7 @@ export const useSharedWhiteboardState = (syncConfig?: SyncConfig, whiteboardId?:
   return {
     state,
     // Expose normalized state for components that can use it
-    normalizedState: USE_NORMALIZED_STATE ? normalizedState : undefined,
+    normalizedState,
     syncState: operations.syncState,
     setTool,
     setColor,
