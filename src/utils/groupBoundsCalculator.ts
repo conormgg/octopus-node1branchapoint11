@@ -1,6 +1,6 @@
 
 import { LineObject, ImageObject, SelectedObject } from '@/types/whiteboard';
-import { pointPool, boundsPool } from '@/utils/performance/objectPool';
+import { pointPool, type PooledPoint } from '@/utils/performance/objectPool';
 
 export interface GroupBounds {
   x: number;
@@ -24,7 +24,7 @@ export const calculateGroupBounds = (
   let maxY = -Infinity;
 
   // Use pooled objects for calculations
-  const borrowedPoints: any[] = [];
+  const borrowedPoints: PooledPoint[] = [];
 
   try {
     // Process selected lines

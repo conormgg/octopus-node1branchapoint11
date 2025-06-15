@@ -1,6 +1,6 @@
 
 import { useCallback, useRef } from 'react';
-import { pointPool, boundsPool, transformDataPool } from '@/utils/performance/objectPool';
+import { pointPool, boundsPool, transformDataPool, type PooledPoint, type PooledBounds, type PooledTransform } from '@/utils/performance/objectPool';
 import { SelectionBounds, TransformationData } from '@/types/whiteboard';
 
 /**
@@ -12,7 +12,7 @@ export const useSelectionObjectPooling = () => {
   const borrowedObjects = useRef<Set<any>>(new Set());
 
   // Create temporary point for calculations
-  const createTempPoint = useCallback((x: number = 0, y: number = 0) => {
+  const createTempPoint = useCallback((x: number = 0, y: number = 0): PooledPoint => {
     const point = pointPool.acquire();
     point.x = x;
     point.y = y;
