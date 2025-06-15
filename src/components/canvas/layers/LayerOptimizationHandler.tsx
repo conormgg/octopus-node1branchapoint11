@@ -6,7 +6,7 @@ import Konva from 'konva';
 import { createDebugLogger } from '@/utils/debug/debugConfig';
 
 const debugLog = createDebugLogger('layerOptimization');
-const USE_LAYER_OPTIMIZATION = false; // Feature flag - start disabled for safety
+const USE_LAYER_OPTIMIZATION = true; // Phase 2D.1: Enable layer optimization
 
 interface LayerOptimizationHandlerProps {
   layerRef: React.RefObject<Konva.Layer>;
@@ -23,19 +23,19 @@ const LayerOptimizationHandler: React.FC<LayerOptimizationHandlerProps> = ({
   currentTool,
   isSelecting
 }) => {
-  // Layer optimization hook with conservative settings
+  // Layer optimization hook with Phase 2D.1 settings
   const layerOptimization = useCanvasLayerOptimization(layerRef, {
     enableStaticCaching: USE_LAYER_OPTIMIZATION,
-    cacheThreshold: 20, // Only cache when 20+ objects
+    cacheThreshold: 30, // Phase 2D.1: Conservative threshold - 30+ objects
     maxCacheAge: 5000   // 5 second cache lifetime
   });
 
-  // Log layer optimization status
+  // Log layer optimization status for Phase 2D.1
   if (USE_LAYER_OPTIMIZATION) {
-    debugLog('Optimization', 'Layer optimization enabled', {
+    debugLog('Phase2D1', 'Layer optimization active', {
       totalObjects: lineCount + imageCount,
-      cacheThreshold: 20,
-      willCache: lineCount + imageCount >= 20
+      cacheThreshold: 30,
+      willCache: lineCount + imageCount >= 30
     });
   }
 
@@ -47,8 +47,8 @@ const LayerOptimizationHandler: React.FC<LayerOptimizationHandlerProps> = ({
       
       if (!isActiveDrawing) {
         const totalObjects = lineCount + imageCount;
-        if (totalObjects >= 20) {
-          debugLog('Optimization', 'Considering layer cache update', {
+        if (totalObjects >= 30) { // Phase 2D.1: Updated threshold
+          debugLog('Phase2D1', 'Considering layer cache update', {
             totalObjects,
             currentTool,
             isSelecting
@@ -76,7 +76,7 @@ const LayerOptimizationHandler: React.FC<LayerOptimizationHandlerProps> = ({
       const isActiveDrawing = currentTool === 'pencil' || currentTool === 'eraser';
       
       if (isActiveDrawing || isSelecting) {
-        debugLog('Optimization', 'Disabling cache during active drawing/selection');
+        debugLog('Phase2D1', 'Disabling cache during active drawing/selection');
         layerOptimization.disableStaticLayerCache();
       }
     }

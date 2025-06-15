@@ -102,6 +102,7 @@ const DEVELOPMENT_OVERRIDES: Partial<DebugConfig> = {
   sync: false, // Disable sync spam
   events: false, // Disable event spam completely
   palmRejection: false, // Disable palm rejection spam
+  layerOptimization: true, // Phase 2D.1: Enable layer optimization debugging
 };
 
 // Create the active debug configuration
