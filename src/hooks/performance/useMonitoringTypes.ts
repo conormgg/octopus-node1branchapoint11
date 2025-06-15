@@ -1,48 +1,45 @@
 
 /**
- * @fileoverview Monitoring types and utilities
- * @description Defines monitoring types and utility functions for performance tracking
- * 
- * @ai-context Centralizes type definitions and utility functions used across
- * the monitoring system for consistency and maintainability.
+ * @fileoverview Monitoring types and operation management
+ * @description Provides operation ID generation and monitoring coordination
  */
 
 import { useCallback, useRef } from 'react';
-import { WhiteboardOperation } from '@/types/sync';
 import { createDebugLogger } from '@/utils/debug/debugConfig';
 
 const debugLog = createDebugLogger('performance');
 
+interface UseMonitoringTypesProps {
+  startTimer: (operationId: string) => void;
+  endTimer: (operationId: string) => number | null;
+  recordDrawingOperation: (duration: number) => void;
+  recordSyncOperation: (duration: number) => void;
+  recordRenderOperation: (duration: number, fps: number) => void;
+}
+
 /**
  * @interface MonitoredOperations
- * @description Structure for tracking monitored operations
+ * @description Tracked operation types for performance monitoring
  */
 export interface MonitoredOperations {
   drawing: {
-    start: () => string;
-    end: (operationId: string) => void;
+    start: (x: number, y: number) => void;
+    continue: (x: number, y: number) => void;
+    end: () => void;
   };
   sync: {
-    start: () => string;
-    end: (operationId: string) => void;
+    send: (operation: any) => void;
+    receive: (operation: any) => void;
   };
   render: {
-    start: () => string;
-    end: (operationId: string) => void;
+    draw: () => void;
+    update: () => void;
   };
-}
-
-interface UseMonitoringTypesProps {
-  startTimer: (operationId: string) => void;
-  endTimer: (operationId: string) => number;
-  recordDrawingOperation: (duration: number) => void;
-  recordSyncOperation: (duration: number) => void;
-  recordRenderOperation: (duration: number) => void;
 }
 
 /**
  * @hook useMonitoringTypes
- * @description Provides monitoring types and utility functions
+ * @description Provides operation type management and monitoring utilities
  */
 export const useMonitoringTypes = ({
   startTimer,
@@ -51,92 +48,74 @@ export const useMonitoringTypes = ({
   recordSyncOperation,
   recordRenderOperation
 }: UseMonitoringTypesProps) => {
-  const operationCounterRef = useRef(0);
+  const operationCounter = useRef(0);
 
   /**
    * @function generateOperationId
-   * @description Generate unique operation ID
+   * @description Generate unique operation ID for tracking
    */
   const generateOperationId = useCallback((): string => {
-    return `op_${Date.now()}_${++operationCounterRef.current}`;
+    const timestamp = Date.now();
+    const counter = operationCounter.current++;
+    return `op_${timestamp}_${counter}`;
   }, []);
 
   /**
    * @function monitorOperation
-   * @description Monitor a specific whiteboard operation
+   * @description Monitor a specific operation with automatic timing
    */
-  const monitorOperation = useCallback((
-    operation: WhiteboardOperation,
-    type: 'drawing' | 'sync' | 'render' = 'sync'
-  ) => {
-    const operationId = `${type}_${operation.operation_type}_${Date.now()}`;
-    debugLog('Operation', `Monitoring ${type} operation`, {
-      operationId,
-      operationType: operation.operation_type
-    });
-
-    startTimer(operationId);
-    
-    // Monitor the operation processing time
-    setTimeout(() => {
+  const monitorOperation = useCallback(<T extends (...args: any[]) => any>(
+    operation: T,
+    operationType: 'drawing' | 'sync' | 'render',
+    operationName: string
+  ): T => {
+    return ((...args: Parameters<T>) => {
+      const operationId = generateOperationId();
+      debugLog('Monitor', `Starting ${operationType} operation: ${operationName}`, { operationId });
+      
+      startTimer(operationId);
+      const result = operation(...args);
       const duration = endTimer(operationId);
       
-      switch (type) {
-        case 'drawing':
-          recordDrawingOperation(duration);
-          break;
-        case 'sync':
-          recordSyncOperation(duration);
-          break;
-        case 'render':
-          recordRenderOperation(duration);
-          break;
+      if (duration !== null) {
+        switch (operationType) {
+          case 'drawing':
+            recordDrawingOperation(duration);
+            break;
+          case 'sync':
+            recordSyncOperation(duration);
+            break;
+          case 'render':
+            // For render operations, calculate approximate FPS
+            const fps = duration > 0 ? 1000 / duration : 60;
+            recordRenderOperation(duration, fps);
+            break;
+        }
+        
+        debugLog('Monitor', `Completed ${operationType} operation: ${operationName}`, { 
+          operationId, 
+          duration: `${duration.toFixed(2)}ms` 
+        });
       }
       
-      debugLog('Operation', `Completed ${type} operation monitoring`, {
-        operationId,
-        duration
-      });
-    }, 0);
-  }, [startTimer, endTimer, recordDrawingOperation, recordSyncOperation, recordRenderOperation]);
+      return result;
+    }) as T;
+  }, [generateOperationId, startTimer, endTimer, recordDrawingOperation, recordSyncOperation, recordRenderOperation]);
 
-  /**
-   * @constant operations
-   * @description Pre-configured operation monitoring functions
-   */
+  // Create placeholder operations structure
   const operations: MonitoredOperations = {
     drawing: {
-      start: () => {
-        const operationId = generateOperationId();
-        startTimer(operationId);
-        return operationId;
-      },
-      end: (operationId: string) => {
-        const duration = endTimer(operationId);
-        recordDrawingOperation(duration);
-      }
+      start: () => {},
+      continue: () => {},
+      end: () => {}
     },
     sync: {
-      start: () => {
-        const operationId = generateOperationId();
-        startTimer(operationId);
-        return operationId;
-      },
-      end: (operationId: string) => {
-        const duration = endTimer(operationId);
-        recordSyncOperation(duration);
-      }
+      send: () => {},
+      receive: () => {}
     },
     render: {
-      start: () => {
-        const operationId = generateOperationId();
-        startTimer(operationId);
-        return operationId;
-      },
-      end: (operationId: string) => {
-        const duration = endTimer(operationId);
-        recordRenderOperation(duration);
-      }
+      draw: () => {},
+      update: () => {}
     }
   };
 

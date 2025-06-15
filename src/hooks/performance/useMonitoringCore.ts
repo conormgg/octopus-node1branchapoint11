@@ -1,66 +1,52 @@
 
 /**
- * @fileoverview Core monitoring integration logic
- * @description Handles the core integration between performance monitoring and the application
- * 
- * @ai-context This module coordinates the monitoring system with periodic reporting
- * and debugging output for development environments.
+ * @fileoverview Core monitoring functionality
+ * @description Provides core monitoring utilities and report generation
  */
 
-import { useEffect, useCallback } from 'react';
+import { useCallback } from 'react';
+import { PerformanceMetrics, PerformanceReport } from './usePerformanceMonitor';
 import { createDebugLogger } from '@/utils/debug/debugConfig';
 
 const debugLog = createDebugLogger('performance');
 
 interface UseMonitoringCoreProps {
   isEnabled: boolean;
-  generateReport: () => any;
-  metrics: any;
+  generateReport: () => PerformanceReport;
+  metrics: PerformanceMetrics;
 }
 
 /**
  * @hook useMonitoringCore
- * @description Provides core monitoring integration functionality
+ * @description Provides core monitoring utilities and coordination
  */
 export const useMonitoringCore = ({
   isEnabled,
   generateReport,
   metrics
 }: UseMonitoringCoreProps) => {
-  
+
   /**
    * @function getPerformanceReport
-   * @description Get current performance report
+   * @description Generate and return current performance report
    */
-  const getPerformanceReport = useCallback(() => {
-    return generateReport();
-  }, [generateReport]);
+  const getPerformanceReport = useCallback((): PerformanceReport | null => {
+    if (!isEnabled) {
+      debugLog('Core', 'Performance monitoring disabled, returning null report');
+      return null;
+    }
 
-  // Log performance metrics periodically in debug mode
-  useEffect(() => {
-    if (!isEnabled) return;
-
-    const interval = setInterval(() => {
-      const report = generateReport();
-      if (report.warnings.length > 0) {
-        debugLog('Report', 'Performance warnings detected', {
-          warnings: report.warnings,
-          recommendations: report.recommendations
-        });
-      }
-    }, 30000); // Every 30 seconds
-
-    debugLog('Hook', 'Monitoring integration initialized', {
-      metricsTracking: true,
-      periodicReporting: true
+    const report = generateReport();
+    debugLog('Core', 'Generated performance report', {
+      warningsCount: report.warnings.length,
+      recommendationsCount: report.recommendations.length,
+      timestamp: report.timestamp
     });
 
-    return () => clearInterval(interval);
+    return report;
   }, [isEnabled, generateReport]);
 
   return {
-    getPerformanceReport,
-    metrics,
-    isEnabled
+    getPerformanceReport
   };
 };
