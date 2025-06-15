@@ -165,6 +165,3 @@ export const usePerformanceMonitorExtended = () => {
     resetLayerMetrics: layerOptimization.resetMetrics
   };
 };
-
-// Export types for external use
-export type { ExtendedPerformanceMetrics, ExtendedPerformanceReport };
