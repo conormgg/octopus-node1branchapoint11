@@ -93,7 +93,7 @@ export const useMouseEventHandlers = ({
     
     // Handle right-click pan - works for everyone, including read-only users
     if (e.evt.buttons === 2) {
-      e.preventDefault();
+      e.evt.preventDefault();
       panZoom.continuePan(e.evt.clientX, e.evt.clientY);
       // Clear hover state during pan to prevent jerky behavior
       if (selection?.setHoveredObjectId) {
