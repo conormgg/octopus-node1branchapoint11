@@ -51,7 +51,7 @@ export const useHistoryState = (
     for (let i = state.historyIndex; i >= 0; i--) {
       const snapshot = state.history[i];
       if (snapshot.lastActivity) {
-        debugLog('GetActivity', 'Found last activity at history index', i, snapshot.lastActivity);
+        debugLog('GetActivity', `Found last activity at history index ${i}`);
         return snapshot.lastActivity;
       }
     }

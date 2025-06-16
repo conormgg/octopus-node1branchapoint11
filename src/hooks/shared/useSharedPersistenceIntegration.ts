@@ -44,7 +44,7 @@ export const useSharedPersistenceIntegration = (
           previousLineCount.current = persistence.lines.length;
           
           // Create a new history snapshot with the loaded data and lastActivity
-          const newHistory = [{
+          const newSnapshot = {
             lines: [...persistence.lines], 
             images: [...(persistence.images || [])],
             selectionState: {
@@ -53,8 +53,11 @@ export const useSharedPersistenceIntegration = (
               isSelecting: false,
               transformationData: {}
             },
-            lastActivity: persistence.lastActivity // Pass the persisted activity here
-          }];
+            // Only include lastActivity if it exists
+            ...(persistence.lastActivity ? { lastActivity: persistence.lastActivity } : {})
+          };
+          
+          const newHistory = [newSnapshot];
           
           // Check if we already have history entries and append them
           if (prevState.history.length > 0) {
