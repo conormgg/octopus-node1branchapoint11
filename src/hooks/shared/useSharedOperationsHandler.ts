@@ -23,23 +23,15 @@ export const useSharedOperationsHandler = (
   setState: any,
   panZoom: any,
   selection: any,
-  whiteboardId?: string,
-  onLastActivityUpdate?: (activity: any) => void
+  whiteboardId?: string
 ) => {
   debugLog('Operations', 'Initializing operations handler', { whiteboardId });
 
   // Coordinate all operations (drawing, sync, history, etc.) with whiteboard ID
   const operations = useSharedOperationsCoordinator(syncConfig, state, setState, whiteboardId);
 
-  // Handle persistence and context integration with activity tracking
-  useSharedPersistenceIntegration(
-    state, 
-    setState, 
-    syncConfig, 
-    whiteboardId, 
-    undefined, 
-    onLastActivityUpdate
-  );
+  // Handle persistence and context integration
+  useSharedPersistenceIntegration(state, setState, syncConfig, whiteboardId);
 
   // Pointer event handlers with proper safety checks
   const { handlePointerDown, handlePointerMove, handlePointerUp } = useSharedPointerHandlers(

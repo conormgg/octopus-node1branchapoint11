@@ -1,40 +1,37 @@
-import { LineObject, ImageObject, ActivityMetadata } from '@/types/whiteboard';
+
+import { LineObject, ImageObject } from '@/types/whiteboard';
 import { WhiteboardOperation } from '@/types/sync';
 
-export const serializeDrawOperation = (line: LineObject, activityMetadata?: ActivityMetadata): Omit<WhiteboardOperation, 'id' | 'timestamp' | 'sender_id'> => ({
+export const serializeDrawOperation = (line: LineObject): Omit<WhiteboardOperation, 'id' | 'timestamp' | 'sender_id'> => ({
   whiteboard_id: '', // Will be set by the calling function
   operation_type: 'draw',
   data: {
-    line,
-    activityMetadata
+    line
   }
 });
 
-export const serializeEraseOperation = (erasedLineIds: string[], activityMetadata?: ActivityMetadata): Omit<WhiteboardOperation, 'id' | 'timestamp' | 'sender_id'> => ({
+export const serializeEraseOperation = (erasedLineIds: string[]): Omit<WhiteboardOperation, 'id' | 'timestamp' | 'sender_id'> => ({
   whiteboard_id: '', // Will be set by the calling function
   operation_type: 'erase',
   data: {
-    line_ids: erasedLineIds,
-    activityMetadata
+    line_ids: erasedLineIds
   }
 });
 
-export const serializeAddImageOperation = (image: ImageObject, activityMetadata?: ActivityMetadata): Omit<WhiteboardOperation, 'id' | 'timestamp' | 'sender_id'> => ({
+export const serializeAddImageOperation = (image: ImageObject): Omit<WhiteboardOperation, 'id' | 'timestamp' | 'sender_id'> => ({
   whiteboard_id: '', // Will be set by the calling function
   operation_type: 'add_image',
   data: {
-    image,
-    activityMetadata
+    image
   }
 });
 
-export const serializeUpdateImageOperation = (imageId: string, updates: Partial<ImageObject>, activityMetadata?: ActivityMetadata): Omit<WhiteboardOperation, 'id' | 'timestamp' | 'sender_id'> => ({
+export const serializeUpdateImageOperation = (imageId: string, updates: Partial<ImageObject>): Omit<WhiteboardOperation, 'id' | 'timestamp' | 'sender_id'> => ({
   whiteboard_id: '', // Will be set by the calling function
   operation_type: 'update_image',
   data: {
     image_id: imageId,
-    updates,
-    activityMetadata
+    updates
   }
 });
 
@@ -187,17 +184,4 @@ export const applyOperation = (
       console.log('[OperationSerializer] Unknown operation type:', operation.operation_type);
       return state;
   }
-};
-
-/**
- * Extract activity metadata from a database operation
- */
-export const extractActivityFromOperation = (operation: any): ActivityMetadata | null => {
-  const data = operation.object_data;
-  
-  if (data?.activityMetadata) {
-    return data.activityMetadata;
-  }
-  
-  return null;
 };

@@ -46,13 +46,7 @@ const debugLog = createDebugLogger('state');
  * - useSharedNormalizedState: Performance optimization state
  * - useSharedOperationsHandler: Coordinates operations, persistence, and pointer handling
  */
-export const useSharedWhiteboardState = (
-  syncConfig?: SyncConfig, 
-  whiteboardId?: string, 
-  containerWidth?: number, 
-  containerHeight?: number,
-  onLastActivityUpdate?: (activity: any) => void
-) => {
+export const useSharedWhiteboardState = (syncConfig?: SyncConfig, whiteboardId?: string, containerWidth?: number, containerHeight?: number) => {
   debugLog('Hook', 'Initializing useSharedWhiteboardState', { 
     syncConfig: syncConfig ? 'provided' : 'none',
     whiteboardId 
@@ -65,16 +59,8 @@ export const useSharedWhiteboardState = (
   // Normalized state for performance optimization
   const normalizedState = useSharedNormalizedState(state.lines, state.images, whiteboardId);
 
-  // Operations handling with activity callback
-  const operationsHandler = useSharedOperationsHandler(
-    syncConfig, 
-    state, 
-    setState, 
-    panZoom, 
-    selection, 
-    whiteboardId,
-    onLastActivityUpdate
-  );
+  // Operations handling
+  const operationsHandler = useSharedOperationsHandler(syncConfig, state, setState, panZoom, selection, whiteboardId);
   const { operations, handlePointerDown, handlePointerMove, handlePointerUp, deleteSelectedObjects } = operationsHandler;
 
   const isReadOnly = syncConfig?.isReceiveOnly || false;

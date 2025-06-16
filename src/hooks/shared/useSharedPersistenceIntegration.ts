@@ -1,18 +1,16 @@
 
 import { useEffect, useRef } from 'react';
 import { SyncConfig } from '@/types/sync';
-import { WhiteboardState, ActivityMetadata } from '@/types/whiteboard';
+import { WhiteboardState } from '@/types/whiteboard';
 import { useWhiteboardPersistence } from '../useWhiteboardPersistence';
 import { useWhiteboardStateContext } from '@/contexts/WhiteboardStateContext';
-import { extractActivityFromOperation } from '@/utils/operationSerializer';
 
 export const useSharedPersistenceIntegration = (
   state: WhiteboardState,
   setState: (updater: (prev: WhiteboardState) => WhiteboardState) => void,
   syncConfig?: SyncConfig,
   whiteboardId?: string,
-  isApplyingRemoteOperation?: React.MutableRefObject<boolean>,
-  onLastActivityUpdate?: (activity: ActivityMetadata | null) => void
+  isApplyingRemoteOperation?: React.MutableRefObject<boolean>
 ) => {
   const { updateWhiteboardState } = useWhiteboardStateContext();
   
@@ -27,36 +25,7 @@ export const useSharedPersistenceIntegration = (
   const persistence = syncConfig && whiteboardId ? useWhiteboardPersistence({
     whiteboardId,
     sessionId: syncConfig.sessionId
-  }) : { isLoading: false, error: null, lines: [], images: [], operations: [] };
-
-  // Reconstruct last activity from database operations
-  useEffect(() => {
-    if (!persistence.isLoading && persistence.operations && onLastActivityUpdate) {
-      console.log(`[PersistenceIntegration] Reconstructing last activity from ${persistence.operations.length} operations`);
-      
-      let lastActivity: ActivityMetadata | null = null;
-      let mostRecentTimestamp = 0;
-      
-      // Find the most recent operation with activity metadata
-      persistence.operations.forEach((operation: any) => {
-        const activityMetadata = extractActivityFromOperation(operation);
-        const operationTimestamp = new Date(operation.created_at).getTime();
-        
-        if (activityMetadata && operationTimestamp > mostRecentTimestamp) {
-          lastActivity = activityMetadata;
-          mostRecentTimestamp = operationTimestamp;
-        }
-      });
-      
-      if (lastActivity) {
-        console.log(`[PersistenceIntegration] Reconstructed last activity:`, lastActivity);
-        onLastActivityUpdate(lastActivity);
-      } else {
-        console.log(`[PersistenceIntegration] No activity metadata found in operations`);
-        onLastActivityUpdate(null);
-      }
-    }
-  }, [persistence.isLoading, persistence.operations, onLastActivityUpdate]);
+  }) : { isLoading: false, error: null, lines: [], images: [] };
 
   // Update state when persisted data is loaded, but only once on initial load
   useEffect(() => {
