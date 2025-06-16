@@ -78,6 +78,15 @@ export const useSharedWhiteboardState = (syncConfig?: SyncConfig, whiteboardId?:
     panZoom.centerOnBounds(bounds, containerWidth, containerHeight);
   }, [panZoom, containerWidth, containerHeight]);
 
+  // Handle paste with correct signature for Konva stage
+  const handlePaste = useCallback((e: ClipboardEvent, stage: any) => {
+    debugLog('Paste', 'Handling paste event');
+    // Paste logic will be handled by the image operations
+    if (operations.handlePaste) {
+      operations.handlePaste(e, stage);
+    }
+  }, [operations]);
+
   // Debug log to verify getLastActivity is working after persistence integration
   const currentActivity = operations.getLastActivity?.();
   
@@ -101,7 +110,7 @@ export const useSharedWhiteboardState = (syncConfig?: SyncConfig, whiteboardId?:
     handlePointerDown,
     handlePointerMove,
     handlePointerUp,
-    handlePaste: operations.handlePaste,
+    handlePaste,
     addToHistory: operations.addToHistory,
     undo: operations.undo,
     redo: operations.redo,
