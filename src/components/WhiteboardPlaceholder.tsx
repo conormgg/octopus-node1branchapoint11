@@ -1,4 +1,5 @@
-import React, { useState, useEffect } from 'react';
+
+import React, { useState, useEffect, useCallback } from 'react';
 import { SyncConfig } from '@/types/sync';
 import { useSessionExpirationContext } from '@/contexts/sessionExpiration';
 import TopRightButtons from './whiteboard/TopRightButtons';
@@ -99,17 +100,17 @@ const WhiteboardPlaceholder: React.FC<WhiteboardPlaceholderProps> = ({
     centerOnActivityCallback(lastActivity.bounds);
   };
 
-  // Callback to receive last activity updates from whiteboard content
-  const handleLastActivityUpdate = (activity: any) => {
+  // Stable callback to receive last activity updates from whiteboard content
+  const handleLastActivityUpdate = useCallback((activity: any) => {
     console.log('[WhiteboardPlaceholder] Received last activity update:', activity);
     setLastActivity(activity);
-  };
+  }, []);
 
-  // Callback to receive the center function from whiteboard content
-  const handleCenterCallbackUpdate = (callback: (bounds: any) => void) => {
+  // Stable callback to receive the center function from whiteboard content
+  const handleCenterCallbackUpdate = useCallback((callback: (bounds: any) => void) => {
     console.log('[WhiteboardPlaceholder] Received center callback');
     setCenterOnActivityCallback(() => callback);
-  };
+  }, []);
 
   // Memoize sync config to prevent recreating it on every render
   const syncConfig = React.useMemo(() => {
