@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { SyncConfig } from '@/types/sync';
 import { useSessionExpirationContext } from '@/contexts/sessionExpiration';
@@ -35,6 +34,7 @@ const WhiteboardPlaceholder: React.FC<WhiteboardPlaceholderProps> = ({
   const [dimensions, setDimensions] = useState({ width: 0, height: 0 });
   const [syncState, setSyncState] = useState<{ isConnected: boolean; isReceiveOnly: boolean } | null>(null);
   const [lastActivity, setLastActivity] = useState<any>(null);
+  const [centerOnActivityCallback, setCenterOnActivityCallback] = useState<((bounds: any) => void) | null>(null);
   const containerRef = React.useRef<HTMLDivElement>(null);
   
   // Use centralized session expiration context
@@ -85,17 +85,30 @@ const WhiteboardPlaceholder: React.FC<WhiteboardPlaceholderProps> = ({
   // Check if this whiteboard should show the eye button (teacher-main or student-shared-teacher)
   const shouldShowEyeButton = id === "teacher-main" || id === "student-shared-teacher";
 
-  // Eye button click handler
+  // Enhanced eye button click handler with actual centering logic
   const handleEyeClick = () => {
-    console.log('Eye button clicked - Phase 4: Centering logic to be implemented');
-    console.log('Last activity:', lastActivity);
-    // TODO: Implement centering logic in Phase 4
+    console.log('[WhiteboardPlaceholder] Eye button clicked');
+    console.log('[WhiteboardPlaceholder] Last activity:', lastActivity);
+    
+    if (!lastActivity || !centerOnActivityCallback) {
+      console.log('[WhiteboardPlaceholder] No activity or callback available');
+      return;
+    }
+    
+    // Call the center function provided by the whiteboard content
+    centerOnActivityCallback(lastActivity.bounds);
   };
 
   // Callback to receive last activity updates from whiteboard content
   const handleLastActivityUpdate = (activity: any) => {
     console.log('[WhiteboardPlaceholder] Received last activity update:', activity);
     setLastActivity(activity);
+  };
+
+  // Callback to receive the center function from whiteboard content
+  const handleCenterCallbackUpdate = (callback: (bounds: any) => void) => {
+    console.log('[WhiteboardPlaceholder] Received center callback');
+    setCenterOnActivityCallback(() => callback);
   };
 
   // Memoize sync config to prevent recreating it on every render
@@ -166,6 +179,7 @@ const WhiteboardPlaceholder: React.FC<WhiteboardPlaceholderProps> = ({
         hasLastActivity={hasLastActivity}
         syncState={syncState}
         onLastActivityUpdate={handleLastActivityUpdate}
+        onCenterCallbackUpdate={handleCenterCallbackUpdate}
       />
     );
   }
@@ -203,6 +217,7 @@ const WhiteboardPlaceholder: React.FC<WhiteboardPlaceholderProps> = ({
         portalContainer={portalContainer}
         onSyncStateChange={setSyncState}
         onLastActivityUpdate={handleLastActivityUpdate}
+        onCenterCallbackUpdate={handleCenterCallbackUpdate}
       />
     </div>
   );

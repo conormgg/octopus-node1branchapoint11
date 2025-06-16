@@ -12,6 +12,7 @@ interface WhiteboardContentProps {
   portalContainer?: Element | null;
   onSyncStateChange?: (syncState: { isConnected: boolean; isReceiveOnly: boolean } | null) => void;
   onLastActivityUpdate?: (activity: any) => void;
+  onCenterCallbackUpdate?: (callback: (bounds: any) => void) => void;
 }
 
 const WhiteboardContent: React.FC<WhiteboardContentProps> = ({
@@ -21,7 +22,8 @@ const WhiteboardContent: React.FC<WhiteboardContentProps> = ({
   id,
   portalContainer,
   onSyncStateChange,
-  onLastActivityUpdate
+  onLastActivityUpdate,
+  onCenterCallbackUpdate
 }) => {
   return (
     <div 
@@ -44,6 +46,7 @@ const WhiteboardContent: React.FC<WhiteboardContentProps> = ({
             portalContainer={portalContainer}
             onSyncStateChange={onSyncStateChange}
             onLastActivityUpdate={onLastActivityUpdate}
+            onCenterCallbackUpdate={onCenterCallbackUpdate}
           />
         ) : (
           <Whiteboard isReadOnly={false} />

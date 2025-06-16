@@ -17,6 +17,7 @@
  * - Session-based persistence
  */
 
+import { useCallback } from 'react';
 import { SyncConfig } from '@/types/sync';
 import { useSharedWhiteboardCore } from './shared/useSharedWhiteboardCore';
 import { useSharedNormalizedState } from './shared/useSharedNormalizedState';
@@ -45,7 +46,7 @@ const debugLog = createDebugLogger('state');
  * - useSharedNormalizedState: Performance optimization state
  * - useSharedOperationsHandler: Coordinates operations, persistence, and pointer handling
  */
-export const useSharedWhiteboardState = (syncConfig?: SyncConfig, whiteboardId?: string) => {
+export const useSharedWhiteboardState = (syncConfig?: SyncConfig, whiteboardId?: string, containerWidth?: number, containerHeight?: number) => {
   debugLog('Hook', 'Initializing useSharedWhiteboardState', { 
     syncConfig: syncConfig ? 'provided' : 'none',
     whiteboardId 
@@ -63,6 +64,19 @@ export const useSharedWhiteboardState = (syncConfig?: SyncConfig, whiteboardId?:
   const { operations, handlePointerDown, handlePointerMove, handlePointerUp, deleteSelectedObjects } = operationsHandler;
 
   const isReadOnly = syncConfig?.isReceiveOnly || false;
+
+  // Enhanced centering function that uses viewport dimensions
+  const centerOnLastActivity = useCallback((bounds: { x: number; y: number; width: number; height: number }) => {
+    if (!panZoom.centerOnBounds || !containerWidth || !containerHeight) {
+      console.log('[SharedWhiteboardState] Cannot center - missing centerOnBounds or dimensions');
+      return;
+    }
+    
+    console.log('[SharedWhiteboardState] Centering on bounds:', bounds);
+    console.log('[SharedWhiteboardState] Container dimensions:', { containerWidth, containerHeight });
+    
+    panZoom.centerOnBounds(bounds, containerWidth, containerHeight);
+  }, [panZoom, containerWidth, containerHeight]);
   
   debugLog('Hook', 'useSharedWhiteboardState initialized', {
     isReadOnly,
@@ -91,6 +105,7 @@ export const useSharedWhiteboardState = (syncConfig?: SyncConfig, whiteboardId?:
     canUndo: operations.canUndo,
     canRedo: operations.canRedo,
     getLastActivity: operations.getLastActivity,
+    centerOnLastActivity,
     panZoom,
     updateImageState: operations.updateImageState,
     updateLine: operations.updateLine,
