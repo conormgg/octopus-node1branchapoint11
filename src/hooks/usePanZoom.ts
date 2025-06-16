@@ -1,4 +1,3 @@
-
 import { useCallback, useState, useRef } from 'react';
 import { PanZoomState } from '@/types/whiteboard';
 
@@ -177,7 +176,7 @@ export const usePanZoom = (
 
   /**
    * Center the viewport on the given bounds
-   * Fixed: Remove panZoomState dependency to prevent infinite loops
+   * Fixed: Create a new state object directly to avoid TypeScript issues
    */
   const centerOnBounds = useCallback((
     bounds: { x: number; y: number; width: number; height: number },
@@ -198,31 +197,30 @@ export const usePanZoom = (
       y: viewportHeight / 2
     };
     
-    // Use functional form to get current state and avoid dependency issues
-    setPanZoomState((currentPanZoomState) => {
-      // Calculate the translation needed to center the bounds in the viewport
-      // We need to account for the current scale
-      const scale = currentPanZoomState.scale;
-      
-      const newPanX = viewportCenter.x - (boundsCenter.x * scale);
-      const newPanY = viewportCenter.y - (boundsCenter.y * scale);
-      
-      console.log('[PanZoom] Calculated new position:', { 
-        newPanX, 
-        newPanY, 
-        scale,
-        boundsCenter,
-        viewportCenter 
-      });
-      
-      // Apply the new pan state
-      return {
-        ...currentPanZoomState,
-        x: newPanX,
-        y: newPanY
-      };
+    // Calculate the translation needed to center the bounds in the viewport
+    // We need to account for the current scale
+    const scale = panZoomState.scale;
+    
+    const newPanX = viewportCenter.x - (boundsCenter.x * scale);
+    const newPanY = viewportCenter.y - (boundsCenter.y * scale);
+    
+    console.log('[PanZoom] Calculated new position:', { 
+      newPanX, 
+      newPanY, 
+      scale,
+      boundsCenter,
+      viewportCenter 
     });
-  }, [setPanZoomState]);
+    
+    // Create the new state object directly
+    const newState: PanZoomState = {
+      ...panZoomState,
+      x: newPanX,
+      y: newPanY
+    };
+    
+    setPanZoomState(newState);
+  }, [setPanZoomState, panZoomState]);
 
   return {
     startPan,
