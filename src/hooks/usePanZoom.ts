@@ -1,13 +1,17 @@
 
-import { useCallback } from 'react';
+import { useCallback, useState } from 'react';
 import { PanZoomState } from '@/types/whiteboard';
 
 export const usePanZoom = (
   panZoomState: PanZoomState,
   setPanZoomState: (state: PanZoomState) => void
 ) => {
+  // Add gesture state tracking
+  const [isGestureActiveState, setIsGestureActiveState] = useState(false);
+
   const startPan = useCallback((x: number, y: number) => {
     // Pan start logic - implementation depends on your existing pan system
+    setIsGestureActiveState(true);
   }, []);
 
   const continuePan = useCallback((x: number, y: number) => {
@@ -16,6 +20,7 @@ export const usePanZoom = (
 
   const stopPan = useCallback(() => {
     // Pan stop logic - implementation depends on your existing pan system
+    setIsGestureActiveState(false);
   }, []);
 
   const zoom = useCallback((factor: number, centerX?: number, centerY?: number) => {
@@ -33,6 +38,9 @@ export const usePanZoom = (
 
   const handleTouchStart = useCallback((e: TouchEvent) => {
     // Touch start logic - implementation depends on your existing system
+    if (e.touches.length > 1) {
+      setIsGestureActiveState(true);
+    }
   }, []);
 
   const handleTouchMove = useCallback((e: TouchEvent) => {
@@ -41,7 +49,15 @@ export const usePanZoom = (
 
   const handleTouchEnd = useCallback((e: TouchEvent) => {
     // Touch end logic - implementation depends on your existing system
+    if (e.touches.length === 0) {
+      setIsGestureActiveState(false);
+    }
   }, []);
+
+  // Add the missing isGestureActive method
+  const isGestureActive = useCallback(() => {
+    return isGestureActiveState;
+  }, [isGestureActiveState]);
 
   /**
    * Center the viewport on the given bounds
@@ -98,6 +114,7 @@ export const usePanZoom = (
     handleTouchStart,
     handleTouchMove,
     handleTouchEnd,
+    isGestureActive,
     centerOnBounds
   };
 };
