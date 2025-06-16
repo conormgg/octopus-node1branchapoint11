@@ -1,4 +1,3 @@
-
 /**
  * @fileoverview Coordinates all whiteboard operations for shared state
  * @description Central coordination point for drawing, syncing, history, and image operations
@@ -44,6 +43,8 @@ const debugLog = (context: string, action: string, data?: any) => {
  * @returns {Function} undo - Undo last operation
  * @returns {Function} redo - Redo last undone operation
  * @returns {Function} getLastActivity - Get the most recent activity metadata
+ * @returns {Function} performLocalUndo - Perform local undo
+ * @returns {Function} performLocalRedo - Perform local redo
  * @returns {DrawingOperations} Drawing operations (start/continue/stop)
  * @returns {ImageOperations} Image operations (paste/update/toggle lock)
  * 
@@ -80,15 +81,17 @@ export const useSharedOperationsCoordinator = (
     canSend: !!sendOperation
   });
 
-  // Enhanced add to history that syncs operations
+  // Enhanced history state with sync support
   const {
     addToHistory: baseAddToHistory,
     undo,
     redo,
     canUndo,
     canRedo,
-    getLastActivity
-  } = useHistoryState(state, setState);
+    getLastActivity,
+    performLocalUndo,
+    performLocalRedo
+  } = useHistoryState(state, setState, undefined, sendOperation);
 
   /**
    * @function addToHistory
@@ -145,6 +148,8 @@ export const useSharedOperationsCoordinator = (
     canUndo,
     canRedo,
     getLastActivity,
+    performLocalUndo, // Expose for remote operation handling
+    performLocalRedo, // Expose for remote operation handling
     ...drawingOperations,
     ...imageOperations
   };

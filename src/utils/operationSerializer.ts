@@ -1,4 +1,3 @@
-
 import { LineObject, ImageObject } from '@/types/whiteboard';
 import { WhiteboardOperation } from '@/types/sync';
 
@@ -59,6 +58,18 @@ export const serializeDeleteObjectsOperation = (lineIds: string[], imageIds: str
     line_ids: lineIds,
     image_ids: imageIds
   }
+});
+
+export const serializeUndoOperation = (): Omit<WhiteboardOperation, 'id' | 'timestamp' | 'sender_id'> => ({
+  whiteboard_id: '', // Will be set by the calling function
+  operation_type: 'undo',
+  data: {}
+});
+
+export const serializeRedoOperation = (): Omit<WhiteboardOperation, 'id' | 'timestamp' | 'sender_id'> => ({
+  whiteboard_id: '', // Will be set by the calling function
+  operation_type: 'redo',
+  data: {}
 });
 
 // Helper function to calculate bounds for various object types
@@ -249,6 +260,16 @@ export const applyOperation = (
         lines: filteredLines,
         images: filteredImages
       };
+    }
+    case 'undo': {
+      // Undo operations are handled by the history system, not by state mutation
+      console.log('[OperationSerializer] Undo operation received - delegating to history system');
+      return state;
+    }
+    case 'redo': {
+      // Redo operations are handled by the history system, not by state mutation
+      console.log('[OperationSerializer] Redo operation received - delegating to history system');
+      return state;
     }
     default:
       console.log('[OperationSerializer] Unknown operation type:', operation.operation_type);

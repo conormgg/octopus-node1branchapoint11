@@ -1,5 +1,8 @@
+
 import { useCallback } from 'react';
 import { LineObject, ImageObject, HistorySnapshot, SelectionState, ActivityMetadata } from '@/types/whiteboard';
+import { WhiteboardOperation } from '@/types/sync';
+import { serializeUndoOperation, serializeRedoOperation } from '@/utils/operationSerializer';
 import { createDebugLogger } from '@/utils/debug/debugConfig';
 
 const debugLog = createDebugLogger('history');
@@ -13,7 +16,8 @@ export const useHistoryState = (
     selectionState: SelectionState;
   },
   setState: (updater: (prev: any) => any) => void,
-  updateSelectionState?: (selectionState: SelectionState) => void
+  updateSelectionState?: (selectionState: SelectionState) => void,
+  sendOperation?: ((operation: Omit<WhiteboardOperation, 'id' | 'timestamp' | 'sender_id'>) => WhiteboardOperation | null) | null
 ) => {
   const addToHistory = useCallback((snapshot: HistorySnapshot, activityMetadata?: ActivityMetadata) => {
     setState(prev => {
@@ -92,6 +96,45 @@ export const useHistoryState = (
   }, []);
 
   const undo = useCallback(() => {
+    if (state.historyIndex <= 0) return;
+    
+    debugLog('Undo', 'Attempting undo operation', { 
+      canUndo: state.historyIndex > 0,
+      hasSync: !!sendOperation 
+    });
+    
+    if (sendOperation) {
+      // Send sync operation for collaborative undo
+      debugLog('Undo', 'Sending sync undo operation');
+      sendOperation(serializeUndoOperation());
+    } else {
+      // Fallback for local-only mode
+      debugLog('Undo', 'Performing local undo');
+      performLocalUndo();
+    }
+  }, [state.historyIndex, sendOperation]);
+
+  const redo = useCallback(() => {
+    if (state.historyIndex >= state.history.length - 1) return;
+    
+    debugLog('Redo', 'Attempting redo operation', { 
+      canRedo: state.historyIndex < state.history.length - 1,
+      hasSync: !!sendOperation 
+    });
+    
+    if (sendOperation) {
+      // Send sync operation for collaborative redo
+      debugLog('Redo', 'Sending sync redo operation');
+      sendOperation(serializeRedoOperation());
+    } else {
+      // Fallback for local-only mode
+      debugLog('Redo', 'Performing local redo');
+      performLocalRedo();
+    }
+  }, [state.historyIndex, state.history.length, sendOperation]);
+
+  // Local undo function for both sync and non-sync scenarios
+  const performLocalUndo = useCallback(() => {
     setState(prev => {
       if (prev.historyIndex <= 0) return prev;
       
@@ -106,6 +149,8 @@ export const useHistoryState = (
         setTimeout(() => updateSelectionState(validatedSelectionState), 0);
       }
       
+      debugLog('Undo', 'Local undo completed', { newIndex, linesCount: snapshot.lines.length });
+      
       return {
         ...prev,
         lines: [...snapshot.lines],
@@ -116,7 +161,8 @@ export const useHistoryState = (
     });
   }, [setState, validateSelection, updateSelectionState]);
 
-  const redo = useCallback(() => {
+  // Local redo function for both sync and non-sync scenarios
+  const performLocalRedo = useCallback(() => {
     setState(prev => {
       if (prev.historyIndex >= prev.history.length - 1) return prev;
       
@@ -130,6 +176,8 @@ export const useHistoryState = (
       if (updateSelectionState) {
         setTimeout(() => updateSelectionState(validatedSelectionState), 0);
       }
+      
+      debugLog('Redo', 'Local redo completed', { newIndex, linesCount: snapshot.lines.length });
       
       return {
         ...prev,
@@ -150,6 +198,8 @@ export const useHistoryState = (
     redo,
     canUndo,
     canRedo,
-    getLastActivity
+    getLastActivity,
+    performLocalUndo, // Expose for remote operation handling
+    performLocalRedo  // Expose for remote operation handling
   };
 };
