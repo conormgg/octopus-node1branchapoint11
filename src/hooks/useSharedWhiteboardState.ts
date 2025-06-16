@@ -17,7 +17,7 @@
  * - Session-based persistence
  */
 
-import { useCallback, useMemo } from 'react';
+import { useCallback } from 'react';
 import { SyncConfig } from '@/types/sync';
 import { useSharedWhiteboardCore } from './shared/useSharedWhiteboardCore';
 import { useSharedNormalizedState } from './shared/useSharedNormalizedState';
@@ -32,8 +32,6 @@ const debugLog = createDebugLogger('state');
  * 
  * @param syncConfig - Configuration for real-time synchronization
  * @param whiteboardId - Unique identifier for this whiteboard instance
- * @param containerWidth - Width of the container for centering calculations
- * @param containerHeight - Height of the container for centering calculations
  * 
  * @returns {Object} Extended whiteboard state with collaboration features
  * @returns {WhiteboardState} state - Current whiteboard state
@@ -67,24 +65,18 @@ export const useSharedWhiteboardState = (syncConfig?: SyncConfig, whiteboardId?:
 
   const isReadOnly = syncConfig?.isReceiveOnly || false;
 
-  // Memoize container dimensions to prevent unnecessary rerenders
-  const stableContainerDimensions = useMemo(() => ({
-    width: containerWidth,
-    height: containerHeight
-  }), [containerWidth, containerHeight]);
-
-  // Enhanced centering function that uses viewport dimensions - properly memoized
+  // Enhanced centering function that uses viewport dimensions
   const centerOnLastActivity = useCallback((bounds: { x: number; y: number; width: number; height: number }) => {
-    if (!panZoom.centerOnBounds || !stableContainerDimensions.width || !stableContainerDimensions.height) {
+    if (!panZoom.centerOnBounds || !containerWidth || !containerHeight) {
       console.log('[SharedWhiteboardState] Cannot center - missing centerOnBounds or dimensions');
       return;
     }
     
     console.log('[SharedWhiteboardState] Centering on bounds:', bounds);
-    console.log('[SharedWhiteboardState] Container dimensions:', stableContainerDimensions);
+    console.log('[SharedWhiteboardState] Container dimensions:', { containerWidth, containerHeight });
     
-    panZoom.centerOnBounds(bounds, stableContainerDimensions.width, stableContainerDimensions.height);
-  }, [panZoom.centerOnBounds, stableContainerDimensions.width, stableContainerDimensions.height]);
+    panZoom.centerOnBounds(bounds, containerWidth, containerHeight);
+  }, [panZoom, containerWidth, containerHeight]);
   
   debugLog('Hook', 'useSharedWhiteboardState initialized', {
     isReadOnly,

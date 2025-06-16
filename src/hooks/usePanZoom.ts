@@ -176,7 +176,6 @@ export const usePanZoom = (
 
   /**
    * Center the viewport on the given bounds
-   * Fixed: Create a new state object directly to avoid TypeScript issues
    */
   const centerOnBounds = useCallback((
     bounds: { x: number; y: number; width: number; height: number },
@@ -212,15 +211,14 @@ export const usePanZoom = (
       viewportCenter 
     });
     
-    // Create the new state object directly
+    // Apply the new pan state with smooth animation
     const newState: PanZoomState = {
       ...panZoomState,
       x: newPanX,
       y: newPanY
     };
-    
     setPanZoomState(newState);
-  }, [setPanZoomState, panZoomState]);
+  }, [panZoomState, setPanZoomState]);
 
   return {
     startPan,
