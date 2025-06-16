@@ -1,4 +1,3 @@
-
 import { useCallback, useState, useRef, useMemo } from 'react';
 import { PanZoomState } from '@/types/whiteboard';
 
@@ -73,10 +72,15 @@ export const usePanZoom = (
     const zoomCenterX = centerX ?? 0;
     const zoomCenterY = centerY ?? 0;
     
-    // Calculate new pan position to keep zoom center fixed
-    const scaleDelta = newScale - panZoomState.scale;
-    const newX = panZoomState.x - (zoomCenterX * scaleDelta);
-    const newY = panZoomState.y - (zoomCenterY * scaleDelta);
+    // Calculate the world position of the zoom center before scaling
+    // World position = (screen position - pan offset) / current scale
+    const worldX = (zoomCenterX - panZoomState.x) / panZoomState.scale;
+    const worldY = (zoomCenterY - panZoomState.y) / panZoomState.scale;
+    
+    // Calculate new pan position to keep the same world point under the cursor
+    // New pan = screen position - (world position * new scale)
+    const newX = zoomCenterX - (worldX * newScale);
+    const newY = zoomCenterY - (worldY * newScale);
 
     const newState: PanZoomState = {
       ...panZoomState,
