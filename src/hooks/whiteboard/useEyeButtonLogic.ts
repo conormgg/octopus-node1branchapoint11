@@ -1,47 +1,84 @@
 
 import { useState, useCallback } from 'react';
+import { ActivityMetadata } from '@/types/whiteboard';
+
+// Constants for configuration
+const ACTIVITY_TIMEOUT_MS = 30000; // 30 seconds
+const TARGET_WHITEBOARDS = ['teacher-main', 'student-shared-teacher'] as const;
+
+type TargetWhiteboard = typeof TARGET_WHITEBOARDS[number];
+
+interface EyeButtonState {
+  lastActivity: ActivityMetadata | null;
+  centerOnActivityCallback: ((bounds: any) => void) | null;
+}
 
 export const useEyeButtonLogic = (id: string) => {
-  const [lastActivity, setLastActivity] = useState<any>(null);
-  const [centerOnActivityCallback, setCenterOnActivityCallback] = useState<((bounds: any) => void) | null>(null);
+  const [state, setState] = useState<EyeButtonState>({
+    lastActivity: null,
+    centerOnActivityCallback: null
+  });
 
-  // Check if this whiteboard should show the eye button (teacher-main or student-shared-teacher)
-  const shouldShowEyeButton = id === "teacher-main" || id === "student-shared-teacher";
+  // Check if this whiteboard should show the eye button
+  const shouldShowEyeButton = TARGET_WHITEBOARDS.includes(id as TargetWhiteboard);
 
-  // Enhanced eye button click handler with actual centering logic
-  const handleEyeClick = () => {
-    console.log('[WhiteboardPlaceholder] Eye button clicked');
-    console.log('[WhiteboardPlaceholder] Last activity:', lastActivity);
+  // Enhanced eye button click handler with proper error handling
+  const handleEyeClick = useCallback(() => {
+    console.log('[EyeButton] Eye button clicked for whiteboard:', id);
     
-    if (!lastActivity || !centerOnActivityCallback) {
-      console.log('[WhiteboardPlaceholder] No activity or callback available');
+    if (!state.lastActivity) {
+      console.warn('[EyeButton] No last activity available');
       return;
     }
     
-    // Call the center function provided by the whiteboard content
-    centerOnActivityCallback(lastActivity.bounds);
-  };
+    if (!state.centerOnActivityCallback) {
+      console.warn('[EyeButton] No center callback available');
+      return;
+    }
 
-  // Stable callback to receive last activity updates from whiteboard content
-  const handleLastActivityUpdate = useCallback((activity: any) => {
-    console.log('[WhiteboardPlaceholder] Received last activity update:', activity);
-    setLastActivity(activity);
-  }, []);
+    if (!state.lastActivity.bounds) {
+      console.warn('[EyeButton] Activity missing bounds data');
+      return;
+    }
+    
+    try {
+      console.log('[EyeButton] Centering on activity:', state.lastActivity);
+      state.centerOnActivityCallback(state.lastActivity.bounds);
+    } catch (error) {
+      console.error('[EyeButton] Failed to center on activity:', error);
+    }
+  }, [id, state.lastActivity, state.centerOnActivityCallback]);
 
-  // Stable callback to receive the center function from whiteboard content
+  // Stable callback to receive last activity updates
+  const handleLastActivityUpdate = useCallback((activity: ActivityMetadata | null) => {
+    console.log('[EyeButton] Received activity update for whiteboard:', id, activity);
+    
+    setState(prev => ({
+      ...prev,
+      lastActivity: activity
+    }));
+  }, [id]);
+
+  // Stable callback to receive the center function
   const handleCenterCallbackUpdate = useCallback((callback: (bounds: any) => void) => {
-    console.log('[WhiteboardPlaceholder] Received center callback');
-    setCenterOnActivityCallback(() => callback);
-  }, []);
+    console.log('[EyeButton] Received center callback for whiteboard:', id);
+    
+    setState(prev => ({
+      ...prev,
+      centerOnActivityCallback: callback
+    }));
+  }, [id]);
 
-  // Check if we have recent activity (within the last 30 seconds for better UX)
-  const hasLastActivity = lastActivity && (Date.now() - lastActivity.timestamp < 30000);
+  // Check if we have recent activity within the timeout window
+  const hasLastActivity = state.lastActivity && 
+    (Date.now() - state.lastActivity.timestamp < ACTIVITY_TIMEOUT_MS);
 
   return {
     shouldShowEyeButton,
     handleEyeClick,
     handleLastActivityUpdate,
     handleCenterCallbackUpdate,
-    hasLastActivity
+    hasLastActivity,
+    lastActivity: state.lastActivity
   };
 };
