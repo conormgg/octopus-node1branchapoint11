@@ -1,6 +1,8 @@
-
 import { useCallback } from 'react';
 import { LineObject, ImageObject, HistorySnapshot, SelectionState, ActivityMetadata } from '@/types/whiteboard';
+import { createDebugLogger } from '@/utils/debug/debugConfig';
+
+const debugLog = createDebugLogger('history');
 
 export const useHistoryState = (
   state: {
@@ -31,7 +33,7 @@ export const useHistoryState = (
         lastActivity: activityMetadata
       };
       
-      console.log(`[HistoryState] Adding to history with activity:`, activityMetadata);
+      debugLog('AddToHistory', 'Adding to history with activity', activityMetadata);
       
       return {
         ...prev,
@@ -49,7 +51,7 @@ export const useHistoryState = (
     for (let i = state.historyIndex; i >= 0; i--) {
       const snapshot = state.history[i];
       if (snapshot.lastActivity) {
-        console.log(`[HistoryState] Found last activity:`, snapshot.lastActivity);
+        debugLog('GetActivity', 'Found last activity', snapshot.lastActivity);
         return snapshot.lastActivity;
       }
     }
