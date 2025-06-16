@@ -1,146 +1,187 @@
 
-import { useCallback } from 'react';
-import { ImageObject } from '@/types/whiteboard';
-import { serializeAddImageOperation, serializeUpdateImageOperation } from '@/utils/operationSerializer';
-import { v4 as uuidv4 } from 'uuid';
-import Konva from 'konva';
-import { createDebugLogger } from '@/utils/debug/debugConfig';
+import { useCallback, useRef } from 'react';
+import { ImageObject, ActivityMetadata } from '@/types/whiteboard';
+import { serializeAddImageOperation, serializeUpdateImageOperation, serializeDeleteImageOperation } from '@/utils/operationSerializer';
 
-const debugLog = createDebugLogger('images');
+// Helper function to calculate image bounds
+const calculateImageBounds = (image: ImageObject) => {
+  const width = image.width || 100;
+  const height = image.height || 100;
+  const scaleX = image.scaleX || 1;
+  const scaleY = image.scaleY || 1;
+  
+  return {
+    x: image.x,
+    y: image.y,
+    width: width * scaleX,
+    height: height * scaleY
+  };
+};
 
 export const useSharedImageOperations = (
   state: any,
   setState: any,
-  addToHistory: () => void,
+  addToHistory: (snapshot?: any, activityMetadata?: ActivityMetadata) => void,
   sendOperation: any,
   isApplyingRemoteOperation: React.MutableRefObject<boolean>,
   whiteboardId?: string
 ) => {
-  // Image update function with sync
-  const updateImageState = useCallback((imageId: string, newAttrs: Partial<ImageObject>) => {
-    setState((prev: any) => ({
-      ...prev,
-      images: prev.images.map((img: ImageObject) =>
-        img.id === imageId ? { ...img, ...newAttrs } : img
-      )
-    }));
+  // Track images before transformation to detect movement
+  const imagesBeforeTransformRef = useRef<ImageObject[]>([]);
 
-    // Always send the operation to the database for persistence
-    // But only sync to other clients if we're on the teacher's main board
-    if (sendOperation && !isApplyingRemoteOperation.current) {
-      // Create the operation
-      const operation = serializeUpdateImageOperation(imageId, newAttrs);
-      
-      // Send it to the database/sync system
-      sendOperation(operation);
-      
-      debugLog('Update', 'Image operation sent', { imageId, operation: 'update' });
-    }
-
-    // Add to history after state update
-    setTimeout(() => addToHistory(), 0);
-  }, [setState, sendOperation, isApplyingRemoteOperation, addToHistory]);
-
-  // Handle paste functionality - fixed to accept correct parameters
-  const handlePaste = useCallback((e: ClipboardEvent, stage: Konva.Stage | null) => {
+  // Handle image paste with activity tracking
+  const handlePaste = useCallback(async (e: ClipboardEvent) => {
     e.preventDefault();
     
-    const items = e.clipboardData?.items;
-    if (!items || !stage) {
-      return;
-    }
-  
-    for (let i = 0; i < items.length; i++) {
-      if (items[i].type.indexOf('image') !== -1) {
-        const file = items[i].getAsFile();
-        if (!file) {
-          continue;
-        }
-  
-        const reader = new FileReader();
-        reader.onload = (event) => {
-          const imageUrl = event.target?.result as string;
-          const image = new window.Image();
-          image.src = imageUrl;
-          image.onload = () => {
-            // Get pointer position relative to this specific stage
-            const pointerPosition = stage.getPointerPosition() ?? { x: stage.width() / 2, y: stage.height() / 2 };
-            const position = {
-              x: (pointerPosition.x - state.panZoomState.x) / state.panZoomState.scale,
-              y: (pointerPosition.y - state.panZoomState.y) / state.panZoomState.scale,
-            };
-
-            const newImage: ImageObject = {
-              id: `image_${uuidv4()}`,
-              src: imageUrl,
-              x: position.x - (image.width / 4),
-              y: position.y - (image.height / 4),
-              width: image.width / 2,
-              height: image.height / 2,
-            };
-            
-            setState((prev: any) => ({
-              ...prev,
-              images: [...prev.images, newImage]
-            }));
-            
-            // Add to history after state update
-            setTimeout(() => addToHistory(), 0);
-            
-            // Always send the operation to the database for persistence
-            // But only sync to other clients if we're on the teacher's main board
-            if (sendOperation && !isApplyingRemoteOperation.current) {
-              // Create the operation
-              const operation = serializeAddImageOperation(newImage);
-              
-              // Send it to the database/sync system
-              sendOperation(operation);
-              
-              debugLog('Paste', 'Image pasted and operation sent', { imageId: newImage.id });
-            }
-          };
+    const items = Array.from(e.clipboardData?.items || []);
+    const imageItems = items.filter(item => item.type.startsWith('image/'));
+    
+    if (imageItems.length === 0) return;
+    
+    for (const item of imageItems) {
+      const file = item.getAsFile();
+      if (!file) continue;
+      
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        const src = event.target?.result as string;
+        if (!src) return;
+        
+        const imageId = `image_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+        const newImage: ImageObject = {
+          id: imageId,
+          x: 100, // Default position
+          y: 100,
+          src,
+          width: 200,
+          height: 150,
+          rotation: 0,
+          scaleX: 1,
+          scaleY: 1,
+          locked: false
         };
-        reader.readAsDataURL(file);
-      }
+        
+        // Calculate activity metadata for pasted image
+        const bounds = calculateImageBounds(newImage);
+        const activityMetadata: ActivityMetadata = {
+          type: 'paste',
+          bounds,
+          timestamp: Date.now()
+        };
+        
+        console.log(`[ImageOperations] Created activity metadata for paste:`, activityMetadata);
+        
+        setState((prev: any) => ({
+          ...prev,
+          images: [...prev.images, newImage]
+        }));
+        
+        // Add to history with activity metadata
+        setTimeout(() => {
+          addToHistory({
+            lines: state.lines,
+            images: [...state.images, newImage],
+            selectionState: state.selectionState
+          }, activityMetadata);
+        }, 0);
+        
+        // Send operation to sync
+        if (sendOperation && !isApplyingRemoteOperation.current) {
+          console.log(`[ImageOperations] Sending paste operation to sync:`, newImage);
+          const operation = serializeAddImageOperation(newImage);
+          sendOperation(operation);
+        }
+      };
+      reader.readAsDataURL(file);
     }
-  }, [state.panZoomState, addToHistory, sendOperation, isApplyingRemoteOperation, setState]);
+  }, [state.lines, state.images, state.selectionState, setState, addToHistory, sendOperation, isApplyingRemoteOperation]);
 
-  // Toggle image lock state
+  // Update image state with transformation tracking
+  const updateImageState = useCallback((imageId: string, updates: Partial<ImageObject>) => {
+    console.log(`[ImageOperations] Updating image ${imageId}:`, updates);
+    
+    // Check if this is a transform operation (position or scale change)
+    const isTransformUpdate = 'x' in updates || 'y' in updates || 'scaleX' in updates || 'scaleY' in updates || 'rotation' in updates;
+    
+    setState((prev: any) => {
+      const updatedImages = prev.images.map((image: ImageObject) =>
+        image.id === imageId ? { ...image, ...updates } : image
+      );
+      
+      // If this is a transform operation, track activity
+      if (isTransformUpdate) {
+        const updatedImage = updatedImages.find((img: ImageObject) => img.id === imageId);
+        if (updatedImage) {
+          const bounds = calculateImageBounds(updatedImage);
+          const activityMetadata: ActivityMetadata = {
+            type: 'move',
+            bounds,
+            timestamp: Date.now()
+          };
+          
+          console.log(`[ImageOperations] Created activity metadata for move:`, activityMetadata);
+          
+          // Add to history with activity metadata
+          setTimeout(() => {
+            addToHistory({
+              lines: prev.lines,
+              images: updatedImages,
+              selectionState: prev.selectionState
+            }, activityMetadata);
+          }, 0);
+        }
+      }
+      
+      return {
+        ...prev,
+        images: updatedImages
+      };
+    });
+    
+    // Send operation to sync
+    if (sendOperation && !isApplyingRemoteOperation.current) {
+      const operation = serializeUpdateImageOperation(imageId, updates);
+      sendOperation(operation);
+    }
+  }, [setState, state.lines, state.selectionState, addToHistory, sendOperation, isApplyingRemoteOperation]);
+
+  // Update image with activity tracking
+  const updateImage = useCallback((imageId: string, updates: Partial<ImageObject>) => {
+    updateImageState(imageId, updates);
+  }, [updateImageState]);
+
+  // Toggle image lock
   const toggleImageLock = useCallback((imageId: string) => {
     setState((prev: any) => ({
       ...prev,
-      images: prev.images.map((img: ImageObject) =>
-        img.id === imageId ? { ...img, locked: !img.locked } : img
+      images: prev.images.map((image: ImageObject) =>
+        image.id === imageId ? { ...image, locked: !image.locked } : image
       )
     }));
-
-    // Always send the operation to the database for persistence
-    // But only sync to other clients if we're on the teacher's main board
+    
+    // Add to history
+    setTimeout(() => {
+      addToHistory({
+        lines: state.lines,
+        images: state.images,
+        selectionState: state.selectionState
+      });
+    }, 0);
+    
+    // Send operation to sync
     if (sendOperation && !isApplyingRemoteOperation.current) {
-      // Get the current image to determine new lock state
-      const currentImage = state.images.find((img: ImageObject) => img.id === imageId);
-      const newLockState = !currentImage?.locked;
-      
-      // Create the operation
-      const operation = serializeUpdateImageOperation(imageId, { locked: newLockState });
-      
-      // Send it to the database/sync system
-      sendOperation(operation);
-      
-      debugLog('Lock', 'Image lock toggled', { imageId, locked: newLockState });
+      const image = state.images.find((img: ImageObject) => img.id === imageId);
+      if (image) {
+        const operation = serializeUpdateImageOperation(imageId, { locked: !image.locked });
+        sendOperation(operation);
+      }
     }
-
-    // Add to history after state update
-    setTimeout(() => addToHistory(), 0);
-  }, [setState, sendOperation, isApplyingRemoteOperation, addToHistory, state.images]);
-
-  // Alias for updateImageState to match expected interface
-  const updateImage = updateImageState;
+  }, [setState, state.lines, state.images, state.selectionState, addToHistory, sendOperation, isApplyingRemoteOperation]);
 
   return {
+    handlePaste,
     updateImageState,
     updateImage,
-    handlePaste,
     toggleImageLock
   };
 };

@@ -11,6 +11,7 @@ interface SyncWhiteboardProps {
   height: number;
   portalContainer?: Element | null;
   onSyncStateChange?: (syncState: { isConnected: boolean; isReceiveOnly: boolean } | null) => void;
+  onLastActivityUpdate?: (activity: any) => void;
 }
 
 export const SyncWhiteboard: React.FC<SyncWhiteboardProps> = ({
@@ -18,7 +19,8 @@ export const SyncWhiteboard: React.FC<SyncWhiteboardProps> = ({
   width,
   height,
   portalContainer,
-  onSyncStateChange
+  onSyncStateChange,
+  onLastActivityUpdate
 }) => {
   // Use the whiteboard ID from sync config to maintain shared state
   const whiteboardId = syncConfig?.whiteboardId;
@@ -40,6 +42,17 @@ export const SyncWhiteboard: React.FC<SyncWhiteboardProps> = ({
       onSyncStateChange(null);
     }
   }, [whiteboardState.syncState?.isConnected, whiteboardState.syncState?.isReceiveOnly, onSyncStateChange, syncConfig]);
+
+  // Pass last activity updates to parent component
+  React.useEffect(() => {
+    if (onLastActivityUpdate && whiteboardState.getLastActivity) {
+      const lastActivity = whiteboardState.getLastActivity();
+      if (lastActivity) {
+        console.log('[SyncWhiteboard] Reporting last activity:', lastActivity);
+        onLastActivityUpdate(lastActivity);
+      }
+    }
+  }, [whiteboardState.state.history, whiteboardState.state.historyIndex, onLastActivityUpdate, whiteboardState.getLastActivity]);
 
   // Log portal container for debugging
   React.useEffect(() => {

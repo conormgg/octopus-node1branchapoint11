@@ -1,3 +1,4 @@
+
 import { useCallback } from 'react';
 import { LineObject, ImageObject, HistorySnapshot, SelectionState, ActivityMetadata } from '@/types/whiteboard';
 
@@ -19,22 +20,42 @@ export const useHistoryState = (
         ? prev.history.slice(0, prev.historyIndex + 1)
         : prev.history;
       
+      const newSnapshot = {
+        lines: [...snapshot.lines],
+        images: [...snapshot.images],
+        selectionState: {
+          ...snapshot.selectionState,
+          selectedObjects: [...snapshot.selectionState.selectedObjects],
+          transformationData: { ...snapshot.selectionState.transformationData }
+        },
+        lastActivity: activityMetadata
+      };
+      
+      console.log(`[HistoryState] Adding to history with activity:`, activityMetadata);
+      
       return {
         ...prev,
-        history: [...newHistory, {
-          lines: [...snapshot.lines],
-          images: [...snapshot.images],
-          selectionState: {
-            ...snapshot.selectionState,
-            selectedObjects: [...snapshot.selectionState.selectedObjects],
-            transformationData: { ...snapshot.selectionState.transformationData }
-          },
-          lastActivity: activityMetadata
-        }],
+        history: [...newHistory, newSnapshot],
         historyIndex: newHistory.length
       };
     });
   }, [setState]);
+
+  // Get the last activity from the current history
+  const getLastActivity = useCallback((): ActivityMetadata | undefined => {
+    if (state.history.length === 0) return undefined;
+    
+    // Look through recent history entries for the most recent activity
+    for (let i = state.historyIndex; i >= 0; i--) {
+      const snapshot = state.history[i];
+      if (snapshot.lastActivity) {
+        console.log(`[HistoryState] Found last activity:`, snapshot.lastActivity);
+        return snapshot.lastActivity;
+      }
+    }
+    
+    return undefined;
+  }, [state.history, state.historyIndex]);
 
   const validateSelection = useCallback((selectionState: SelectionState, lines: LineObject[], images: ImageObject[]): SelectionState => {
     // Filter out selected objects that no longer exist
@@ -125,6 +146,7 @@ export const useHistoryState = (
     undo,
     redo,
     canUndo,
-    canRedo
+    canRedo,
+    getLastActivity
   };
 };

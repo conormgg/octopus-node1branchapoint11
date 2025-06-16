@@ -11,6 +11,7 @@ interface WhiteboardContentProps {
   id: string;
   portalContainer?: Element | null;
   onSyncStateChange?: (syncState: { isConnected: boolean; isReceiveOnly: boolean } | null) => void;
+  onLastActivityUpdate?: (activity: any) => void;
 }
 
 const WhiteboardContent: React.FC<WhiteboardContentProps> = ({
@@ -19,7 +20,8 @@ const WhiteboardContent: React.FC<WhiteboardContentProps> = ({
   syncConfig,
   id,
   portalContainer,
-  onSyncStateChange
+  onSyncStateChange,
+  onLastActivityUpdate
 }) => {
   return (
     <div 
@@ -41,6 +43,7 @@ const WhiteboardContent: React.FC<WhiteboardContentProps> = ({
             height={whiteboardHeight}
             portalContainer={portalContainer}
             onSyncStateChange={onSyncStateChange}
+            onLastActivityUpdate={onLastActivityUpdate}
           />
         ) : (
           <Whiteboard isReadOnly={false} />

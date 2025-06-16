@@ -10,7 +10,7 @@
 
 import { useCallback } from 'react';
 import { SyncConfig } from '@/types/sync';
-import { WhiteboardState } from '@/types/whiteboard';
+import { WhiteboardState, ActivityMetadata } from '@/types/whiteboard';
 import { useHistoryState } from '../useHistoryState';
 import { useSyncState } from '../useSyncState';
 import { useRemoteOperationHandler } from '../useRemoteOperationHandler';
@@ -43,6 +43,7 @@ const debugLog = (context: string, action: string, data?: any) => {
  * @returns {Function} addToHistory - Add current state to history
  * @returns {Function} undo - Undo last operation
  * @returns {Function} redo - Redo last undone operation
+ * @returns {Function} getLastActivity - Get the most recent activity metadata
  * @returns {DrawingOperations} Drawing operations (start/continue/stop)
  * @returns {ImageOperations} Image operations (paste/update/toggle lock)
  * 
@@ -85,7 +86,8 @@ export const useSharedOperationsCoordinator = (
     undo,
     redo,
     canUndo,
-    canRedo
+    canRedo,
+    getLastActivity
   } = useHistoryState(state, setState);
 
   /**
@@ -95,18 +97,21 @@ export const useSharedOperationsCoordinator = (
    * @ai-context This wrapper adds debug logging and ensures consistent
    * history snapshots across collaborative sessions.
    */
-  const addToHistory = useCallback(() => {
+  const addToHistory = useCallback((snapshot?: any, activityMetadata?: ActivityMetadata) => {
     debugLog('History', 'Adding to history', {
       linesCount: state.lines.length,
       imagesCount: state.images.length,
-      hasSelection: state.selectionState.selectedObjects.length > 0
+      hasSelection: state.selectionState.selectedObjects.length > 0,
+      hasActivity: !!activityMetadata
     });
     
-    baseAddToHistory({
+    const finalSnapshot = snapshot || {
       lines: state.lines,
       images: state.images,
       selectionState: state.selectionState
-    });
+    };
+    
+    baseAddToHistory(finalSnapshot, activityMetadata);
   }, [baseAddToHistory, state.lines, state.images, state.selectionState]);
 
   // Drawing and erasing operations with whiteboard ID
@@ -128,7 +133,8 @@ export const useSharedOperationsCoordinator = (
     hasDrawing: !!drawingOperations.startDrawing,
     hasImages: !!imageOperations.handlePaste,
     canUndo,
-    canRedo
+    canRedo,
+    hasLastActivity: !!getLastActivity()
   });
 
   return {
@@ -138,6 +144,7 @@ export const useSharedOperationsCoordinator = (
     redo,
     canUndo,
     canRedo,
+    getLastActivity,
     ...drawingOperations,
     ...imageOperations
   };

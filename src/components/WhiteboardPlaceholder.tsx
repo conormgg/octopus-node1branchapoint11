@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { SyncConfig } from '@/types/sync';
 import { useSessionExpirationContext } from '@/contexts/sessionExpiration';
@@ -33,6 +34,7 @@ const WhiteboardPlaceholder: React.FC<WhiteboardPlaceholderProps> = ({
 }) => {
   const [dimensions, setDimensions] = useState({ width: 0, height: 0 });
   const [syncState, setSyncState] = useState<{ isConnected: boolean; isReceiveOnly: boolean } | null>(null);
+  const [lastActivity, setLastActivity] = useState<any>(null);
   const containerRef = React.useRef<HTMLDivElement>(null);
   
   // Use centralized session expiration context
@@ -85,8 +87,15 @@ const WhiteboardPlaceholder: React.FC<WhiteboardPlaceholderProps> = ({
 
   // Eye button click handler
   const handleEyeClick = () => {
-    console.log('Eye button clicked - Phase 2: Activity tracking implemented');
-    // TODO: Implement centering logic in later phases
+    console.log('Eye button clicked - Phase 4: Centering logic to be implemented');
+    console.log('Last activity:', lastActivity);
+    // TODO: Implement centering logic in Phase 4
+  };
+
+  // Callback to receive last activity updates from whiteboard content
+  const handleLastActivityUpdate = (activity: any) => {
+    console.log('[WhiteboardPlaceholder] Received last activity update:', activity);
+    setLastActivity(activity);
   };
 
   // Memoize sync config to prevent recreating it on every render
@@ -134,9 +143,8 @@ const WhiteboardPlaceholder: React.FC<WhiteboardPlaceholderProps> = ({
   const whiteboardWidth = isMaximized ? (window.innerWidth - 32) : (dimensions.width || initialWidth || 800);
   const whiteboardHeight = isMaximized ? (window.innerHeight - 32) : (dimensions.height || initialHeight || 600);
 
-  // For now, we'll use a simple check for last activity (Phase 2 implementation)
-  // This will be enhanced in later phases with actual activity data
-  const hasLastActivity = false; // TODO: Get from actual whiteboard state in next phases
+  // Check if we have recent activity (within the last 30 seconds for better UX)
+  const hasLastActivity = lastActivity && (Date.now() - lastActivity.timestamp < 30000);
 
   // Render the maximized view in a portal to escape parent constraints
   if (isMaximized) {
@@ -157,6 +165,7 @@ const WhiteboardPlaceholder: React.FC<WhiteboardPlaceholderProps> = ({
         portalContainer={portalContainer}
         hasLastActivity={hasLastActivity}
         syncState={syncState}
+        onLastActivityUpdate={handleLastActivityUpdate}
       />
     );
   }
@@ -193,6 +202,7 @@ const WhiteboardPlaceholder: React.FC<WhiteboardPlaceholderProps> = ({
         id={id}
         portalContainer={portalContainer}
         onSyncStateChange={setSyncState}
+        onLastActivityUpdate={handleLastActivityUpdate}
       />
     </div>
   );

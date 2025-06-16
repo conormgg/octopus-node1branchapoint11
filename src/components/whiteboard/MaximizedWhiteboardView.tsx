@@ -22,6 +22,7 @@ interface MaximizedWhiteboardViewProps {
   portalContainer?: Element | null;
   hasLastActivity?: boolean;
   syncState?: { isConnected: boolean; isReceiveOnly: boolean } | null;
+  onLastActivityUpdate?: (activity: any) => void;
 }
 
 const MaximizedWhiteboardView: React.FC<MaximizedWhiteboardViewProps> = ({
@@ -39,7 +40,8 @@ const MaximizedWhiteboardView: React.FC<MaximizedWhiteboardViewProps> = ({
   syncConfig,
   portalContainer,
   hasLastActivity = false,
-  syncState
+  syncState,
+  onLastActivityUpdate
 }) => {
   const [localSyncState, setLocalSyncState] = React.useState(syncState);
 
@@ -87,6 +89,7 @@ const MaximizedWhiteboardView: React.FC<MaximizedWhiteboardViewProps> = ({
             id={id}
             portalContainer={portalContainer}
             onSyncStateChange={setLocalSyncState}
+            onLastActivityUpdate={onLastActivityUpdate}
           />
         </div>
       </div>

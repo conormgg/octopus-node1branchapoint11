@@ -37,6 +37,7 @@ const debugLog = createDebugLogger('state');
  * @returns {SyncState} syncState - Real-time synchronization status
  * @returns {boolean} isReadOnly - Whether this instance is read-only
  * @returns {string} whiteboardId - The whiteboard identifier
+ * @returns {Function} getLastActivity - Get the most recent activity metadata
  * 
  * @ai-understanding
  * This hook orchestrates multiple collaboration-specific hooks:
@@ -66,7 +67,8 @@ export const useSharedWhiteboardState = (syncConfig?: SyncConfig, whiteboardId?:
   debugLog('Hook', 'useSharedWhiteboardState initialized', {
     isReadOnly,
     hasSync: !!syncConfig,
-    whiteboardId
+    whiteboardId,
+    hasLastActivity: !!operations.getLastActivity?.()
   });
 
   return {
@@ -88,6 +90,7 @@ export const useSharedWhiteboardState = (syncConfig?: SyncConfig, whiteboardId?:
     redo: operations.redo,
     canUndo: operations.canUndo,
     canRedo: operations.canRedo,
+    getLastActivity: operations.getLastActivity,
     panZoom,
     updateImageState: operations.updateImageState,
     updateLine: operations.updateLine,
