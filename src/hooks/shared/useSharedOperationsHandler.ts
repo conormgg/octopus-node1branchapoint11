@@ -8,6 +8,8 @@ import { useCallback } from 'react';
 import { SyncConfig } from '@/types/sync';
 import { useSharedOperationsCoordinator } from './useSharedOperationsCoordinator';
 import { useSharedPersistenceIntegration } from './useSharedPersistenceIntegration';
+import { useWhiteboardDrawingCoordination } from '../useWhiteboardDrawingCoordination';
+import { useWhiteboardPointerHandlers } from '../useWhiteboardPointerHandlers';
 import { createDebugLogger } from '@/utils/debug/debugConfig';
 
 const debugLog = createDebugLogger('state');
@@ -32,21 +34,20 @@ export const useSharedOperationsHandler = (
   // Handle persistence and context integration
   useSharedPersistenceIntegration(state, setState, syncConfig, whiteboardId);
 
-  // Simple pointer handlers that match the expected signature
-  const handlePointerDown = useCallback((x: number, y: number) => {
-    // Pointer down logic will be handled by the canvas components
-    debugLog('Pointer', 'Pointer down', { x, y });
-  }, []);
+  // Set up drawing coordination with proper addToHistory connection
+  const drawingCoordination = useWhiteboardDrawingCoordination(
+    state,
+    setState,
+    operations.addToHistory
+  );
 
-  const handlePointerMove = useCallback((x: number, y: number) => {
-    // Pointer move logic will be handled by the canvas components
-    debugLog('Pointer', 'Pointer move', { x, y });
-  }, []);
-
-  const handlePointerUp = useCallback(() => {
-    // Pointer up logic will be handled by the canvas components
-    debugLog('Pointer', 'Pointer up');
-  }, []);
+  // Set up pointer handlers that use the drawing coordination
+  const pointerHandlers = useWhiteboardPointerHandlers(
+    state,
+    panZoom,
+    selection,
+    drawingCoordination
+  );
 
   /**
    * @function deleteSelectedObjects
@@ -69,9 +70,9 @@ export const useSharedOperationsHandler = (
 
   return {
     operations,
-    handlePointerDown,
-    handlePointerMove,
-    handlePointerUp,
+    handlePointerDown: pointerHandlers.handlePointerDown,
+    handlePointerMove: pointerHandlers.handlePointerMove,
+    handlePointerUp: pointerHandlers.handlePointerUp,
     deleteSelectedObjects
   };
 };
