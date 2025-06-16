@@ -1,9 +1,10 @@
 
-import React from 'react';
+import React, { useEffect, useCallback } from 'react';
 import WhiteboardCanvas from './WhiteboardCanvas';
 import MovableToolbar from './MovableToolbar';
 import { useSharedWhiteboardState } from '@/hooks/useSharedWhiteboardState';
 import { SyncConfig } from '@/types/sync';
+import { ActivityMetadata } from '@/types/whiteboard';
 
 interface SyncWhiteboardProps {
   syncConfig?: SyncConfig;
@@ -11,7 +12,7 @@ interface SyncWhiteboardProps {
   height: number;
   portalContainer?: Element | null;
   onSyncStateChange?: (syncState: { isConnected: boolean; isReceiveOnly: boolean } | null) => void;
-  onLastActivityUpdate?: (activity: any) => void;
+  onLastActivityUpdate?: (activity: ActivityMetadata | null) => void;
   onCenterCallbackUpdate?: (callback: (bounds: any) => void) => void;
 }
 
@@ -29,24 +30,23 @@ export const SyncWhiteboard: React.FC<SyncWhiteboardProps> = ({
   const whiteboardState = useSharedWhiteboardState(syncConfig, whiteboardId, width, height);
   const isReadOnly = whiteboardState.isReadOnly;
 
-  const handleStrokeWidthChange = (width: number) => {
-    whiteboardState.setStrokeWidth(width);
-  };
+  // Memoized stroke width handler
+  const handleStrokeWidthChange = useCallback((strokeWidth: number) => {
+    whiteboardState.setStrokeWidth(strokeWidth);
+  }, [whiteboardState.setStrokeWidth]);
 
-  // Pass sync state to parent component for UI display
-  React.useEffect(() => {
-    if (onSyncStateChange && syncConfig) {
-      onSyncStateChange({
+  // Consolidated effect for all parent callbacks
+  useEffect(() => {
+    // Handle sync state changes
+    if (onSyncStateChange) {
+      const syncState = syncConfig ? {
         isConnected: whiteboardState.syncState?.isConnected || false,
         isReceiveOnly: whiteboardState.syncState?.isReceiveOnly || false
-      });
-    } else if (onSyncStateChange) {
-      onSyncStateChange(null);
+      } : null;
+      onSyncStateChange(syncState);
     }
-  }, [whiteboardState.syncState?.isConnected, whiteboardState.syncState?.isReceiveOnly, onSyncStateChange, syncConfig]);
 
-  // Pass last activity updates to parent component
-  React.useEffect(() => {
+    // Handle last activity updates
     if (onLastActivityUpdate && whiteboardState.getLastActivity) {
       const lastActivity = whiteboardState.getLastActivity();
       if (lastActivity) {
@@ -54,27 +54,27 @@ export const SyncWhiteboard: React.FC<SyncWhiteboardProps> = ({
         onLastActivityUpdate(lastActivity);
       }
     }
-  }, [whiteboardState.state.history, whiteboardState.state.historyIndex, onLastActivityUpdate, whiteboardState.getLastActivity]);
 
-  // Pass center callback to parent component
-  React.useEffect(() => {
+    // Handle center callback updates
     if (onCenterCallbackUpdate && whiteboardState.centerOnLastActivity) {
       console.log('[SyncWhiteboard] Providing center callback to parent');
       onCenterCallbackUpdate(whiteboardState.centerOnLastActivity);
     }
-  }, [whiteboardState.centerOnLastActivity, onCenterCallbackUpdate]);
+  }, [
+    whiteboardState.syncState?.isConnected,
+    whiteboardState.syncState?.isReceiveOnly,
+    whiteboardState.state.history,
+    whiteboardState.state.historyIndex,
+    whiteboardState.centerOnLastActivity,
+    syncConfig,
+    onSyncStateChange,
+    onLastActivityUpdate,
+    onCenterCallbackUpdate,
+    whiteboardState.getLastActivity
+  ]);
 
-  // Log portal container for debugging
-  React.useEffect(() => {
-    console.log('[SyncWhiteboard] Portal container:', {
-      hasContainer: !!portalContainer,
-      containerType: portalContainer?.constructor?.name,
-      isPopupWindow: portalContainer?.ownerDocument !== document
-    });
-  }, [portalContainer]);
-
-  // Log normalized state usage
-  React.useEffect(() => {
+  // Development logging for normalized state
+  useEffect(() => {
     if (whiteboardState.normalizedState && process.env.NODE_ENV === 'development') {
       console.log('[SyncWhiteboard] Using normalized state with performance benefits', {
         lineCount: whiteboardState.normalizedState.lineCount,
@@ -84,16 +84,19 @@ export const SyncWhiteboard: React.FC<SyncWhiteboardProps> = ({
     }
   }, [whiteboardState.normalizedState, whiteboardId]);
 
+  // Container styles for proper isolation
+  const containerStyles = {
+    WebkitUserSelect: 'none' as const,
+    WebkitTouchCallout: 'none' as const,
+    touchAction: 'none' as const,
+    overflow: 'hidden' as const
+  };
+
   return (
     <div 
       className="relative w-full h-full select-none" 
       data-whiteboard-container
-      style={{ 
-        WebkitUserSelect: 'none',
-        WebkitTouchCallout: 'none',
-        touchAction: 'none',
-        overflow: 'hidden' // Ensure dropdowns don't escape container
-      }}
+      style={containerStyles}
     >
       <WhiteboardCanvas
         width={width}
@@ -109,6 +112,7 @@ export const SyncWhiteboard: React.FC<SyncWhiteboardProps> = ({
           enabled: false
         }}
       />
+      
       <MovableToolbar
         currentTool={whiteboardState.state.currentTool}
         currentStrokeWidth={whiteboardState.state.currentStrokeWidth}

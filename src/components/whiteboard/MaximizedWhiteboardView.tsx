@@ -1,10 +1,11 @@
 
-import React from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import ReactDOM from 'react-dom';
 import TopRightButtons from './TopRightButtons';
 import SessionStatus from './SessionStatus';
 import WhiteboardContent from './WhiteboardContent';
 import { SyncConfig } from '@/types/sync';
+import { ActivityMetadata } from '@/types/whiteboard';
 
 interface MaximizedWhiteboardViewProps {
   id: string;
@@ -22,7 +23,7 @@ interface MaximizedWhiteboardViewProps {
   portalContainer?: Element | null;
   hasLastActivity?: boolean;
   syncState?: { isConnected: boolean; isReceiveOnly: boolean } | null;
-  onLastActivityUpdate?: (activity: any) => void;
+  onLastActivityUpdate?: (activity: ActivityMetadata | null) => void;
   onCenterCallbackUpdate?: (callback: (bounds: any) => void) => void;
 }
 
@@ -45,25 +46,33 @@ const MaximizedWhiteboardView: React.FC<MaximizedWhiteboardViewProps> = ({
   onLastActivityUpdate,
   onCenterCallbackUpdate
 }) => {
-  const [localSyncState, setLocalSyncState] = React.useState(syncState);
+  const [localSyncState, setLocalSyncState] = useState(syncState);
 
-  const handleMaximizeClick = () => {
-    if (onMinimize) {
-      onMinimize();
-    }
-  };
+  // Memoized handlers for better performance
+  const handleMaximizeClick = useCallback(() => {
+    onMinimize?.();
+  }, [onMinimize]);
 
-  // Update local sync state when prop changes or from whiteboard content
-  React.useEffect(() => {
+  const handleBackdropClick = useCallback(() => {
+    onMinimize?.();
+  }, [onMinimize]);
+
+  const handleSyncStateChange = useCallback((newSyncState: { isConnected: boolean; isReceiveOnly: boolean } | null) => {
+    setLocalSyncState(newSyncState);
+  }, []);
+
+  // Sync local state with prop changes
+  useEffect(() => {
     setLocalSyncState(syncState);
   }, [syncState]);
 
-  return ReactDOM.createPortal(
+  const content = (
     <>
       {/* Backdrop overlay */}
       <div 
         className="fixed inset-0 bg-black/50 z-[9998]" 
-        onClick={onMinimize} 
+        onClick={handleBackdropClick}
+        aria-label="Close maximized view"
       />
       
       {/* Maximized whiteboard */}
@@ -77,6 +86,7 @@ const MaximizedWhiteboardView: React.FC<MaximizedWhiteboardViewProps> = ({
             hasLastActivity={hasLastActivity}
             syncState={localSyncState}
           />
+          
           <SessionStatus
             sessionId={sessionId}
             expiresAt={expiresAt}
@@ -84,21 +94,23 @@ const MaximizedWhiteboardView: React.FC<MaximizedWhiteboardViewProps> = ({
             sessionEndReason={sessionEndReason}
             isRedirecting={isRedirecting}
           />
+          
           <WhiteboardContent
             whiteboardWidth={whiteboardWidth}
             whiteboardHeight={whiteboardHeight}
             syncConfig={syncConfig}
             id={id}
             portalContainer={portalContainer}
-            onSyncStateChange={setLocalSyncState}
+            onSyncStateChange={handleSyncStateChange}
             onLastActivityUpdate={onLastActivityUpdate}
             onCenterCallbackUpdate={onCenterCallbackUpdate}
           />
         </div>
       </div>
-    </>,
-    portalContainer || document.body
+    </>
   );
+
+  return ReactDOM.createPortal(content, portalContainer || document.body);
 };
 
 export default MaximizedWhiteboardView;
