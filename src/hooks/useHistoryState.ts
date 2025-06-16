@@ -43,7 +43,7 @@ export const useHistoryState = (
     });
   }, [setState]);
 
-  // Get the last activity from the current history
+  // Get the last activity from the current history - includes persisted activity
   const getLastActivity = useCallback((): ActivityMetadata | undefined => {
     if (state.history.length === 0) return undefined;
     
@@ -51,11 +51,12 @@ export const useHistoryState = (
     for (let i = state.historyIndex; i >= 0; i--) {
       const snapshot = state.history[i];
       if (snapshot.lastActivity) {
-        debugLog('GetActivity', 'Found last activity', snapshot.lastActivity);
+        debugLog('GetActivity', 'Found last activity at history index', i, snapshot.lastActivity);
         return snapshot.lastActivity;
       }
     }
     
+    debugLog('GetActivity', 'No activity found in history');
     return undefined;
   }, [state.history, state.historyIndex]);
 

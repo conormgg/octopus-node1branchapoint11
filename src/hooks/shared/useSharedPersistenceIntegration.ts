@@ -25,12 +25,13 @@ export const useSharedPersistenceIntegration = (
   const persistence = syncConfig && whiteboardId ? useWhiteboardPersistence({
     whiteboardId,
     sessionId: syncConfig.sessionId
-  }) : { isLoading: false, error: null, lines: [], images: [] };
+  }) : { isLoading: false, error: null, lines: [], images: [], lastActivity: null };
 
   // Update state when persisted data is loaded, but only once on initial load
   useEffect(() => {
     if (!persistence.isLoading && persistence.lines && !hasLoadedInitialData.current) {
       console.log(`[PersistenceIntegration] Loaded ${persistence.lines.length} lines and ${persistence.images?.length || 0} images from persistence for ${whiteboardId}`);
+      console.log(`[PersistenceIntegration] Reconstructed lastActivity:`, persistence.lastActivity);
       
       setState(prevState => {
         // Only load persisted data if we don't have any lines yet
@@ -42,7 +43,7 @@ export const useSharedPersistenceIntegration = (
           hasLoadedInitialData.current = true;
           previousLineCount.current = persistence.lines.length;
           
-          // Create a new history snapshot with the loaded data
+          // Create a new history snapshot with the loaded data and lastActivity
           const newHistory = [{
             lines: [...persistence.lines], 
             images: [...(persistence.images || [])],
@@ -51,7 +52,8 @@ export const useSharedPersistenceIntegration = (
               selectionBounds: null,
               isSelecting: false,
               transformationData: {}
-            }
+            },
+            lastActivity: persistence.lastActivity // Pass the persisted activity here
           }];
           
           // Check if we already have history entries and append them
@@ -76,7 +78,7 @@ export const useSharedPersistenceIntegration = (
         updateWhiteboardState(whiteboardId, persistence.lines);
       }
     }
-  }, [persistence.isLoading, persistence.lines, persistence.images, whiteboardId, updateWhiteboardState, setState, state.lines.length]);
+  }, [persistence.isLoading, persistence.lines, persistence.images, persistence.lastActivity, whiteboardId, updateWhiteboardState, setState, state.lines.length]);
 
   // Update shared state only for additions, not deletions (to prevent race condition)
   useEffect(() => {
