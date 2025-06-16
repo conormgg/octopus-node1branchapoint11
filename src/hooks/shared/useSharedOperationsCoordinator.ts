@@ -67,6 +67,16 @@ export const useSharedOperationsCoordinator = (
     isReceiveOnly: syncConfig?.isReceiveOnly
   });
 
+  // Enhanced history with sync support - pass sendOperation for Teacher1-Student1 sync
+  const {
+    addToHistory: baseAddToHistory,
+    undo,
+    redo,
+    canUndo,
+    canRedo,
+    getLastActivity
+  } = useHistoryState(state, setState, undefined, syncConfig ? null : null); // Will be updated below
+
   // Set up sync if config is provided
   const { syncState, sendOperation } = syncConfig 
     ? useSyncState(syncConfig, (operation) => handleRemoteOperation(operation))
@@ -77,31 +87,39 @@ export const useSharedOperationsCoordinator = (
     canSend: !!sendOperation
   });
 
-  // Create single history state instance with proper sync support
+  // Update history state with sendOperation for sync
   const {
-    addToHistory,
-    undo,
-    redo,
-    canUndo,
-    canRedo,
-    getLastActivity
+    addToHistory: syncAddToHistory,
+    undo: syncUndo,
+    redo: syncRedo,
+    canUndo: syncCanUndo,
+    canRedo: syncCanRedo,
+    getLastActivity: syncGetLastActivity
   } = useHistoryState(state, setState, undefined, sendOperation);
+
+  // Use sync-enabled or local history functions based on sync availability
+  const finalAddToHistory = syncConfig ? syncAddToHistory : baseAddToHistory;
+  const finalUndo = syncConfig ? syncUndo : undo;
+  const finalRedo = syncConfig ? syncRedo : redo;
+  const finalCanUndo = syncConfig ? syncCanUndo : canUndo;
+  const finalCanRedo = syncConfig ? syncCanRedo : canRedo;
+  const finalGetLastActivity = syncConfig ? syncGetLastActivity : getLastActivity;
 
   // Handle remote operations with undo/redo support
   const { handleRemoteOperation, isApplyingRemoteOperation } = useRemoteOperationHandler(
     setState, 
-    undo, 
-    redo
+    finalUndo, 
+    finalRedo
   );
 
   /**
-   * @function addToHistoryWithLogging
+   * @function addToHistory
    * @description Enhanced history function that includes sync context
    * 
    * @ai-context This wrapper adds debug logging and ensures consistent
    * history snapshots across collaborative sessions.
    */
-  const addToHistoryWithLogging = useCallback((snapshot?: any, activityMetadata?: ActivityMetadata) => {
+  const addToHistory = useCallback((snapshot?: any, activityMetadata?: ActivityMetadata) => {
     debugLog('History', 'Adding to history', {
       linesCount: state.lines.length,
       imagesCount: state.images.length,
@@ -115,8 +133,8 @@ export const useSharedOperationsCoordinator = (
       selectionState: state.selectionState
     };
     
-    addToHistory(finalSnapshot, activityMetadata);
-  }, [addToHistory, state.lines, state.images, state.selectionState]);
+    finalAddToHistory(finalSnapshot, activityMetadata);
+  }, [finalAddToHistory, state.lines, state.images, state.selectionState]);
 
   // Drawing and erasing operations with whiteboard ID
   // Use the full whiteboard ID from sync config or fallback to provided ID
@@ -124,32 +142,31 @@ export const useSharedOperationsCoordinator = (
   
   debugLog('Operations', 'Setting up drawing operations', { actualWhiteboardId });
   const drawingOperations = useSharedDrawingOperations(
-    state, setState, addToHistoryWithLogging, sendOperation, isApplyingRemoteOperation, actualWhiteboardId
+    state, setState, addToHistory, sendOperation, isApplyingRemoteOperation, actualWhiteboardId
   );
 
   // Image operations with proper parameter handling
   debugLog('Operations', 'Setting up image operations', { actualWhiteboardId });
   const imageOperations = useSharedImageOperations(
-    state, setState, addToHistoryWithLogging, sendOperation, isApplyingRemoteOperation, actualWhiteboardId
+    state, setState, addToHistory, sendOperation, isApplyingRemoteOperation, actualWhiteboardId
   );
 
   debugLog('Hook', 'Operations coordinator initialized', {
     hasDrawing: !!drawingOperations.startDrawing,
     hasImages: !!imageOperations.handlePaste,
-    canUndo,
-    canRedo,
-    hasLastActivity: !!getLastActivity(),
-    hasSendOperation: !!sendOperation
+    canUndo: finalCanUndo,
+    canRedo: finalCanRedo,
+    hasLastActivity: !!finalGetLastActivity()
   });
 
   return {
     syncState,
-    addToHistory: addToHistoryWithLogging,
-    undo,
-    redo,
-    canUndo,
-    canRedo,
-    getLastActivity,
+    addToHistory,
+    undo: finalUndo,
+    redo: finalRedo,
+    canUndo: finalCanUndo,
+    canRedo: finalCanRedo,
+    getLastActivity: finalGetLastActivity,
     ...drawingOperations,
     ...imageOperations
   };
