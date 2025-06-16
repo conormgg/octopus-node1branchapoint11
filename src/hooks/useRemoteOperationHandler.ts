@@ -1,12 +1,109 @@
 
 import { useCallback, useRef } from 'react';
 import { WhiteboardOperation } from '@/types/sync';
+import { ActivityMetadata } from '@/types/whiteboard';
 import { applyOperation } from '@/utils/operationSerializer';
+import { calculateLineBounds } from './shared/drawing/useDrawingBounds';
 
 export const useRemoteOperationHandler = (
   setState: (updater: (prev: any) => any) => void
 ) => {
   const isApplyingRemoteOperation = useRef(false);
+
+  // Helper function to create activity metadata from operations
+  const createActivityFromOperation = (operation: WhiteboardOperation, updatedState: any): ActivityMetadata | undefined => {
+    const timestamp = operation.timestamp || Date.now();
+
+    switch (operation.operation_type) {
+      case 'draw': {
+        const drawnLine = operation.data?.line;
+        if (drawnLine) {
+          const bounds = calculateLineBounds(drawnLine);
+          return {
+            type: 'draw',
+            bounds,
+            timestamp
+          };
+        }
+        break;
+      }
+      
+      case 'erase': {
+        const lineIds = operation.data?.line_ids || [];
+        const erasedBounds = operation.data?.erased_bounds;
+        
+        if (lineIds.length > 0) {
+          // Use stored bounds if available, otherwise create default bounds
+          const bounds = erasedBounds || { x: 0, y: 0, width: 50, height: 50 };
+          return {
+            type: 'erase',
+            bounds,
+            timestamp
+          };
+        }
+        break;
+      }
+      
+      case 'add_image': {
+        const image = operation.data?.image;
+        if (image) {
+          return {
+            type: 'paste',
+            bounds: {
+              x: image.x || 0,
+              y: image.y || 0,
+              width: image.width || 100,
+              height: image.height || 100
+            },
+            timestamp
+          };
+        }
+        break;
+      }
+      
+      case 'update_line': {
+        const lineId = operation.data?.line_id;
+        const updates = operation.data?.updates;
+        if (lineId && updates && (updates.x !== undefined || updates.y !== undefined)) {
+          // Find the updated line to get its bounds
+          const updatedLine = updatedState.lines.find((line: any) => line.id === lineId);
+          if (updatedLine) {
+            const bounds = calculateLineBounds(updatedLine);
+            return {
+              type: 'move',
+              bounds,
+              timestamp
+            };
+          }
+        }
+        break;
+      }
+      
+      case 'update_image': {
+        const imageId = operation.data?.image_id;
+        const updates = operation.data?.updates;
+        if (imageId && updates && (updates.x !== undefined || updates.y !== undefined)) {
+          // Find the updated image to get its bounds
+          const updatedImage = updatedState.images.find((image: any) => image.id === imageId);
+          if (updatedImage) {
+            return {
+              type: 'move',
+              bounds: {
+                x: updatedImage.x || 0,
+                y: updatedImage.y || 0,
+                width: updatedImage.width || 100,
+                height: updatedImage.height || 100
+              },
+              timestamp
+            };
+          }
+        }
+        break;
+      }
+    }
+    
+    return undefined;
+  };
 
   // Handle incoming operations from other clients
   const handleRemoteOperation = useCallback((operation: WhiteboardOperation) => {
@@ -30,19 +127,30 @@ export const useRemoteOperationHandler = (
       if (operation.operation_type === 'delete_objects' || operation.operation_type === 'erase') {
         console.log('[RemoteOperationHandler] Processing deletion operation', operation.data);
       }
+
+      // Create activity metadata from the remote operation
+      const activityMetadata = createActivityFromOperation(operation, updatedState);
+      
+      if (activityMetadata) {
+        console.log('[RemoteOperationHandler] Created activity metadata from remote operation:', activityMetadata);
+      }
+      
+      // Create new history snapshot with activity metadata
+      const newHistorySnapshot = {
+        lines: [...updatedState.lines],
+        images: [...updatedState.images],
+        selectionState: prev.selectionState,
+        lastActivity: activityMetadata
+      };
       
       // Ensure we do a deep copy of the state to force a re-render
       return {
         ...prev,
         lines: [...updatedState.lines],
         images: [...updatedState.images],
-        // Update history to reflect the new state
+        // Update history to reflect the new state with activity metadata
         history: [
-          {
-            lines: [...updatedState.lines],
-            images: [...updatedState.images],
-            selectionState: prev.selectionState
-          },
+          newHistorySnapshot,
           ...prev.history.slice(0, 9) // Keep only the last 10 history entries
         ],
         historyIndex: 0

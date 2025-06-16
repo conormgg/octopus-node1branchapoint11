@@ -75,8 +75,15 @@ export const useSharedErasing = (
     // Always send the operation to the database for persistence
     // But only sync to other clients if we're on the teacher's main board
     if (sendOperation && !isApplyingRemoteOperation.current && erasedLineIds.length > 0) {
-      // Create the operation
-      const operation = serializeEraseOperation(erasedLineIds);
+      // Create the operation with bounds data for remote activity tracking
+      const operation = {
+        ...serializeEraseOperation(erasedLineIds),
+        data: {
+          ...serializeEraseOperation(erasedLineIds).data,
+          erased_bounds: activityMetadata?.bounds // Include bounds for remote activity tracking
+        }
+      };
+      
       console.log(`[DrawingOperations] Sending erase operation with ${erasedLineIds.length} lines:`, operation);
       
       // Send it to the database/sync system
