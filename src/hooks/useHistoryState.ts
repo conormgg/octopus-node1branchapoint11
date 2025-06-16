@@ -1,5 +1,7 @@
 import { useCallback } from 'react';
 import { LineObject, ImageObject, HistorySnapshot, SelectionState, ActivityMetadata } from '@/types/whiteboard';
+import { WhiteboardOperation } from '@/types/sync';
+import { serializeUndoOperation, serializeRedoOperation } from '@/utils/operationSerializer';
 import { createDebugLogger } from '@/utils/debug/debugConfig';
 
 const debugLog = createDebugLogger('history');
@@ -13,7 +15,8 @@ export const useHistoryState = (
     selectionState: SelectionState;
   },
   setState: (updater: (prev: any) => any) => void,
-  updateSelectionState?: (selectionState: SelectionState) => void
+  updateSelectionState?: (selectionState: SelectionState) => void,
+  sendOperation?: ((operation: Omit<WhiteboardOperation, 'id' | 'timestamp' | 'sender_id'>) => WhiteboardOperation | null) | null
 ) => {
   const addToHistory = useCallback((snapshot: HistorySnapshot, activityMetadata?: ActivityMetadata) => {
     setState(prev => {
@@ -92,6 +95,13 @@ export const useHistoryState = (
   }, []);
 
   const undo = useCallback(() => {
+    // Send sync operation if available (for Teacher1-Student1 pair)
+    if (sendOperation) {
+      debugLog('Undo', 'Sending undo operation to sync');
+      const operation = serializeUndoOperation();
+      sendOperation(operation);
+    }
+
     setState(prev => {
       if (prev.historyIndex <= 0) return prev;
       
@@ -106,6 +116,11 @@ export const useHistoryState = (
         setTimeout(() => updateSelectionState(validatedSelectionState), 0);
       }
       
+      debugLog('Undo', `Applied undo: index ${prev.historyIndex} -> ${newIndex}`, {
+        linesCount: snapshot.lines.length,
+        imagesCount: snapshot.images.length
+      });
+      
       return {
         ...prev,
         lines: [...snapshot.lines],
@@ -114,9 +129,16 @@ export const useHistoryState = (
         historyIndex: newIndex
       };
     });
-  }, [setState, validateSelection, updateSelectionState]);
+  }, [setState, validateSelection, updateSelectionState, sendOperation]);
 
   const redo = useCallback(() => {
+    // Send sync operation if available (for Teacher1-Student1 pair)
+    if (sendOperation) {
+      debugLog('Redo', 'Sending redo operation to sync');
+      const operation = serializeRedoOperation();
+      sendOperation(operation);
+    }
+
     setState(prev => {
       if (prev.historyIndex >= prev.history.length - 1) return prev;
       
@@ -131,6 +153,11 @@ export const useHistoryState = (
         setTimeout(() => updateSelectionState(validatedSelectionState), 0);
       }
       
+      debugLog('Redo', `Applied redo: index ${prev.historyIndex} -> ${newIndex}`, {
+        linesCount: snapshot.lines.length,
+        imagesCount: snapshot.images.length
+      });
+      
       return {
         ...prev,
         lines: [...snapshot.lines],
@@ -139,7 +166,7 @@ export const useHistoryState = (
         historyIndex: newIndex
       };
     });
-  }, [setState, validateSelection, updateSelectionState]);
+  }, [setState, validateSelection, updateSelectionState, sendOperation]);
 
   const canUndo = state.historyIndex > 0;
   const canRedo = state.historyIndex < state.history.length - 1;

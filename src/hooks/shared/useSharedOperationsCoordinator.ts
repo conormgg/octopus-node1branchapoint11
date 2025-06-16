@@ -1,4 +1,3 @@
-
 /**
  * @fileoverview Coordinates all whiteboard operations for shared state
  * @description Central coordination point for drawing, syncing, history, and image operations
@@ -80,7 +79,7 @@ export const useSharedOperationsCoordinator = (
     canSend: !!sendOperation
   });
 
-  // Enhanced add to history that syncs operations
+  // Enhanced history with sync support - pass sendOperation for Teacher1-Student1 sync
   const {
     addToHistory: baseAddToHistory,
     undo,
@@ -88,7 +87,7 @@ export const useSharedOperationsCoordinator = (
     canUndo,
     canRedo,
     getLastActivity
-  } = useHistoryState(state, setState);
+  } = useHistoryState(state, setState, undefined, sendOperation);
 
   /**
    * @function addToHistory
