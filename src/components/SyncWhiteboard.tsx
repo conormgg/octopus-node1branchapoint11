@@ -38,44 +38,61 @@ export const SyncWhiteboard: React.FC<SyncWhiteboardProps> = ({
   const { getLastActivity, centerOnLastActivity, syncState } = whiteboardState;
   const lastActivity = getLastActivity?.();
   const prevReportedTimestampRef = useRef<number | null>(null);
+  const prevSyncStateRef = useRef<any>(null);
 
-  // Consolidated effect for all parent callbacks
+  // Consolidated effect for all parent callbacks with reduced logging
   useEffect(() => {
-    // Handle sync state changes
+    let hasChanges = false;
+
+    // Handle sync state changes - only if actually changed
     if (onSyncStateChange) {
       const newSyncState = syncConfig ? {
         isConnected: syncState?.isConnected || false,
         isReceiveOnly: syncState?.isReceiveOnly || false
       } : null;
-      onSyncStateChange(newSyncState);
+      
+      const syncStateChanged = JSON.stringify(newSyncState) !== JSON.stringify(prevSyncStateRef.current);
+      if (syncStateChanged) {
+        onSyncStateChange(newSyncState);
+        prevSyncStateRef.current = newSyncState;
+        hasChanges = true;
+      }
     }
 
     // Handle last activity updates - only update if it's new
     if (onLastActivityUpdate && lastActivity) {
       if (lastActivity.timestamp !== prevReportedTimestampRef.current) {
-        console.log('[SyncWhiteboard] Reporting NEW last activity:', lastActivity);
+        if (process.env.NODE_ENV === 'development') {
+          console.log('[SyncWhiteboard] Reporting NEW last activity:', lastActivity);
+        }
         onLastActivityUpdate(lastActivity);
         prevReportedTimestampRef.current = lastActivity.timestamp;
+        hasChanges = true;
       }
     }
 
-    // Handle center callback updates
+    // Handle center callback updates - only once per mount
     if (onCenterCallbackUpdate && centerOnLastActivity) {
-      // The callback is stable from the hook, no need for noisy logging
       onCenterCallbackUpdate(centerOnLastActivity);
+    }
+
+    // Only log if there were actual changes
+    if (hasChanges && process.env.NODE_ENV === 'development') {
+      console.log('[SyncWhiteboard] State updated for whiteboard:', whiteboardId);
     }
   }, [
     syncState?.isConnected, 
     syncState?.isReceiveOnly, 
-    lastActivity, 
+    lastActivity?.timestamp, // Only depend on timestamp to reduce re-renders
     centerOnLastActivity, 
     onSyncStateChange, 
     onLastActivityUpdate, 
     onCenterCallbackUpdate, 
-    syncConfig
+    syncConfig,
+    whiteboardId
   ]);
 
-  // Development logging for normalized state
+  // Development logging for normalized state - only once
   useEffect(() => {
     if (whiteboardState.normalizedState && process.env.NODE_ENV === 'development') {
       console.log('[SyncWhiteboard] Using normalized state with performance benefits', {
@@ -84,7 +101,7 @@ export const SyncWhiteboard: React.FC<SyncWhiteboardProps> = ({
         whiteboardId
       });
     }
-  }, [whiteboardState.normalizedState, whiteboardId]);
+  }, [whiteboardState.normalizedState?.lineCount, whiteboardState.normalizedState?.imageCount, whiteboardId]);
 
   // Container styles for proper isolation
   const containerStyles = {

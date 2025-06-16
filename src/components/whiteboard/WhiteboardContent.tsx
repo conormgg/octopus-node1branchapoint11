@@ -68,17 +68,23 @@ const WhiteboardContent: React.FC<WhiteboardContentProps> = ({
     }
   }, [id, whiteboardWidth, whiteboardHeight]);
 
-  // Enhanced sync state change handler with error handling
+  // Enhanced sync state change handler with error handling - reduced logging
   const handleSyncStateChange = useCallback((syncState: { isConnected: boolean; isReceiveOnly: boolean } | null) => {
     try {
-      console.log('[WhiteboardContent] Sync state changed:', syncState);
+      // Only log significant state changes
+      if (process.env.NODE_ENV === 'development') {
+        const shouldLog = !state.hasError && syncState?.isConnected !== undefined;
+        if (shouldLog) {
+          console.log('[WhiteboardContent] Sync state changed:', syncState);
+        }
+      }
       onSyncStateChange?.(syncState);
     } catch (error) {
       console.error('[WhiteboardContent] Error handling sync state change:', error);
     }
-  }, [onSyncStateChange]);
+  }, [onSyncStateChange, state.hasError]);
 
-  // Enhanced activity update handler with validation
+  // Enhanced activity update handler with validation - reduced logging
   const handleLastActivityUpdate = useCallback((activity: ActivityMetadata | null) => {
     try {
       if (activity && (!activity.bounds || !activity.timestamp)) {
@@ -86,14 +92,17 @@ const WhiteboardContent: React.FC<WhiteboardContentProps> = ({
         return;
       }
       
-      console.log('[WhiteboardContent] Activity update for whiteboard:', id, activity);
+      // Only log when there's actually a new activity
+      if (process.env.NODE_ENV === 'development' && activity) {
+        console.log('[WhiteboardContent] New activity for whiteboard:', id);
+      }
       onLastActivityUpdate?.(activity);
     } catch (error) {
       console.error('[WhiteboardContent] Error handling activity update:', error);
     }
   }, [id, onLastActivityUpdate]);
 
-  // Enhanced center callback handler
+  // Enhanced center callback handler - reduced logging
   const handleCenterCallbackUpdate = useCallback((callback: (bounds: any) => void) => {
     try {
       if (typeof callback !== 'function') {
@@ -101,12 +110,12 @@ const WhiteboardContent: React.FC<WhiteboardContentProps> = ({
         return;
       }
 
-      console.log('[WhiteboardContent] Center callback updated for whiteboard:', id);
+      // Remove repetitive logging for center callback updates
       onCenterCallbackUpdate?.(callback);
     } catch (error) {
       console.error('[WhiteboardContent] Error handling center callback update:', error);
     }
-  }, [id, onCenterCallbackUpdate]);
+  }, [onCenterCallbackUpdate]);
 
   // Error boundary-like error handling
   const handleWhiteboardError = useCallback((error: Error) => {

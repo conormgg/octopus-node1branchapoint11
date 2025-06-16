@@ -78,9 +78,8 @@ export const useSharedWhiteboardState = (syncConfig?: SyncConfig, whiteboardId?:
     panZoom.centerOnBounds(bounds, containerWidth, containerHeight);
   }, [panZoom, containerWidth, containerHeight]);
 
-  // Debug log to verify getLastActivity is working after persistence integration
+  // Reduce logging noise for last activity checks
   const currentActivity = operations.getLastActivity?.();
-  console.log('[SharedWhiteboardState] Current last activity:', currentActivity);
   
   debugLog('Hook', 'useSharedWhiteboardState initialized', {
     isReadOnly,

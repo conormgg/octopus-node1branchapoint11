@@ -49,25 +49,35 @@ export const useEyeButtonLogic = (id: string) => {
     }
   }, [id, state.lastActivity, state.centerOnActivityCallback]);
 
-  // Stable callback to receive last activity updates
+  // Stable callback to receive last activity updates - reduced logging
   const handleLastActivityUpdate = useCallback((activity: ActivityMetadata | null) => {
-    console.log('[EyeButton] Received activity update for whiteboard:', id, activity);
+    // Only log when activity actually changes
+    if (activity && (!state.lastActivity || activity.timestamp !== state.lastActivity.timestamp)) {
+      if (process.env.NODE_ENV === 'development') {
+        console.log('[EyeButton] New activity update for whiteboard:', id);
+      }
+    }
     
     setState(prev => ({
       ...prev,
       lastActivity: activity
     }));
-  }, [id]);
+  }, [id, state.lastActivity]);
 
-  // Stable callback to receive the center function
+  // Stable callback to receive the center function - reduced logging
   const handleCenterCallbackUpdate = useCallback((callback: (bounds: any) => void) => {
-    console.log('[EyeButton] Received center callback for whiteboard:', id);
+    // Only log if callback actually changes
+    if (callback !== state.centerOnActivityCallback) {
+      if (process.env.NODE_ENV === 'development') {
+        console.log('[EyeButton] Center callback updated for whiteboard:', id);
+      }
+    }
     
     setState(prev => ({
       ...prev,
       centerOnActivityCallback: callback
     }));
-  }, [id]);
+  }, [id, state.centerOnActivityCallback]);
 
   // Check if we have recent activity within the timeout window
   const hasLastActivity = state.lastActivity && 
