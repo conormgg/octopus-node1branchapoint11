@@ -30,6 +30,24 @@ export const useKonvaKeyboardHandlers = ({
         return;
       }
 
+      // Ctrl+Z - Undo
+      if (e.ctrlKey && e.key === 'z' && !e.shiftKey) {
+        if ('undo' in whiteboardState && typeof whiteboardState.undo === 'function') {
+          whiteboardState.undo();
+        }
+        e.preventDefault();
+        return;
+      }
+
+      // Ctrl+Y or Ctrl+Shift+Z - Redo
+      if ((e.ctrlKey && e.key === 'y') || (e.ctrlKey && e.shiftKey && e.key === 'z')) {
+        if ('redo' in whiteboardState && typeof whiteboardState.redo === 'function') {
+          whiteboardState.redo();
+        }
+        e.preventDefault();
+        return;
+      }
+
       // Ctrl+A - select all objects (only when select tool is active)
       if (e.ctrlKey && e.key === 'a' && state.currentTool === 'select' && selection?.selectAll) {
         selection.selectAll(state.lines || [], state.images || []);

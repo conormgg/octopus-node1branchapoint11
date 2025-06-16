@@ -6,7 +6,9 @@ import { applyOperation } from '@/utils/operationSerializer';
 import { calculateLineBounds } from './shared/drawing/useDrawingBounds';
 
 export const useRemoteOperationHandler = (
-  setState: (updater: (prev: any) => any) => void
+  setState: (updater: (prev: any) => any) => void,
+  undo?: () => void,
+  redo?: () => void
 ) => {
   const isApplyingRemoteOperation = useRef(false);
 
@@ -100,6 +102,24 @@ export const useRemoteOperationHandler = (
         }
         break;
       }
+
+      case 'undo': {
+        // Create a generic activity for undo operations
+        return {
+          type: 'erase', // Use 'erase' type as it's the closest to undo visually
+          bounds: { x: 0, y: 0, width: 100, height: 100 }, // Generic bounds
+          timestamp
+        };
+      }
+
+      case 'redo': {
+        // Create a generic activity for redo operations
+        return {
+          type: 'draw', // Use 'draw' type as it's the closest to redo visually
+          bounds: { x: 0, y: 0, width: 100, height: 100 }, // Generic bounds
+          timestamp
+        };
+      }
     }
     
     return undefined;
@@ -108,6 +128,19 @@ export const useRemoteOperationHandler = (
   // Handle incoming operations from other clients
   const handleRemoteOperation = useCallback((operation: WhiteboardOperation) => {
     console.log(`[RemoteOperationHandler] Processing operation: ${operation.operation_type} from sender: ${operation.sender_id}`);
+    
+    // Handle undo/redo operations directly without applying to state
+    if (operation.operation_type === 'undo' && undo) {
+      console.log('[RemoteOperationHandler] Calling local undo from remote operation');
+      undo();
+      return;
+    }
+
+    if (operation.operation_type === 'redo' && redo) {
+      console.log('[RemoteOperationHandler] Calling local redo from remote operation');
+      redo();
+      return;
+    }
     
     isApplyingRemoteOperation.current = true;
     
@@ -162,7 +195,7 @@ export const useRemoteOperationHandler = (
     setTimeout(() => {
       isApplyingRemoteOperation.current = false;
     }, clearDelay);
-  }, [setState]);
+  }, [setState, undo, redo]);
 
   return {
     handleRemoteOperation,
