@@ -1,3 +1,4 @@
+
 import { useCallback } from 'react';
 import { PanZoomState } from '@/types/whiteboard';
 
@@ -18,11 +19,29 @@ export const usePanZoom = (
   }, []);
 
   const zoom = useCallback((factor: number, centerX?: number, centerY?: number) => {
-    setPanZoomState(prev => ({
-      ...prev,
-      scale: Math.max(0.1, Math.min(5, prev.scale * factor))
-    }));
-  }, [setPanZoomState]);
+    const newState: PanZoomState = {
+      ...panZoomState,
+      scale: Math.max(0.1, Math.min(5, panZoomState.scale * factor))
+    };
+    setPanZoomState(newState);
+  }, [setPanZoomState, panZoomState]);
+
+  const handleWheel = useCallback((e: WheelEvent) => {
+    // Wheel handling logic - implementation depends on your existing system
+    e.preventDefault();
+  }, []);
+
+  const handleTouchStart = useCallback((e: TouchEvent) => {
+    // Touch start logic - implementation depends on your existing system
+  }, []);
+
+  const handleTouchMove = useCallback((e: TouchEvent) => {
+    // Touch move logic - implementation depends on your existing system
+  }, []);
+
+  const handleTouchEnd = useCallback((e: TouchEvent) => {
+    // Touch end logic - implementation depends on your existing system
+  }, []);
 
   /**
    * Center the viewport on the given bounds
@@ -62,18 +81,23 @@ export const usePanZoom = (
     });
     
     // Apply the new pan state with smooth animation
-    setPanZoomState(prev => ({
-      ...prev,
+    const newState: PanZoomState = {
+      ...panZoomState,
       x: newPanX,
       y: newPanY
-    }));
-  }, [panZoomState.scale, setPanZoomState]);
+    };
+    setPanZoomState(newState);
+  }, [panZoomState, setPanZoomState]);
 
   return {
     startPan,
     continuePan,
     stopPan,
     zoom,
+    handleWheel,
+    handleTouchStart,
+    handleTouchMove,
+    handleTouchEnd,
     centerOnBounds
   };
 };

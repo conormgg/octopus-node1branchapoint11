@@ -12,6 +12,7 @@ interface SyncWhiteboardProps {
   portalContainer?: Element | null;
   onSyncStateChange?: (syncState: { isConnected: boolean; isReceiveOnly: boolean } | null) => void;
   onLastActivityUpdate?: (activity: any) => void;
+  onCenterCallbackUpdate?: (callback: (bounds: any) => void) => void;
 }
 
 export const SyncWhiteboard: React.FC<SyncWhiteboardProps> = ({
@@ -20,11 +21,12 @@ export const SyncWhiteboard: React.FC<SyncWhiteboardProps> = ({
   height,
   portalContainer,
   onSyncStateChange,
-  onLastActivityUpdate
+  onLastActivityUpdate,
+  onCenterCallbackUpdate
 }) => {
   // Use the whiteboard ID from sync config to maintain shared state
   const whiteboardId = syncConfig?.whiteboardId;
-  const whiteboardState = useSharedWhiteboardState(syncConfig, whiteboardId);
+  const whiteboardState = useSharedWhiteboardState(syncConfig, whiteboardId, width, height);
   const isReadOnly = whiteboardState.isReadOnly;
 
   const handleStrokeWidthChange = (width: number) => {
@@ -53,6 +55,14 @@ export const SyncWhiteboard: React.FC<SyncWhiteboardProps> = ({
       }
     }
   }, [whiteboardState.state.history, whiteboardState.state.historyIndex, onLastActivityUpdate, whiteboardState.getLastActivity]);
+
+  // Pass center callback to parent component
+  React.useEffect(() => {
+    if (onCenterCallbackUpdate && whiteboardState.centerOnLastActivity) {
+      console.log('[SyncWhiteboard] Providing center callback to parent');
+      onCenterCallbackUpdate(whiteboardState.centerOnLastActivity);
+    }
+  }, [whiteboardState.centerOnLastActivity, onCenterCallbackUpdate]);
 
   // Log portal container for debugging
   React.useEffect(() => {
