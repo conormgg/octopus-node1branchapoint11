@@ -1,4 +1,5 @@
-import { useCallback, useState, useRef } from 'react';
+
+import { useCallback, useState, useRef, useMemo } from 'react';
 import { PanZoomState } from '@/types/whiteboard';
 
 export const usePanZoom = (
@@ -220,7 +221,8 @@ export const usePanZoom = (
     setPanZoomState(newState);
   }, [panZoomState, setPanZoomState]);
 
-  return {
+  // Wrap the return object in useMemo to stabilize its reference
+  return useMemo(() => ({
     startPan,
     continuePan,
     stopPan,
@@ -231,5 +233,16 @@ export const usePanZoom = (
     handleTouchEnd,
     isGestureActive,
     centerOnBounds
-  };
+  }), [
+    startPan,
+    continuePan,
+    stopPan,
+    zoom,
+    handleWheel,
+    handleTouchStart,
+    handleTouchMove,
+    handleTouchEnd,
+    isGestureActive,
+    centerOnBounds
+  ]);
 };
