@@ -14,6 +14,7 @@ interface WhiteboardPersistenceResult {
   error: Error | null;
   lines: LineObject[];
   images: ImageObject[];
+  operations: any[];
 }
 
 export const useWhiteboardPersistence = ({
@@ -24,6 +25,7 @@ export const useWhiteboardPersistence = ({
   const [error, setError] = useState<Error | null>(null);
   const [lines, setLines] = useState<LineObject[]>([]);
   const [images, setImages] = useState<ImageObject[]>([]);
+  const [operations, setOperations] = useState<any[]>([]);
 
   const fetchWhiteboardData = useCallback(async () => {
     try {
@@ -44,6 +46,9 @@ export const useWhiteboardPersistence = ({
       }
 
       console.log(`[Persistence] Retrieved ${data?.length || 0} operations from database`);
+      
+      // Store raw operations for activity reconstruction
+      setOperations(data || []);
 
       // Process operations to rebuild the whiteboard state
       const linesMap = new Map<string, LineObject>();
@@ -168,6 +173,7 @@ export const useWhiteboardPersistence = ({
     isLoading,
     error,
     lines,
-    images
+    images,
+    operations
   };
 };
