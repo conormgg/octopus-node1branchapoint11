@@ -20,7 +20,7 @@ export const useSharedOperationsCoordinator = (
 ) => {
   debugLog('OperationsCoordinator', 'Initializing operations coordinator', { whiteboardId });
 
-  const selection = useSelectionState(state, setState);
+  const selection = useSelectionState();
 
   // History management with sync integration
   const { syncState, sendOperation } = syncConfig 
@@ -171,6 +171,16 @@ export const useSharedOperationsCoordinator = (
     }
   }, [sendOperationIfSync, sendOperation]);
 
+  // Create a simple addToHistory wrapper that matches the expected signature
+  const addToHistory = useCallback(() => {
+    const snapshot = {
+      lines: state.lines,
+      images: state.images,
+      selectionState: state.selectionState
+    };
+    history.addToHistory(snapshot);
+  }, [history.addToHistory, state.lines, state.images, state.selectionState]);
+
   return {
     startDrawing,
     continueDrawing,
@@ -184,7 +194,7 @@ export const useSharedOperationsCoordinator = (
     updateImage,
     toggleImageLock,
     deleteSelectedObjects,
-    addToHistory: history.addToHistory,
+    addToHistory, // This now matches the expected () => void signature
     undo: history.undo,
     redo: history.redo,
     canUndo: history.canUndo,
