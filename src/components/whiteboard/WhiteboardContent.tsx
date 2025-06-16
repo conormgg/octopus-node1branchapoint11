@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useState } from 'react';
 import Whiteboard from '../Whiteboard';
 import { SyncWhiteboard } from '../SyncWhiteboard';
 import { SyncConfig } from '@/types/sync';
@@ -10,6 +10,7 @@ interface WhiteboardContentProps {
   syncConfig?: SyncConfig;
   id: string;
   portalContainer?: Element | null;
+  onSyncStateChange?: (syncState: { isConnected: boolean; isReceiveOnly: boolean } | null) => void;
 }
 
 const WhiteboardContent: React.FC<WhiteboardContentProps> = ({
@@ -17,7 +18,8 @@ const WhiteboardContent: React.FC<WhiteboardContentProps> = ({
   whiteboardHeight,
   syncConfig,
   id,
-  portalContainer
+  portalContainer,
+  onSyncStateChange
 }) => {
   return (
     <div 
@@ -38,6 +40,7 @@ const WhiteboardContent: React.FC<WhiteboardContentProps> = ({
             width={whiteboardWidth}
             height={whiteboardHeight}
             portalContainer={portalContainer}
+            onSyncStateChange={onSyncStateChange}
           />
         ) : (
           <Whiteboard isReadOnly={false} />

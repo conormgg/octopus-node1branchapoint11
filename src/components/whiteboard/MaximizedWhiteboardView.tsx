@@ -21,6 +21,7 @@ interface MaximizedWhiteboardViewProps {
   syncConfig?: SyncConfig;
   portalContainer?: Element | null;
   hasLastActivity?: boolean;
+  syncState?: { isConnected: boolean; isReceiveOnly: boolean } | null;
 }
 
 const MaximizedWhiteboardView: React.FC<MaximizedWhiteboardViewProps> = ({
@@ -37,13 +38,21 @@ const MaximizedWhiteboardView: React.FC<MaximizedWhiteboardViewProps> = ({
   whiteboardHeight,
   syncConfig,
   portalContainer,
-  hasLastActivity = false
+  hasLastActivity = false,
+  syncState
 }) => {
+  const [localSyncState, setLocalSyncState] = React.useState(syncState);
+
   const handleMaximizeClick = () => {
     if (onMinimize) {
       onMinimize();
     }
   };
+
+  // Update local sync state when prop changes or from whiteboard content
+  React.useEffect(() => {
+    setLocalSyncState(syncState);
+  }, [syncState]);
 
   return ReactDOM.createPortal(
     <>
@@ -62,6 +71,7 @@ const MaximizedWhiteboardView: React.FC<MaximizedWhiteboardViewProps> = ({
             onMaximizeClick={handleMaximizeClick}
             onEyeClick={onEyeClick}
             hasLastActivity={hasLastActivity}
+            syncState={localSyncState}
           />
           <SessionStatus
             sessionId={sessionId}
@@ -76,6 +86,7 @@ const MaximizedWhiteboardView: React.FC<MaximizedWhiteboardViewProps> = ({
             syncConfig={syncConfig}
             id={id}
             portalContainer={portalContainer}
+            onSyncStateChange={setLocalSyncState}
           />
         </div>
       </div>

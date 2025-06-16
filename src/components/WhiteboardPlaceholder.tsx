@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { SyncConfig } from '@/types/sync';
 import { useSessionExpirationContext } from '@/contexts/sessionExpiration';
@@ -33,6 +32,7 @@ const WhiteboardPlaceholder: React.FC<WhiteboardPlaceholderProps> = ({
   portalContainer
 }) => {
   const [dimensions, setDimensions] = useState({ width: 0, height: 0 });
+  const [syncState, setSyncState] = useState<{ isConnected: boolean; isReceiveOnly: boolean } | null>(null);
   const containerRef = React.useRef<HTMLDivElement>(null);
   
   // Use centralized session expiration context
@@ -156,6 +156,7 @@ const WhiteboardPlaceholder: React.FC<WhiteboardPlaceholderProps> = ({
         syncConfig={syncConfig}
         portalContainer={portalContainer}
         hasLastActivity={hasLastActivity}
+        syncState={syncState}
       />
     );
   }
@@ -176,6 +177,7 @@ const WhiteboardPlaceholder: React.FC<WhiteboardPlaceholderProps> = ({
         onMaximizeClick={handleMaximizeClick}
         onEyeClick={handleEyeClick}
         hasLastActivity={hasLastActivity}
+        syncState={syncState}
       />
       <SessionStatus
         sessionId={sessionId}
@@ -190,6 +192,7 @@ const WhiteboardPlaceholder: React.FC<WhiteboardPlaceholderProps> = ({
         syncConfig={syncConfig}
         id={id}
         portalContainer={portalContainer}
+        onSyncStateChange={setSyncState}
       />
     </div>
   );

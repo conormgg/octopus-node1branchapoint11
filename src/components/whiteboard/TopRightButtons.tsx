@@ -8,6 +8,10 @@ interface TopRightButtonsProps {
   onMaximizeClick: () => void;
   onEyeClick: () => void;
   hasLastActivity?: boolean;
+  syncState?: {
+    isConnected: boolean;
+    isReceiveOnly: boolean;
+  };
 }
 
 const TopRightButtons: React.FC<TopRightButtonsProps> = ({
@@ -15,10 +19,26 @@ const TopRightButtons: React.FC<TopRightButtonsProps> = ({
   shouldShowEyeButton,
   onMaximizeClick,
   onEyeClick,
-  hasLastActivity = false
+  hasLastActivity = false,
+  syncState
 }) => {
   return (
-    <div className="absolute top-3 right-3 z-10 flex gap-2">
+    <div className="absolute top-3 right-3 z-20 flex items-center gap-2">
+      {/* Sync status indicator - only show if we have sync state */}
+      {syncState && (
+        <div className="flex items-center space-x-2 text-sm bg-white/90 hover:bg-white border border-gray-200 rounded-lg px-2 py-1 shadow-sm">
+          <div 
+            className={`w-3 h-3 rounded-full ${syncState.isConnected ? 'bg-green-500' : 'bg-red-500'}`}
+          />
+          <span className="text-gray-700 text-xs">
+            {syncState.isConnected ? 'Connected' : 'Disconnected'}
+          </span>
+          {syncState.isReceiveOnly && (
+            <span className="bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded">Read Only</span>
+          )}
+        </div>
+      )}
+
       {/* Eye button - only show for teacher-main and student-shared-teacher */}
       {shouldShowEyeButton && (
         <button

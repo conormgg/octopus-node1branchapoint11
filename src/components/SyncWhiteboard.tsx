@@ -10,13 +10,15 @@ interface SyncWhiteboardProps {
   width: number;
   height: number;
   portalContainer?: Element | null;
+  onSyncStateChange?: (syncState: { isConnected: boolean; isReceiveOnly: boolean } | null) => void;
 }
 
 export const SyncWhiteboard: React.FC<SyncWhiteboardProps> = ({
   syncConfig,
   width,
   height,
-  portalContainer
+  portalContainer,
+  onSyncStateChange
 }) => {
   // Use the whiteboard ID from sync config to maintain shared state
   const whiteboardId = syncConfig?.whiteboardId;
@@ -26,6 +28,18 @@ export const SyncWhiteboard: React.FC<SyncWhiteboardProps> = ({
   const handleStrokeWidthChange = (width: number) => {
     whiteboardState.setStrokeWidth(width);
   };
+
+  // Pass sync state to parent component for UI display
+  React.useEffect(() => {
+    if (onSyncStateChange && syncConfig) {
+      onSyncStateChange({
+        isConnected: whiteboardState.syncState?.isConnected || false,
+        isReceiveOnly: whiteboardState.syncState?.isReceiveOnly || false
+      });
+    } else if (onSyncStateChange) {
+      onSyncStateChange(null);
+    }
+  }, [whiteboardState.syncState?.isConnected, whiteboardState.syncState?.isReceiveOnly, onSyncStateChange, syncConfig]);
 
   // Log portal container for debugging
   React.useEffect(() => {
@@ -58,21 +72,6 @@ export const SyncWhiteboard: React.FC<SyncWhiteboardProps> = ({
         overflow: 'hidden' // Ensure dropdowns don't escape container
       }}
     >
-      {/* Sync status indicator */}
-      {syncConfig && (
-        <div className="absolute top-2 right-2 z-20 flex items-center space-x-2 text-sm">
-          <div 
-            className={`w-3 h-3 rounded-full ${whiteboardState.syncState?.isConnected ? 'bg-green-500' : 'bg-red-500'}`}
-          />
-          <span className="text-gray-700">
-            {whiteboardState.syncState?.isConnected ? 'Connected' : 'Disconnected'}
-          </span>
-          {whiteboardState.syncState?.isReceiveOnly && (
-            <span className="bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded">Read Only</span>
-          )}
-        </div>
-      )}
-
       <WhiteboardCanvas
         width={width}
         height={height}
