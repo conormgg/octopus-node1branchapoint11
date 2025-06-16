@@ -7,8 +7,8 @@ import { calculateLineBounds } from './shared/drawing/useDrawingBounds';
 
 export const useRemoteOperationHandler = (
   setState: (updater: (prev: any) => any) => void,
-  undo?: () => void,
-  redo?: () => void
+  performLocalUndo?: () => void,
+  performLocalRedo?: () => void
 ) => {
   const isApplyingRemoteOperation = useRef(false);
 
@@ -127,18 +127,18 @@ export const useRemoteOperationHandler = (
 
   // Handle incoming operations from other clients
   const handleRemoteOperation = useCallback((operation: WhiteboardOperation) => {
-    console.log(`[RemoteOperationHandler] Processing operation: ${operation.operation_type} from sender: ${operation.sender_id}`);
+    console.log(`LOG: Remote operation received: ${operation.operation_type} from sender: ${operation.sender_id}`);
     
-    // Handle undo/redo operations directly without applying to state
-    if (operation.operation_type === 'undo' && undo) {
-      console.log('[RemoteOperationHandler] Calling local undo from remote operation');
-      undo();
+    // Handle undo/redo operations directly by calling local functions
+    if (operation.operation_type === 'undo' && performLocalUndo) {
+      console.log('LOG: Received remote UNDO. Calling performLocalUndo.');
+      performLocalUndo();
       return;
     }
 
-    if (operation.operation_type === 'redo' && redo) {
-      console.log('[RemoteOperationHandler] Calling local redo from remote operation');
-      redo();
+    if (operation.operation_type === 'redo' && performLocalRedo) {
+      console.log('LOG: Received remote REDO. Calling performLocalRedo.');
+      performLocalRedo();
       return;
     }
     
@@ -195,7 +195,7 @@ export const useRemoteOperationHandler = (
     setTimeout(() => {
       isApplyingRemoteOperation.current = false;
     }, clearDelay);
-  }, [setState, undo, redo]);
+  }, [setState, performLocalUndo, performLocalRedo]);
 
   return {
     handleRemoteOperation,

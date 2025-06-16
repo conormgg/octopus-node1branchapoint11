@@ -95,16 +95,9 @@ export const useHistoryState = (
     };
   }, []);
 
-  const undo = useCallback(() => {
-    if (sendOperation) {
-      // Only send the operation, do not update state locally
-      debugLog('Undo', 'Sending undo operation to sync');
-      const operation = serializeUndoOperation();
-      sendOperation(operation);
-      return; // IMPORTANT: Stop execution here
-    }
-
-    // This part now only runs for non-synced whiteboards
+  // Separate local undo function that only updates state
+  const performLocalUndo = useCallback(() => {
+    console.log("LOG: Performing local state update for UNDO.");
     setState(prev => {
       if (prev.historyIndex <= 0) return prev;
       
@@ -119,7 +112,7 @@ export const useHistoryState = (
         setTimeout(() => updateSelectionState(validatedSelectionState), 0);
       }
       
-      debugLog('Undo', `Applied undo: index ${prev.historyIndex} -> ${newIndex}`, {
+      debugLog('Undo', `Applied local undo: index ${prev.historyIndex} -> ${newIndex}`, {
         linesCount: snapshot.lines.length,
         imagesCount: snapshot.images.length
       });
@@ -132,18 +125,11 @@ export const useHistoryState = (
         historyIndex: newIndex
       };
     });
-  }, [setState, validateSelection, updateSelectionState, sendOperation]);
+  }, [setState, validateSelection, updateSelectionState]);
 
-  const redo = useCallback(() => {
-    if (sendOperation) {
-      // Only send the operation, do not update state locally
-      debugLog('Redo', 'Sending redo operation to sync');
-      const operation = serializeRedoOperation();
-      sendOperation(operation);
-      return; // IMPORTANT: Stop execution here
-    }
-
-    // This part now only runs for non-synced whiteboards
+  // Separate local redo function that only updates state
+  const performLocalRedo = useCallback(() => {
+    console.log("LOG: Performing local state update for REDO.");
     setState(prev => {
       if (prev.historyIndex >= prev.history.length - 1) return prev;
       
@@ -158,7 +144,7 @@ export const useHistoryState = (
         setTimeout(() => updateSelectionState(validatedSelectionState), 0);
       }
       
-      debugLog('Redo', `Applied redo: index ${prev.historyIndex} -> ${newIndex}`, {
+      debugLog('Redo', `Applied local redo: index ${prev.historyIndex} -> ${newIndex}`, {
         linesCount: snapshot.lines.length,
         imagesCount: snapshot.images.length
       });
@@ -171,7 +157,36 @@ export const useHistoryState = (
         historyIndex: newIndex
       };
     });
-  }, [setState, validateSelection, updateSelectionState, sendOperation]);
+  }, [setState, validateSelection, updateSelectionState]);
+
+  // Public undo function that either sends to network or performs locally
+  const undo = useCallback(() => {
+    if (sendOperation) {
+      // Only send the operation, do not update state locally
+      debugLog('Undo', 'Sending undo operation to sync');
+      console.log("LOG: Sync is ON. Sending undo operation to network instead of applying locally.");
+      const operation = serializeUndoOperation();
+      sendOperation(operation);
+      return; // IMPORTANT: Stop execution here
+    }
+
+    // This part now only runs for non-synced whiteboards
+    performLocalUndo();
+  }, [sendOperation, performLocalUndo]);
+
+  // Public redo function that either sends to network or performs locally
+  const redo = useCallback(() => {
+    if (sendOperation) {
+      // Only send the operation, do not update state locally
+      debugLog('Redo', 'Sending redo operation to sync');
+      const operation = serializeRedoOperation();
+      sendOperation(operation);
+      return; // IMPORTANT: Stop execution here
+    }
+
+    // This part now only runs for non-synced whiteboards
+    performLocalRedo();
+  }, [sendOperation, performLocalRedo]);
 
   const canUndo = state.historyIndex > 0;
   const canRedo = state.historyIndex < state.history.length - 1;
@@ -182,6 +197,8 @@ export const useHistoryState = (
     redo,
     canUndo,
     canRedo,
-    getLastActivity
+    getLastActivity,
+    performLocalUndo,
+    performLocalRedo
   };
 };
