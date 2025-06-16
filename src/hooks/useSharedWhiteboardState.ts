@@ -68,19 +68,18 @@ export const useSharedWhiteboardState = (syncConfig?: SyncConfig, whiteboardId?:
   // Enhanced centering function that uses viewport dimensions
   const centerOnLastActivity = useCallback((bounds: { x: number; y: number; width: number; height: number }) => {
     if (!panZoom.centerOnBounds || !containerWidth || !containerHeight) {
-      console.log('[SharedWhiteboardState] Cannot center - missing centerOnBounds or dimensions');
+      debugLog('Center', 'Cannot center - missing centerOnBounds or dimensions');
       return;
     }
     
-    console.log('[SharedWhiteboardState] Centering on bounds:', bounds);
-    console.log('[SharedWhiteboardState] Container dimensions:', { containerWidth, containerHeight });
+    debugLog('Center', 'Centering on bounds:', bounds);
+    debugLog('Center', 'Container dimensions:', { containerWidth, containerHeight });
     
     panZoom.centerOnBounds(bounds, containerWidth, containerHeight);
   }, [panZoom, containerWidth, containerHeight]);
 
   // Debug log to verify getLastActivity is working after persistence integration
   const currentActivity = operations.getLastActivity?.();
-  console.log('[SharedWhiteboardState] Current last activity:', currentActivity);
   
   debugLog('Hook', 'useSharedWhiteboardState initialized', {
     isReadOnly,

@@ -4,6 +4,9 @@ import Whiteboard from '../Whiteboard';
 import { SyncWhiteboard } from '../SyncWhiteboard';
 import { SyncConfig } from '@/types/sync';
 import { ActivityMetadata } from '@/types/whiteboard';
+import { createDebugLogger } from '@/utils/debug/debugConfig';
+
+const debugLog = createDebugLogger('state');
 
 interface WhiteboardContentProps {
   whiteboardWidth: number;
@@ -71,7 +74,7 @@ const WhiteboardContent: React.FC<WhiteboardContentProps> = ({
   // Enhanced sync state change handler with error handling
   const handleSyncStateChange = useCallback((syncState: { isConnected: boolean; isReceiveOnly: boolean } | null) => {
     try {
-      console.log('[WhiteboardContent] Sync state changed:', syncState);
+      debugLog('SyncState', 'Sync state changed', syncState);
       onSyncStateChange?.(syncState);
     } catch (error) {
       console.error('[WhiteboardContent] Error handling sync state change:', error);
@@ -86,7 +89,7 @@ const WhiteboardContent: React.FC<WhiteboardContentProps> = ({
         return;
       }
       
-      console.log('[WhiteboardContent] Activity update for whiteboard:', id, activity);
+      debugLog('ActivityUpdate', `Activity update for whiteboard: ${id}`, activity);
       onLastActivityUpdate?.(activity);
     } catch (error) {
       console.error('[WhiteboardContent] Error handling activity update:', error);
@@ -101,7 +104,7 @@ const WhiteboardContent: React.FC<WhiteboardContentProps> = ({
         return;
       }
 
-      console.log('[WhiteboardContent] Center callback updated for whiteboard:', id);
+      debugLog('CenterCallback', `Center callback updated for whiteboard: ${id}`);
       onCenterCallbackUpdate?.(callback);
     } catch (error) {
       console.error('[WhiteboardContent] Error handling center callback update:', error);

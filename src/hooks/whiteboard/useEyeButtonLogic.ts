@@ -1,6 +1,9 @@
 
 import { useState, useCallback } from 'react';
 import { ActivityMetadata } from '@/types/whiteboard';
+import { createDebugLogger } from '@/utils/debug/debugConfig';
+
+const debugLog = createDebugLogger('state');
 
 // Constants for configuration
 const ACTIVITY_TIMEOUT_MS = 30000; // 30 seconds
@@ -24,7 +27,7 @@ export const useEyeButtonLogic = (id: string) => {
 
   // Enhanced eye button click handler with proper error handling
   const handleEyeClick = useCallback(() => {
-    console.log('[EyeButton] Eye button clicked for whiteboard:', id);
+    debugLog('EyeButton', `Eye button clicked for whiteboard: ${id}`);
     
     if (!state.lastActivity) {
       console.warn('[EyeButton] No last activity available');
@@ -51,7 +54,7 @@ export const useEyeButtonLogic = (id: string) => {
 
   // Stable callback to receive last activity updates
   const handleLastActivityUpdate = useCallback((activity: ActivityMetadata | null) => {
-    console.log('[EyeButton] Received activity update for whiteboard:', id, activity);
+    debugLog('EyeButton', `Received activity update for whiteboard: ${id}`, activity);
     
     setState(prev => ({
       ...prev,
@@ -61,7 +64,7 @@ export const useEyeButtonLogic = (id: string) => {
 
   // Stable callback to receive the center function
   const handleCenterCallbackUpdate = useCallback((callback: (bounds: any) => void) => {
-    console.log('[EyeButton] Received center callback for whiteboard:', id);
+    debugLog('EyeButton', `Received center callback for whiteboard: ${id}`);
     
     setState(prev => ({
       ...prev,
