@@ -1,3 +1,4 @@
+
 import { useCallback, useRef } from 'react';
 import { WhiteboardOperation } from '@/types/sync';
 import { ActivityMetadata } from '@/types/whiteboard';
@@ -161,14 +162,28 @@ export const useRemoteOperationHandler = (
         console.log('[RemoteOperationHandler] Created activity metadata from remote operation:', activityMetadata);
       }
       
-      // Return the updated state without manipulating history
-      // The history management should be handled by the normal flow
-      // Only update the current state to reflect the remote operation
+      // Create new history snapshot with activity metadata
+      const newHistorySnapshot = {
+        lines: [...updatedState.lines],
+        images: [...updatedState.images],
+        selectionState: prev.selectionState,
+        lastActivity: activityMetadata
+      };
+      
+      // Fix the history management logic
+      // Append the new state to history correctly, maintaining proper sequence
+      const newHistory = [...prev.history.slice(0, prev.historyIndex + 1), newHistorySnapshot];
+      const newHistoryIndex = newHistory.length - 1;
+      
+      console.log(`[RemoteOperationHandler] History updated - Index: ${prev.historyIndex} -> ${Math.min(newHistoryIndex, 9)}, Length: ${prev.history.length} -> ${newHistory.slice(-10).length}`);
+      
       return {
         ...prev,
         lines: [...updatedState.lines],
         images: [...updatedState.images],
-        // Don't manipulate history here - let the normal history system handle it
+        // Correct history management: append new state and advance index
+        history: newHistory.slice(-10), // Keep history limited to the last 10 entries
+        historyIndex: Math.min(newHistoryIndex, 9) // Ensure index doesn't exceed array bounds
       };
     });
     
