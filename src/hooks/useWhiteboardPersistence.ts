@@ -1,8 +1,8 @@
-
 import { useEffect, useState, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { LineObject, ImageObject } from '@/types/whiteboard';
+import { LineObject, ImageObject, ActivityMetadata } from '@/types/whiteboard';
 import { WhiteboardOperation, OperationType } from '@/types/sync';
+import { calculateLineBounds } from './shared/drawing/useDrawingBounds';
 
 interface WhiteboardPersistenceProps {
   whiteboardId: string;
@@ -14,7 +14,154 @@ interface WhiteboardPersistenceResult {
   error: Error | null;
   lines: LineObject[];
   images: ImageObject[];
+  lastActivity: ActivityMetadata | null;
 }
+
+// Helper function to calculate image bounds
+const calculateImageBounds = (image: ImageObject) => {
+  const width = image.width || 100;
+  const height = image.height || 100;
+  
+  return {
+    x: image.x,
+    y: image.y,
+    width,
+    height
+  };
+};
+
+// Helper function to reconstruct activity metadata from the last operation
+const reconstructActivityFromOperation = (
+  operation: any,
+  finalLines: LineObject[],
+  finalImages: ImageObject[]
+): ActivityMetadata | null => {
+  const operationType = operation.action_type as OperationType;
+  const operationData = operation.object_data as any;
+  const timestamp = new Date(operation.created_at).getTime();
+
+  console.log(`[ActivityReconstruction] Processing operation: ${operationType}`, operationData);
+
+  switch (operationType) {
+    case 'draw': {
+      const line = operationData.line as LineObject;
+      if (line && line.id) {
+        // Find the line in the final state to get its current bounds
+        const currentLine = finalLines.find(l => l.id === line.id);
+        if (currentLine) {
+          const bounds = calculateLineBounds(currentLine);
+          console.log(`[ActivityReconstruction] Draw activity bounds:`, bounds);
+          return {
+            type: 'draw',
+            bounds,
+            timestamp
+          };
+        }
+      }
+      break;
+    }
+    
+    case 'add_image': {
+      const image = operationData.image as ImageObject;
+      if (image && image.id) {
+        // Find the image in the final state
+        const currentImage = finalImages.find(img => img.id === image.id);
+        if (currentImage) {
+          const bounds = calculateImageBounds(currentImage);
+          console.log(`[ActivityReconstruction] Paste activity bounds:`, bounds);
+          return {
+            type: 'paste',
+            bounds,
+            timestamp
+          };
+        }
+      }
+      break;
+    }
+    
+    case 'update_line': {
+      const lineId = operationData.line_id as string;
+      if (lineId) {
+        const currentLine = finalLines.find(l => l.id === lineId);
+        if (currentLine) {
+          const bounds = calculateLineBounds(currentLine);
+          console.log(`[ActivityReconstruction] Move activity bounds (line):`, bounds);
+          return {
+            type: 'move',
+            bounds,
+            timestamp
+          };
+        }
+      }
+      break;
+    }
+    
+    case 'update_image': {
+      const imageId = operationData.image_id as string;
+      if (imageId) {
+        const currentImage = finalImages.find(img => img.id === imageId);
+        if (currentImage) {
+          const bounds = calculateImageBounds(currentImage);
+          console.log(`[ActivityReconstruction] Move activity bounds (image):`, bounds);
+          return {
+            type: 'move',
+            bounds,
+            timestamp
+          };
+        }
+      }
+      break;
+    }
+    
+    case 'erase': {
+      // For erase operations, we can use stored bounds if available
+      const lineIds = (operationData.line_ids || operationData.lineIds) as string[];
+      if (lineIds && lineIds.length > 0) {
+        // If bounds were stored in the operation data, use them
+        if (operationData.bounds) {
+          console.log(`[ActivityReconstruction] Erase activity bounds (stored):`, operationData.bounds);
+          return {
+            type: 'erase',
+            bounds: operationData.bounds,
+            timestamp
+          };
+        }
+        
+        // Otherwise, create a default bounds (this is a fallback)
+        console.log(`[ActivityReconstruction] Erase activity - using default bounds`);
+        return {
+          type: 'erase',
+          bounds: { x: 0, y: 0, width: 100, height: 100 },
+          timestamp
+        };
+      }
+      break;
+    }
+    
+    case 'delete_objects': {
+      // Similar to erase, use stored bounds if available
+      if (operationData.bounds) {
+        console.log(`[ActivityReconstruction] Delete activity bounds (stored):`, operationData.bounds);
+        return {
+          type: 'erase',
+          bounds: operationData.bounds,
+          timestamp
+        };
+      }
+      
+      // Fallback for delete operations
+      console.log(`[ActivityReconstruction] Delete activity - using default bounds`);
+      return {
+        type: 'erase',
+        bounds: { x: 0, y: 0, width: 100, height: 100 },
+        timestamp
+      };
+    }
+  }
+
+  console.log(`[ActivityReconstruction] Could not reconstruct activity for operation: ${operationType}`);
+  return null;
+};
 
 export const useWhiteboardPersistence = ({
   whiteboardId,
@@ -24,6 +171,7 @@ export const useWhiteboardPersistence = ({
   const [error, setError] = useState<Error | null>(null);
   const [lines, setLines] = useState<LineObject[]>([]);
   const [images, setImages] = useState<ImageObject[]>([]);
+  const [lastActivity, setLastActivity] = useState<ActivityMetadata | null>(null);
 
   const fetchWhiteboardData = useCallback(async () => {
     try {
@@ -147,8 +295,25 @@ export const useWhiteboardPersistence = ({
       console.log(`[Persistence] Final state after processing: ${finalLines.length} lines and ${finalImages.length} images`);
       console.log(`[Persistence] Excluded ${deletedLineIds.size} deleted lines and ${deletedImageIds.size} deleted images`);
 
+      // NEW: Reconstruct last activity from the most recent operation
+      let reconstructedActivity: ActivityMetadata | null = null;
+      if (data && data.length > 0) {
+        // Get the last operation (most recent)
+        const lastOperation = data[data.length - 1];
+        console.log(`[Persistence] Attempting to reconstruct activity from last operation:`, lastOperation);
+        
+        reconstructedActivity = reconstructActivityFromOperation(lastOperation, finalLines, finalImages);
+        
+        if (reconstructedActivity) {
+          console.log(`[Persistence] Successfully reconstructed last activity:`, reconstructedActivity);
+        } else {
+          console.log(`[Persistence] Could not reconstruct activity from last operation`);
+        }
+      }
+
       setLines(finalLines);
       setImages(finalImages);
+      setLastActivity(reconstructedActivity);
     } catch (err) {
       console.error('Error in fetchWhiteboardData:', err);
       setError(err instanceof Error ? err : new Error(String(err)));
@@ -168,6 +333,7 @@ export const useWhiteboardPersistence = ({
     isLoading,
     error,
     lines,
-    images
+    images,
+    lastActivity
   };
 };

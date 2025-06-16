@@ -61,6 +61,76 @@ export const serializeDeleteObjectsOperation = (lineIds: string[], imageIds: str
   }
 });
 
+// Helper function to calculate bounds for various object types
+export const calculateObjectBounds = (obj: LineObject | ImageObject, type: 'line' | 'image') => {
+  if (type === 'image') {
+    const image = obj as ImageObject;
+    return {
+      x: image.x,
+      y: image.y,
+      width: image.width || 100,
+      height: image.height || 100
+    };
+  } else {
+    const line = obj as LineObject;
+    if (!line.points || line.points.length < 2) {
+      return { x: line.x || 0, y: line.y || 0, width: 1, height: 1 };
+    }
+
+    let minX = Infinity;
+    let minY = Infinity;
+    let maxX = -Infinity;
+    let maxY = -Infinity;
+
+    // Process points in pairs (x, y)
+    for (let i = 0; i < line.points.length; i += 2) {
+      const localX = line.points[i];
+      const localY = line.points[i + 1];
+      
+      // Apply transformations if they exist
+      const scaleX = line.scaleX || 1;
+      const scaleY = line.scaleY || 1;
+      const rotation = line.rotation || 0;
+      
+      // Apply scale
+      let transformedX = localX * scaleX;
+      let transformedY = localY * scaleY;
+      
+      // Apply rotation if present
+      if (rotation !== 0) {
+        const rad = (rotation * Math.PI) / 180;
+        const cos = Math.cos(rad);
+        const sin = Math.sin(rad);
+        
+        const rotatedX = transformedX * cos - transformedY * sin;
+        const rotatedY = transformedX * sin + transformedY * cos;
+        
+        transformedX = rotatedX;
+        transformedY = rotatedY;
+      }
+      
+      // Apply translation
+      const finalX = transformedX + (line.x || 0);
+      const finalY = transformedY + (line.y || 0);
+      
+      minX = Math.min(minX, finalX);
+      minY = Math.min(minY, finalY);
+      maxX = Math.max(maxX, finalX);
+      maxY = Math.max(maxY, finalY);
+    }
+
+    // Add some padding based on stroke width
+    const padding = (line.strokeWidth || 1) / 2;
+    
+    return {
+      x: minX - padding,
+      y: minY - padding,
+      width: (maxX - minX) + (padding * 2),
+      height: (maxY - minY) + (padding * 2)
+    };
+  }
+};
+
 export const applyOperation = (
   state: { lines: LineObject[]; images: ImageObject[] },
   operation: WhiteboardOperation
