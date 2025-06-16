@@ -1,5 +1,5 @@
 
-import React, { useEffect, useCallback } from 'react';
+import React, { useEffect, useCallback, useRef } from 'react';
 import WhiteboardCanvas from './WhiteboardCanvas';
 import MovableToolbar from './MovableToolbar';
 import { useSharedWhiteboardState } from '@/hooks/useSharedWhiteboardState';
@@ -25,52 +25,54 @@ export const SyncWhiteboard: React.FC<SyncWhiteboardProps> = ({
   onLastActivityUpdate,
   onCenterCallbackUpdate
 }) => {
-  // Use the whiteboard ID from sync config to maintain shared state
   const whiteboardId = syncConfig?.whiteboardId;
   const whiteboardState = useSharedWhiteboardState(syncConfig, whiteboardId, width, height);
   const isReadOnly = whiteboardState.isReadOnly;
-
+  
   // Memoized stroke width handler
   const handleStrokeWidthChange = useCallback((strokeWidth: number) => {
     whiteboardState.setStrokeWidth(strokeWidth);
   }, [whiteboardState.setStrokeWidth]);
 
+  // Extract lastActivity and centerOnLastActivity for stable dependencies
+  const { getLastActivity, centerOnLastActivity, syncState } = whiteboardState;
+  const lastActivity = getLastActivity?.();
+  const prevReportedTimestampRef = useRef<number | null>(null);
+
   // Consolidated effect for all parent callbacks
   useEffect(() => {
     // Handle sync state changes
     if (onSyncStateChange) {
-      const syncState = syncConfig ? {
-        isConnected: whiteboardState.syncState?.isConnected || false,
-        isReceiveOnly: whiteboardState.syncState?.isReceiveOnly || false
+      const newSyncState = syncConfig ? {
+        isConnected: syncState?.isConnected || false,
+        isReceiveOnly: syncState?.isReceiveOnly || false
       } : null;
-      onSyncStateChange(syncState);
+      onSyncStateChange(newSyncState);
     }
 
-    // Handle last activity updates
-    if (onLastActivityUpdate && whiteboardState.getLastActivity) {
-      const lastActivity = whiteboardState.getLastActivity();
-      if (lastActivity) {
-        console.log('[SyncWhiteboard] Reporting last activity:', lastActivity);
+    // Handle last activity updates - only update if it's new
+    if (onLastActivityUpdate && lastActivity) {
+      if (lastActivity.timestamp !== prevReportedTimestampRef.current) {
+        console.log('[SyncWhiteboard] Reporting NEW last activity:', lastActivity);
         onLastActivityUpdate(lastActivity);
+        prevReportedTimestampRef.current = lastActivity.timestamp;
       }
     }
 
     // Handle center callback updates
-    if (onCenterCallbackUpdate && whiteboardState.centerOnLastActivity) {
-      console.log('[SyncWhiteboard] Providing center callback to parent');
-      onCenterCallbackUpdate(whiteboardState.centerOnLastActivity);
+    if (onCenterCallbackUpdate && centerOnLastActivity) {
+      // The callback is stable from the hook, no need for noisy logging
+      onCenterCallbackUpdate(centerOnLastActivity);
     }
   }, [
-    whiteboardState.syncState?.isConnected,
-    whiteboardState.syncState?.isReceiveOnly,
-    whiteboardState.state.history,
-    whiteboardState.state.historyIndex,
-    whiteboardState.centerOnLastActivity,
-    syncConfig,
-    onSyncStateChange,
-    onLastActivityUpdate,
-    onCenterCallbackUpdate,
-    whiteboardState.getLastActivity
+    syncState?.isConnected, 
+    syncState?.isReceiveOnly, 
+    lastActivity, 
+    centerOnLastActivity, 
+    onSyncStateChange, 
+    onLastActivityUpdate, 
+    onCenterCallbackUpdate, 
+    syncConfig
   ]);
 
   // Development logging for normalized state
