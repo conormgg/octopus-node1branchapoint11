@@ -83,9 +83,9 @@ const WhiteboardPlaceholder: React.FC<WhiteboardPlaceholderProps> = ({
   // Check if this whiteboard should show the eye button (teacher-main or student-shared-teacher)
   const shouldShowEyeButton = id === "teacher-main" || id === "student-shared-teacher";
 
-  // Eye button click handler (disabled for now in Phase 1)
+  // Eye button click handler
   const handleEyeClick = () => {
-    console.log('Eye button clicked - Phase 1: Button placement established');
+    console.log('Eye button clicked - Phase 2: Activity tracking implemented');
     // TODO: Implement centering logic in later phases
   };
 
@@ -134,6 +134,10 @@ const WhiteboardPlaceholder: React.FC<WhiteboardPlaceholderProps> = ({
   const whiteboardWidth = isMaximized ? (window.innerWidth - 32) : (dimensions.width || initialWidth || 800);
   const whiteboardHeight = isMaximized ? (window.innerHeight - 32) : (dimensions.height || initialHeight || 600);
 
+  // For now, we'll use a simple check for last activity (Phase 2 implementation)
+  // This will be enhanced in later phases with actual activity data
+  const hasLastActivity = false; // TODO: Get from actual whiteboard state in next phases
+
   // Render the maximized view in a portal to escape parent constraints
   if (isMaximized) {
     return (
@@ -151,6 +155,7 @@ const WhiteboardPlaceholder: React.FC<WhiteboardPlaceholderProps> = ({
         whiteboardHeight={whiteboardHeight}
         syncConfig={syncConfig}
         portalContainer={portalContainer}
+        hasLastActivity={hasLastActivity}
       />
     );
   }
@@ -170,6 +175,7 @@ const WhiteboardPlaceholder: React.FC<WhiteboardPlaceholderProps> = ({
         shouldShowEyeButton={shouldShowEyeButton}
         onMaximizeClick={handleMaximizeClick}
         onEyeClick={handleEyeClick}
+        hasLastActivity={hasLastActivity}
       />
       <SessionStatus
         sessionId={sessionId}

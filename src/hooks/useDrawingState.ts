@@ -30,7 +30,7 @@ const debugLog = (context: string, action: string, data?: any) => {
  * 
  * @param state - Current whiteboard state subset
  * @param setState - State update function
- * @param addToHistory - Function to save state to history
+ * @param addToHistory - Function to save state to history (optional, can be no-op)
  * 
  * @returns {Object} Drawing operations
  * @returns {Function} startDrawing - Begin new drawing stroke
@@ -42,7 +42,7 @@ const debugLog = (context: string, action: string, data?: any) => {
  * - Uses unique line IDs with timestamp + counter for collision avoidance
  * - Only operates on pencil/highlighter tools
  * - Manages isDrawing flag to prevent overlapping operations
- * - Automatically saves to history when drawing completes
+ * - Automatically saves to history when drawing completes (if addToHistory provided)
  */
 export const useDrawingState = (
   state: {
@@ -139,7 +139,7 @@ export const useDrawingState = (
    * @function stopDrawing
    * @description Finalizes the current drawing stroke
    * 
-   * @ai-context Sets isDrawing to false and triggers history save.
+   * @ai-context Sets isDrawing to false and triggers history save if provided.
    * The history save is delayed to ensure state update completes first.
    */
   const stopDrawing = useCallback(() => {
@@ -155,11 +155,13 @@ export const useDrawingState = (
       isDrawing: false
     }));
 
-    // Add to history after drawing is complete
-    setTimeout(() => {
-      addToHistory();
-      debugLog('Stop', 'Drawing stroke finalized and saved to history');
-    }, 0);
+    // Add to history after drawing is complete (if function provided)
+    if (addToHistory) {
+      setTimeout(() => {
+        addToHistory();
+        debugLog('Stop', 'Drawing stroke finalized and saved to history');
+      }, 0);
+    }
   }, [state.isDrawing, setState, addToHistory]);
 
   return {

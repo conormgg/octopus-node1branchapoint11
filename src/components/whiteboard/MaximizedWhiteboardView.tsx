@@ -20,6 +20,7 @@ interface MaximizedWhiteboardViewProps {
   whiteboardHeight: number;
   syncConfig?: SyncConfig;
   portalContainer?: Element | null;
+  hasLastActivity?: boolean;
 }
 
 const MaximizedWhiteboardView: React.FC<MaximizedWhiteboardViewProps> = ({
@@ -35,7 +36,8 @@ const MaximizedWhiteboardView: React.FC<MaximizedWhiteboardViewProps> = ({
   whiteboardWidth,
   whiteboardHeight,
   syncConfig,
-  portalContainer
+  portalContainer,
+  hasLastActivity = false
 }) => {
   const handleMaximizeClick = () => {
     if (onMinimize) {
@@ -59,6 +61,7 @@ const MaximizedWhiteboardView: React.FC<MaximizedWhiteboardViewProps> = ({
             shouldShowEyeButton={shouldShowEyeButton}
             onMaximizeClick={handleMaximizeClick}
             onEyeClick={onEyeClick}
+            hasLastActivity={hasLastActivity}
           />
           <SessionStatus
             sessionId={sessionId}

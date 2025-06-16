@@ -1,3 +1,4 @@
+
 import { useCallback, useRef } from 'react';
 import { LineObject, Tool } from '@/types/whiteboard';
 
@@ -117,7 +118,10 @@ export const useEraserState = (
   const startErasing = useCallback((x: number, y: number) => {
     if (state.currentTool !== 'eraser') return;
     
-    addToHistory(state.lines); // Save state before erasing starts
+    // Only call addToHistory if it's a real function, not a no-op
+    if (addToHistory && addToHistory.toString() !== '() => {}') {
+      addToHistory(state.lines); // Save state before erasing starts
+    }
     
     // Reset the set of erased strokes for this erasing session
     erasedLinesRef.current = new Set<string>();
