@@ -1,11 +1,11 @@
 
 import React, { useState, useEffect } from 'react';
-import ReactDOM from 'react-dom';
-import { Maximize2, Minimize2, AlertCircle, Eye } from 'lucide-react';
-import Whiteboard from './Whiteboard';
-import { SyncWhiteboard } from './SyncWhiteboard';
 import { SyncConfig } from '@/types/sync';
 import { useSessionExpirationContext } from '@/contexts/sessionExpiration';
+import TopRightButtons from './whiteboard/TopRightButtons';
+import SessionStatus from './whiteboard/SessionStatus';
+import WhiteboardContent from './whiteboard/WhiteboardContent';
+import MaximizedWhiteboardView from './whiteboard/MaximizedWhiteboardView';
 
 interface WhiteboardPlaceholderProps {
   id: string;
@@ -134,105 +134,24 @@ const WhiteboardPlaceholder: React.FC<WhiteboardPlaceholderProps> = ({
   const whiteboardWidth = isMaximized ? (window.innerWidth - 32) : (dimensions.width || initialWidth || 800);
   const whiteboardHeight = isMaximized ? (window.innerHeight - 32) : (dimensions.height || initialHeight || 600);
 
-  // Create the whiteboard content that will be reused
-  const whiteboardContent = (
-    <div 
-      className="absolute inset-0 bg-gray-25 overflow-hidden rounded-lg"
-      style={{
-        // Account for the maximize button and any padding
-        top: '2px',
-        left: '2px',
-        right: '2px',
-        bottom: '2px'
-      }}
-    >
-      {whiteboardWidth > 0 && whiteboardHeight > 0 ? (
-        syncConfig ? (
-          <SyncWhiteboard 
-            key={`sync-${id}`} // Stable key to prevent remounting
-            syncConfig={syncConfig}
-            width={whiteboardWidth}
-            height={whiteboardHeight}
-            portalContainer={portalContainer}
-          />
-        ) : (
-          <Whiteboard isReadOnly={false} />
-        )
-      ) : (
-        <div className="flex items-center justify-center h-full text-gray-500">Loading whiteboard...</div>
-      )}
-    </div>
-  );
-
-  // Common UI elements
-  const topRightButtons = (
-    <div className="absolute top-3 right-3 z-10 flex gap-2">
-      {/* Eye button - only show for teacher-main and student-shared-teacher */}
-      {shouldShowEyeButton && (
-        <button
-          onClick={handleEyeClick}
-          className="p-2 rounded-lg bg-white/90 hover:bg-white border border-gray-200 shadow-sm transition-all duration-150 opacity-50 cursor-not-allowed"
-          title="Center on last activity (Coming soon)"
-          disabled
-        >
-          <Eye size={16} className="text-gray-600" />
-        </button>
-      )}
-      
-      {/* Maximize/Minimize button */}
-      <button
-        onClick={handleMaximizeClick}
-        className="p-2 rounded-lg bg-white/90 hover:bg-white border border-gray-200 shadow-sm transition-all duration-150"
-        title={isMaximized ? "Minimize (Press Esc)" : "Maximize"}
-      >
-        {isMaximized ? (
-          <Minimize2 size={16} className="text-gray-600" />
-        ) : (
-          <Maximize2 size={16} className="text-gray-600" />
-        )}
-      </button>
-    </div>
-  );
-
-  const sessionStatus = sessionId && expiresAt && !isExpired && (
-    <div className="absolute top-3 left-3 z-10 p-2 rounded-lg bg-white/90 hover:bg-white border border-gray-200 shadow-sm transition-all duration-150 flex items-center space-x-2">
-      <div className="w-2 h-2 rounded-full bg-green-500"></div>
-      <span className="text-xs text-gray-600">
-        Session active until {expiresAt.toLocaleTimeString()}
-      </span>
-    </div>
-  );
-
-  const sessionWarning = sessionId && isExpired && !isRedirecting && (
-    <div className="absolute top-3 left-3 z-10 p-2 rounded-lg bg-red-50 border border-red-200 shadow-sm transition-all duration-150 flex items-center space-x-2">
-      <AlertCircle size={14} className="text-red-500" />
-      <span className="text-xs text-red-600">
-        {sessionEndReason === 'ended_by_teacher' ? 'Session ended' : 'Session expired'}
-      </span>
-    </div>
-  );
-
   // Render the maximized view in a portal to escape parent constraints
   if (isMaximized) {
-    return ReactDOM.createPortal(
-      <>
-        {/* Backdrop overlay */}
-        <div 
-          className="fixed inset-0 bg-black/50 z-[9998]" 
-          onClick={onMinimize} 
-        />
-        
-        {/* Maximized whiteboard */}
-        <div className="fixed inset-0 z-[9999] p-4">
-          <div className="w-full h-full flex flex-col bg-white border-2 border-gray-200 rounded-lg shadow-2xl">
-            {topRightButtons}
-            {sessionStatus}
-            {sessionWarning}
-            {whiteboardContent}
-          </div>
-        </div>
-      </>,
-      portalContainer || document.body
+    return (
+      <MaximizedWhiteboardView
+        id={id}
+        shouldShowEyeButton={shouldShowEyeButton}
+        onMinimize={onMinimize}
+        onEyeClick={handleEyeClick}
+        sessionId={sessionId}
+        expiresAt={expiresAt}
+        isExpired={isExpired}
+        sessionEndReason={sessionEndReason}
+        isRedirecting={isRedirecting}
+        whiteboardWidth={whiteboardWidth}
+        whiteboardHeight={whiteboardHeight}
+        syncConfig={syncConfig}
+        portalContainer={portalContainer}
+      />
     );
   }
 
@@ -246,10 +165,26 @@ const WhiteboardPlaceholder: React.FC<WhiteboardPlaceholderProps> = ({
         height: initialHeight ? `${initialHeight}px` : '100%'
       }}
     >
-      {topRightButtons}
-      {sessionStatus}
-      {sessionWarning}
-      {whiteboardContent}
+      <TopRightButtons
+        isMaximized={isMaximized}
+        shouldShowEyeButton={shouldShowEyeButton}
+        onMaximizeClick={handleMaximizeClick}
+        onEyeClick={handleEyeClick}
+      />
+      <SessionStatus
+        sessionId={sessionId}
+        expiresAt={expiresAt}
+        isExpired={isExpired}
+        sessionEndReason={sessionEndReason}
+        isRedirecting={isRedirecting}
+      />
+      <WhiteboardContent
+        whiteboardWidth={whiteboardWidth}
+        whiteboardHeight={whiteboardHeight}
+        syncConfig={syncConfig}
+        id={id}
+        portalContainer={portalContainer}
+      />
     </div>
   );
 };
