@@ -1,6 +1,5 @@
-
 import { useCallback } from 'react';
-import { LineObject, ImageObject, HistorySnapshot, SelectionState } from '@/types/whiteboard';
+import { LineObject, ImageObject, HistorySnapshot, SelectionState, ActivityMetadata } from '@/types/whiteboard';
 
 export const useHistoryState = (
   state: {
@@ -13,7 +12,7 @@ export const useHistoryState = (
   setState: (updater: (prev: any) => any) => void,
   updateSelectionState?: (selectionState: SelectionState) => void
 ) => {
-  const addToHistory = useCallback((snapshot: HistorySnapshot) => {
+  const addToHistory = useCallback((snapshot: HistorySnapshot, activityMetadata?: ActivityMetadata) => {
     setState(prev => {
       // If we're not at the end of the history, truncate it
       const newHistory = prev.historyIndex < prev.history.length - 1
@@ -29,7 +28,8 @@ export const useHistoryState = (
             ...snapshot.selectionState,
             selectedObjects: [...snapshot.selectionState.selectedObjects],
             transformationData: { ...snapshot.selectionState.transformationData }
-          }
+          },
+          lastActivity: activityMetadata
         }],
         historyIndex: newHistory.length
       };

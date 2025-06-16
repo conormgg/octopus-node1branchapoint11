@@ -1,6 +1,7 @@
+
 import React, { useState, useEffect } from 'react';
 import ReactDOM from 'react-dom';
-import { Maximize2, Minimize2, AlertCircle } from 'lucide-react';
+import { Maximize2, Minimize2, AlertCircle, Eye } from 'lucide-react';
 import Whiteboard from './Whiteboard';
 import { SyncWhiteboard } from './SyncWhiteboard';
 import { SyncConfig } from '@/types/sync';
@@ -79,6 +80,15 @@ const WhiteboardPlaceholder: React.FC<WhiteboardPlaceholderProps> = ({
     }
   };
 
+  // Check if this whiteboard should show the eye button (teacher-main or student-shared-teacher)
+  const shouldShowEyeButton = id === "teacher-main" || id === "student-shared-teacher";
+
+  // Eye button click handler (disabled for now in Phase 1)
+  const handleEyeClick = () => {
+    console.log('Eye button clicked - Phase 1: Button placement established');
+    // TODO: Implement centering logic in later phases
+  };
+
   // Memoize sync config to prevent recreating it on every render
   const syncConfig = React.useMemo(() => {
     if (!sessionId) return undefined;
@@ -155,18 +165,33 @@ const WhiteboardPlaceholder: React.FC<WhiteboardPlaceholderProps> = ({
   );
 
   // Common UI elements
-  const maximizeButton = (
-    <button
-      onClick={handleMaximizeClick}
-      className="absolute top-3 right-3 z-10 p-2 rounded-lg bg-white/90 hover:bg-white border border-gray-200 shadow-sm transition-all duration-150"
-      title={isMaximized ? "Minimize (Press Esc)" : "Maximize"}
-    >
-      {isMaximized ? (
-        <Minimize2 size={16} className="text-gray-600" />
-      ) : (
-        <Maximize2 size={16} className="text-gray-600" />
+  const topRightButtons = (
+    <div className="absolute top-3 right-3 z-10 flex gap-2">
+      {/* Eye button - only show for teacher-main and student-shared-teacher */}
+      {shouldShowEyeButton && (
+        <button
+          onClick={handleEyeClick}
+          className="p-2 rounded-lg bg-white/90 hover:bg-white border border-gray-200 shadow-sm transition-all duration-150 opacity-50 cursor-not-allowed"
+          title="Center on last activity (Coming soon)"
+          disabled
+        >
+          <Eye size={16} className="text-gray-600" />
+        </button>
       )}
-    </button>
+      
+      {/* Maximize/Minimize button */}
+      <button
+        onClick={handleMaximizeClick}
+        className="p-2 rounded-lg bg-white/90 hover:bg-white border border-gray-200 shadow-sm transition-all duration-150"
+        title={isMaximized ? "Minimize (Press Esc)" : "Maximize"}
+      >
+        {isMaximized ? (
+          <Minimize2 size={16} className="text-gray-600" />
+        ) : (
+          <Maximize2 size={16} className="text-gray-600" />
+        )}
+      </button>
+    </div>
   );
 
   const sessionStatus = sessionId && expiresAt && !isExpired && (
@@ -200,7 +225,7 @@ const WhiteboardPlaceholder: React.FC<WhiteboardPlaceholderProps> = ({
         {/* Maximized whiteboard */}
         <div className="fixed inset-0 z-[9999] p-4">
           <div className="w-full h-full flex flex-col bg-white border-2 border-gray-200 rounded-lg shadow-2xl">
-            {maximizeButton}
+            {topRightButtons}
             {sessionStatus}
             {sessionWarning}
             {whiteboardContent}
@@ -221,7 +246,7 @@ const WhiteboardPlaceholder: React.FC<WhiteboardPlaceholderProps> = ({
         height: initialHeight ? `${initialHeight}px` : '100%'
       }}
     >
-      {maximizeButton}
+      {topRightButtons}
       {sessionStatus}
       {sessionWarning}
       {whiteboardContent}

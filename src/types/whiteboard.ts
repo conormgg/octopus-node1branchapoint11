@@ -60,10 +60,17 @@ export interface SelectionState {
   transformationData: Record<string, TransformationData>;
 }
 
+export interface ActivityMetadata {
+  type: 'draw' | 'erase' | 'move' | 'paste';
+  bounds: { x: number; y: number; width: number; height: number };
+  timestamp: number;
+}
+
 export interface HistorySnapshot {
   lines: LineObject[];
   images: ImageObject[];
   selectionState: SelectionState;
+  lastActivity?: ActivityMetadata;
 }
 
 export interface ToolSettings {
