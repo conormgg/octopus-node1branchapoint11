@@ -1,11 +1,14 @@
 
-import React, { useState, useEffect, useCallback } from 'react';
-import { SyncConfig } from '@/types/sync';
+import React, { useState } from 'react';
 import { useSessionExpirationContext } from '@/contexts/sessionExpiration';
 import TopRightButtons from './whiteboard/TopRightButtons';
 import SessionStatus from './whiteboard/SessionStatus';
 import WhiteboardContent from './whiteboard/WhiteboardContent';
 import MaximizedWhiteboardView from './whiteboard/MaximizedWhiteboardView';
+import { useWhiteboardDimensions } from '@/hooks/whiteboard/useWhiteboardDimensions';
+import { useEscapeKeyHandler } from '@/hooks/whiteboard/useEscapeKeyHandler';
+import { useEyeButtonLogic } from '@/hooks/whiteboard/useEyeButtonLogic';
+import { useSyncConfiguration } from '@/hooks/whiteboard/useSyncConfiguration';
 
 interface WhiteboardPlaceholderProps {
   id: string;
@@ -32,48 +35,16 @@ const WhiteboardPlaceholder: React.FC<WhiteboardPlaceholderProps> = ({
   senderId,
   portalContainer
 }) => {
-  const [dimensions, setDimensions] = useState({ width: 0, height: 0 });
   const [syncState, setSyncState] = useState<{ isConnected: boolean; isReceiveOnly: boolean } | null>(null);
-  const [lastActivity, setLastActivity] = useState<any>(null);
-  const [centerOnActivityCallback, setCenterOnActivityCallback] = useState<((bounds: any) => void) | null>(null);
-  const containerRef = React.useRef<HTMLDivElement>(null);
   
   // Use centralized session expiration context
   const { isExpired, expiresAt, sessionEndReason, isRedirecting } = useSessionExpirationContext();
 
-  const updateDimensions = () => {
-    if (containerRef.current && !isMaximized) {
-      const { width, height } = containerRef.current.getBoundingClientRect();
-      // Account for border and padding - subtract 4px for 2px border on each side
-      const adjustedWidth = Math.max(0, width - 4);
-      const adjustedHeight = Math.max(0, height - 4);
-      setDimensions({ width: adjustedWidth, height: adjustedHeight });
-    }
-  };
-
-  useEffect(() => {
-    updateDimensions();
-    window.addEventListener('resize', updateDimensions);
-    return () => {
-      window.removeEventListener('resize', updateDimensions);
-    };
-  }, [isMaximized]);
-
-  // Add escape key listener when maximized
-  useEffect(() => {
-    if (!isMaximized) return;
-
-    const handleEscape = (e: KeyboardEvent) => {
-      if (e.key === 'Escape' && onMinimize) {
-        onMinimize();
-      }
-    };
-
-    document.addEventListener('keydown', handleEscape);
-    return () => {
-      document.removeEventListener('keydown', handleEscape);
-    };
-  }, [isMaximized, onMinimize]);
+  // Custom hooks for focused functionality
+  const { containerRef, whiteboardWidth, whiteboardHeight } = useWhiteboardDimensions(initialWidth, initialHeight, isMaximized);
+  useEscapeKeyHandler(isMaximized, onMinimize);
+  const { shouldShowEyeButton, handleEyeClick, handleLastActivityUpdate, handleCenterCallbackUpdate, hasLastActivity } = useEyeButtonLogic(id);
+  const syncConfig = useSyncConfiguration(id, sessionId, senderId);
 
   const handleMaximizeClick = () => {
     if (isMaximized && onMinimize) {
@@ -82,83 +53,6 @@ const WhiteboardPlaceholder: React.FC<WhiteboardPlaceholderProps> = ({
       onMaximize();
     }
   };
-
-  // Check if this whiteboard should show the eye button (teacher-main or student-shared-teacher)
-  const shouldShowEyeButton = id === "teacher-main" || id === "student-shared-teacher";
-
-  // Enhanced eye button click handler with actual centering logic
-  const handleEyeClick = () => {
-    console.log('[WhiteboardPlaceholder] Eye button clicked');
-    console.log('[WhiteboardPlaceholder] Last activity:', lastActivity);
-    
-    if (!lastActivity || !centerOnActivityCallback) {
-      console.log('[WhiteboardPlaceholder] No activity or callback available');
-      return;
-    }
-    
-    // Call the center function provided by the whiteboard content
-    centerOnActivityCallback(lastActivity.bounds);
-  };
-
-  // Stable callback to receive last activity updates from whiteboard content
-  const handleLastActivityUpdate = useCallback((activity: any) => {
-    console.log('[WhiteboardPlaceholder] Received last activity update:', activity);
-    setLastActivity(activity);
-  }, []);
-
-  // Stable callback to receive the center function from whiteboard content
-  const handleCenterCallbackUpdate = useCallback((callback: (bounds: any) => void) => {
-    console.log('[WhiteboardPlaceholder] Received center callback');
-    setCenterOnActivityCallback(() => callback);
-  }, []);
-
-  // Memoize sync config to prevent recreating it on every render
-  const syncConfig = React.useMemo(() => {
-    if (!sessionId) return undefined;
-
-    // Teacher's main board -> broadcasts to students
-    if (id === "teacher-main") {
-      if (!senderId) return undefined;
-      return {
-        whiteboardId: `session-${sessionId}-main`,
-        senderId: senderId,
-        sessionId: sessionId,
-        isReceiveOnly: false,
-      };
-    }
-    
-    // Student's view of teacher's board -> receives only
-    if (id === "student-shared-teacher") {
-      return {
-        whiteboardId: `session-${sessionId}-main`,
-        senderId: `student-listener-${sessionId}`,
-        sessionId: sessionId,
-        isReceiveOnly: true,
-      };
-    }
-
-    // Individual student boards
-    if (id.startsWith('student-board-')) {
-      const studentNumber = id.replace('student-board-', '');
-      if (!senderId) return undefined;
-      
-      return {
-        whiteboardId: `session-${sessionId}-student-${studentNumber}`,
-        senderId: senderId,
-        sessionId: sessionId,
-        isReceiveOnly: false,
-      };
-    }
-
-    return undefined;
-  }, [id, sessionId, senderId]);
-
-  // Calculate dimensions based on maximized state
-  const whiteboardWidth = isMaximized ? (window.innerWidth - 32) : (dimensions.width || initialWidth || 800);
-  const whiteboardHeight = isMaximized ? (window.innerHeight - 32) : (dimensions.height || initialHeight || 600);
-
-  // Check if we have recent activity (within the last 30 seconds for better UX)
-  const hasLastActivity = lastActivity && (Date.now() - lastActivity.timestamp < 30000);
 
   // Render the maximized view in a portal to escape parent constraints
   if (isMaximized) {
