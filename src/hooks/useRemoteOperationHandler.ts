@@ -1,3 +1,4 @@
+
 import { useCallback, useRef } from 'react';
 import { WhiteboardOperation } from '@/types/sync';
 import { ActivityMetadata } from '@/types/whiteboard';
@@ -5,9 +6,7 @@ import { applyOperation } from '@/utils/operationSerializer';
 import { calculateLineBounds } from './shared/drawing/useDrawingBounds';
 
 export const useRemoteOperationHandler = (
-  setState: (updater: (prev: any) => any) => void,
-  performLocalUndo?: () => void,
-  performLocalRedo?: () => void
+  setState: (updater: (prev: any) => any) => void
 ) => {
   const isApplyingRemoteOperation = useRef(false);
 
@@ -101,24 +100,6 @@ export const useRemoteOperationHandler = (
         }
         break;
       }
-
-      case 'undo': {
-        // Create activity metadata for undo operation
-        return {
-          type: 'undo',
-          bounds: { x: 0, y: 0, width: 0, height: 0 }, // Placeholder bounds for undo
-          timestamp
-        };
-      }
-
-      case 'redo': {
-        // Create activity metadata for redo operation
-        return {
-          type: 'redo',
-          bounds: { x: 0, y: 0, width: 0, height: 0 }, // Placeholder bounds for redo
-          timestamp
-        };
-      }
     }
     
     return undefined;
@@ -129,37 +110,6 @@ export const useRemoteOperationHandler = (
     console.log(`[RemoteOperationHandler] Processing operation: ${operation.operation_type} from sender: ${operation.sender_id}`);
     
     isApplyingRemoteOperation.current = true;
-    
-    // Handle undo/redo operations directly without state mutation
-    if (operation.operation_type === 'undo') {
-      console.log('[RemoteOperationHandler] Processing remote undo operation');
-      if (performLocalUndo) {
-        performLocalUndo();
-      } else {
-        console.warn('[RemoteOperationHandler] No performLocalUndo function available');
-      }
-      
-      // Keep the flag set briefly and then clear it
-      setTimeout(() => {
-        isApplyingRemoteOperation.current = false;
-      }, 100);
-      return;
-    }
-
-    if (operation.operation_type === 'redo') {
-      console.log('[RemoteOperationHandler] Processing remote redo operation');
-      if (performLocalRedo) {
-        performLocalRedo();
-      } else {
-        console.warn('[RemoteOperationHandler] No performLocalRedo function available');
-      }
-      
-      // Keep the flag set briefly and then clear it
-      setTimeout(() => {
-        isApplyingRemoteOperation.current = false;
-      }, 100);
-      return;
-    }
     
     setState(prev => {
       // First, make sure we have the original state saved to apply the operation to
@@ -212,7 +162,7 @@ export const useRemoteOperationHandler = (
     setTimeout(() => {
       isApplyingRemoteOperation.current = false;
     }, clearDelay);
-  }, [setState, performLocalUndo, performLocalRedo]);
+  }, [setState]);
 
   return {
     handleRemoteOperation,

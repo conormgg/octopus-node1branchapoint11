@@ -15,7 +15,7 @@ export const useKonvaKeyboardHandlers = ({
   isReadOnly,
   whiteboardId
 }: UseKonvaKeyboardHandlersProps) => {
-  const { state, handlePaste, selection, undo, redo, canUndo, canRedo } = whiteboardState;
+  const { state, handlePaste, selection } = whiteboardState;
 
   useEffect(() => {
     const container = containerRef.current;
@@ -28,24 +28,6 @@ export const useKonvaKeyboardHandlers = ({
     const keyDownHandler = (e: KeyboardEvent) => {
       if (document.activeElement !== container && !container.contains(document.activeElement)) {
         return;
-      }
-
-      // Ctrl+Z - Undo
-      if (e.ctrlKey && e.key === 'z' && !e.shiftKey && canUndo) {
-        console.log(`[${whiteboardId}] Ctrl+Z pressed - performing undo`);
-        undo();
-        e.preventDefault();
-        return;
-      }
-
-      // Ctrl+Y or Ctrl+Shift+Z - Redo
-      if ((e.ctrlKey && e.key === 'y') || (e.ctrlKey && e.shiftKey && e.key === 'z')) {
-        if (canRedo) {
-          console.log(`[${whiteboardId}] Redo shortcut pressed - performing redo`);
-          redo();
-          e.preventDefault();
-          return;
-        }
       }
 
       // Ctrl+A - select all objects (only when select tool is active)
@@ -98,5 +80,5 @@ export const useKonvaKeyboardHandlers = ({
       container.removeEventListener('keydown', keyDownHandler);
       container.removeEventListener('click', clickHandler);
     };
-  }, [handlePaste, isReadOnly, selection, whiteboardId, state.currentTool, state.lines, state.images, whiteboardState, undo, redo, canUndo, canRedo]);
+  }, [handlePaste, isReadOnly, selection, whiteboardId, state.currentTool, state.lines, state.images, whiteboardState]);
 };

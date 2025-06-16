@@ -1,6 +1,7 @@
+
 import { LineObject, ImageObject, SelectedObject, TransformationData } from './whiteboard';
 
-export type OperationType = 'draw' | 'erase' | 'add_image' | 'update_image' | 'delete_image' | 'select_objects' | 'deselect_objects' | 'transform_objects' | 'update_line' | 'delete_objects' | 'undo' | 'redo';
+export type OperationType = 'draw' | 'erase' | 'add_image' | 'update_image' | 'delete_image' | 'select_objects' | 'deselect_objects' | 'transform_objects' | 'update_line' | 'delete_objects';
 
 export interface WhiteboardOperation {
   whiteboard_id: string;
@@ -65,12 +66,4 @@ export interface SyncState {
   isReceiveOnly: boolean;
   lastSyncTimestamp: number;
   pendingOperations: WhiteboardOperation[];
-}
-
-export interface UndoOperationData {
-  // No additional data needed for undo operation
-}
-
-export interface RedoOperationData {
-  // No additional data needed for redo operation
 }

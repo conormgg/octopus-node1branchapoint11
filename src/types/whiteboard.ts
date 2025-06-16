@@ -1,3 +1,4 @@
+
 export type Tool = 'pencil' | 'eraser' | 'select' | 'highlighter';
 
 export interface LineObject {
@@ -59,16 +60,9 @@ export interface SelectionState {
   transformationData: Record<string, TransformationData>;
 }
 
-export type ActivityType = 'draw' | 'erase' | 'move' | 'paste' | 'undo' | 'redo';
-
 export interface ActivityMetadata {
-  type: ActivityType;
-  bounds: {
-    x: number;
-    y: number;
-    width: number;
-    height: number;
-  };
+  type: 'draw' | 'erase' | 'move' | 'paste';
+  bounds: { x: number; y: number; width: number; height: number };
   timestamp: number;
 }
 
