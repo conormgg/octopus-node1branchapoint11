@@ -68,27 +68,19 @@ export const useSharedWhiteboardState = (syncConfig?: SyncConfig, whiteboardId?:
   // Enhanced centering function that uses viewport dimensions
   const centerOnLastActivity = useCallback((bounds: { x: number; y: number; width: number; height: number }) => {
     if (!panZoom.centerOnBounds || !containerWidth || !containerHeight) {
-      debugLog('Center', 'Cannot center - missing centerOnBounds or dimensions');
+      console.log('[SharedWhiteboardState] Cannot center - missing centerOnBounds or dimensions');
       return;
     }
     
-    debugLog('Center', 'Centering on bounds:', bounds);
-    debugLog('Center', 'Container dimensions:', { containerWidth, containerHeight });
+    console.log('[SharedWhiteboardState] Centering on bounds:', bounds);
+    console.log('[SharedWhiteboardState] Container dimensions:', { containerWidth, containerHeight });
     
     panZoom.centerOnBounds(bounds, containerWidth, containerHeight);
   }, [panZoom, containerWidth, containerHeight]);
 
-  // Handle paste with correct signature for Konva stage
-  const handlePaste = useCallback((e: ClipboardEvent, stage: any) => {
-    debugLog('Paste', 'Handling paste event');
-    // Paste logic will be handled by the image operations
-    if (operations.handlePaste) {
-      operations.handlePaste(e, stage);
-    }
-  }, [operations]);
-
   // Debug log to verify getLastActivity is working after persistence integration
   const currentActivity = operations.getLastActivity?.();
+  console.log('[SharedWhiteboardState] Current last activity:', currentActivity);
   
   debugLog('Hook', 'useSharedWhiteboardState initialized', {
     isReadOnly,
@@ -110,7 +102,7 @@ export const useSharedWhiteboardState = (syncConfig?: SyncConfig, whiteboardId?:
     handlePointerDown,
     handlePointerMove,
     handlePointerUp,
-    handlePaste,
+    handlePaste: operations.handlePaste,
     addToHistory: operations.addToHistory,
     undo: operations.undo,
     redo: operations.redo,

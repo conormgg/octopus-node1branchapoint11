@@ -8,8 +8,7 @@ import { useCallback } from 'react';
 import { SyncConfig } from '@/types/sync';
 import { useSharedOperationsCoordinator } from './useSharedOperationsCoordinator';
 import { useSharedPersistenceIntegration } from './useSharedPersistenceIntegration';
-import { useWhiteboardDrawingCoordination } from '../useWhiteboardDrawingCoordination';
-import { useWhiteboardPointerHandlers } from '../useWhiteboardPointerHandlers';
+import { useSharedPointerHandlers } from './useSharedPointerHandlers';
 import { createDebugLogger } from '@/utils/debug/debugConfig';
 
 const debugLog = createDebugLogger('state');
@@ -34,19 +33,18 @@ export const useSharedOperationsHandler = (
   // Handle persistence and context integration
   useSharedPersistenceIntegration(state, setState, syncConfig, whiteboardId);
 
-  // Set up drawing coordination with proper addToHistory connection
-  const drawingCoordination = useWhiteboardDrawingCoordination(
-    state,
-    setState,
-    operations.addToHistory
-  );
-
-  // Set up pointer handlers that use the drawing coordination
-  const pointerHandlers = useWhiteboardPointerHandlers(
-    state,
-    panZoom,
-    selection,
-    drawingCoordination
+  // Pointer event handlers with proper safety checks
+  const { handlePointerDown, handlePointerMove, handlePointerUp } = useSharedPointerHandlers(
+    state, 
+    operations.startDrawing, 
+    operations.continueDrawing, 
+    operations.stopDrawing, 
+    operations.startErasing, 
+    operations.continueErasing, 
+    operations.stopErasing,
+    syncConfig, 
+    panZoom, 
+    selection
   );
 
   /**
@@ -70,9 +68,9 @@ export const useSharedOperationsHandler = (
 
   return {
     operations,
-    handlePointerDown: pointerHandlers.handlePointerDown,
-    handlePointerMove: pointerHandlers.handlePointerMove,
-    handlePointerUp: pointerHandlers.handlePointerUp,
+    handlePointerDown,
+    handlePointerMove,
+    handlePointerUp,
     deleteSelectedObjects
   };
 };

@@ -1,211 +1,173 @@
 
-import { useCallback, useEffect } from 'react';
-import { LineObject, ImageObject, HistorySnapshot, SelectionState, ActivityMetadata } from '@/types/whiteboard';
-import { WhiteboardOperation, SyncConfig } from '@/types/sync';
+/**
+ * @fileoverview Coordinates all whiteboard operations for shared state
+ * @description Central coordination point for drawing, syncing, history, and image operations
+ * in collaborative whiteboard scenarios.
+ * 
+ * @ai-context This hook acts as the operations dispatcher, routing different types
+ * of operations to their appropriate handlers while maintaining synchronization.
+ */
+
+import { useCallback } from 'react';
+import { SyncConfig } from '@/types/sync';
+import { WhiteboardState, ActivityMetadata } from '@/types/whiteboard';
 import { useHistoryState } from '../useHistoryState';
 import { useSyncState } from '../useSyncState';
 import { useRemoteOperationHandler } from '../useRemoteOperationHandler';
-import { serializeDrawOperation, serializeEraseOperation, serializeAddImageOperation, serializeUpdateImageOperation, serializeDeleteImageOperation, serializeUpdateLineOperation, serializeDeleteObjectsOperation, calculateObjectBounds } from '@/utils/operationSerializer';
-import { createDebugLogger } from '@/utils/debug/debugConfig';
-import { useSelectionState } from '../useSelectionState';
-import { SyncConnectionManager } from '@/utils/sync';
+import { useSharedDrawingOperations } from './useSharedDrawingOperations';
+import { useSharedImageOperations } from './useSharedImageOperations';
 
-const debugLog = createDebugLogger('state');
+const DEBUG_ENABLED = process.env.NODE_ENV === 'development';
 
+/**
+ * @function debugLog
+ * @description Debug logging for operations coordination
+ */
+const debugLog = (context: string, action: string, data?: any) => {
+  if (DEBUG_ENABLED) {
+    console.log(`[OperationsCoordinator:${context}] ${action}`, data || '');
+  }
+};
+
+/**
+ * @hook useSharedOperationsCoordinator
+ * @description Coordinates all whiteboard operations with synchronization
+ * 
+ * @param syncConfig - Optional sync configuration for real-time collaboration
+ * @param state - Current whiteboard state
+ * @param setState - State setter function
+ * @param whiteboardId - Unique identifier for this whiteboard
+ * 
+ * @returns {Object} Coordinated operations interface
+ * @returns {SyncState} syncState - Real-time sync status
+ * @returns {Function} addToHistory - Add current state to history
+ * @returns {Function} undo - Undo last operation
+ * @returns {Function} redo - Redo last undone operation
+ * @returns {Function} getLastActivity - Get the most recent activity metadata
+ * @returns {DrawingOperations} Drawing operations (start/continue/stop)
+ * @returns {ImageOperations} Image operations (paste/update/toggle lock)
+ * 
+ * @ai-understanding
+ * This coordinator:
+ * 1. Sets up sync infrastructure if config provided
+ * 2. Manages remote operation handling
+ * 3. Coordinates history operations
+ * 4. Delegates to specialized operation handlers
+ * 5. Ensures proper whiteboard identification
+ */
 export const useSharedOperationsCoordinator = (
   syncConfig: SyncConfig | undefined,
-  state: any,
-  setState: any,
+  state: WhiteboardState,
+  setState: (updater: (prev: WhiteboardState) => WhiteboardState) => void,
   whiteboardId?: string
 ) => {
-  debugLog('OperationsCoordinator', 'Initializing operations coordinator', { whiteboardId });
+  debugLog('Hook', 'Initializing operations coordinator', {
+    hasSync: !!syncConfig,
+    whiteboardId,
+    isReceiveOnly: syncConfig?.isReceiveOnly
+  });
 
-  const selection = useSelectionState();
+  // Enhanced history with sync support - pass sendOperation for Teacher1-Student1 sync
+  const {
+    addToHistory: baseAddToHistory,
+    undo,
+    redo,
+    canUndo,
+    canRedo,
+    getLastActivity
+  } = useHistoryState(state, setState, undefined, syncConfig ? null : null); // Will be updated below
 
-  // History management with sync integration
+  // Set up sync if config is provided
   const { syncState, sendOperation } = syncConfig 
-    ? useSyncState(syncConfig, () => {}) // Temporary handler, will be replaced
+    ? useSyncState(syncConfig, (operation) => handleRemoteOperation(operation))
     : { syncState: null, sendOperation: null };
 
-  const history = useHistoryState(
-    state,
-    setState,
-    selection?.updateSelectionState,
-    sendOperation
+  debugLog('Sync', 'Sync state initialized', {
+    isConnected: syncState?.isConnected,
+    canSend: !!sendOperation
+  });
+
+  // Update history state with sendOperation for sync
+  const {
+    addToHistory: syncAddToHistory,
+    undo: syncUndo,
+    redo: syncRedo,
+    canUndo: syncCanUndo,
+    canRedo: syncCanRedo,
+    getLastActivity: syncGetLastActivity
+  } = useHistoryState(state, setState, undefined, sendOperation);
+
+  // Use sync-enabled or local history functions based on sync availability
+  const finalAddToHistory = syncConfig ? syncAddToHistory : baseAddToHistory;
+  const finalUndo = syncConfig ? syncUndo : undo;
+  const finalRedo = syncConfig ? syncRedo : redo;
+  const finalCanUndo = syncConfig ? syncCanUndo : canUndo;
+  const finalCanRedo = syncConfig ? syncCanRedo : canRedo;
+  const finalGetLastActivity = syncConfig ? syncGetLastActivity : getLastActivity;
+
+  // Handle remote operations with undo/redo support
+  const { handleRemoteOperation, isApplyingRemoteOperation } = useRemoteOperationHandler(
+    setState, 
+    finalUndo, 
+    finalRedo
   );
 
-  // Remote operation handling with access to local undo/redo functions
-  const remoteHandler = useRemoteOperationHandler(
-    setState,
-    history.performLocalUndo,
-    history.performLocalRedo
-  );
-
-  // Register the proper remote operation handler with sync
-  useEffect(() => {
-    if (syncConfig) {
-      const handler = (operation: WhiteboardOperation) => {
-        debugLog('RemoteOp', 'Received remote operation', operation.operation_type);
-        remoteHandler.handleRemoteOperation(operation);
-      };
-      
-      SyncConnectionManager.registerHandler(syncConfig, handler);
-      
-      return () => {
-        SyncConnectionManager.unregisterHandler(syncConfig, handler);
-      };
-    }
-  }, [syncConfig, remoteHandler.handleRemoteOperation]);
-
-  const sendOperationIfSync = useCallback((operation: Omit<WhiteboardOperation, 'id' | 'timestamp' | 'sender_id'>) => {
-    if (!sendOperation) {
-      console.warn('Attempted to send operation without sync config. Operation dropped.');
-      return null;
-    }
-
-    // Optimistically apply the operation locally
-    setState(prev => {
-      const updatedState = {
-        ...prev,
-        lastActivity: {
-          type: operation.operation_type,
-          timestamp: Date.now(),
-          bounds: { x: 0, y: 0, width: 100, height: 100 }
-        } as ActivityMetadata
-      };
-      return updatedState;
+  /**
+   * @function addToHistory
+   * @description Enhanced history function that includes sync context
+   * 
+   * @ai-context This wrapper adds debug logging and ensures consistent
+   * history snapshots across collaborative sessions.
+   */
+  const addToHistory = useCallback((snapshot?: any, activityMetadata?: ActivityMetadata) => {
+    debugLog('History', 'Adding to history', {
+      linesCount: state.lines.length,
+      imagesCount: state.images.length,
+      hasSelection: state.selectionState.selectedObjects.length > 0,
+      hasActivity: !!activityMetadata
     });
-
-    return sendOperation(operation);
-  }, [sendOperation, setState]);
-
-  const startDrawing = useCallback((line: LineObject) => {
-    debugLog('Draw', 'Start drawing', line);
-    if (sendOperation) {
-      const operation = serializeDrawOperation(line);
-      sendOperationIfSync(operation);
-    }
-  }, [sendOperationIfSync, sendOperation]);
-
-  const continueDrawing = useCallback((line: LineObject) => {
-    // No operation needed for continuing drawing
-  }, []);
-
-  const stopDrawing = useCallback(() => {
-    // No operation needed for stopping drawing
-  }, []);
-
-  const startErasing = useCallback((lineId: string) => {
-    debugLog('Erase', 'Start erasing', lineId);
-    if (sendOperation) {
-      const operation = serializeEraseOperation([lineId]);
-      sendOperationIfSync(operation);
-    }
-  }, [sendOperationIfSync, sendOperation]);
-
-  const continueErasing = useCallback((lineId: string) => {
-    // No operation needed for continuing erasing
-  }, []);
-
-  const stopErasing = useCallback(() => {
-    // No operation needed for stopping erasing
-  }, []);
-
-  const handlePaste = useCallback((event: ClipboardEvent, stage: any) => {
-    // This will be handled by the image operations in the parent hook
-    debugLog('Paste', 'Paste event received in coordinator');
-  }, []);
-
-  const updateImageState = useCallback((imageId: string, updates: Partial<ImageObject>) => {
-    debugLog('Image', `Updating image state for ${imageId}`, updates);
-    if (sendOperation) {
-      const operation = serializeUpdateImageOperation(imageId, updates);
-      sendOperationIfSync(operation);
-    }
-  }, [sendOperationIfSync, sendOperation]);
-
-  const updateLine = useCallback((lineId: string, updates: Partial<LineObject>) => {
-    debugLog('Line', `Updating line state for ${lineId}`, updates);
-    if (sendOperation) {
-      const operation = serializeUpdateLineOperation(lineId, updates);
-      sendOperationIfSync(operation);
-    }
-  }, [sendOperationIfSync, sendOperation]);
-
-  const updateImage = useCallback((imageId: string, updates: Partial<ImageObject>) => {
-    debugLog('Image', `Updating image state for ${imageId}`, updates);
-    if (sendOperation) {
-      const operation = serializeUpdateImageOperation(imageId, updates);
-      sendOperationIfSync(operation);
-    }
-  }, [sendOperationIfSync, sendOperation]);
-
-  const toggleImageLock = useCallback((imageId: string) => {
-    debugLog('Image', `Toggling image lock for ${imageId}`);
-    // Implementation would go here
-  }, []);
-
-  const deleteSelectedObjects = useCallback((selectedObjects: any[]) => {
-    if (!selectedObjects || selectedObjects.length === 0) {
-      console.warn('No objects selected to delete.');
-      return;
-    }
-  
-    const lineIds = selectedObjects
-      .filter(obj => obj.type === 'line')
-      .map(obj => obj.id);
-  
-    const imageIds = selectedObjects
-      .filter(obj => obj.type === 'image')
-      .map(obj => obj.id);
-  
-    if (lineIds.length === 0 && imageIds.length === 0) {
-      console.warn('No lines or images selected to delete.');
-      return;
-    }
-  
-    debugLog('Delete', `Deleting objects - lines: ${lineIds.length}, images: ${imageIds.length}`);
-    if (sendOperation) {
-      const operation = serializeDeleteObjectsOperation(lineIds, imageIds);
-      sendOperationIfSync(operation);
-    }
-  }, [sendOperationIfSync, sendOperation]);
-
-  // Create a simple addToHistory wrapper that matches the expected signature
-  const addToHistory = useCallback(() => {
-    const snapshot = {
+    
+    const finalSnapshot = snapshot || {
       lines: state.lines,
       images: state.images,
       selectionState: state.selectionState
     };
-    history.addToHistory(snapshot);
-  }, [history.addToHistory, state.lines, state.images, state.selectionState]);
+    
+    finalAddToHistory(finalSnapshot, activityMetadata);
+  }, [finalAddToHistory, state.lines, state.images, state.selectionState]);
+
+  // Drawing and erasing operations with whiteboard ID
+  // Use the full whiteboard ID from sync config or fallback to provided ID
+  const actualWhiteboardId = syncConfig?.whiteboardId || whiteboardId;
+  
+  debugLog('Operations', 'Setting up drawing operations', { actualWhiteboardId });
+  const drawingOperations = useSharedDrawingOperations(
+    state, setState, addToHistory, sendOperation, isApplyingRemoteOperation, actualWhiteboardId
+  );
+
+  // Image operations with proper parameter handling
+  debugLog('Operations', 'Setting up image operations', { actualWhiteboardId });
+  const imageOperations = useSharedImageOperations(
+    state, setState, addToHistory, sendOperation, isApplyingRemoteOperation, actualWhiteboardId
+  );
+
+  debugLog('Hook', 'Operations coordinator initialized', {
+    hasDrawing: !!drawingOperations.startDrawing,
+    hasImages: !!imageOperations.handlePaste,
+    canUndo: finalCanUndo,
+    canRedo: finalCanRedo,
+    hasLastActivity: !!finalGetLastActivity()
+  });
 
   return {
-    startDrawing,
-    continueDrawing,
-    stopDrawing,
-    startErasing,
-    continueErasing,
-    stopErasing,
-    handlePaste,
-    updateImageState,
-    updateLine,
-    updateImage,
-    toggleImageLock,
-    deleteSelectedObjects,
-    addToHistory, // This now matches the expected () => void signature
-    undo: history.undo,
-    redo: history.redo,
-    canUndo: history.canUndo,
-    canRedo: history.canRedo,
-    getLastActivity: history.getLastActivity,
-    syncState: {
-      isConnected: syncState?.isConnected || false,
-      isReceiveOnly: syncState?.isReceiveOnly || false,
-      lastSyncTimestamp: syncState?.lastSyncTimestamp || Date.now(),
-      pendingOperations: syncState?.pendingOperations || []
-    },
-    handleRemoteOperation: remoteHandler.handleRemoteOperation
+    syncState,
+    addToHistory,
+    undo: finalUndo,
+    redo: finalRedo,
+    canUndo: finalCanUndo,
+    canRedo: finalCanRedo,
+    getLastActivity: finalGetLastActivity,
+    ...drawingOperations,
+    ...imageOperations
   };
 };
