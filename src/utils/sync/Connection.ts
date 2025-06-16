@@ -56,19 +56,14 @@ export class Connection {
     // Update activity timestamp
     this.info.lastActivity = Date.now();
     
-    // Notify all registered handlers
+    // Notify all registered handlers except the sender
     this.info.handlers.forEach(handler => {
-      // For undo/redo operations, allow processing even from the same sender
-      // This is necessary because the sender needs to receive their own undo/redo
-      // operations to maintain proper synchronization
-      const isUndoRedoOperation = operation.operation_type === 'undo' || operation.operation_type === 'redo';
-      const shouldProcess = isUndoRedoOperation || operation.sender_id !== this.info.config.senderId;
-      
-      if (shouldProcess) {
-        debugLog('Dispatch', `Processing ${operation.operation_type} operation from: ${operation.sender_id}, local: ${this.info.config.senderId}`);
+      // Don't send operations back to the sender
+      if (operation.sender_id !== this.info.config.senderId) {
+        debugLog('Dispatch', `Operation to handler from: ${operation.sender_id}, local: ${this.info.config.senderId}`);
         handler(operation);
       } else {
-        debugLog('Dispatch', `Skipping ${operation.operation_type} operation from self (${operation.sender_id})`);
+        debugLog('Dispatch', `Skipping operation from self (${operation.sender_id})`);
       }
     });
   }
