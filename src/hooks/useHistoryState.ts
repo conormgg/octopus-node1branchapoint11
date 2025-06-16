@@ -1,3 +1,4 @@
+
 import { useCallback } from 'react';
 import { LineObject, ImageObject, HistorySnapshot, SelectionState, ActivityMetadata } from '@/types/whiteboard';
 import { WhiteboardOperation } from '@/types/sync';
@@ -95,13 +96,15 @@ export const useHistoryState = (
   }, []);
 
   const undo = useCallback(() => {
-    // Send sync operation if available (for Teacher1-Student1 pair)
     if (sendOperation) {
+      // Only send the operation, do not update state locally
       debugLog('Undo', 'Sending undo operation to sync');
       const operation = serializeUndoOperation();
       sendOperation(operation);
+      return; // Stop execution here
     }
 
+    // This part now only runs for non-synced whiteboards
     setState(prev => {
       if (prev.historyIndex <= 0) return prev;
       
@@ -132,13 +135,15 @@ export const useHistoryState = (
   }, [setState, validateSelection, updateSelectionState, sendOperation]);
 
   const redo = useCallback(() => {
-    // Send sync operation if available (for Teacher1-Student1 pair)
     if (sendOperation) {
+      // Only send the operation, do not update state locally
       debugLog('Redo', 'Sending redo operation to sync');
       const operation = serializeRedoOperation();
       sendOperation(operation);
+      return; // Stop execution here
     }
 
+    // This part now only runs for non-synced whiteboards
     setState(prev => {
       if (prev.historyIndex >= prev.history.length - 1) return prev;
       
