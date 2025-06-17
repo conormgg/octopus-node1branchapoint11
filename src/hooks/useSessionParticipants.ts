@@ -1,5 +1,5 @@
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 
 export interface SessionParticipant {
@@ -16,6 +16,9 @@ export const useSessionParticipants = (sessionId?: string) => {
   const [participants, setParticipants] = useState<SessionParticipant[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
+  const channelRef = useRef<any>(null);
+  const isSubscribedRef = useRef(false);
+  const cleanupCalledRef = useRef(false);
 
   // Fetch initial participants
   useEffect(() => {
@@ -44,12 +47,25 @@ export const useSessionParticipants = (sessionId?: string) => {
     fetchParticipants();
   }, [sessionId]);
 
-  // Set up real-time subscription
+  // Set up real-time subscription with proper cleanup
   useEffect(() => {
     if (!sessionId) return;
 
+    // Generate unique channel name to prevent conflicts
+    const channelName = `session-participants-${sessionId}-${Date.now()}`;
+    
+    // Clean up any existing channel first
+    if (channelRef.current && !cleanupCalledRef.current) {
+      console.log('[SessionParticipants] Cleaning up existing channel before creating new one');
+      supabase.removeChannel(channelRef.current);
+      isSubscribedRef.current = false;
+    }
+
+    // Reset cleanup flag
+    cleanupCalledRef.current = false;
+
     const channel = supabase
-      .channel(`session-participants-${sessionId}`)
+      .channel(channelName)
       .on(
         'postgres_changes',
         {
@@ -71,14 +87,33 @@ export const useSessionParticipants = (sessionId?: string) => {
             setParticipants(prev => prev.filter(p => p.id !== payload.old.id));
           }
         }
-      )
-      .subscribe((status) => {
+      );
+
+    // Store channel reference
+    channelRef.current = channel;
+
+    // Subscribe only if not already subscribed
+    if (!isSubscribedRef.current) {
+      channel.subscribe((status) => {
         console.log(`[SessionParticipants] Subscription status: ${status}`);
+        if (status === 'SUBSCRIBED') {
+          isSubscribedRef.current = true;
+        } else if (status === 'CLOSED') {
+          isSubscribedRef.current = false;
+        }
       });
+    }
 
     return () => {
-      console.log('[SessionParticipants] Cleaning up subscription');
-      supabase.removeChannel(channel);
+      if (!cleanupCalledRef.current) {
+        console.log('[SessionParticipants] Cleaning up subscription');
+        cleanupCalledRef.current = true;
+        isSubscribedRef.current = false;
+        if (channelRef.current) {
+          supabase.removeChannel(channelRef.current);
+          channelRef.current = null;
+        }
+      }
     };
   }, [sessionId]);
 

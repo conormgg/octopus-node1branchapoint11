@@ -15,11 +15,19 @@ export const useSyncConfiguration = (
       return undefined;
     }
 
-    // For teacher view, we need to determine sync direction based on the specific board
-    // Extract board suffix from whiteboardId (e.g., "session-123-board-A" -> "A")
+    // Check if this is a teacher's main board (doesn't need participant lookup)
+    if (whiteboardId === 'teacher-main' || whiteboardId.startsWith('teacher-')) {
+      console.log(`[SyncConfig] Teacher board detected: ${whiteboardId}, setting as send-only`);
+      return {
+        whiteboardId,
+        sessionId,
+        senderId,
+        isReceiveOnly: false // Teacher always has full control of their own boards
+      };
+    }
+
+    // For student boards, find the participant and check sync direction
     const boardSuffix = whiteboardId.split('-').pop();
-    
-    // Find the participant for this specific board
     const participant = participants.find(p => p.assigned_board_suffix === boardSuffix);
 
     // Determine if this client should be receive-only based on sync direction
@@ -27,7 +35,7 @@ export const useSyncConfiguration = (
     // student_to_teacher: student controls the board (teacher is receive-only for that board)
     const isReceiveOnly = participant?.sync_direction === 'student_to_teacher';
 
-    console.log(`[SyncConfig] Board ${whiteboardId} (suffix: ${boardSuffix}): participant found = ${!!participant}, sync_direction = ${participant?.sync_direction}, isReceiveOnly = ${isReceiveOnly}`);
+    console.log(`[SyncConfig] Student board ${whiteboardId} (suffix: ${boardSuffix}): participant found = ${!!participant}, sync_direction = ${participant?.sync_direction}, isReceiveOnly = ${isReceiveOnly}`);
 
     return {
       whiteboardId,

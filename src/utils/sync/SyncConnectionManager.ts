@@ -1,4 +1,3 @@
-
 import { SyncConfig, WhiteboardOperation } from '@/types/sync';
 import { Connection } from './Connection';
 import { OperationHandler } from './types';
@@ -8,11 +7,12 @@ const debugLog = createDebugLogger('connection');
 
 /**
  * Singleton manager for whiteboard sync connections
- * Maintains connections across component remounts
+ * Maintains connections across component remounts with improved conflict handling
  */
 class SyncConnectionManager {
   private static instance: SyncConnectionManager;
   private connections: Map<string, Connection> = new Map();
+  private connectionAttempts: Map<string, number> = new Map();
   
   // Private constructor for singleton pattern
   private constructor() {}
@@ -26,7 +26,7 @@ class SyncConnectionManager {
   
   /**
    * Register a handler for a specific whiteboard connection
-   * Creates the connection if it doesn't exist
+   * Creates the connection if it doesn't exist, with retry logic
    */
   public registerHandler(
     config: SyncConfig,
@@ -35,11 +35,29 @@ class SyncConnectionManager {
     const connectionId = `${config.whiteboardId}-${config.sessionId}`;
     let connection = this.connections.get(connectionId);
     
+    debugLog('Manager', `Registering handler for ${connectionId}`);
+    
     // If connection doesn't exist, create it
     if (!connection) {
-      debugLog('Manager', `Creating new connection for ${connectionId}`);
-      connection = new Connection(config, handler);
-      this.connections.set(connectionId, connection);
+      try {
+        debugLog('Manager', `Creating new connection for ${connectionId}`);
+        connection = new Connection(config, handler);
+        this.connections.set(connectionId, connection);
+        this.connectionAttempts.set(connectionId, 1);
+      } catch (error) {
+        const attempts = this.connectionAttempts.get(connectionId) || 0;
+        logError('Manager', `Failed to create connection for ${connectionId} (attempt ${attempts + 1})`, error);
+        
+        if (attempts < 3) {
+          // Retry with exponential backoff
+          setTimeout(() => {
+            this.connectionAttempts.set(connectionId, attempts + 1);
+            this.registerHandler(config, handler);
+          }, Math.pow(2, attempts) * 1000);
+        }
+        
+        return { isConnected: false };
+      }
     } else {
       // Connection exists, just add the handler
       debugLog('Manager', `Reusing existing connection for ${connectionId}`);
@@ -47,6 +65,9 @@ class SyncConnectionManager {
       
       // Update the config in case it has changed (e.g., different senderId)
       connection.updateConfig(config);
+      
+      // Reset connection attempts on successful reuse
+      this.connectionAttempts.set(connectionId, 0);
     }
     
     return {
@@ -69,13 +90,12 @@ class SyncConnectionManager {
       debugLog('Manager', `Unregistering handler for ${connectionId}`);
       connection.removeHandler(handler);
       
-      // Keep connection alive for a grace period (30 seconds)
-      // This allows for quick reconnection if component remounts
+      // Keep connection alive for a grace period (15 seconds - reduced from 30)
       if (connection.handlerCount === 0) {
-        debugLog('Manager', `No more handlers for ${connectionId}, scheduling cleanup`);
+        debugLog('Manager', `No more handlers for ${connectionId}, scheduling cleanup in 15s`);
         setTimeout(() => {
           this.cleanupConnection(connectionId);
-        }, 30000); // 30 second grace period
+        }, 15000);
       }
     }
   }
@@ -107,18 +127,19 @@ class SyncConnectionManager {
     const connection = this.connections.get(connectionId);
     
     if (connection && connection.handlerCount === 0) {
-      // Check if there's been any activity in the last 30 seconds
+      // Check if there's been any activity in the last 15 seconds
       const inactiveTime = Date.now() - connection.lastActivity;
-      if (inactiveTime > 30000) {
+      if (inactiveTime > 15000) {
         debugLog('Manager', `Cleaning up inactive connection for ${connectionId}`);
         connection.close();
         this.connections.delete(connectionId);
+        this.connectionAttempts.delete(connectionId);
       } else {
         // Still recent activity, reschedule cleanup
         debugLog('Manager', `Connection ${connectionId} still has recent activity, rescheduling cleanup`);
         setTimeout(() => {
           this.cleanupConnection(connectionId);
-        }, 30000);
+        }, 15000);
       }
     }
   }
@@ -133,6 +154,18 @@ class SyncConnectionManager {
     return {
       isConnected: connection?.isConnected || false
     };
+  }
+  
+  /**
+   * Force cleanup all connections (useful for cleanup)
+   */
+  public forceCleanupAll(): void {
+    debugLog('Manager', 'Force cleaning up all connections');
+    this.connections.forEach((connection, connectionId) => {
+      connection.close();
+    });
+    this.connections.clear();
+    this.connectionAttempts.clear();
   }
 }
 
