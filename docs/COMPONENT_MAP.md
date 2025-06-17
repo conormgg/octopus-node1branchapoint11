@@ -73,20 +73,47 @@ useSharedWhiteboardState
 ├── useSharedOperationsCoordinator
 │   ├── useSharedDrawingOperations (with activity tracking)
 │   ├── useSharedImageOperations (with activity tracking)
+│   ├── useHistoryState (with sync support and sendOperation)
 │   └── useSyncState (if collaboration enabled)
 ├── useSelectionState
 ├── usePanZoom (with centerOnBounds for eye button)
-├── useHistoryState (with lastActivity support)
 └── useStageEventHandlers
     ├── usePointerEventHandlers
     ├── useTouchEventHandlers
     └── useWheelEventHandlers
+
+useSharedPersistenceIntegration
+├── useWhiteboardPersistence (database operations)
+├── useSharedHistoryReplay (pure simulation)
+└── useWhiteboardStateContext (shared state updates)
 
 useEyeButtonLogic
 ├── Activity Configuration
 ├── Button State Management
 ├── Center Callback Handling
 └── Last Activity Updates
+```
+
+## Collaborative Undo/Redo Hook Structure (Phase 2)
+
+```
+useHistoryState (Enhanced)
+├── Local History Management
+├── Sync Operation Integration (sendOperation parameter)
+├── Activity Metadata Support
+└── Remote Operation Compatibility
+
+useSharedHistoryReplay (Pure Simulator)
+├── Operation Processing Pipeline
+├── History Stack Simulation
+├── Undo/Redo State Transitions
+└── Activity Metadata Reconstruction
+
+useRemoteOperationHandler (Extended)
+├── Draw/Erase Operations
+├── Undo/Redo Operations (new)
+├── Image Operations
+└── State Synchronization
 ```
 
 ## Performance Monitoring Hook Structure
@@ -122,7 +149,7 @@ User Input
     ↓
 Event Handlers (pointer/touch/mouse)
     ↓
-Tool-specific Operations (draw/erase/select)
+Tool-specific Operations (draw/erase/select/undo/redo)
     ↓
 Activity Metadata Generation (for eye button)
     ↓
@@ -133,6 +160,40 @@ Canvas Re-rendering + History Updates (with activity)
 Sync Operations (if collaborative)
     ↓
 Performance Monitoring (automatic via wrappers)
+```
+
+## Collaborative Undo/Redo Flow (Phase 2)
+
+```
+Teacher Action (Undo/Redo)
+    ↓
+History Operation (useHistoryState)
+    ↓
+Sync Operation (sendOperation)
+    ↓
+Supabase Realtime Transmission
+    ↓
+Student Reception (useRemoteOperationHandler)
+    ↓
+Local Undo/Redo Application
+    ↓
+State Synchronization
+```
+
+## History Replay Flow (Phase 2)
+
+```
+Component Mount/Remount
+    ↓
+Database Operations Fetch (useWhiteboardPersistence)
+    ↓
+Pure History Simulation (useSharedHistoryReplay)
+    ↓
+State Reconstruction (replayOperations)
+    ↓
+Final State Application (useSharedPersistenceIntegration)
+    ↓
+UI Update and History Stack Initialization
 ```
 
 ## Eye Button State Flow
@@ -167,4 +228,18 @@ Performance Coordinator (aggregation)
 Analysis Modules (optimization tracking)
     ↓
 Reporting + Recommendations
+```
+
+## Undo/Redo Patterns (Phase 2)
+
+```
+// Synchronized Undo Pattern
+const { undo, canUndo } = useHistoryState(state, setState, undefined, sendOperation);
+
+// Pure History Replay Pattern
+const { replayOperations } = useSharedHistoryReplay();
+const { finalState, historyStack, finalHistoryIndex } = replayOperations(operations, initialState);
+
+// Remote Undo/Redo Handling Pattern
+const { handleRemoteOperation } = useRemoteOperationHandler(setState, undo, redo);
 ```

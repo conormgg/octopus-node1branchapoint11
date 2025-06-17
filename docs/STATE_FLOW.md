@@ -47,6 +47,46 @@ ActivityMetadata {
    - User activity → Bounds calculation → Activity metadata → History integration → Button state update
    - Button click → Activity retrieval → Viewport centering
 
+## Collaborative Undo/Redo Flow (Phase 2 Implementation)
+
+### Synchronized Undo/Redo Operations
+```
+Teacher Action:
+User clicks undo/redo → History operation → Send undo/redo operation → Supabase realtime
+    ↓
+Student Sync:
+Receive undo/redo operation → Apply to local history → State update → UI refresh
+```
+
+### History Replay System
+```
+Component Mount/Remount:
+Fetch operations from database → Pure history replay → State reconstruction
+    ↓
+Replay Process:
+Initialize empty state + history stack → Process each operation sequentially
+    ↓
+Operation Processing:
+- Draw/Erase: Apply to state → Create history snapshot → Add to stack
+- Undo: Move back in history stack → Restore previous state
+- Redo: Move forward in history stack → Restore next state
+    ↓
+Final Result:
+Correct final state + Complete history stack + Accurate history index
+```
+
+### Cross-View Consistency
+```
+Minimized View Operations:
+User draws/erases → Operations stored in database → History maintained
+    ↓
+Maximize View:
+History replay → All operations reconstructed → Consistent state across views
+    ↓
+Browser Refresh:
+Persistence load → History replay → Session continuity maintained
+```
+
 ## Event Handling Flow
 
 ### Input Priority System
@@ -95,8 +135,8 @@ move/resize → calculate new bounds → create move activity + history
 ## Sync Operation Flow
 
 ### Local to Remote
-1. User performs operation (draw, erase, etc.)
-2. Activity metadata generated and stored locally
+1. User performs operation (draw, erase, undo, redo, etc.)
+2. Activity metadata generated and stored locally (if applicable)
 3. Operation serialized to sync payload
 4. Sent via Supabase realtime channel
 5. Other clients receive and apply operation
@@ -145,3 +185,5 @@ Page Refresh → Database Load → Activity Reconstruction → Button State Rest
 - **Activity Persistence**: Activity metadata preserved across sessions
 - **Memory Management**: Activity timeout to prevent unbounded growth
 - **Cross-Window Sync**: Activity state maintained across minimize/maximize
+- **History Replay**: Pure simulation ensures accurate state reconstruction
+- **Undo/Redo Sync**: Teacher1-Student1 synchronized undo/redo operations

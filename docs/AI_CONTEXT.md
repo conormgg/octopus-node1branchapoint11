@@ -37,7 +37,14 @@ This is **OctoPi Ink**, a collaborative whiteboard application built with React,
 - **Scope**: Currently implemented for teacher1-student1 pair only
 - **Integration**: Built into existing sync and history systems
 
-### 6. Performance Monitoring System
+### 6. Collaborative Undo/Redo System (Phase 2)
+- **Synchronized Operations**: Teacher1 undo/redo actions sync to Student1
+- **History Replay**: Pure simulation system for accurate state reconstruction
+- **Cross-View Consistency**: Undo/redo works in both minimized and maximized views
+- **Session Persistence**: Undo/redo capability maintained across browser refresh
+- **Operation Ordering**: All operations (including undo/redo) are timestamped and ordered
+
+### 7. Performance Monitoring System
 - **Modular Architecture**: New separated concerns with focused modules
 - **Core Coordinator**: `usePerformanceCoordinator` manages all performance modules
 - **Integration Layer**: `useIntegrationCore` handles automatic operation instrumentation
@@ -53,6 +60,7 @@ This is **OctoPi Ink**, a collaborative whiteboard application built with React,
 3. **Session Management** → Database Operations → Context Updates → Component Re-renders
 4. **Performance Monitoring** → Operation Wrappers → Metrics Collection → Analysis → Reporting
 5. **Activity Tracking** → Eye Button Logic → Activity Metadata → Persistence → Viewport Centering
+6. **Undo/Redo Sync** → Operation Serialization → Realtime Transmission → Remote Application → State Consistency
 
 ## Critical Files for AI Understanding
 
@@ -66,6 +74,8 @@ This is **OctoPi Ink**, a collaborative whiteboard application built with React,
 8. `src/hooks/whiteboard/useEyeButtonLogic.ts` - Eye button functionality
 9. `src/components/whiteboard/WhiteboardContent.tsx` - Whiteboard content management
 10. `src/hooks/shared/useSharedPersistenceIntegration.ts` - Activity persistence
+11. `src/hooks/shared/useSharedHistoryReplay.ts` - Pure history simulation system
+12. `src/hooks/useHistoryState.ts` - History management with sync support
 
 ## Eye Button Architecture
 
@@ -76,6 +86,16 @@ The eye button system uses a modular architecture with clear separation of conce
 - **Persistence Layer**: Activity metadata stored in history snapshots and database
 - **UI Layer**: Eye button component integrated into top-right button group
 - **Centering Logic**: Viewport management through pan/zoom system
+
+## Collaborative History Architecture (Phase 2)
+
+The undo/redo system uses a sophisticated architecture for synchronized collaboration:
+
+- **Pure Simulation Layer**: `useSharedHistoryReplay` provides deterministic state reconstruction
+- **Sync Integration**: Undo/redo operations transmitted via Supabase realtime
+- **State Consistency**: All clients maintain identical history through operation replay
+- **Cross-View Support**: State persists across minimized/maximized view changes
+- **Refresh Resilience**: History reconstructed from database operations on page load
 
 ## Performance Monitoring Architecture
 
@@ -97,3 +117,5 @@ The performance monitoring system uses a modular architecture with clear separat
 - **Performance monitoring**: Add new metrics or analysis modules to the modular system
 - **Activity tracking**: Extend ActivityMetadata interface and update tracking logic
 - **Eye button features**: Modify useEyeButtonLogic and related integration points
+- **Undo/redo enhancements**: Extend operation types and replay simulation logic
+- **Sync operations**: Add new operation types to serialization and handling systems
