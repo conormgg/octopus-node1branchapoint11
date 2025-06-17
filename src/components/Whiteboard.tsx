@@ -52,16 +52,16 @@ const Whiteboard: React.FC<WhiteboardProps> = ({ isReadOnly = false }) => {
       WebkitTouchCallout: 'none',
       touchAction: 'none'
     }}>
-      {/* Palm Rejection Settings Button */}
+      {/* Palm Rejection Settings Button - moved to bottom-right */}
       {!isReadOnly && (
-        <div className="absolute top-2 left-2 z-20">
+        <div className="absolute bottom-2 right-2 z-20">
           <Popover>
             <PopoverTrigger asChild>
               <Button variant="outline" size="icon" className="bg-white/80 backdrop-blur-sm">
                 <Settings className="h-4 w-4" />
               </Button>
             </PopoverTrigger>
-            <PopoverContent className="w-80" align="start">
+            <PopoverContent className="w-80" align="end">
               <PalmRejectionSettings
                 config={palmRejectionConfig}
                 onChange={setPalmRejectionConfig}
