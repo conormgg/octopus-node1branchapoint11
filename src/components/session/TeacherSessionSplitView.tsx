@@ -32,8 +32,6 @@ interface TeacherSessionSplitViewProps {
   onNextPage: () => void;
   onLayoutChange: (layoutId: string) => void;
   onOrientationChange: (orientation: GridOrientation) => void;
-  onIncreaseStudentCount: () => void;
-  onDecreaseStudentCount: () => void;
   onCloseSplitView: () => void;
 }
 
@@ -57,8 +55,6 @@ const TeacherSessionSplitView: React.FC<TeacherSessionSplitViewProps> = ({
   onNextPage,
   onLayoutChange,
   onOrientationChange,
-  onIncreaseStudentCount,
-  onDecreaseStudentCount,
   onCloseSplitView,
 }) => {
   return (
@@ -78,8 +74,6 @@ const TeacherSessionSplitView: React.FC<TeacherSessionSplitViewProps> = ({
         onNextPage={onNextPage}
         onLayoutChange={onLayoutChange}
         onOrientationChange={onOrientationChange}
-        onIncreaseStudentCount={onIncreaseStudentCount}
-        onDecreaseStudentCount={onDecreaseStudentCount}
         onClose={onCloseSplitView}
         sessionId={activeSession.id}
         senderId={activeSession.teacher_id}
