@@ -1,3 +1,4 @@
+
 import { supabase } from '@/integrations/supabase/client';
 import { ConnectionInfo, OperationHandler } from './types';
 import { PayloadConverter } from './PayloadConverter';
@@ -9,85 +10,36 @@ const debugLog = createDebugLogger('connection');
 export class Connection {
   private info: ConnectionInfo;
   private connectionId: string;
-  private subscribed: boolean = false;
   
   constructor(config: SyncConfig, handler: OperationHandler) {
     this.connectionId = `${config.whiteboardId}-${config.sessionId}`;
     
-    // Generate unique channel name to prevent conflicts
-    const channelName = `whiteboard-${config.whiteboardId}-${Date.now()}`;
-    
-    try {
-      const channel = supabase
-        .channel(channelName)
-        .on(
-          'postgres_changes',
-          {
-            event: 'INSERT',
-            schema: 'public',
-            table: 'whiteboard_data',
-            filter: `board_id=eq.${config.whiteboardId}`
-          },
-          (payload) => this.handlePayload(payload)
-        );
-      
-      this.info = {
-        channel,
-        config,
-        handlers: new Set([handler]),
-        isConnected: false,
-        lastActivity: Date.now()
-      };
-      
-      // Subscribe with proper error handling
-      this.subscribeWithRetry();
-      
-    } catch (error) {
-      logError('Connection', `Failed to create connection for ${this.connectionId}`, error);
-      throw error;
-    }
-  }
-  
-  /**
-   * Subscribe with retry logic and error handling
-   */
-  private subscribeWithRetry(retryCount: number = 0) {
-    if (this.subscribed) {
-      debugLog('Connection', `Already subscribed to ${this.connectionId}`);
-      return;
-    }
-    
-    try {
-      this.info.channel.subscribe((status) => {
+    const channelName = `whiteboard-${config.whiteboardId}`;
+    const channel = supabase
+      .channel(channelName)
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'whiteboard_data',
+          filter: `board_id=eq.${config.whiteboardId}`
+        },
+        (payload) => this.handlePayload(payload)
+      )
+      .subscribe((status) => {
         debugLog('Subscription', `Status for ${this.connectionId}: ${status}`);
-        
-        if (status === 'SUBSCRIBED') {
-          this.info.isConnected = true;
-          this.subscribed = true;
-          this.info.lastActivity = Date.now();
-        } else if (status === 'CLOSED' || status === 'CHANNEL_ERROR') {
-          this.info.isConnected = false;
-          this.subscribed = false;
-          
-          // Retry subscription if failed and we haven't exceeded retry limit
-          if (retryCount < 3) {
-            debugLog('Connection', `Retrying subscription for ${this.connectionId} (attempt ${retryCount + 1})`);
-            setTimeout(() => {
-              this.subscribeWithRetry(retryCount + 1);
-            }, Math.pow(2, retryCount) * 1000); // Exponential backoff
-          } else {
-            logError('Connection', `Failed to establish connection for ${this.connectionId} after 3 attempts`);
-          }
-        }
+        this.info.isConnected = status === 'SUBSCRIBED';
+        this.info.lastActivity = Date.now();
       });
-    } catch (error) {
-      logError('Connection', `Subscription error for ${this.connectionId}`, error);
-      if (retryCount < 3) {
-        setTimeout(() => {
-          this.subscribeWithRetry(retryCount + 1);
-        }, Math.pow(2, retryCount) * 1000);
-      }
-    }
+    
+    this.info = {
+      channel,
+      config,
+      handlers: new Set([handler]),
+      isConnected: false,
+      lastActivity: Date.now()
+    };
   }
   
   /**
@@ -96,28 +48,24 @@ export class Connection {
   private handlePayload(payload: any) {
     debugLog('Payload', 'Received operation', payload);
     
-    try {
-      // Convert to our internal operation format
-      const operation = PayloadConverter.toOperation(payload);
-      
-      debugLog('Payload', 'Converted operation', operation);
-      
-      // Update activity timestamp
-      this.info.lastActivity = Date.now();
-      
-      // Notify all registered handlers except the sender
-      this.info.handlers.forEach(handler => {
-        // Don't send operations back to the sender
-        if (operation.sender_id !== this.info.config.senderId) {
-          debugLog('Dispatch', `Operation to handler from: ${operation.sender_id}, local: ${this.info.config.senderId}`);
-          handler(operation);
-        } else {
-          debugLog('Dispatch', `Skipping operation from self (${operation.sender_id})`);
-        }
-      });
-    } catch (error) {
-      logError('Connection', 'Error handling payload', error);
-    }
+    // Convert to our internal operation format
+    const operation = PayloadConverter.toOperation(payload);
+    
+    debugLog('Payload', 'Converted operation', operation);
+    
+    // Update activity timestamp
+    this.info.lastActivity = Date.now();
+    
+    // Notify all registered handlers except the sender
+    this.info.handlers.forEach(handler => {
+      // Don't send operations back to the sender
+      if (operation.sender_id !== this.info.config.senderId) {
+        debugLog('Dispatch', `Operation to handler from: ${operation.sender_id}, local: ${this.info.config.senderId}`);
+        handler(operation);
+      } else {
+        debugLog('Dispatch', `Skipping operation from self (${operation.sender_id})`);
+      }
+    });
   }
   
   /**
@@ -176,15 +124,7 @@ export class Connection {
    * Close this connection
    */
   close() {
-    try {
-      if (this.info.channel) {
-        supabase.removeChannel(this.info.channel);
-        this.subscribed = false;
-        this.info.isConnected = false;
-      }
-    } catch (error) {
-      logError('Connection', `Error closing connection ${this.connectionId}`, error);
-    }
+    supabase.removeChannel(this.info.channel);
   }
   
   /**
