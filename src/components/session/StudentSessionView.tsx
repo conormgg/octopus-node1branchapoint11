@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from 'react';
 import { useParams, useLocation, useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
@@ -23,16 +22,11 @@ const StudentSessionContent: React.FC<{ state: LocationState; sessionSlug?: stri
   const { isExpired, sessionEndReason, isRedirecting } = useSessionExpirationContext();
   const [participantId, setParticipantId] = useState<number | null>(null);
 
-  // Set up student presence tracking
-  useStudentPresence({
-    sessionId: state.sessionId,
-    studentName: state.studentName,
-    participantId: participantId || undefined,
-  });
-
-  // Get participant ID for presence tracking
+  // Get participant ID first
   useEffect(() => {
     const fetchParticipantId = async () => {
+      console.log(`[StudentSession] Fetching participant ID for ${state.studentName} in session ${state.sessionId}`);
+      
       try {
         const { data, error } = await supabase
           .from('session_participants')
@@ -41,16 +35,29 @@ const StudentSessionContent: React.FC<{ state: LocationState; sessionSlug?: stri
           .eq('student_name', state.studentName)
           .single();
 
-        if (error) throw error;
+        if (error) {
+          console.error('[StudentSession] Error fetching participant ID:', error);
+          throw error;
+        }
+        
+        console.log(`[StudentSession] Found participant ID: ${data.id} for ${state.studentName}`);
         setParticipantId(data.id);
       } catch (error) {
-        console.error('Error fetching participant ID:', error);
+        console.error('[StudentSession] Exception fetching participant ID:', error);
       }
     };
 
     fetchParticipantId();
   }, [state.sessionId, state.studentName]);
 
+  // Set up student presence tracking ONLY after participantId is available
+  useStudentPresence({
+    sessionId: state.sessionId,
+    studentName: state.studentName,
+    participantId: participantId || undefined,
+  });
+
+  // ... keep existing code for session expiration handling and UI rendering
   useEffect(() => {
     if (isExpired && isRedirecting) {
       // Clear whiteboard state from memory for all boards related to this session
@@ -114,6 +121,9 @@ const StudentSessionContent: React.FC<{ state: LocationState; sessionSlug?: stri
           <div>
             <h1 className="text-lg font-semibold">Welcome, {state.studentName}</h1>
             <p className="text-sm text-gray-600">Board: Student {state.boardSuffix}</p>
+            {participantId && (
+              <p className="text-xs text-green-600">Participant ID: {participantId}</p>
+            )}
           </div>
           <div className="text-sm text-gray-500">
             Session: {sessionSlug}
