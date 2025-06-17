@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { GraduationCap, Users, Plus, Minus, UserPlus, Monitor, ChevronUp, ChevronDown, Columns2, Rows2, Settings, Copy, Check, ExternalLink, LogOut, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -19,6 +18,7 @@ interface Session {
 
 interface TeacherHeaderProps {
   studentCount: number;
+  activeStudentCount?: number; // Add optional active student count
   currentLayout: LayoutOption | undefined;
   availableLayouts: LayoutOption[];
   selectedLayoutId: string;
@@ -38,6 +38,7 @@ interface TeacherHeaderProps {
 
 const TeacherHeader: React.FC<TeacherHeaderProps> = ({
   studentCount,
+  activeStudentCount,
   currentLayout,
   availableLayouts,
   selectedLayoutId,
@@ -184,12 +185,20 @@ const TeacherHeader: React.FC<TeacherHeaderProps> = ({
                 <span>Add Student</span>
               </Button>
               
-              {/* Student Count Controls */}
+              {/* Student Count Controls with Active/Total display */}
               <div className="flex items-center space-x-3">
                 <div className="flex items-center space-x-2 px-3 py-2 bg-gray-50 rounded-lg">
                   <Users className="w-4 h-4 text-gray-600" />
                   <span className="text-sm font-medium text-gray-700">
-                    {studentCount} Student{studentCount !== 1 ? 's' : ''}
+                    {activeStudentCount !== undefined ? (
+                      <>
+                        {activeStudentCount}/{studentCount} Student{studentCount !== 1 ? 's' : ''}
+                      </>
+                    ) : (
+                      <>
+                        {studentCount} Student{studentCount !== 1 ? 's' : ''}
+                      </>
+                    )}
                   </span>
                 </div>
                 

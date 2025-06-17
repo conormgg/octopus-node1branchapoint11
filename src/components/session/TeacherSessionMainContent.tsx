@@ -14,6 +14,7 @@ interface TeacherSessionMainContentProps {
     teacher_id: string;
   };
   studentCount: number;
+  activeStudentCount?: number; // Add optional active student count
   currentLayout: any;
   availableLayouts: any[];
   selectedLayoutId: string;
@@ -38,6 +39,7 @@ interface TeacherSessionMainContentProps {
 const TeacherSessionMainContent: React.FC<TeacherSessionMainContentProps> = ({
   activeSession,
   studentCount,
+  activeStudentCount,
   currentLayout,
   availableLayouts,
   selectedLayoutId,

@@ -4,16 +4,9 @@ import TeacherSessionViewHeader from './TeacherSessionViewHeader';
 import TeacherSessionMainContent from './TeacherSessionMainContent';
 import { generateStudentBoardsFromParticipants, getStudentBoardsForPageWithStatus } from '@/utils/studentBoardGenerator';
 import { GridOrientation } from '../TeacherView';
+import { SessionParticipant } from '@/types/student';
 
-interface SessionStudent {
-  id: number;
-  student_name: string;
-  student_email?: string;
-  assigned_board_suffix: string;
-  joined_at: string | null;
-}
-
-interface StudentWithStatus extends SessionStudent {
+interface StudentWithStatus extends SessionParticipant {
   hasJoined: boolean;
   boardId: string;
   status: 'active' | 'pending';
@@ -30,7 +23,7 @@ interface Session {
 
 interface TeacherSessionViewProps {
   activeSession: Session;
-  sessionStudents: SessionStudent[];
+  sessionStudents: SessionParticipant[];
   studentsWithStatus: StudentWithStatus[];
   activeStudentCount: number;
   totalStudentCount: number;
@@ -87,7 +80,7 @@ const TeacherSessionView: React.FC<TeacherSessionViewProps> = ({
   onEndSession,
   onSignOut,
 }) => {
-  // Generate student boards with status information
+  // Generate student boards with status information using the correct SessionParticipant[] type
   const allStudentBoards = generateStudentBoardsFromParticipants(sessionStudents);
   const currentStudentBoards = getStudentBoardsForPageWithStatus(
     allStudentBoards, 
@@ -120,7 +113,6 @@ const TeacherSessionView: React.FC<TeacherSessionViewProps> = ({
       <TeacherSessionMainContent
         activeSession={activeSession}
         studentCount={totalStudentCount}
-        activeStudentCount={activeStudentCount}
         currentLayout={currentLayout}
         availableLayouts={availableLayouts}
         selectedLayoutId={selectedLayoutId}
