@@ -1,4 +1,3 @@
-
 /**
  * @fileoverview Coordinates all whiteboard operations for shared state
  * @description Central coordination point for drawing, syncing, history, and image operations
@@ -161,7 +160,7 @@ export const useSharedOperationsCoordinator = (
 
   return {
     syncState,
-    addToHistory,
+    addToHistory, // This will be passed to persistence integration
     undo: finalUndo,
     redo: finalRedo,
     canUndo: finalCanUndo,

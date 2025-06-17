@@ -1,4 +1,3 @@
-
 /**
  * @fileoverview Operations handler for shared whiteboards
  * @description Coordinates operations, persistence, and pointer handling
@@ -30,8 +29,15 @@ export const useSharedOperationsHandler = (
   // Coordinate all operations (drawing, sync, history, etc.) with whiteboard ID
   const operations = useSharedOperationsCoordinator(syncConfig, state, setState, whiteboardId);
 
-  // Handle persistence and context integration
-  useSharedPersistenceIntegration(state, setState, syncConfig, whiteboardId);
+  // Handle persistence and context integration - now with addToHistory for history replay
+  useSharedPersistenceIntegration(
+    state, 
+    setState, 
+    syncConfig, 
+    whiteboardId, 
+    undefined, // isApplyingRemoteOperation - will be passed from parent if needed
+    operations.addToHistory // NEW: Pass addToHistory for history replay
+  );
 
   // Pointer event handlers with proper safety checks
   const { handlePointerDown, handlePointerMove, handlePointerUp } = useSharedPointerHandlers(
