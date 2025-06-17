@@ -26,7 +26,13 @@ export const useSharedHistoryReplay = () => {
   ): HistoryReplayResult => {
     console.log(`[HistoryReplay] Starting replay of ${orderedOperations.length} operations`);
     
-    let currentState = { ...initialState };
+    // Start with a complete WhiteboardState object
+    let currentState: WhiteboardState = {
+      ...initialState,
+      lines: [...initialState.lines],
+      images: [...initialState.images]
+    };
+    
     const historyStack: Array<{
       lines: any[];
       images: any[];
@@ -52,7 +58,7 @@ export const useSharedHistoryReplay = () => {
         return;
       }
       
-      // Apply the operation to get the new state
+      // Apply the operation to get the new state - now using complete WhiteboardState
       const newState = applyOperation(currentState, operation);
       
       // Create activity metadata for this operation
@@ -72,8 +78,12 @@ export const useSharedHistoryReplay = () => {
       // Call addToHistory to properly integrate with the history system
       addToHistory(snapshot, activityMetadata);
       
-      // Update current state for next iteration
-      currentState = newState;
+      // Update current state for next iteration - maintain complete state structure
+      currentState = {
+        ...currentState,
+        lines: [...newState.lines],
+        images: [...newState.images]
+      };
     });
     
     console.log(`[HistoryReplay] Replay complete. Final state: ${currentState.lines.length} lines, ${currentState.images.length} images`);
