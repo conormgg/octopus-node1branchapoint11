@@ -10,7 +10,7 @@ interface StudentBoardCardProps {
   isMaximized: boolean;
   onMaximize: (boardId: string) => void;
   onMinimize: () => void;
-  onRemoveStudent?: (boardId: string) => void;
+  onRemoveStudent?: (studentId: number) => void; // Changed from boardId to studentId
   onAddStudent?: () => void;
   sessionId?: string;
   senderId?: string;
@@ -28,7 +28,7 @@ const StudentBoardCard: React.FC<StudentBoardCardProps> = ({
   senderId,
   portalContainer,
 }) => {
-  // Empty slot - compressed/hidden for now, can be expanded later for "add student" functionality
+  // Empty slot - available for new students
   if (!boardInfo) {
     return (
       <div className="h-full flex items-center justify-center bg-gray-50 border-2 border-dashed border-gray-200 rounded-lg opacity-50">
@@ -59,7 +59,7 @@ const StudentBoardCard: React.FC<StudentBoardCardProps> = ({
           <Button
             variant="outline"
             size="sm"
-            onClick={() => onRemoveStudent?.(boardInfo.boardId)}
+            onClick={() => boardInfo.participant && onRemoveStudent?.(boardInfo.participant.id)}
             className="p-1 h-auto bg-red-50 hover:bg-red-100 border-red-200"
             title="Remove pending student"
           >
@@ -99,6 +99,21 @@ const StudentBoardCard: React.FC<StudentBoardCardProps> = ({
           </span>
         </div>
       </div>
+
+      {/* Optional remove button for active students (usually hidden) */}
+      {onRemoveStudent && (
+        <div className="absolute top-2 right-2 z-10 opacity-0 group-hover:opacity-100 transition-opacity">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => boardInfo.participant && onRemoveStudent(boardInfo.participant.id)}
+            className="p-1 h-auto bg-red-50 hover:bg-red-100 border-red-200"
+            title="Remove student"
+          >
+            <X className="w-4 h-4 text-red-600" />
+          </Button>
+        </div>
+      )}
 
       <WhiteboardPlaceholder
         id={boardInfo.boardId}

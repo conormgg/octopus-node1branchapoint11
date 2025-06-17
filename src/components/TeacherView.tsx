@@ -30,6 +30,9 @@ const TeacherView: React.FC<TeacherViewProps> = ({
     activeStudentCount, 
     totalStudentCount, 
     handleStudentCountChange,
+    addStudent,
+    removeStudent,
+    getNextAvailableSuffix,
     isLoading 
   } = useSessionStudents(activeSession);
   
@@ -64,6 +67,27 @@ const TeacherView: React.FC<TeacherViewProps> = ({
     setIsUrlModalOpen(showUrlModal);
   }, [showUrlModal]);
 
+  // Enhanced student management functions
+  const handleAddStudent = async () => {
+    const success = await addStudent();
+    if (!success) {
+      const nextSuffix = getNextAvailableSuffix();
+      if (!nextSuffix) {
+        console.warn('Cannot add student: Maximum capacity (8 students) reached');
+      } else {
+        console.error('Failed to add student');
+      }
+    }
+  };
+
+  const handleRemoveStudent = async (studentId: number) => {
+    const success = await removeStudent(studentId);
+    if (!success) {
+      console.error('Failed to remove student');
+    }
+  };
+
+  // Legacy functions for backward compatibility
   const increaseStudentCount = () => {
     handleStudentCountChange(totalStudentCount + 1);
   };
@@ -125,6 +149,8 @@ const TeacherView: React.FC<TeacherViewProps> = ({
         onNextPage={handleNextPage}
         onIncreaseStudentCount={increaseStudentCount}
         onDecreaseStudentCount={decreaseStudentCount}
+        onAddStudent={handleAddStudent}
+        onRemoveStudent={handleRemoveStudent}
         onEndSession={onEndSession!}
         onSignOut={onSignOut!}
       />

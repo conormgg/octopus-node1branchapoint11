@@ -47,6 +47,8 @@ interface TeacherSessionViewProps {
   onNextPage: () => void;
   onIncreaseStudentCount: () => void;
   onDecreaseStudentCount: () => void;
+  onAddStudent?: () => void; // New individual add function
+  onRemoveStudent?: (studentId: number) => void; // New individual remove function
   onEndSession: () => void;
   onSignOut: () => void;
 }
@@ -77,6 +79,8 @@ const TeacherSessionView: React.FC<TeacherSessionViewProps> = ({
   onNextPage,
   onIncreaseStudentCount,
   onDecreaseStudentCount,
+  onAddStudent,
+  onRemoveStudent,
   onEndSession,
   onSignOut,
 }) => {
@@ -140,6 +144,8 @@ const TeacherSessionView: React.FC<TeacherSessionViewProps> = ({
         onOrientationChange={onOrientationChange}
         onIncreaseStudentCount={onIncreaseStudentCount}
         onDecreaseStudentCount={onDecreaseStudentCount}
+        onAddStudent={onAddStudent}
+        onRemoveStudent={onRemoveStudent}
         onCloseSplitView={onCloseSplitView}
       />
     </div>

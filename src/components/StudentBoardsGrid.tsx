@@ -21,7 +21,7 @@ interface StudentBoardsGridProps {
   onMinimize: () => void;
   onPreviousPage: () => void;
   onNextPage: () => void;
-  onRemoveStudent?: (boardId: string) => void;
+  onRemoveStudent?: (studentId: number) => void; // Changed from boardId to studentId
   onAddStudent?: () => void;
   isHeaderCollapsed?: boolean;
   sessionId?: string;
