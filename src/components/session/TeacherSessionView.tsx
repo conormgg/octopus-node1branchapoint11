@@ -82,11 +82,14 @@ const TeacherSessionView: React.FC<TeacherSessionViewProps> = ({
 }) => {
   // Generate student boards with status information using the correct SessionParticipant[] type
   const allStudentBoards = generateStudentBoardsFromParticipants(sessionStudents);
-  const currentStudentBoards = getStudentBoardsForPageWithStatus(
+  const currentStudentBoardsInfo = getStudentBoardsForPageWithStatus(
     allStudentBoards, 
     currentPage, 
     currentLayout?.studentsPerPage || 4
   );
+
+  // Extract boardId strings for components that expect string[]
+  const currentStudentBoards = currentStudentBoardsInfo.map(board => board.boardId);
 
   return (
     <div className="min-h-screen bg-gray-100">
