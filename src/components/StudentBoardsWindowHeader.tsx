@@ -2,7 +2,7 @@
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
-import { Users, Plus, Minus, UserPlus, ChevronUp, ChevronDown, Columns2, Rows2 } from 'lucide-react';
+import { ChevronUp, ChevronDown, Columns2, Rows2 } from 'lucide-react';
 import LayoutSelector from './LayoutSelector';
 import { LayoutOption } from '@/utils/layoutCalculator';
 import { GridOrientation } from './TeacherView';
@@ -17,8 +17,6 @@ interface StudentBoardsWindowHeaderProps {
   gridOrientation: GridOrientation;
   onLayoutChange: (layoutId: string) => void;
   onOrientationChange: (orientation: GridOrientation) => void;
-  onIncreaseStudentCount: () => void;
-  onDecreaseStudentCount: () => void;
   onClose: () => void;
   isCollapsed: boolean;
   onToggleCollapse: () => void;
@@ -34,8 +32,6 @@ const StudentBoardsWindowHeader: React.FC<StudentBoardsWindowHeaderProps> = ({
   gridOrientation,
   onLayoutChange,
   onOrientationChange,
-  onIncreaseStudentCount,
-  onDecreaseStudentCount,
   onClose,
   isCollapsed,
   onToggleCollapse,
@@ -98,43 +94,6 @@ const StudentBoardsWindowHeader: React.FC<StudentBoardsWindowHeaderProps> = ({
               <span className="text-sm text-gray-600">
                 {gridOrientation === 'columns-first' ? 'Columns First' : 'Rows First'}
               </span>
-            </div>
-            
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={onIncreaseStudentCount}
-              disabled={studentCount >= 8}
-              className="flex items-center space-x-2"
-            >
-              <UserPlus className="w-4 h-4" />
-              <span>Add Student</span>
-            </Button>
-            
-            <div className="flex items-center space-x-2 px-3 py-2 bg-gray-50 rounded-lg">
-              <Users className="w-4 h-4 text-gray-600" />
-              <span className="text-sm font-medium text-gray-700">
-                {studentCount} Student{studentCount !== 1 ? 's' : ''}
-              </span>
-            </div>
-            
-            <div className="flex items-center space-x-1">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={onDecreaseStudentCount}
-                disabled={studentCount <= 1}
-              >
-                <Minus className="w-4 h-4" />
-              </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={onIncreaseStudentCount}
-                disabled={studentCount >= 8}
-              >
-                <Plus className="w-4 h-4" />
-              </Button>
             </div>
           </div>
           

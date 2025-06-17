@@ -11,11 +11,39 @@ App
     ├── TeacherDashboard (for teachers)
     │   ├── CreateSessionForm
     │   └── TeacherSessionView
-    │       ├── TeacherHeader
-    │       ├── TeacherMainBoard
-    │       └── StudentBoardsGrid
+    │       ├── TeacherSessionViewHeader
+    │       │   └── TeacherHeader (with Session Options dropdown)
+    │       └── TeacherSessionMainContent
+    │           ├── TeacherSessionSplitView (split view mode)
+    │           │   ├── StudentBoardsWindow (portal-based window)
+    │           │   └── TeacherMainBoard
+    │           └── TeacherSessionResizablePanels (normal mode)
+    │               ├── TeacherMainBoard  
+    │               └── StudentBoardsGrid
     └── StudentView (for students)
         └── StudentSessionView
+```
+
+## Session Management Structure
+
+```
+TeacherSessionView
+├── Session Student Management (useSessionStudents hook)
+│   ├── Individual Student Addition (via Session Options)
+│   ├── Individual Student Removal (via Session Options)
+│   └── Real-time Participant Updates
+├── Split View Window System
+│   ├── StudentBoardsWindow (portal-based)
+│   │   ├── WindowContentRenderer
+│   │   │   ├── WindowContentHeader
+│   │   │   │   └── StudentBoardsWindowHeader (layout controls only)
+│   │   │   └── WindowContentBody
+│   │   │       └── StudentBoardsGrid
+│   │   └── Window State Management (useWindowContentState)
+│   └── Teacher Main Board (remains in main window)
+└── Normal Resizable Panels Mode
+    ├── TeacherMainBoard
+    └── StudentBoardsGrid
 ```
 
 ## Canvas Component Structure
@@ -55,6 +83,27 @@ WhiteboardContent
 └── Whiteboard (standalone)
 ```
 
+## Session Options Integration
+
+```
+TeacherHeader
+├── Session Options Dropdown
+│   ├── Session URL Management
+│   │   ├── Copy URL
+│   │   └── Open in New Window
+│   ├── Individual Student Management
+│   │   ├── Add Student Dialog
+│   │   └── Remove Student Dialog
+│   ├── Session Controls
+│   │   ├── End Session
+│   │   └── Sign Out
+│   └── Session Information Display
+└── Layout & View Controls
+    ├── Layout Selector
+    ├── Grid Orientation Toggle
+    └── Split View Toggle
+```
+
 ## Eye Button Integration
 
 ```
@@ -82,6 +131,12 @@ useSharedWhiteboardState
     ├── useTouchEventHandlers
     └── useWheelEventHandlers
 
+useSessionStudents (Simplified)
+├── Real-time Participant Subscription
+├── Individual Student Addition
+├── Individual Student Removal
+└── Student Status Tracking (active/pending)
+
 useSharedPersistenceIntegration
 ├── useWhiteboardPersistence (database operations)
 ├── useSharedHistoryReplay (pure simulation)
@@ -94,52 +149,21 @@ useEyeButtonLogic
 └── Last Activity Updates
 ```
 
-## Collaborative Undo/Redo Hook Structure (Phase 2)
+## Window System Architecture
 
 ```
-useHistoryState (Enhanced)
-├── Local History Management
-├── Sync Operation Integration (sendOperation parameter)
-├── Activity Metadata Support
-└── Remote Operation Compatibility
+Split View Mode:
+├── Main Browser Window
+│   ├── TeacherHeader (with all controls)
+│   └── Teacher's Whiteboard Only
+└── Portal-based Student Window
+    ├── WindowContentHeader (layout controls only)
+    └── Student Boards Grid
 
-useSharedHistoryReplay (Pure Simulator)
-├── Operation Processing Pipeline
-├── History Stack Simulation
-├── Undo/Redo State Transitions
-└── Activity Metadata Reconstruction
-
-useRemoteOperationHandler (Extended)
-├── Draw/Erase Operations
-├── Undo/Redo Operations (new)
-├── Image Operations
-└── State Synchronization
-```
-
-## Performance Monitoring Hook Structure
-
-```
-usePerformanceMonitor
-└── usePerformanceCoordinator
-    ├── usePerformanceMetrics
-    ├── usePerformanceTimers
-    ├── useMemoryMonitor
-    ├── usePerformanceReporting
-    └── useFpsTracker
-
-useMonitoringIntegration
-└── useIntegrationCore
-    ├── usePerformanceCoordinator (shared)
-    ├── useOperationWrappers
-    ├── useMonitoringTypes
-    └── useMonitoringCore
-
-useOptimizationTracker
-├── useDrawingAnalysis
-├── useSyncAnalysis
-├── useRenderAnalysis
-├── useMemoryAnalysis
-└── usePerformanceScoring
+Normal Mode:
+└── Resizable Panels
+    ├── Teacher's Whiteboard (left panel)
+    └── Student Boards Grid (right panel)
 ```
 
 ## State Flow
@@ -162,38 +186,22 @@ Sync Operations (if collaborative)
 Performance Monitoring (automatic via wrappers)
 ```
 
-## Collaborative Undo/Redo Flow (Phase 2)
+## Student Management Flow
 
 ```
-Teacher Action (Undo/Redo)
+Teacher Action (Add/Remove Student)
     ↓
-History Operation (useHistoryState)
+Session Options Dropdown
     ↓
-Sync Operation (sendOperation)
+Individual Student Dialog
     ↓
-Supabase Realtime Transmission
+Database Operation (session_participants table)
     ↓
-Student Reception (useRemoteOperationHandler)
+Real-time Update (Supabase subscription)
     ↓
-Local Undo/Redo Application
+UI State Refresh (all connected components)
     ↓
-State Synchronization
-```
-
-## History Replay Flow (Phase 2)
-
-```
-Component Mount/Remount
-    ↓
-Database Operations Fetch (useWhiteboardPersistence)
-    ↓
-Pure History Simulation (useSharedHistoryReplay)
-    ↓
-State Reconstruction (replayOperations)
-    ↓
-Final State Application (useSharedPersistenceIntegration)
-    ↓
-UI Update and History Stack Initialization
+Layout Recalculation (based on new student count)
 ```
 
 ## Eye Button State Flow
@@ -212,34 +220,4 @@ Eye Button State Update
 UI Button Enable/Disable
     ↓
 User Click → Viewport Centering
-```
-
-## Performance Monitoring Flow
-
-```
-Operation Execution
-    ↓
-Operation Wrappers (automatic instrumentation)
-    ↓
-Timer Management + Metrics Collection
-    ↓
-Performance Coordinator (aggregation)
-    ↓
-Analysis Modules (optimization tracking)
-    ↓
-Reporting + Recommendations
-```
-
-## Undo/Redo Patterns (Phase 2)
-
-```
-// Synchronized Undo Pattern
-const { undo, canUndo } = useHistoryState(state, setState, undefined, sendOperation);
-
-// Pure History Replay Pattern
-const { replayOperations } = useSharedHistoryReplay();
-const { finalState, historyStack, finalHistoryIndex } = replayOperations(operations, initialState);
-
-// Remote Undo/Redo Handling Pattern
-const { handleRemoteOperation } = useRemoteOperationHandler(setState, undo, redo);
 ```

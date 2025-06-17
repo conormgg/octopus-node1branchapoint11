@@ -62,7 +62,7 @@ export const useSessionStudents = (activeSession: Session | null | undefined) =>
     return sessionStudents.map(student => ({
       ...student,
       hasJoined: student.joined_at !== null,
-      boardId: `student-${student.assigned_board_suffix.toLowerCase()}`, // Maps A -> student-a, B -> student-b, etc.
+      boardId: `student-${student.assigned_board_suffix.toLowerCase()}`,
       status: student.joined_at ? 'active' : 'pending' as 'active' | 'pending'
     }));
   };
@@ -72,51 +72,6 @@ export const useSessionStudents = (activeSession: Session | null | undefined) =>
   
   // Total registered students
   const totalStudentCount = sessionStudents.length;
-
-  // Fixed student count change to ensure joined_at starts as null
-  const handleStudentCountChange = async (newCount: number) => {
-    if (!activeSession) return;
-    
-    const clampedCount = Math.max(1, Math.min(8, newCount));
-    const currentCount = sessionStudents.length;
-    
-    if (clampedCount > currentCount) {
-      // Add new students - ensure joined_at is null (pending state)
-      const studentsToAdd = clampedCount - currentCount;
-      for (let i = 0; i < studentsToAdd; i++) {
-        const nextSuffix = String.fromCharCode(65 + currentCount + i); // A, B, C, etc.
-        
-        try {
-          await supabase
-            .from('session_participants')
-            .insert({
-              session_id: activeSession.id,
-              student_name: `Student ${nextSuffix}`,
-              assigned_board_suffix: nextSuffix,
-              student_email: null,
-              joined_at: null // CRITICAL: Start as null (pending)
-            });
-        } catch (error) {
-          console.error('Error adding student:', error);
-        }
-      }
-    } else if (clampedCount < currentCount) {
-      // Remove students (remove from the end)
-      const studentsToRemove = currentCount - clampedCount;
-      const studentsToDelete = sessionStudents
-        .slice(-studentsToRemove)
-        .map(s => s.id);
-        
-      try {
-        await supabase
-          .from('session_participants')
-          .delete()
-          .in('id', studentsToDelete);
-      } catch (error) {
-        console.error('Error removing students:', error);
-      }
-    }
-  };
 
   // Add individual student with name and email
   const handleAddIndividualStudent = async (name: string, email: string) => {
@@ -227,10 +182,8 @@ export const useSessionStudents = (activeSession: Session | null | undefined) =>
     studentsWithStatus: getStudentsWithStatus(),
     activeStudentCount,
     totalStudentCount,
-    handleStudentCountChange,
     handleAddIndividualStudent,
     handleRemoveIndividualStudent,
     isLoading,
-    studentCount: totalStudentCount, // Keep for backward compatibility
   };
 };
