@@ -22,7 +22,14 @@ const TeacherView: React.FC<TeacherViewProps> = ({
 }) => {
   const [isUrlModalOpen, setIsUrlModalOpen] = useState(showUrlModal);
 
-  const { sessionStudents, handleStudentCountChange, studentCount } = useSessionStudents(activeSession);
+  const { 
+    sessionStudents, 
+    studentsWithStatus, 
+    activeStudentCount, 
+    totalStudentCount, 
+    handleStudentCountChange,
+    isLoading 
+  } = useSessionStudents(activeSession);
   
   const {
     maximizedBoard,
@@ -43,23 +50,34 @@ const TeacherView: React.FC<TeacherViewProps> = ({
     handleToggleControlsCollapse,
     handlePreviousPage,
     handleNextPage,
-  } = useTeacherViewState(studentCount);
+  } = useTeacherViewState(totalStudentCount); // Use total count for layout calculations
 
   useEffect(() => {
     setIsUrlModalOpen(showUrlModal);
   }, [showUrlModal]);
 
   const increaseStudentCount = () => {
-    handleStudentCountChange(studentCount + 1);
+    handleStudentCountChange(totalStudentCount + 1);
   };
 
   const decreaseStudentCount = () => {
-    handleStudentCountChange(studentCount - 1);
+    handleStudentCountChange(totalStudentCount - 1);
   };
 
   const handleCloseUrlModal = () => {
     setIsUrlModalOpen(false);
   };
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-gray-100 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <p className="text-gray-600">Loading session...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <>
@@ -76,6 +94,9 @@ const TeacherView: React.FC<TeacherViewProps> = ({
       <TeacherSessionView
         activeSession={activeSession!}
         sessionStudents={sessionStudents}
+        studentsWithStatus={studentsWithStatus}
+        activeStudentCount={activeStudentCount}
+        totalStudentCount={totalStudentCount}
         maximizedBoard={maximizedBoard}
         currentPage={currentPage}
         selectedLayoutId={selectedLayoutId}

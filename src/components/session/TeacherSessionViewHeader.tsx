@@ -4,6 +4,7 @@ import TeacherHeader from '../TeacherHeader';
 
 interface TeacherSessionViewHeaderProps {
   studentCount: number;
+  activeStudentCount?: number; // Add optional active count
   currentLayout: any;
   availableLayouts: any[];
   selectedLayoutId: string;
@@ -30,6 +31,7 @@ interface TeacherSessionViewHeaderProps {
 
 const TeacherSessionViewHeader: React.FC<TeacherSessionViewHeaderProps> = ({
   studentCount,
+  activeStudentCount,
   currentLayout,
   availableLayouts,
   selectedLayoutId,
@@ -57,6 +59,7 @@ const TeacherSessionViewHeader: React.FC<TeacherSessionViewHeaderProps> = ({
 
       <TeacherHeader
         studentCount={studentCount}
+        activeStudentCount={activeStudentCount}
         currentLayout={currentLayout}
         availableLayouts={availableLayouts}
         selectedLayoutId={selectedLayoutId}

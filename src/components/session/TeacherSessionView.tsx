@@ -2,7 +2,7 @@
 import React from 'react';
 import TeacherSessionViewHeader from './TeacherSessionViewHeader';
 import TeacherSessionMainContent from './TeacherSessionMainContent';
-import { generateStudentBoards, getStudentBoardsForPage } from '@/utils/layoutCalculator';
+import { generateStudentBoardsFromParticipants, getStudentBoardsForPageWithStatus } from '@/utils/studentBoardGenerator';
 import { GridOrientation } from '../TeacherView';
 
 interface SessionStudent {
@@ -10,6 +10,13 @@ interface SessionStudent {
   student_name: string;
   student_email?: string;
   assigned_board_suffix: string;
+  joined_at: string | null;
+}
+
+interface StudentWithStatus extends SessionStudent {
+  hasJoined: boolean;
+  boardId: string;
+  status: 'active' | 'pending';
 }
 
 interface Session {
@@ -24,6 +31,9 @@ interface Session {
 interface TeacherSessionViewProps {
   activeSession: Session;
   sessionStudents: SessionStudent[];
+  studentsWithStatus: StudentWithStatus[];
+  activeStudentCount: number;
+  totalStudentCount: number;
   maximizedBoard: string | null;
   currentPage: number;
   selectedLayoutId: string;
@@ -51,6 +61,9 @@ interface TeacherSessionViewProps {
 const TeacherSessionView: React.FC<TeacherSessionViewProps> = ({
   activeSession,
   sessionStudents,
+  studentsWithStatus,
+  activeStudentCount,
+  totalStudentCount,
   maximizedBoard,
   currentPage,
   selectedLayoutId,
@@ -74,11 +87,9 @@ const TeacherSessionView: React.FC<TeacherSessionViewProps> = ({
   onEndSession,
   onSignOut,
 }) => {
-  const studentCount = sessionStudents.length;
-  
-  // Generate student boards and get current page boards
-  const allStudentBoards = generateStudentBoards(studentCount);
-  const currentStudentBoards = getStudentBoardsForPage(
+  // Generate student boards with status information
+  const allStudentBoards = generateStudentBoardsFromParticipants(sessionStudents);
+  const currentStudentBoards = getStudentBoardsForPageWithStatus(
     allStudentBoards, 
     currentPage, 
     currentLayout?.studentsPerPage || 4
@@ -87,7 +98,8 @@ const TeacherSessionView: React.FC<TeacherSessionViewProps> = ({
   return (
     <div className="min-h-screen bg-gray-100">
       <TeacherSessionViewHeader
-        studentCount={studentCount}
+        studentCount={totalStudentCount}
+        activeStudentCount={activeStudentCount}
         currentLayout={currentLayout}
         availableLayouts={availableLayouts}
         selectedLayoutId={selectedLayoutId}
@@ -107,7 +119,8 @@ const TeacherSessionView: React.FC<TeacherSessionViewProps> = ({
 
       <TeacherSessionMainContent
         activeSession={activeSession}
-        studentCount={studentCount}
+        studentCount={totalStudentCount}
+        activeStudentCount={activeStudentCount}
         currentLayout={currentLayout}
         availableLayouts={availableLayouts}
         selectedLayoutId={selectedLayoutId}
