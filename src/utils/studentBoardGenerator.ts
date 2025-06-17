@@ -5,63 +5,50 @@ export interface StudentBoardInfo {
   boardId: string;
   studentName: string;
   status: 'active' | 'pending';
-  participant?: SessionParticipant;
+  participant: SessionParticipant | null;
 }
 
-/**
- * Generate student board information from session participants
- */
-export const generateStudentBoardsFromParticipants = (
-  participants: SessionParticipant[]
-): StudentBoardInfo[] => {
-  return participants.map(participant => {
-    // Ensure we always have a valid board suffix
-    const boardSuffix = participant.assigned_board_suffix || 'unknown';
-    const boardId = `student-${boardSuffix.toLowerCase()}`; // A -> student-a, B -> student-b
-    
-    // Validate that we're creating a valid string ID
-    if (typeof boardId !== 'string' || !boardId) {
-      console.error('[generateStudentBoardsFromParticipants] Invalid boardId generated:', boardId, 'for participant:', participant);
-    }
-    
-    return {
-      boardId,
-      studentName: participant.student_name || 'Unknown Student',
-      status: participant.joined_at ? 'active' : 'pending',
-      participant
-    };
-  });
+// Generate stable StudentBoardInfo objects from participants
+export const generateStudentBoardsFromParticipants = (participants: SessionParticipant[]): StudentBoardInfo[] => {
+  return participants.map(participant => ({
+    boardId: `student-${participant.assigned_board_suffix.toLowerCase()}`,
+    studentName: participant.student_name,
+    status: participant.joined_at ? 'active' : 'pending' as 'active' | 'pending',
+    participant
+  }));
 };
 
-/**
- * Get student boards for a specific page with status information
- */
-export const getStudentBoardsForPageWithStatus = (
-  studentBoards: StudentBoardInfo[], 
-  page: number, 
-  studentsPerPage: number
-): StudentBoardInfo[] => {
-  const startIndex = page * studentsPerPage;
-  const endIndex = Math.min(startIndex + studentsPerPage, studentBoards.length);
-  return studentBoards.slice(startIndex, endIndex);
-};
-
-/**
- * Generate grid slots with proper typing for empty placeholders
- * This function fills out the grid to match the layout's expected number of slots
- */
+// Generate grid slots with null placeholders for empty positions
 export const generateGridSlotsWithStatus = (
   studentBoards: StudentBoardInfo[],
-  page: number,
+  currentPage: number,
   studentsPerPage: number
 ): (StudentBoardInfo | null)[] => {
-  const currentPageBoards = getStudentBoardsForPageWithStatus(studentBoards, page, studentsPerPage);
-  const slots: (StudentBoardInfo | null)[] = [...currentPageBoards];
+  const startIndex = currentPage * studentsPerPage;
+  const endIndex = startIndex + studentsPerPage;
   
-  // Fill remaining slots with null for empty placeholders
-  while (slots.length < studentsPerPage) {
-    slots.push(null);
-  }
+  // Create an array of the correct size, fill with nulls first
+  const slots: (StudentBoardInfo | null)[] = new Array(studentsPerPage).fill(null);
+  
+  // Fill in the actual student boards for this page
+  studentBoards.slice(startIndex, endIndex).forEach((board, index) => {
+    slots[index] = board;
+  });
   
   return slots;
+};
+
+// Stable key generator for StudentBoardInfo objects
+export const getStableBoardKey = (boardInfo: StudentBoardInfo | null, index: number): string => {
+  if (!boardInfo) {
+    return `empty-slot-${index}`;
+  }
+  
+  // Use participant ID if available for maximum stability
+  if (boardInfo.participant?.id) {
+    return `participant-${boardInfo.participant.id}`;
+  }
+  
+  // Fall back to boardId which should be stable
+  return boardInfo.boardId;
 };

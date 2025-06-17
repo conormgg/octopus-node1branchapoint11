@@ -1,4 +1,5 @@
-import React from 'react';
+
+import React, { memo } from 'react';
 import { X, UserPlus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import WhiteboardPlaceholder from './WhiteboardPlaceholder';
@@ -127,4 +128,35 @@ const StudentBoardCard: React.FC<StudentBoardCardProps> = ({
   );
 };
 
-export default StudentBoardCard;
+// Memoize the component with a custom comparison function
+const arePropsEqual = (prevProps: StudentBoardCardProps, nextProps: StudentBoardCardProps): boolean => {
+  // Compare boardInfo deeply
+  if (prevProps.boardInfo !== nextProps.boardInfo) {
+    if (!prevProps.boardInfo && !nextProps.boardInfo) return true;
+    if (!prevProps.boardInfo || !nextProps.boardInfo) return false;
+    
+    // Compare key properties that affect rendering
+    if (
+      prevProps.boardInfo.boardId !== nextProps.boardInfo.boardId ||
+      prevProps.boardInfo.studentName !== nextProps.boardInfo.studentName ||
+      prevProps.boardInfo.status !== nextProps.boardInfo.status ||
+      prevProps.boardInfo.participant?.id !== nextProps.boardInfo.participant?.id ||
+      prevProps.boardInfo.participant?.joined_at !== nextProps.boardInfo.participant?.joined_at
+    ) {
+      return false;
+    }
+  }
+
+  // Compare other props
+  return (
+    prevProps.isMaximized === nextProps.isMaximized &&
+    prevProps.sessionId === nextProps.sessionId &&
+    prevProps.senderId === nextProps.senderId &&
+    prevProps.onMaximize === nextProps.onMaximize &&
+    prevProps.onMinimize === nextProps.onMinimize &&
+    prevProps.onRemoveStudent === nextProps.onRemoveStudent &&
+    prevProps.onOpenAddDialog === nextProps.onOpenAddDialog
+  );
+};
+
+export default memo(StudentBoardCard, arePropsEqual);

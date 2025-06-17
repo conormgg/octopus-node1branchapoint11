@@ -1,4 +1,5 @@
-import React from 'react';
+
+import React, { memo, useMemo } from 'react';
 import { Users, ChevronLeft, ChevronRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import StudentBoardCard from './StudentBoardCard';
@@ -48,28 +49,52 @@ const StudentBoardsGrid: React.FC<StudentBoardsGridProps> = ({
   senderId,
   portalContainer,
 }) => {
+  // Memoize grid class calculation
+  const gridClass = useMemo(() => {
+    if (!currentLayout) return '';
+    return getOrientationAwareGridClasses(currentLayout, gridOrientation);
+  }, [currentLayout, gridOrientation]);
+
+  // Memoize student cards to prevent unnecessary re-renders
+  const studentCards = useMemo(() => {
+    return currentStudentBoardsInfo.map((boardInfo, index) => {
+      // Use a stable key based on boardId or position
+      const key = boardInfo?.boardId || `empty-slot-${index}`;
+      
+      return (
+        <div key={key} className="min-h-0 h-full">
+          <StudentBoardCard
+            boardInfo={boardInfo}
+            isMaximized={maximizedBoard === boardInfo?.boardId}
+            onMaximize={onMaximize}
+            onMinimize={onMinimize}
+            onRemoveStudent={onRemoveStudent}
+            onOpenAddDialog={onOpenAddDialog}
+            sessionId={sessionId}
+            senderId={senderId}
+            portalContainer={portalContainer}
+          />
+        </div>
+      );
+    });
+  }, [
+    currentStudentBoardsInfo,
+    maximizedBoard,
+    onMaximize,
+    onMinimize,
+    onRemoveStudent,
+    onOpenAddDialog,
+    sessionId,
+    senderId,
+    portalContainer
+  ]);
+
   const renderStudentGrid = () => {
     if (!currentLayout) return null;
 
-    const gridClass = getOrientationAwareGridClasses(currentLayout, gridOrientation);
-
     return (
       <div className={`grid ${gridClass} gap-3 h-full`}>
-        {currentStudentBoardsInfo.map((boardInfo, index) => (
-          <div key={boardInfo?.boardId || `empty-${index}`} className="min-h-0 h-full">
-            <StudentBoardCard
-              boardInfo={boardInfo}
-              isMaximized={maximizedBoard === boardInfo?.boardId}
-              onMaximize={onMaximize}
-              onMinimize={onMinimize}
-              onRemoveStudent={onRemoveStudent}
-              onOpenAddDialog={onOpenAddDialog}
-              sessionId={sessionId}
-              senderId={senderId}
-              portalContainer={portalContainer}
-            />
-          </div>
-        ))}
+        {studentCards}
       </div>
     );
   };
@@ -142,4 +167,22 @@ const StudentBoardsGrid: React.FC<StudentBoardsGridProps> = ({
   );
 };
 
-export default StudentBoardsGrid;
+// Memoize the component to prevent unnecessary re-renders
+const arePropsEqual = (prevProps: StudentBoardsGridProps, nextProps: StudentBoardsGridProps): boolean => {
+  return (
+    prevProps.studentCount === nextProps.studentCount &&
+    prevProps.activeStudentCount === nextProps.activeStudentCount &&
+    prevProps.currentPage === nextProps.currentPage &&
+    prevProps.totalPages === nextProps.totalPages &&
+    prevProps.gridOrientation === nextProps.gridOrientation &&
+    prevProps.maximizedBoard === nextProps.maximizedBoard &&
+    prevProps.isHeaderCollapsed === nextProps.isHeaderCollapsed &&
+    prevProps.currentLayout?.id === nextProps.currentLayout?.id &&
+    prevProps.sessionId === nextProps.sessionId &&
+    prevProps.senderId === nextProps.senderId &&
+    // Deep compare student boards info array
+    JSON.stringify(prevProps.currentStudentBoardsInfo) === JSON.stringify(nextProps.currentStudentBoardsInfo)
+  );
+};
+
+export default memo(StudentBoardsGrid, arePropsEqual);
