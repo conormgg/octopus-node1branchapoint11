@@ -16,135 +16,194 @@ export const useStudentPresence = ({
   const heartbeatIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const cleanupTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const isActiveRef = useRef<boolean>(false);
+  const lastHeartbeatRef = useRef<Date | null>(null);
 
   // Send heartbeat to indicate student is active
   const sendHeartbeat = useCallback(async () => {
     if (!participantId) {
-      console.log('[StudentPresence] Skipping heartbeat - no participantId yet');
+      console.log(`[StudentPresence:${studentName}] Skipping heartbeat - no participantId yet`);
       return;
     }
 
-    console.log(`[StudentPresence] Sending heartbeat for participant ${participantId} (${studentName})`);
+    const heartbeatTime = new Date();
+    console.log(`[StudentPresence:${studentName}] Attempting heartbeat for participant ${participantId} at ${heartbeatTime.toISOString()}`);
 
     try {
-      const { error } = await supabase
+      const { data, error } = await supabase
         .from('session_participants')
         .update({ 
-          last_ping_at: new Date().toISOString() 
+          last_ping_at: heartbeatTime.toISOString() 
         })
-        .eq('id', participantId);
+        .eq('id', participantId)
+        .select();
 
       if (error) {
-        console.error('[StudentPresence] Error sending heartbeat:', error);
-      } else {
-        console.log('[StudentPresence] Heartbeat sent successfully');
+        console.error(`[StudentPresence:${studentName}] Heartbeat failed:`, {
+          error,
+          participantId,
+          sessionId,
+          timestamp: heartbeatTime.toISOString()
+        });
+        return false;
       }
+
+      lastHeartbeatRef.current = heartbeatTime;
+      console.log(`[StudentPresence:${studentName}] Heartbeat SUCCESS:`, {
+        participantId,
+        timestamp: heartbeatTime.toISOString(),
+        updateCount: data?.length || 0,
+        data
+      });
+      return true;
     } catch (error) {
-      console.error('[StudentPresence] Exception sending heartbeat:', error);
+      console.error(`[StudentPresence:${studentName}] Heartbeat exception:`, {
+        error,
+        participantId,
+        sessionId,
+        timestamp: heartbeatTime.toISOString()
+      });
+      return false;
     }
-  }, [participantId, studentName]);
+  }, [participantId, studentName, sessionId]);
 
   // Mark student as inactive (reset to pending)
   const markInactive = useCallback(async () => {
     if (!participantId) {
-      console.log('[StudentPresence] Skipping mark inactive - no participantId');
+      console.log(`[StudentPresence:${studentName}] Skipping mark inactive - no participantId`);
       return;
     }
 
-    console.log(`[StudentPresence] Marking participant ${participantId} (${studentName}) as inactive`);
+    const inactiveTime = new Date();
+    console.log(`[StudentPresence:${studentName}] Marking participant ${participantId} as INACTIVE at ${inactiveTime.toISOString()}`);
 
     try {
-      const { error } = await supabase
+      const { data, error } = await supabase
         .from('session_participants')
         .update({ 
           joined_at: null,
           last_ping_at: null 
         })
-        .eq('id', participantId);
+        .eq('id', participantId)
+        .select();
 
       if (error) {
-        console.error('[StudentPresence] Error marking student inactive:', error);
-      } else {
-        console.log('[StudentPresence] Student marked as inactive successfully');
+        console.error(`[StudentPresence:${studentName}] Mark inactive failed:`, {
+          error,
+          participantId,
+          sessionId,
+          timestamp: inactiveTime.toISOString()
+        });
+        return false;
       }
+
+      console.log(`[StudentPresence:${studentName}] Mark inactive SUCCESS:`, {
+        participantId,
+        timestamp: inactiveTime.toISOString(),
+        updateCount: data?.length || 0,
+        data
+      });
+      return true;
     } catch (error) {
-      console.error('[StudentPresence] Exception marking student inactive:', error);
+      console.error(`[StudentPresence:${studentName}] Mark inactive exception:`, {
+        error,
+        participantId,
+        sessionId,
+        timestamp: inactiveTime.toISOString()
+      });
+      return false;
     }
-  }, [participantId, studentName]);
+  }, [participantId, studentName, sessionId]);
 
   // Start heartbeat monitoring
   const startHeartbeat = useCallback(() => {
     if (!participantId) {
-      console.log('[StudentPresence] Cannot start heartbeat - no participantId');
+      console.log(`[StudentPresence:${studentName}] Cannot start heartbeat - no participantId`);
       return;
     }
 
     if (isActiveRef.current) {
-      console.log('[StudentPresence] Heartbeat already active, skipping start');
+      console.log(`[StudentPresence:${studentName}] Heartbeat already active, skipping start`);
       return;
     }
 
-    console.log(`[StudentPresence] Starting heartbeat for participant ${participantId} (${studentName})`);
+    console.log(`[StudentPresence:${studentName}] STARTING heartbeat system for participant ${participantId}`);
     isActiveRef.current = true;
 
-    // Send initial heartbeat
-    sendHeartbeat();
+    // Send initial heartbeat immediately
+    sendHeartbeat().then(success => {
+      console.log(`[StudentPresence:${studentName}] Initial heartbeat result:`, success);
+    });
 
     // Set up recurring heartbeat every 30 seconds
     heartbeatIntervalRef.current = setInterval(() => {
-      sendHeartbeat();
+      console.log(`[StudentPresence:${studentName}] Scheduled heartbeat triggered`);
+      sendHeartbeat().then(success => {
+        console.log(`[StudentPresence:${studentName}] Scheduled heartbeat result:`, success);
+      });
     }, 30000);
+
+    console.log(`[StudentPresence:${studentName}] Heartbeat interval set up - will send every 30 seconds`);
   }, [sendHeartbeat, participantId, studentName]);
 
   // Stop heartbeat and mark inactive
   const stopHeartbeat = useCallback(() => {
-    console.log(`[StudentPresence] Stopping heartbeat for ${studentName}`);
+    console.log(`[StudentPresence:${studentName}] STOPPING heartbeat system`);
     isActiveRef.current = false;
 
     if (heartbeatIntervalRef.current) {
       clearInterval(heartbeatIntervalRef.current);
       heartbeatIntervalRef.current = null;
-      console.log('[StudentPresence] Heartbeat interval cleared');
+      console.log(`[StudentPresence:${studentName}] Heartbeat interval cleared`);
     }
 
-    // Mark student as inactive after a short delay
-    cleanupTimeoutRef.current = setTimeout(() => {
-      markInactive();
-    }, 1000);
+    // Mark student as inactive immediately (no delay)
+    console.log(`[StudentPresence:${studentName}] Calling markInactive immediately`);
+    markInactive().then(success => {
+      console.log(`[StudentPresence:${studentName}] markInactive result:`, success);
+    });
   }, [markInactive, studentName]);
 
   // Set up presence tracking only when participantId is available
   useEffect(() => {
     if (!participantId) {
-      console.log(`[StudentPresence] Waiting for participantId for ${studentName}`);
+      console.log(`[StudentPresence:${studentName}] Waiting for participantId...`);
       return;
     }
 
-    console.log(`[StudentPresence] Setting up presence tracking for participant ${participantId} (${studentName})`);
+    console.log(`[StudentPresence:${studentName}] Setting up presence tracking for participant ${participantId} in session ${sessionId}`);
     
     startHeartbeat();
 
     // Handle page visibility changes - more reliable than beforeunload/unload
     const handleVisibilityChange = () => {
-      console.log(`[StudentPresence] Visibility changed - hidden: ${document.hidden}`);
+      console.log(`[StudentPresence:${studentName}] Visibility changed - hidden: ${document.hidden}`);
       if (document.hidden) {
+        console.log(`[StudentPresence:${studentName}] Page hidden - stopping heartbeat`);
         stopHeartbeat();
       } else {
+        console.log(`[StudentPresence:${studentName}] Page visible - starting heartbeat`);
         startHeartbeat();
       }
     };
 
-    // Handle beforeunload as backup (less reliable)
+    // Handle beforeunload as backup
     const handleBeforeUnload = () => {
-      console.log('[StudentPresence] Page unloading - stopping heartbeat');
+      console.log(`[StudentPresence:${studentName}] Page unloading - stopping heartbeat`);
+      stopHeartbeat();
+    };
+
+    // Handle page unload
+    const handleUnload = () => {
+      console.log(`[StudentPresence:${studentName}] Page unload - stopping heartbeat`);
       stopHeartbeat();
     };
 
     document.addEventListener('visibilitychange', handleVisibilityChange);
     window.addEventListener('beforeunload', handleBeforeUnload);
+    window.addEventListener('unload', handleUnload);
 
     return () => {
-      console.log(`[StudentPresence] Cleaning up presence tracking for ${studentName}`);
+      console.log(`[StudentPresence:${studentName}] Cleaning up presence tracking`);
       stopHeartbeat();
       
       if (cleanupTimeoutRef.current) {
@@ -153,11 +212,14 @@ export const useStudentPresence = ({
 
       document.removeEventListener('visibilitychange', handleVisibilityChange);
       window.removeEventListener('beforeunload', handleBeforeUnload);
+      window.removeEventListener('unload', handleUnload);
     };
-  }, [participantId, startHeartbeat, stopHeartbeat, studentName]);
+  }, [participantId, startHeartbeat, stopHeartbeat, studentName, sessionId]);
 
   return {
     sendHeartbeat,
-    markInactive
+    markInactive,
+    isActive: isActiveRef.current,
+    lastHeartbeat: lastHeartbeatRef.current
   };
 };
