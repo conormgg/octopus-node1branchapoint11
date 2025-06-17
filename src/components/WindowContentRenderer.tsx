@@ -27,6 +27,8 @@ interface WindowContentRendererProps {
   onOrientationChange: (orientation: GridOrientation) => void;
   onIncreaseStudentCount: () => void;
   onDecreaseStudentCount: () => void;
+  onAddStudent?: () => void;
+  onRemoveStudent?: (studentId: number) => void;
   onClose: () => void;
   sessionId?: string;
   senderId?: string;
@@ -51,6 +53,8 @@ const WindowContentRenderer: React.FC<WindowContentRendererProps> = ({
   onOrientationChange,
   onIncreaseStudentCount,
   onDecreaseStudentCount,
+  onAddStudent,
+  onRemoveStudent,
   onClose,
   sessionId,
   senderId,
@@ -125,6 +129,8 @@ const WindowContentRenderer: React.FC<WindowContentRendererProps> = ({
         onMinimize={handleMinimize}
         onPreviousPage={onPreviousPage}
         onNextPage={onNextPage}
+        onAddStudent={onAddStudent}
+        onRemoveStudent={onRemoveStudent}
         sessionId={sessionId}
         senderId={senderId}
       />
