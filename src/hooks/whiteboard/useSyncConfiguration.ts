@@ -9,6 +9,12 @@ export const useSyncConfiguration = (
 ) => {
   // Memoize sync config to prevent recreating it on every render
   const syncConfig = useMemo(() => {
+    // Guard against invalid id parameter
+    if (!id || typeof id !== 'string') {
+      console.warn('[useSyncConfiguration] Invalid id provided:', id);
+      return undefined;
+    }
+
     if (!sessionId) return undefined;
 
     // Teacher's main board -> broadcasts to students

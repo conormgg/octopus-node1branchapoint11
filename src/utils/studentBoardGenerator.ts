@@ -14,12 +14,23 @@ export interface StudentBoardInfo {
 export const generateStudentBoardsFromParticipants = (
   participants: SessionParticipant[]
 ): StudentBoardInfo[] => {
-  return participants.map(participant => ({
-    boardId: `student-${participant.assigned_board_suffix.toLowerCase()}`, // A -> student-a, B -> student-b
-    studentName: participant.student_name,
-    status: participant.joined_at ? 'active' : 'pending',
-    participant
-  }));
+  return participants.map(participant => {
+    // Ensure we always have a valid board suffix
+    const boardSuffix = participant.assigned_board_suffix || 'unknown';
+    const boardId = `student-${boardSuffix.toLowerCase()}`; // A -> student-a, B -> student-b
+    
+    // Validate that we're creating a valid string ID
+    if (typeof boardId !== 'string' || !boardId) {
+      console.error('[generateStudentBoardsFromParticipants] Invalid boardId generated:', boardId, 'for participant:', participant);
+    }
+    
+    return {
+      boardId,
+      studentName: participant.student_name || 'Unknown Student',
+      status: participant.joined_at ? 'active' : 'pending',
+      participant
+    };
+  });
 };
 
 /**

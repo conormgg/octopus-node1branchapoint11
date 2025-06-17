@@ -37,6 +37,16 @@ const WhiteboardPlaceholder: React.FC<WhiteboardPlaceholderProps> = ({
 }) => {
   const [syncState, setSyncState] = useState<{ isConnected: boolean; isReceiveOnly: boolean } | null>(null);
   
+  // Guard against invalid id prop
+  if (!id || typeof id !== 'string') {
+    console.error('[WhiteboardPlaceholder] Invalid id prop received:', id);
+    return (
+      <div className="flex items-center justify-center h-full bg-gray-100 border-2 border-red-200 rounded-lg">
+        <p className="text-red-600">Invalid whiteboard ID</p>
+      </div>
+    );
+  }
+  
   // Use centralized session expiration context
   const { isExpired, expiresAt, sessionEndReason, isRedirecting } = useSessionExpirationContext();
 
