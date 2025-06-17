@@ -66,11 +66,9 @@ const TeacherSessionSplitView: React.FC<TeacherSessionSplitViewProps> = ({
       {/* Split View Window */}
       <StudentBoardsWindow
         studentCount={studentCount}
-        activeStudentCount={activeStudentCount || 0}
         currentLayout={currentLayout}
         availableLayouts={availableLayouts}
         selectedLayoutId={selectedLayoutId}
-        currentStudentBoards={currentStudentBoards}
         currentStudentBoardsInfo={currentStudentBoardsInfo}
         currentPage={currentPage}
         totalPages={totalPages}
@@ -83,6 +81,8 @@ const TeacherSessionSplitView: React.FC<TeacherSessionSplitViewProps> = ({
         onIncreaseStudentCount={onIncreaseStudentCount}
         onDecreaseStudentCount={onDecreaseStudentCount}
         onClose={onCloseSplitView}
+        sessionId={activeSession.id}
+        senderId={activeSession.teacher_id}
       />
 
       {/* Single panel view - only teacher's board when split view is active */}

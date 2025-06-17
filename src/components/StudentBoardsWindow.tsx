@@ -1,19 +1,15 @@
-
 import React, { useEffect, useState } from 'react';
-import { createPortal } from 'react-dom';
-import { useWindowManager } from './WindowManager';
-import StudentBoardsGrid from './StudentBoardsGrid';
-import StudentBoardsWindowHeader from './StudentBoardsWindowHeader';
-import WhiteboardPlaceholder from './WhiteboardPlaceholder';
+import WindowContentRenderer from './WindowContentRenderer';
 import { LayoutOption } from '@/utils/layoutCalculator';
-import { GridOrientation } from './TeacherView';
+import { GridOrientation } from '../TeacherView';
+import { StudentBoardInfo } from '@/utils/studentBoardGenerator';
 
 interface StudentBoardsWindowProps {
   studentCount: number;
-  currentLayout: LayoutOption | undefined;
+  currentLayout: LayoutOption;
   availableLayouts: LayoutOption[];
   selectedLayoutId: string;
-  currentStudentBoards: string[];
+  currentStudentBoardsInfo: (StudentBoardInfo | null)[];
   currentPage: number;
   totalPages: number;
   gridOrientation: GridOrientation;
@@ -34,7 +30,7 @@ const StudentBoardsWindow: React.FC<StudentBoardsWindowProps> = ({
   currentLayout,
   availableLayouts,
   selectedLayoutId,
-  currentStudentBoards,
+  currentStudentBoardsInfo,
   currentPage,
   totalPages,
   gridOrientation,
@@ -49,149 +45,51 @@ const StudentBoardsWindow: React.FC<StudentBoardsWindowProps> = ({
   sessionId,
   senderId,
 }) => {
-  const [container, setContainer] = useState<HTMLDivElement | null>(null);
-  const [isReady, setIsReady] = useState(false);
-  const [maximizedBoard, setMaximizedBoard] = useState<string | null>(null);
-  const [isHeaderCollapsed, setIsHeaderCollapsed] = useState(false);
-
-  const handleWindowReady = (newContainer: HTMLDivElement) => {
-    console.log('[StudentBoardsWindow] Window ready, container received:', newContainer);
-    setContainer(newContainer);
-    setIsReady(true);
-  };
-
-  const { windowRef, containerRef } = useWindowManager({
-    onWindowReady: handleWindowReady,
-    onClose,
-  });
-
-  // Use the container div as portal container instead of document.body
-  const portalContainer = container || null;
-
-  const toggleHeaderCollapse = () => {
-    setIsHeaderCollapsed(prev => !prev);
-  };
-
-  const handleMaximizeInWindow = (boardId: string) => {
-    setMaximizedBoard(boardId);
-  };
-
-  const handleMinimizeInWindow = () => {
-    setMaximizedBoard(null);
-  };
+  const [windowContainer, setWindowContainer] = useState<HTMLDivElement | null>(null);
 
   useEffect(() => {
-    console.log('[StudentBoardsWindow] Props changed:', {
-      studentCount,
-      currentLayout: currentLayout?.name,
-      currentStudentBoards,
-      currentPage,
-      totalPages,
-      gridOrientation,
-      isReady,
-      hasContainer: !!container,
-      hasPortalContainer: !!portalContainer,
-      maximizedBoard,
-      isHeaderCollapsed,
-    });
-  }, [studentCount, currentLayout, currentStudentBoards, currentPage, totalPages, gridOrientation, isReady, container, portalContainer, maximizedBoard, isHeaderCollapsed]);
+    const container = document.createElement('div');
+    container.id = 'student-boards-window';
+    document.body.appendChild(container);
+    setWindowContainer(container);
 
-  if (!container || !isReady) {
-    console.log('[StudentBoardsWindow] Container or window not ready yet', { container: !!container, isReady });
+    return () => {
+      document.body.removeChild(container);
+    };
+  }, []);
+
+  if (!windowContainer) {
     return null;
   }
 
-  if (maximizedBoard) {
-    return createPortal(
-      <div className="h-full w-full bg-gray-100 p-4">
-        <WhiteboardPlaceholder
-          id={maximizedBoard}
-          isMaximized={true}
-          onMinimize={handleMinimizeInWindow}
-          sessionId={sessionId}
-          senderId={senderId}
-          portalContainer={portalContainer}
-        />
-      </div>,
-      container
-    );
-  }
+  // Extract boardId strings for backward compatibility with components that still need them
+  const currentStudentBoards = currentStudentBoardsInfo
+    .filter(board => board !== null)
+    .map(board => board!.boardId);
 
-  return createPortal(
-    <div className="flex-1 bg-gray-100 flex flex-col min-h-0 relative group">
-      {/* Collapsible Header */}
-      <div 
-        className={`transition-all duration-300 ease-in-out ${
-          isHeaderCollapsed 
-            ? 'h-0 overflow-hidden opacity-0' 
-            : 'h-auto opacity-100 p-4'
-        }`}
-      >
-        <StudentBoardsWindowHeader
-          studentCount={studentCount}
-          currentLayoutName={currentLayout?.name}
-          currentPage={currentPage}
-          totalPages={totalPages}
-          availableLayouts={availableLayouts}
-          selectedLayoutId={selectedLayoutId}
-          gridOrientation={gridOrientation}
-          onLayoutChange={onLayoutChange}
-          onOrientationChange={onOrientationChange}
-          onIncreaseStudentCount={onIncreaseStudentCount}
-          onDecreaseStudentCount={onDecreaseStudentCount}
-          onClose={onClose}
-          isCollapsed={isHeaderCollapsed}
-          onToggleCollapse={toggleHeaderCollapse}
-        />
-      </div>
-
-      {/* Toggle Button - Always visible on hover */}
-      <button
-        onClick={toggleHeaderCollapse}
-        className={`absolute top-2 right-2 z-30 bg-white/90 backdrop-blur-sm border border-gray-200 rounded-lg p-2 shadow-sm transition-all duration-200 ${
-          isHeaderCollapsed 
-            ? 'opacity-0 group-hover:opacity-100' 
-            : 'opacity-100'
-        } hover:bg-white hover:shadow-md`}
-        title={isHeaderCollapsed ? 'Show Controls' : 'Hide Controls'}
-      >
-        <div className="w-4 h-4 flex flex-col justify-center">
-          <div className={`h-0.5 bg-gray-600 transition-all duration-200 ${
-            isHeaderCollapsed ? 'rotate-180' : ''
-          }`}>
-            <div className="w-full h-full bg-current"></div>
-          </div>
-          <div className="h-0.5 bg-gray-600 mt-1">
-            <div className="w-full h-full bg-current"></div>
-          </div>
-          <div className="h-0.5 bg-gray-600 mt-1">
-            <div className="w-full h-full bg-current"></div>
-          </div>
-        </div>
-      </button>
-      
-      {/* Main Content */}
-      <div className={`flex-1 min-h-0 ${isHeaderCollapsed ? 'p-4 pt-2' : 'px-4 pb-4'}`}>
-        <StudentBoardsGrid
-          studentCount={studentCount}
-          currentLayout={currentLayout}
-          currentStudentBoards={currentStudentBoards}
-          currentPage={currentPage}
-          totalPages={totalPages}
-          gridOrientation={gridOrientation}
-          maximizedBoard={maximizedBoard}
-          onMaximize={handleMaximizeInWindow}
-          onMinimize={handleMinimizeInWindow}
-          onPreviousPage={onPreviousPage}
-          onNextPage={onNextPage}
-          isHeaderCollapsed={isHeaderCollapsed}
-          sessionId={sessionId}
-          senderId={senderId}
-          portalContainer={portalContainer}
-        />
-      </div>
-    </div>,
-    container
+  return (
+    <WindowContentRenderer
+      container={windowContainer}
+      studentCount={studentCount}
+      currentLayout={currentLayout}
+      availableLayouts={availableLayouts}
+      selectedLayoutId={selectedLayoutId}
+      currentStudentBoards={currentStudentBoards}
+      currentStudentBoardsInfo={currentStudentBoardsInfo}
+      currentPage={currentPage}
+      totalPages={totalPages}
+      gridOrientation={gridOrientation}
+      onMaximize={onMaximize}
+      onPreviousPage={onPreviousPage}
+      onNextPage={onNextPage}
+      onLayoutChange={onLayoutChange}
+      onOrientationChange={onOrientationChange}
+      onIncreaseStudentCount={onIncreaseStudentCount}
+      onDecreaseStudentCount={onDecreaseStudentCount}
+      onClose={onClose}
+      sessionId={sessionId}
+      senderId={senderId}
+    />
   );
 };
 

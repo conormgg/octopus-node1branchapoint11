@@ -6,6 +6,7 @@ import WindowContentHeader from './window/WindowContentHeader';
 import WindowContentBody from './window/WindowContentBody';
 import { LayoutOption } from '@/utils/layoutCalculator';
 import { GridOrientation } from './TeacherView';
+import { StudentBoardInfo } from '@/utils/studentBoardGenerator';
 
 interface WindowContentRendererProps {
   container: HTMLDivElement;
@@ -14,6 +15,7 @@ interface WindowContentRendererProps {
   availableLayouts: LayoutOption[];
   selectedLayoutId: string;
   currentStudentBoards: string[];
+  currentStudentBoardsInfo: (StudentBoardInfo | null)[];
   currentPage: number;
   totalPages: number;
   gridOrientation: GridOrientation;
@@ -25,6 +27,8 @@ interface WindowContentRendererProps {
   onIncreaseStudentCount: () => void;
   onDecreaseStudentCount: () => void;
   onClose: () => void;
+  sessionId?: string;
+  senderId?: string;
 }
 
 const WindowContentRenderer: React.FC<WindowContentRendererProps> = ({
@@ -34,6 +38,7 @@ const WindowContentRenderer: React.FC<WindowContentRendererProps> = ({
   availableLayouts,
   selectedLayoutId,
   currentStudentBoards,
+  currentStudentBoardsInfo,
   currentPage,
   totalPages,
   gridOrientation,
@@ -45,6 +50,8 @@ const WindowContentRenderer: React.FC<WindowContentRendererProps> = ({
   onIncreaseStudentCount,
   onDecreaseStudentCount,
   onClose,
+  sessionId,
+  senderId,
 }) => {
   const {
     isHeaderCollapsed,
@@ -54,7 +61,7 @@ const WindowContentRenderer: React.FC<WindowContentRendererProps> = ({
     handleMinimize,
   } = useWindowContentState();
 
-  console.log('Rendering portal content', { studentCount, currentLayout, currentStudentBoards });
+  console.log('Rendering portal content', { studentCount, currentLayout, currentStudentBoardsInfo });
 
   return createPortal(
     <div className="flex-1 bg-gray-100 flex flex-col min-h-0 relative group">
@@ -105,7 +112,7 @@ const WindowContentRenderer: React.FC<WindowContentRendererProps> = ({
       <WindowContentBody
         studentCount={studentCount}
         currentLayout={currentLayout}
-        currentStudentBoards={currentStudentBoards}
+        currentStudentBoardsInfo={currentStudentBoardsInfo}
         currentPage={currentPage}
         totalPages={totalPages}
         gridOrientation={gridOrientation}
@@ -115,6 +122,8 @@ const WindowContentRenderer: React.FC<WindowContentRendererProps> = ({
         onMinimize={handleMinimize}
         onPreviousPage={onPreviousPage}
         onNextPage={onNextPage}
+        sessionId={sessionId}
+        senderId={senderId}
       />
     </div>,
     container

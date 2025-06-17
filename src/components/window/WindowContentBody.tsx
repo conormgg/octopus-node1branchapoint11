@@ -3,11 +3,12 @@ import React from 'react';
 import StudentBoardsGrid from '../StudentBoardsGrid';
 import { LayoutOption } from '@/utils/layoutCalculator';
 import { GridOrientation } from '../TeacherView';
+import { StudentBoardInfo } from '@/utils/studentBoardGenerator';
 
 interface WindowContentBodyProps {
   studentCount: number;
   currentLayout: LayoutOption | undefined;
-  currentStudentBoards: string[];
+  currentStudentBoardsInfo: (StudentBoardInfo | null)[];
   currentPage: number;
   totalPages: number;
   gridOrientation: GridOrientation;
@@ -17,12 +18,14 @@ interface WindowContentBodyProps {
   onMinimize: () => void;
   onPreviousPage: () => void;
   onNextPage: () => void;
+  sessionId?: string;
+  senderId?: string;
 }
 
 const WindowContentBody: React.FC<WindowContentBodyProps> = ({
   studentCount,
   currentLayout,
-  currentStudentBoards,
+  currentStudentBoardsInfo,
   currentPage,
   totalPages,
   gridOrientation,
@@ -32,13 +35,15 @@ const WindowContentBody: React.FC<WindowContentBodyProps> = ({
   onMinimize,
   onPreviousPage,
   onNextPage,
+  sessionId,
+  senderId,
 }) => {
   return (
     <div className={`flex-1 min-h-0 ${isHeaderCollapsed ? 'p-4 pt-2' : 'px-4 pb-4'}`}>
       <StudentBoardsGrid
         studentCount={studentCount}
         currentLayout={currentLayout}
-        currentStudentBoards={currentStudentBoards}
+        currentStudentBoardsInfo={currentStudentBoardsInfo}
         currentPage={currentPage}
         totalPages={totalPages}
         gridOrientation={gridOrientation}
@@ -48,6 +53,8 @@ const WindowContentBody: React.FC<WindowContentBodyProps> = ({
         onPreviousPage={onPreviousPage}
         onNextPage={onNextPage}
         isHeaderCollapsed={isHeaderCollapsed}
+        sessionId={sessionId}
+        senderId={senderId}
       />
     </div>
   );
