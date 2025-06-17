@@ -1,3 +1,4 @@
+
 import { useEffect, useState, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { LineObject, ImageObject, ActivityMetadata } from '@/types/whiteboard';
@@ -15,7 +16,12 @@ interface WhiteboardPersistenceResult {
   lines: LineObject[];
   images: ImageObject[];
   lastActivity: ActivityMetadata | null;
+  orderedOperations: WhiteboardOperation[]; // NEW: Return ordered operations for history reconstruction
 }
+
+// History configuration constants
+const MAX_OPERATIONS_FOR_HISTORY = 50; // Limit operations used for history reconstruction
+const MAX_HISTORY_SIZE = 10; // Maximum history entries to maintain
 
 // Helper function to calculate image bounds
 const calculateImageBounds = (image: ImageObject) => {
@@ -163,6 +169,17 @@ const reconstructActivityFromOperation = (
   return null;
 };
 
+// NEW: Convert database operation to WhiteboardOperation format for history reconstruction
+const convertDbOperationToWhiteboardOperation = (dbOperation: any): WhiteboardOperation => {
+  return {
+    whiteboard_id: dbOperation.board_id,
+    operation_type: dbOperation.action_type as OperationType,
+    timestamp: new Date(dbOperation.created_at).getTime(),
+    sender_id: dbOperation.session_id || 'unknown', // Use session_id as sender fallback
+    data: dbOperation.object_data
+  };
+};
+
 export const useWhiteboardPersistence = ({
   whiteboardId,
   sessionId
@@ -172,6 +189,7 @@ export const useWhiteboardPersistence = ({
   const [lines, setLines] = useState<LineObject[]>([]);
   const [images, setImages] = useState<ImageObject[]>([]);
   const [lastActivity, setLastActivity] = useState<ActivityMetadata | null>(null);
+  const [orderedOperations, setOrderedOperations] = useState<WhiteboardOperation[]>([]);
 
   const fetchWhiteboardData = useCallback(async () => {
     try {
@@ -193,6 +211,12 @@ export const useWhiteboardPersistence = ({
 
       console.log(`[Persistence] Retrieved ${data?.length || 0} operations from database`);
 
+      // NEW: Apply history size limits and convert operations for history reconstruction
+      const recentOperations = data ? data.slice(-MAX_OPERATIONS_FOR_HISTORY) : [];
+      const convertedOperations = recentOperations.map(convertDbOperationToWhiteboardOperation);
+      
+      console.log(`[Persistence] Using ${convertedOperations.length} recent operations for history reconstruction (limited from ${data?.length || 0})`);
+
       // Process operations to rebuild the whiteboard state
       const linesMap = new Map<string, LineObject>();
       const imagesMap = new Map<string, ImageObject>();
@@ -200,7 +224,7 @@ export const useWhiteboardPersistence = ({
       const deletedImageIds = new Set<string>();
 
       // First pass: collect all objects that were added
-      data.forEach((operation) => {
+      data?.forEach((operation) => {
         const operationType = operation.action_type as OperationType;
         const operationData = operation.object_data as any;
 
@@ -218,7 +242,7 @@ export const useWhiteboardPersistence = ({
       });
 
       // Second pass: apply all deletion and update operations
-      data.forEach((operation) => {
+      data?.forEach((operation) => {
         const operationType = operation.action_type as OperationType;
         const operationData = operation.object_data as any;
 
@@ -295,7 +319,7 @@ export const useWhiteboardPersistence = ({
       console.log(`[Persistence] Final state after processing: ${finalLines.length} lines and ${finalImages.length} images`);
       console.log(`[Persistence] Excluded ${deletedLineIds.size} deleted lines and ${deletedImageIds.size} deleted images`);
 
-      // NEW: Reconstruct last activity from the most recent operation
+      // Reconstruct last activity from the most recent operation
       let reconstructedActivity: ActivityMetadata | null = null;
       if (data && data.length > 0) {
         // Get the last operation (most recent)
@@ -314,6 +338,7 @@ export const useWhiteboardPersistence = ({
       setLines(finalLines);
       setImages(finalImages);
       setLastActivity(reconstructedActivity);
+      setOrderedOperations(convertedOperations); // NEW: Set ordered operations for history reconstruction
     } catch (err) {
       console.error('Error in fetchWhiteboardData:', err);
       setError(err instanceof Error ? err : new Error(String(err)));
@@ -334,6 +359,7 @@ export const useWhiteboardPersistence = ({
     error,
     lines,
     images,
-    lastActivity
+    lastActivity,
+    orderedOperations // NEW: Return ordered operations for history reconstruction
   };
 };
