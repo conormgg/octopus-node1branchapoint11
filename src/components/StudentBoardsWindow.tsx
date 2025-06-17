@@ -22,7 +22,7 @@ interface StudentBoardsWindowProps {
   onOrientationChange: (orientation: GridOrientation) => void;
   onIncreaseStudentCount: () => void;
   onDecreaseStudentCount: () => void;
-  onAddStudent?: () => void;
+  onOpenAddDialog?: () => void; // Changed from onAddStudent
   onRemoveStudent?: (studentId: number) => void;
   onClose: () => void;
   sessionId?: string;
@@ -46,7 +46,7 @@ const StudentBoardsWindow: React.FC<StudentBoardsWindowProps> = ({
   onOrientationChange,
   onIncreaseStudentCount,
   onDecreaseStudentCount,
-  onAddStudent,
+  onOpenAddDialog,
   onRemoveStudent,
   onClose,
   sessionId,
@@ -94,7 +94,7 @@ const StudentBoardsWindow: React.FC<StudentBoardsWindowProps> = ({
       onOrientationChange={onOrientationChange}
       onIncreaseStudentCount={onIncreaseStudentCount}
       onDecreaseStudentCount={onDecreaseStudentCount}
-      onAddStudent={onAddStudent}
+      onAddStudent={onOpenAddDialog}
       onRemoveStudent={onRemoveStudent}
       onClose={onClose}
       sessionId={sessionId}

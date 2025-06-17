@@ -87,8 +87,8 @@ export const useSessionStudents = (activeSession: Session | null | undefined) =>
     return null;
   };
 
-  // Add a single student - handles late joiners and fills gaps
-  const addStudent = async (studentName?: string) => {
+  // Add a single student with name and optional email
+  const addStudent = async (studentName: string, studentEmail?: string) => {
     if (!activeSession) return false;
     
     const nextSuffix = getNextAvailableSuffix();
@@ -97,16 +97,14 @@ export const useSessionStudents = (activeSession: Session | null | undefined) =>
       return false;
     }
 
-    const defaultName = studentName || `Student ${nextSuffix}`;
-    
     try {
       const { error } = await supabase
         .from('session_participants')
         .insert({
           session_id: activeSession.id,
-          student_name: defaultName,
+          student_name: studentName,
           assigned_board_suffix: nextSuffix,
-          student_email: null,
+          student_email: studentEmail || null,
           joined_at: null // Start as pending
         });
 
@@ -115,7 +113,7 @@ export const useSessionStudents = (activeSession: Session | null | undefined) =>
         return false;
       }
 
-      console.log(`Added student: ${defaultName} with suffix ${nextSuffix}`);
+      console.log(`Added student: ${studentName} with suffix ${nextSuffix}`);
       return true;
     } catch (error) {
       console.error('Exception adding student:', error);
@@ -154,10 +152,14 @@ export const useSessionStudents = (activeSession: Session | null | undefined) =>
     const currentCount = sessionStudents.length;
     
     if (clampedCount > currentCount) {
-      // Add students one by one
+      // Add students one by one with default names
       const studentsToAdd = clampedCount - currentCount;
       for (let i = 0; i < studentsToAdd; i++) {
-        const success = await addStudent();
+        const nextSuffix = getNextAvailableSuffix();
+        if (!nextSuffix) break;
+        
+        const defaultName = `Student ${nextSuffix}`;
+        const success = await addStudent(defaultName);
         if (!success) {
           console.warn(`Failed to add student ${i + 1} of ${studentsToAdd}`);
           break;

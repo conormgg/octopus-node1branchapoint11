@@ -1,10 +1,11 @@
-
 import React, { useEffect, useState } from 'react';
 import SessionUrlModal from './session/SessionUrlModal';
 import TeacherSessionView from './session/TeacherSessionView';
+import AddStudentDialog from './session/AddStudentDialog';
 import { useSessionStudents } from '@/hooks/useSessionStudents';
 import { useTeacherViewState } from '@/hooks/useTeacherViewState';
 import { usePresenceCleanup } from '@/hooks/usePresenceCleanup';
+import { useAddStudentDialog } from '@/hooks/useAddStudentDialog';
 import { Session } from '@/types/session';
 
 export type GridOrientation = 'columns-first' | 'rows-first';
@@ -35,6 +36,14 @@ const TeacherView: React.FC<TeacherViewProps> = ({
     getNextAvailableSuffix,
     isLoading 
   } = useSessionStudents(activeSession);
+
+  const {
+    isDialogOpen,
+    isLoading: isAddingStudent,
+    openDialog,
+    closeDialog,
+    handleAddStudent,
+  } = useAddStudentDialog();
   
   // Set up presence cleanup for this session
   usePresenceCleanup({
@@ -68,16 +77,8 @@ const TeacherView: React.FC<TeacherViewProps> = ({
   }, [showUrlModal]);
 
   // Enhanced student management functions
-  const handleAddStudent = async () => {
-    const success = await addStudent();
-    if (!success) {
-      const nextSuffix = getNextAvailableSuffix();
-      if (!nextSuffix) {
-        console.warn('Cannot add student: Maximum capacity (8 students) reached');
-      } else {
-        console.error('Failed to add student');
-      }
-    }
+  const handleAddStudentWithDialog = async (name: string, email?: string) => {
+    return await handleAddStudent(addStudent, name, email);
   };
 
   const handleRemoveStudent = async (studentId: number) => {
@@ -123,6 +124,14 @@ const TeacherView: React.FC<TeacherViewProps> = ({
         />
       )}
 
+      {/* Add Student Dialog */}
+      <AddStudentDialog
+        isOpen={isDialogOpen}
+        onClose={closeDialog}
+        onAddStudent={handleAddStudentWithDialog}
+        isLoading={isAddingStudent}
+      />
+
       <TeacherSessionView
         activeSession={activeSession!}
         sessionStudents={sessionStudents}
@@ -149,7 +158,7 @@ const TeacherView: React.FC<TeacherViewProps> = ({
         onNextPage={handleNextPage}
         onIncreaseStudentCount={increaseStudentCount}
         onDecreaseStudentCount={decreaseStudentCount}
-        onAddStudent={handleAddStudent}
+        onOpenAddDialog={openDialog}
         onRemoveStudent={handleRemoveStudent}
         onEndSession={onEndSession!}
         onSignOut={onSignOut!}

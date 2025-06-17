@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { X, UserPlus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -10,8 +9,8 @@ interface StudentBoardCardProps {
   isMaximized: boolean;
   onMaximize: (boardId: string) => void;
   onMinimize: () => void;
-  onRemoveStudent?: (studentId: number) => void; // Changed from boardId to studentId
-  onAddStudent?: () => void;
+  onRemoveStudent?: (studentId: number) => void;
+  onOpenAddDialog?: () => void;
   sessionId?: string;
   senderId?: string;
   portalContainer?: Element | null;
@@ -23,7 +22,7 @@ const StudentBoardCard: React.FC<StudentBoardCardProps> = ({
   onMaximize,
   onMinimize,
   onRemoveStudent,
-  onAddStudent,
+  onOpenAddDialog,
   sessionId,
   senderId,
   portalContainer,
@@ -35,11 +34,11 @@ const StudentBoardCard: React.FC<StudentBoardCardProps> = ({
         <div className="text-center">
           <UserPlus className="w-8 h-8 text-gray-400 mx-auto mb-2" />
           <p className="text-sm text-gray-500">Available Slot</p>
-          {onAddStudent && (
+          {onOpenAddDialog && (
             <Button
               variant="outline"
               size="sm"
-              onClick={onAddStudent}
+              onClick={onOpenAddDialog}
               className="mt-2"
             >
               Add Student

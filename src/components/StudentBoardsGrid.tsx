@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Users, ChevronLeft, ChevronRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -21,8 +20,8 @@ interface StudentBoardsGridProps {
   onMinimize: () => void;
   onPreviousPage: () => void;
   onNextPage: () => void;
-  onRemoveStudent?: (studentId: number) => void; // Changed from boardId to studentId
-  onAddStudent?: () => void;
+  onRemoveStudent?: (studentId: number) => void;
+  onOpenAddDialog?: () => void;
   isHeaderCollapsed?: boolean;
   sessionId?: string;
   senderId?: string;
@@ -43,7 +42,7 @@ const StudentBoardsGrid: React.FC<StudentBoardsGridProps> = ({
   onPreviousPage,
   onNextPage,
   onRemoveStudent,
-  onAddStudent,
+  onOpenAddDialog,
   isHeaderCollapsed = false,
   sessionId,
   senderId,
@@ -64,7 +63,7 @@ const StudentBoardsGrid: React.FC<StudentBoardsGridProps> = ({
               onMaximize={onMaximize}
               onMinimize={onMinimize}
               onRemoveStudent={onRemoveStudent}
-              onAddStudent={onAddStudent}
+              onOpenAddDialog={onOpenAddDialog}
               sessionId={sessionId}
               senderId={senderId}
               portalContainer={portalContainer}
