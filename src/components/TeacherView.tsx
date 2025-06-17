@@ -1,8 +1,10 @@
+
 import React, { useEffect, useState } from 'react';
 import SessionUrlModal from './session/SessionUrlModal';
 import TeacherSessionView from './session/TeacherSessionView';
 import { useSessionStudents } from '@/hooks/useSessionStudents';
 import { useTeacherViewState } from '@/hooks/useTeacherViewState';
+import { usePresenceCleanup } from '@/hooks/usePresenceCleanup';
 import { Session } from '@/types/session';
 
 export type GridOrientation = 'columns-first' | 'rows-first';
@@ -30,6 +32,12 @@ const TeacherView: React.FC<TeacherViewProps> = ({
     handleStudentCountChange,
     isLoading 
   } = useSessionStudents(activeSession);
+  
+  // Set up presence cleanup for this session
+  usePresenceCleanup({
+    sessionId: activeSession?.id || '',
+    enabled: !!activeSession,
+  });
   
   const {
     maximizedBoard,

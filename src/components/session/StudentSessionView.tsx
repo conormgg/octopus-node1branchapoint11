@@ -7,6 +7,7 @@ import { useToast } from '@/hooks/use-toast';
 import { Loader2 } from 'lucide-react';
 import { useSessionExpirationContext } from '@/contexts/sessionExpiration';
 import { useWhiteboardStateContext } from '@/contexts/WhiteboardStateContext';
+import { useStudentPresence } from '@/hooks/useStudentPresence';
 import { Button } from '@/components/ui/button';
 
 interface LocationState {
@@ -20,6 +21,35 @@ const StudentSessionContent: React.FC<{ state: LocationState; sessionSlug?: stri
   const { toast } = useToast();
   const { clearWhiteboardState } = useWhiteboardStateContext();
   const { isExpired, sessionEndReason, isRedirecting } = useSessionExpirationContext();
+  const [participantId, setParticipantId] = useState<number | null>(null);
+
+  // Set up student presence tracking
+  useStudentPresence({
+    sessionId: state.sessionId,
+    studentName: state.studentName,
+    participantId: participantId || undefined,
+  });
+
+  // Get participant ID for presence tracking
+  useEffect(() => {
+    const fetchParticipantId = async () => {
+      try {
+        const { data, error } = await supabase
+          .from('session_participants')
+          .select('id')
+          .eq('session_id', state.sessionId)
+          .eq('student_name', state.studentName)
+          .single();
+
+        if (error) throw error;
+        setParticipantId(data.id);
+      } catch (error) {
+        console.error('Error fetching participant ID:', error);
+      }
+    };
+
+    fetchParticipantId();
+  }, [state.sessionId, state.studentName]);
 
   useEffect(() => {
     if (isExpired && isRedirecting) {
