@@ -72,9 +72,12 @@ export const useSessionParticipants = (sessionId?: string) => {
           }
         }
       )
-      .subscribe();
+      .subscribe((status) => {
+        console.log(`[SessionParticipants] Subscription status: ${status}`);
+      });
 
     return () => {
+      console.log('[SessionParticipants] Cleaning up subscription');
       supabase.removeChannel(channel);
     };
   }, [sessionId]);
