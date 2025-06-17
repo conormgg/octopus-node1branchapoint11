@@ -20,8 +20,6 @@ interface StudentBoardsWindowProps {
   onNextPage: () => void;
   onLayoutChange: (layoutId: string) => void;
   onOrientationChange: (orientation: GridOrientation) => void;
-  onIncreaseStudentCount: () => void;
-  onDecreaseStudentCount: () => void;
   onClose: () => void;
   sessionId?: string;
   senderId?: string;
@@ -42,8 +40,6 @@ const StudentBoardsWindow: React.FC<StudentBoardsWindowProps> = ({
   onNextPage,
   onLayoutChange,
   onOrientationChange,
-  onIncreaseStudentCount,
-  onDecreaseStudentCount,
   onClose,
   sessionId,
   senderId,
@@ -88,8 +84,6 @@ const StudentBoardsWindow: React.FC<StudentBoardsWindowProps> = ({
       onNextPage={onNextPage}
       onLayoutChange={onLayoutChange}
       onOrientationChange={onOrientationChange}
-      onIncreaseStudentCount={onIncreaseStudentCount}
-      onDecreaseStudentCount={onDecreaseStudentCount}
       onClose={onClose}
       sessionId={sessionId}
       senderId={senderId}
