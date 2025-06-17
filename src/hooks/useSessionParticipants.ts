@@ -33,7 +33,7 @@ export const useSessionParticipants = (sessionId?: string) => {
           .order('joined_at', { ascending: true });
 
         if (error) throw error;
-        setParticipants(data || []);
+        setParticipants((data || []) as SessionParticipant[]);
       } catch (err) {
         setError(err instanceof Error ? err : new Error('Failed to fetch participants'));
       } finally {
