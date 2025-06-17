@@ -15,8 +15,6 @@ interface WindowContentHeaderProps {
   isHeaderCollapsed: boolean;
   onLayoutChange: (layoutId: string) => void;
   onOrientationChange: (orientation: GridOrientation) => void;
-  onIncreaseStudentCount: () => void;
-  onDecreaseStudentCount: () => void;
   onClose: () => void;
   onToggleCollapse: () => void;
 }
@@ -32,11 +30,18 @@ const WindowContentHeader: React.FC<WindowContentHeaderProps> = ({
   isHeaderCollapsed,
   onLayoutChange,
   onOrientationChange,
-  onIncreaseStudentCount,
-  onDecreaseStudentCount,
   onClose,
   onToggleCollapse,
 }) => {
+  // Create dummy functions for the StudentBoardsWindowHeader component
+  const handleIncreaseStudentCount = () => {
+    // No-op function since student count management is handled elsewhere
+  };
+
+  const handleDecreaseStudentCount = () => {
+    // No-op function since student count management is handled elsewhere
+  };
+
   return (
     <div 
       className={`transition-all duration-300 ease-in-out ${
@@ -55,8 +60,8 @@ const WindowContentHeader: React.FC<WindowContentHeaderProps> = ({
         gridOrientation={gridOrientation}
         onLayoutChange={onLayoutChange}
         onOrientationChange={onOrientationChange}
-        onIncreaseStudentCount={onIncreaseStudentCount}
-        onDecreaseStudentCount={onDecreaseStudentCount}
+        onIncreaseStudentCount={handleIncreaseStudentCount}
+        onDecreaseStudentCount={handleDecreaseStudentCount}
         onClose={onClose}
         isCollapsed={isHeaderCollapsed}
         onToggleCollapse={onToggleCollapse}

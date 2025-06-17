@@ -25,8 +25,6 @@ interface WindowContentRendererProps {
   onNextPage: () => void;
   onLayoutChange: (layoutId: string) => void;
   onOrientationChange: (orientation: GridOrientation) => void;
-  onIncreaseStudentCount: () => void;
-  onDecreaseStudentCount: () => void;
   onClose: () => void;
   sessionId?: string;
   senderId?: string;
@@ -49,8 +47,6 @@ const WindowContentRenderer: React.FC<WindowContentRendererProps> = ({
   onNextPage,
   onLayoutChange,
   onOrientationChange,
-  onIncreaseStudentCount,
-  onDecreaseStudentCount,
   onClose,
   sessionId,
   senderId,
@@ -79,8 +75,6 @@ const WindowContentRenderer: React.FC<WindowContentRendererProps> = ({
         isHeaderCollapsed={isHeaderCollapsed}
         onLayoutChange={onLayoutChange}
         onOrientationChange={onOrientationChange}
-        onIncreaseStudentCount={onIncreaseStudentCount}
-        onDecreaseStudentCount={onDecreaseStudentCount}
         onClose={onClose}
         onToggleCollapse={toggleHeaderCollapse}
       />
