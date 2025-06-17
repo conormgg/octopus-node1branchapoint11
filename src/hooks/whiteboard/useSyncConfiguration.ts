@@ -1,52 +1,39 @@
 
 import { useMemo } from 'react';
 import { SyncConfig } from '@/types/sync';
+import { useSessionParticipants } from '@/hooks/useSessionParticipants';
 
 export const useSyncConfiguration = (
-  id: string,
+  whiteboardId?: string,
   sessionId?: string,
   senderId?: string
-) => {
-  // Memoize sync config to prevent recreating it on every render
-  const syncConfig = useMemo(() => {
-    if (!sessionId) return undefined;
+): SyncConfig | undefined => {
+  const { participants } = useSessionParticipants(sessionId);
 
-    // Teacher's main board -> broadcasts to students
-    if (id === "teacher-main") {
-      if (!senderId) return undefined;
-      return {
-        whiteboardId: `session-${sessionId}-main`,
-        senderId: senderId,
-        sessionId: sessionId,
-        isReceiveOnly: false,
-      };
+  return useMemo(() => {
+    if (!whiteboardId || !sessionId || !senderId) {
+      return undefined;
     }
+
+    // For teacher view, we need to determine sync direction based on the specific board
+    // Extract board suffix from whiteboardId (e.g., "session-123-board-A" -> "A")
+    const boardSuffix = whiteboardId.split('-').pop();
     
-    // Student's view of teacher's board -> receives only
-    if (id === "student-shared-teacher") {
-      return {
-        whiteboardId: `session-${sessionId}-main`,
-        senderId: `student-listener-${sessionId}`,
-        sessionId: sessionId,
-        isReceiveOnly: true,
-      };
-    }
+    // Find the participant for this specific board
+    const participant = participants.find(p => p.assigned_board_suffix === boardSuffix);
 
-    // Individual student boards
-    if (id.startsWith('student-board-')) {
-      const studentNumber = id.replace('student-board-', '');
-      if (!senderId) return undefined;
-      
-      return {
-        whiteboardId: `session-${sessionId}-student-${studentNumber}`,
-        senderId: senderId,
-        sessionId: sessionId,
-        isReceiveOnly: false,
-      };
-    }
+    // Determine if this client should be receive-only based on sync direction
+    // teacher_to_student: teacher controls the board (student is receive-only)
+    // student_to_teacher: student controls the board (teacher is receive-only for that board)
+    const isReceiveOnly = participant?.sync_direction === 'student_to_teacher';
 
-    return undefined;
-  }, [id, sessionId, senderId]);
+    console.log(`[SyncConfig] Board ${whiteboardId} (suffix: ${boardSuffix}): participant found = ${!!participant}, sync_direction = ${participant?.sync_direction}, isReceiveOnly = ${isReceiveOnly}`);
 
-  return syncConfig;
+    return {
+      whiteboardId,
+      sessionId,
+      senderId,
+      isReceiveOnly
+    };
+  }, [whiteboardId, sessionId, senderId, participants]);
 };
