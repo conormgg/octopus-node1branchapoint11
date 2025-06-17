@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState } from 'react';
 import { useParams, useLocation, useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
@@ -6,7 +7,6 @@ import { useToast } from '@/hooks/use-toast';
 import { Loader2 } from 'lucide-react';
 import { useSessionExpirationContext } from '@/contexts/sessionExpiration';
 import { useWhiteboardStateContext } from '@/contexts/WhiteboardStateContext';
-import { useStudentPresence } from '@/hooks/useStudentPresence';
 import { Button } from '@/components/ui/button';
 
 interface LocationState {
@@ -20,94 +20,7 @@ const StudentSessionContent: React.FC<{ state: LocationState; sessionSlug?: stri
   const { toast } = useToast();
   const { clearWhiteboardState } = useWhiteboardStateContext();
   const { isExpired, sessionEndReason, isRedirecting } = useSessionExpirationContext();
-  const [participantId, setParticipantId] = useState<number | null>(null);
-  const [participantIdError, setParticipantIdError] = useState<string | null>(null);
 
-  // Get participant ID and set joined_at timestamp
-  useEffect(() => {
-    const fetchAndSetupParticipant = async () => {
-      console.log(`[StudentSession:${state.studentName}] Starting participant setup for session ${state.sessionId}`);
-      
-      try {
-        // First, fetch the participant record
-        const { data: participant, error: fetchError } = await supabase
-          .from('session_participants')
-          .select('*')
-          .eq('session_id', state.sessionId)
-          .eq('student_name', state.studentName)
-          .single();
-
-        if (fetchError) {
-          console.error(`[StudentSession:${state.studentName}] Error fetching participant:`, fetchError);
-          setParticipantIdError(`Failed to find participant: ${fetchError.message}`);
-          return;
-        }
-        
-        console.log(`[StudentSession:${state.studentName}] Found participant:`, {
-          participantId: participant.id,
-          currentJoinedAt: participant.joined_at,
-          lastPingAt: participant.last_ping_at
-        });
-
-        // Set the participant ID
-        setParticipantId(participant.id);
-
-        // If joined_at is null, set it to mark the student as active
-        if (!participant.joined_at) {
-          console.log(`[StudentSession:${state.studentName}] Setting joined_at for participant ${participant.id}`);
-          
-          const joinTime = new Date().toISOString();
-          const { data: updateData, error: updateError } = await supabase
-            .from('session_participants')
-            .update({ 
-              joined_at: joinTime,
-              last_ping_at: joinTime // Set initial ping time too
-            })
-            .eq('id', participant.id)
-            .select();
-
-          if (updateError) {
-            console.error(`[StudentSession:${state.studentName}] Error setting joined_at:`, updateError);
-            setParticipantIdError(`Failed to join session: ${updateError.message}`);
-            return;
-          }
-
-          console.log(`[StudentSession:${state.studentName}] Successfully joined session:`, {
-            participantId: participant.id,
-            joinTime,
-            updateData
-          });
-        } else {
-          console.log(`[StudentSession:${state.studentName}] Student already joined at ${participant.joined_at}`);
-        }
-
-      } catch (error) {
-        console.error(`[StudentSession:${state.studentName}] Exception during participant setup:`, error);
-        setParticipantIdError(`Setup failed: ${error}`);
-      }
-    };
-
-    fetchAndSetupParticipant();
-  }, [state.sessionId, state.studentName]);
-
-  // Set up student presence tracking ONLY after participantId is available
-  const presenceData = useStudentPresence({
-    sessionId: state.sessionId,
-    studentName: state.studentName,
-    participantId: participantId || undefined,
-  });
-
-  // Log presence data for debugging
-  useEffect(() => {
-    console.log(`[StudentSession:${state.studentName}] Presence data:`, {
-      participantId,
-      isActive: presenceData.isActive,
-      lastHeartbeat: presenceData.lastHeartbeat,
-      hasError: !!participantIdError
-    });
-  }, [participantId, presenceData.isActive, presenceData.lastHeartbeat, participantIdError, state.studentName]);
-
-  // ... keep existing code for session expiration handling and UI rendering
   useEffect(() => {
     if (isExpired && isRedirecting) {
       // Clear whiteboard state from memory for all boards related to this session
@@ -164,26 +77,6 @@ const StudentSessionContent: React.FC<{ state: LocationState; sessionSlug?: stri
     );
   }
 
-  // Show error if participant setup failed
-  if (participantIdError) {
-    return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-center p-8 bg-white rounded-lg shadow-md max-w-md">
-          <div className="text-red-500 mb-4">
-            <svg xmlns="http://www.w3.org/2000/svg" className="h-16 w-16 mx-auto" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-            </svg>
-          </div>
-          <h2 className="text-2xl font-bold text-gray-800 mb-2">Connection Error</h2>
-          <p className="text-gray-600 mb-6">{participantIdError}</p>
-          <Button variant="outline" onClick={() => window.location.reload()}>
-            Try Again
-          </Button>
-        </div>
-      </div>
-    );
-  }
-
   return (
     <div className="min-h-screen bg-gray-100">
       <div className="bg-white border-b border-gray-200 px-6 py-3">
@@ -191,14 +84,6 @@ const StudentSessionContent: React.FC<{ state: LocationState; sessionSlug?: stri
           <div>
             <h1 className="text-lg font-semibold">Welcome, {state.studentName}</h1>
             <p className="text-sm text-gray-600">Board: Student {state.boardSuffix}</p>
-            {participantId && (
-              <p className="text-xs text-green-600">
-                Participant ID: {participantId} | Active: {presenceData.isActive ? 'Yes' : 'No'}
-                {presenceData.lastHeartbeat && (
-                  <span className="ml-2">Last: {presenceData.lastHeartbeat.toLocaleTimeString()}</span>
-                )}
-              </p>
-            )}
           </div>
           <div className="text-sm text-gray-500">
             Session: {sessionSlug}

@@ -1,5 +1,5 @@
 
-import React, { memo } from 'react';
+import React from 'react';
 import { X, UserPlus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import WhiteboardPlaceholder from './WhiteboardPlaceholder';
@@ -10,8 +10,8 @@ interface StudentBoardCardProps {
   isMaximized: boolean;
   onMaximize: (boardId: string) => void;
   onMinimize: () => void;
-  onRemoveStudent?: (studentId: number) => void;
-  onOpenAddDialog?: () => void;
+  onRemoveStudent?: (boardId: string) => void;
+  onAddStudent?: () => void;
   sessionId?: string;
   senderId?: string;
   portalContainer?: Element | null;
@@ -23,23 +23,23 @@ const StudentBoardCard: React.FC<StudentBoardCardProps> = ({
   onMaximize,
   onMinimize,
   onRemoveStudent,
-  onOpenAddDialog,
+  onAddStudent,
   sessionId,
   senderId,
   portalContainer,
 }) => {
-  // Empty slot - available for new students
+  // Empty slot - compressed/hidden for now, can be expanded later for "add student" functionality
   if (!boardInfo) {
     return (
       <div className="h-full flex items-center justify-center bg-gray-50 border-2 border-dashed border-gray-200 rounded-lg opacity-50">
         <div className="text-center">
           <UserPlus className="w-8 h-8 text-gray-400 mx-auto mb-2" />
           <p className="text-sm text-gray-500">Available Slot</p>
-          {onOpenAddDialog && (
+          {onAddStudent && (
             <Button
               variant="outline"
               size="sm"
-              onClick={onOpenAddDialog}
+              onClick={onAddStudent}
               className="mt-2"
             >
               Add Student
@@ -59,7 +59,7 @@ const StudentBoardCard: React.FC<StudentBoardCardProps> = ({
           <Button
             variant="outline"
             size="sm"
-            onClick={() => boardInfo.participant && onRemoveStudent?.(boardInfo.participant.id)}
+            onClick={() => onRemoveStudent?.(boardInfo.boardId)}
             className="p-1 h-auto bg-red-50 hover:bg-red-100 border-red-200"
             title="Remove pending student"
           >
@@ -100,21 +100,6 @@ const StudentBoardCard: React.FC<StudentBoardCardProps> = ({
         </div>
       </div>
 
-      {/* Optional remove button for active students (usually hidden) */}
-      {onRemoveStudent && (
-        <div className="absolute top-2 right-2 z-10 opacity-0 group-hover:opacity-100 transition-opacity">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => boardInfo.participant && onRemoveStudent(boardInfo.participant.id)}
-            className="p-1 h-auto bg-red-50 hover:bg-red-100 border-red-200"
-            title="Remove student"
-          >
-            <X className="w-4 h-4 text-red-600" />
-          </Button>
-        </div>
-      )}
-
       <WhiteboardPlaceholder
         id={boardInfo.boardId}
         isMaximized={isMaximized}
@@ -128,35 +113,4 @@ const StudentBoardCard: React.FC<StudentBoardCardProps> = ({
   );
 };
 
-// Memoize the component with a custom comparison function
-const arePropsEqual = (prevProps: StudentBoardCardProps, nextProps: StudentBoardCardProps): boolean => {
-  // Compare boardInfo deeply
-  if (prevProps.boardInfo !== nextProps.boardInfo) {
-    if (!prevProps.boardInfo && !nextProps.boardInfo) return true;
-    if (!prevProps.boardInfo || !nextProps.boardInfo) return false;
-    
-    // Compare key properties that affect rendering
-    if (
-      prevProps.boardInfo.boardId !== nextProps.boardInfo.boardId ||
-      prevProps.boardInfo.studentName !== nextProps.boardInfo.studentName ||
-      prevProps.boardInfo.status !== nextProps.boardInfo.status ||
-      prevProps.boardInfo.participant?.id !== nextProps.boardInfo.participant?.id ||
-      prevProps.boardInfo.participant?.joined_at !== nextProps.boardInfo.participant?.joined_at
-    ) {
-      return false;
-    }
-  }
-
-  // Compare other props
-  return (
-    prevProps.isMaximized === nextProps.isMaximized &&
-    prevProps.sessionId === nextProps.sessionId &&
-    prevProps.senderId === nextProps.senderId &&
-    prevProps.onMaximize === nextProps.onMaximize &&
-    prevProps.onMinimize === nextProps.onMinimize &&
-    prevProps.onRemoveStudent === nextProps.onRemoveStudent &&
-    prevProps.onOpenAddDialog === nextProps.onOpenAddDialog
-  );
-};
-
-export default memo(StudentBoardCard, arePropsEqual);
+export default StudentBoardCard;

@@ -34,8 +34,6 @@ interface TeacherSessionSplitViewProps {
   onOrientationChange: (orientation: GridOrientation) => void;
   onIncreaseStudentCount: () => void;
   onDecreaseStudentCount: () => void;
-  onOpenAddDialog?: () => void; // Changed from onAddStudent
-  onRemoveStudent?: (studentId: number) => void;
   onCloseSplitView: () => void;
 }
 
@@ -61,8 +59,6 @@ const TeacherSessionSplitView: React.FC<TeacherSessionSplitViewProps> = ({
   onOrientationChange,
   onIncreaseStudentCount,
   onDecreaseStudentCount,
-  onOpenAddDialog,
-  onRemoveStudent,
   onCloseSplitView,
 }) => {
   return (
@@ -84,8 +80,6 @@ const TeacherSessionSplitView: React.FC<TeacherSessionSplitViewProps> = ({
         onOrientationChange={onOrientationChange}
         onIncreaseStudentCount={onIncreaseStudentCount}
         onDecreaseStudentCount={onDecreaseStudentCount}
-        onOpenAddDialog={onOpenAddDialog}
-        onRemoveStudent={onRemoveStudent}
         onClose={onCloseSplitView}
         sessionId={activeSession.id}
         senderId={activeSession.teacher_id}

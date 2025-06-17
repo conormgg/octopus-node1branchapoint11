@@ -91,7 +91,6 @@ export type Database = {
           assigned_board_suffix: string
           id: number
           joined_at: string | null
-          last_ping_at: string | null
           session_id: string
           student_email: string | null
           student_name: string
@@ -101,7 +100,6 @@ export type Database = {
           assigned_board_suffix: string
           id?: number
           joined_at?: string | null
-          last_ping_at?: string | null
           session_id: string
           student_email?: string | null
           student_name: string
@@ -111,7 +109,6 @@ export type Database = {
           assigned_board_suffix?: string
           id?: number
           joined_at?: string | null
-          last_ping_at?: string | null
           session_id?: string
           student_email?: string | null
           student_name?: string

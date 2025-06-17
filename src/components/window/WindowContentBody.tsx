@@ -19,8 +19,6 @@ interface WindowContentBodyProps {
   onMinimize: () => void;
   onPreviousPage: () => void;
   onNextPage: () => void;
-  onOpenAddDialog?: () => void; // Changed from onAddStudent
-  onRemoveStudent?: (studentId: number) => void;
   sessionId?: string;
   senderId?: string;
 }
@@ -39,8 +37,6 @@ const WindowContentBody: React.FC<WindowContentBodyProps> = ({
   onMinimize,
   onPreviousPage,
   onNextPage,
-  onOpenAddDialog,
-  onRemoveStudent,
   sessionId,
   senderId,
 }) => {
@@ -59,8 +55,6 @@ const WindowContentBody: React.FC<WindowContentBodyProps> = ({
         onMinimize={onMinimize}
         onPreviousPage={onPreviousPage}
         onNextPage={onNextPage}
-        onOpenAddDialog={onOpenAddDialog}
-        onRemoveStudent={onRemoveStudent}
         isHeaderCollapsed={isHeaderCollapsed}
         sessionId={sessionId}
         senderId={senderId}

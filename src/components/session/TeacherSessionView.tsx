@@ -47,8 +47,6 @@ interface TeacherSessionViewProps {
   onNextPage: () => void;
   onIncreaseStudentCount: () => void;
   onDecreaseStudentCount: () => void;
-  onOpenAddDialog?: () => void; // Changed from onAddStudent
-  onRemoveStudent?: (studentId: number) => void;
   onEndSession: () => void;
   onSignOut: () => void;
 }
@@ -79,8 +77,6 @@ const TeacherSessionView: React.FC<TeacherSessionViewProps> = ({
   onNextPage,
   onIncreaseStudentCount,
   onDecreaseStudentCount,
-  onOpenAddDialog,
-  onRemoveStudent,
   onEndSession,
   onSignOut,
 }) => {
@@ -119,7 +115,6 @@ const TeacherSessionView: React.FC<TeacherSessionViewProps> = ({
         onToggleControlsCollapse={onToggleControlsCollapse}
         onEndSession={onEndSession}
         onSignOut={onSignOut}
-        onOpenAddDialog={onOpenAddDialog}
       />
 
       <TeacherSessionMainContent
@@ -145,8 +140,6 @@ const TeacherSessionView: React.FC<TeacherSessionViewProps> = ({
         onOrientationChange={onOrientationChange}
         onIncreaseStudentCount={onIncreaseStudentCount}
         onDecreaseStudentCount={onDecreaseStudentCount}
-        onOpenAddDialog={onOpenAddDialog}
-        onRemoveStudent={onRemoveStudent}
         onCloseSplitView={onCloseSplitView}
       />
     </div>

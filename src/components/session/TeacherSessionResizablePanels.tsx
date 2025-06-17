@@ -29,8 +29,6 @@ interface TeacherSessionResizablePanelsProps {
   onMinimize: () => void;
   onPreviousPage: () => void;
   onNextPage: () => void;
-  onOpenAddDialog?: () => void; // Changed from onAddStudent
-  onRemoveStudent?: (studentId: number) => void;
 }
 
 const TeacherSessionResizablePanels: React.FC<TeacherSessionResizablePanelsProps> = ({
@@ -49,8 +47,6 @@ const TeacherSessionResizablePanels: React.FC<TeacherSessionResizablePanelsProps
   onMinimize,
   onPreviousPage,
   onNextPage,
-  onOpenAddDialog,
-  onRemoveStudent,
 }) => {
   return (
     <ResizablePanelGroup direction="horizontal" className="rounded-lg overflow-hidden">
@@ -86,8 +82,6 @@ const TeacherSessionResizablePanels: React.FC<TeacherSessionResizablePanelsProps
             onMinimize={onMinimize}
             onPreviousPage={onPreviousPage}
             onNextPage={onNextPage}
-            onOpenAddDialog={onOpenAddDialog}
-            onRemoveStudent={onRemoveStudent}
             isHeaderCollapsed={isControlsCollapsed}
             sessionId={activeSession.id}
             senderId={activeSession.teacher_id}

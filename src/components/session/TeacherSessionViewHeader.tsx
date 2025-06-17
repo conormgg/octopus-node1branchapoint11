@@ -27,7 +27,6 @@ interface TeacherSessionViewHeaderProps {
   onToggleControlsCollapse: () => void;
   onEndSession: () => void;
   onSignOut: () => void;
-  onOpenAddDialog?: () => void;
 }
 
 const TeacherSessionViewHeader: React.FC<TeacherSessionViewHeaderProps> = ({
@@ -48,7 +47,6 @@ const TeacherSessionViewHeader: React.FC<TeacherSessionViewHeaderProps> = ({
   onToggleControlsCollapse,
   onEndSession,
   onSignOut,
-  onOpenAddDialog,
 }) => {
   return (
     <>
@@ -77,7 +75,6 @@ const TeacherSessionViewHeader: React.FC<TeacherSessionViewHeaderProps> = ({
         activeSession={activeSession}
         onEndSession={onEndSession}
         onSignOut={onSignOut}
-        onOpenAddDialog={onOpenAddDialog}
       />
     </>
   );

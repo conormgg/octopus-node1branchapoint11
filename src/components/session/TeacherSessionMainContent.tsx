@@ -35,8 +35,6 @@ interface TeacherSessionMainContentProps {
   onOrientationChange: (orientation: GridOrientation) => void;
   onIncreaseStudentCount: () => void;
   onDecreaseStudentCount: () => void;
-  onOpenAddDialog?: () => void; // Changed from onAddStudent
-  onRemoveStudent?: (studentId: number) => void;
   onCloseSplitView: () => void;
 }
 
@@ -63,8 +61,6 @@ const TeacherSessionMainContent: React.FC<TeacherSessionMainContentProps> = ({
   onOrientationChange,
   onIncreaseStudentCount,
   onDecreaseStudentCount,
-  onOpenAddDialog,
-  onRemoveStudent,
   onCloseSplitView,
 }) => {
   return (
@@ -92,8 +88,6 @@ const TeacherSessionMainContent: React.FC<TeacherSessionMainContentProps> = ({
           onOrientationChange={onOrientationChange}
           onIncreaseStudentCount={onIncreaseStudentCount}
           onDecreaseStudentCount={onDecreaseStudentCount}
-          onOpenAddDialog={onOpenAddDialog}
-          onRemoveStudent={onRemoveStudent}
           onCloseSplitView={onCloseSplitView}
         />
       ) : (
@@ -113,8 +107,6 @@ const TeacherSessionMainContent: React.FC<TeacherSessionMainContentProps> = ({
           onMinimize={onMinimize}
           onPreviousPage={onPreviousPage}
           onNextPage={onNextPage}
-          onOpenAddDialog={onOpenAddDialog}
-          onRemoveStudent={onRemoveStudent}
         />
       )}
     </div>
