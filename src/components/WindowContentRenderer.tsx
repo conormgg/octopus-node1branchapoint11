@@ -11,6 +11,7 @@ import { StudentBoardInfo } from '@/utils/studentBoardGenerator';
 interface WindowContentRendererProps {
   container: HTMLDivElement;
   studentCount: number;
+  activeStudentCount?: number;
   currentLayout: LayoutOption | undefined;
   availableLayouts: LayoutOption[];
   selectedLayoutId: string;
@@ -34,6 +35,7 @@ interface WindowContentRendererProps {
 const WindowContentRenderer: React.FC<WindowContentRendererProps> = ({
   container,
   studentCount,
+  activeStudentCount = 0,
   currentLayout,
   availableLayouts,
   selectedLayoutId,
@@ -111,6 +113,7 @@ const WindowContentRenderer: React.FC<WindowContentRendererProps> = ({
       {/* Main Content */}
       <WindowContentBody
         studentCount={studentCount}
+        activeStudentCount={activeStudentCount}
         currentLayout={currentLayout}
         currentStudentBoardsInfo={currentStudentBoardsInfo}
         currentPage={currentPage}

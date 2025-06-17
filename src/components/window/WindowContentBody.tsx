@@ -7,6 +7,7 @@ import { StudentBoardInfo } from '@/utils/studentBoardGenerator';
 
 interface WindowContentBodyProps {
   studentCount: number;
+  activeStudentCount?: number;
   currentLayout: LayoutOption | undefined;
   currentStudentBoardsInfo: (StudentBoardInfo | null)[];
   currentPage: number;
@@ -24,6 +25,7 @@ interface WindowContentBodyProps {
 
 const WindowContentBody: React.FC<WindowContentBodyProps> = ({
   studentCount,
+  activeStudentCount = 0,
   currentLayout,
   currentStudentBoardsInfo,
   currentPage,
@@ -42,6 +44,7 @@ const WindowContentBody: React.FC<WindowContentBodyProps> = ({
     <div className={`flex-1 min-h-0 ${isHeaderCollapsed ? 'p-4 pt-2' : 'px-4 pb-4'}`}>
       <StudentBoardsGrid
         studentCount={studentCount}
+        activeStudentCount={activeStudentCount}
         currentLayout={currentLayout}
         currentStudentBoardsInfo={currentStudentBoardsInfo}
         currentPage={currentPage}

@@ -1,11 +1,13 @@
+
 import React, { useEffect, useState } from 'react';
 import WindowContentRenderer from './WindowContentRenderer';
 import { LayoutOption } from '@/utils/layoutCalculator';
-import { GridOrientation } from '../TeacherView';
+import { GridOrientation } from './TeacherView';
 import { StudentBoardInfo } from '@/utils/studentBoardGenerator';
 
 interface StudentBoardsWindowProps {
   studentCount: number;
+  activeStudentCount?: number;
   currentLayout: LayoutOption;
   availableLayouts: LayoutOption[];
   selectedLayoutId: string;
@@ -27,6 +29,7 @@ interface StudentBoardsWindowProps {
 
 const StudentBoardsWindow: React.FC<StudentBoardsWindowProps> = ({
   studentCount,
+  activeStudentCount = 0,
   currentLayout,
   availableLayouts,
   selectedLayoutId,
@@ -71,6 +74,7 @@ const StudentBoardsWindow: React.FC<StudentBoardsWindowProps> = ({
     <WindowContentRenderer
       container={windowContainer}
       studentCount={studentCount}
+      activeStudentCount={activeStudentCount}
       currentLayout={currentLayout}
       availableLayouts={availableLayouts}
       selectedLayoutId={selectedLayoutId}
