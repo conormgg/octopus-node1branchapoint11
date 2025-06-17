@@ -1,3 +1,4 @@
+
 import { useEffect, useRef } from 'react';
 import { SyncConfig } from '@/types/sync';
 import { WhiteboardState } from '@/types/whiteboard';
@@ -10,8 +11,7 @@ export const useSharedPersistenceIntegration = (
   setState: (updater: (prev: WhiteboardState) => WhiteboardState) => void,
   syncConfig?: SyncConfig,
   whiteboardId?: string,
-  isApplyingRemoteOperation?: React.MutableRefObject<boolean>,
-  addToHistory?: (snapshot: any, activityMetadata?: any) => void
+  isApplyingRemoteOperation?: React.MutableRefObject<boolean>
 ) => {
   const { updateWhiteboardState } = useWhiteboardStateContext();
   
@@ -40,7 +40,7 @@ export const useSharedPersistenceIntegration = (
 
   // Update state when persisted data is loaded, but only once on initial load
   useEffect(() => {
-    if (!persistence.isLoading && persistence.lines && !hasLoadedInitialData.current && addToHistory) {
+    if (!persistence.isLoading && persistence.lines && !hasLoadedInitialData.current) {
       console.log(`[PersistenceIntegration] Loaded ${persistence.lines.length} lines and ${persistence.images?.length || 0} images from persistence for ${whiteboardId}`);
       console.log(`[PersistenceIntegration] Found ${persistence.orderedOperations?.length || 0} operations for history replay`);
       
@@ -51,49 +51,42 @@ export const useSharedPersistenceIntegration = (
           
           // Mark that we've loaded initial data
           hasLoadedInitialData.current = true;
-          previousLineCount.current = persistence.lines.length;
           
-          // If we have operations to replay, use the history replay system
+          // If we have operations to replay, use the pure history replay system
           if (persistence.orderedOperations && persistence.orderedOperations.length > 0) {
-            console.log(`[PersistenceIntegration] Starting history replay for ${persistence.orderedOperations.length} operations`);
+            console.log(`[PersistenceIntegration] Starting pure history replay for ${persistence.orderedOperations.length} operations`);
             
             // Create initial state for replay
             const initialState = {
               ...prevState,
               lines: [],
-              images: [],
-              history: [{
-                lines: [],
-                images: [],
-                selectionState: {
-                  selectedObjects: [],
-                  selectionBounds: null,
-                  isSelecting: false,
-                  transformationData: {}
-                }
-              }],
-              historyIndex: 0
+              images: []
             };
             
-            // Replay operations to build history stack
-            const { finalState } = replayOperations(
+            // Use pure replay simulation to get correct final state and history stack
+            const { finalState, historyStack, finalHistoryIndex } = replayOperations(
               persistence.orderedOperations,
-              initialState,
-              addToHistory
+              initialState
             );
             
-            console.log(`[PersistenceIntegration] History replay complete. Final state: ${finalState.lines.length} lines, ${finalState.images.length} images`);
+            console.log(`[PersistenceIntegration] Pure replay complete. Final state: ${finalState.lines.length} lines, ${finalState.images.length} images`);
+            console.log(`[PersistenceIntegration] Final history index: ${finalHistoryIndex}, stack length: ${historyStack.length}`);
+            
+            // Set the final line count for tracking
+            previousLineCount.current = finalState.lines.length;
             
             return {
               ...prevState,
               lines: [...finalState.lines],
               images: [...finalState.images],
-              // History will be built by the replay process calling addToHistory
-              // Keep the existing history structure that was built during replay
+              history: [...historyStack], // Use the correctly simulated history stack
+              historyIndex: finalHistoryIndex // Use the correct history index
             };
           } else {
             // Fallback to old behavior if no operations available
             console.log(`[PersistenceIntegration] No operations for replay, using direct state loading`);
+            
+            previousLineCount.current = persistence.lines.length;
             
             const newSnapshot = {
               lines: [...persistence.lines], 
@@ -131,7 +124,7 @@ export const useSharedPersistenceIntegration = (
         updateWhiteboardState(whiteboardId, persistence.lines);
       }
     }
-  }, [persistence.isLoading, persistence.lines, persistence.images, persistence.lastActivity, persistence.orderedOperations, whiteboardId, updateWhiteboardState, setState, state.lines.length, addToHistory, replayOperations]);
+  }, [persistence.isLoading, persistence.lines, persistence.images, persistence.lastActivity, persistence.orderedOperations, whiteboardId, updateWhiteboardState, setState, state.lines.length, replayOperations]);
 
   // Update shared state only for additions, not deletions (to prevent race condition)
   useEffect(() => {

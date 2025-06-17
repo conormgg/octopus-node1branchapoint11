@@ -160,7 +160,7 @@ export const useSharedOperationsCoordinator = (
 
   return {
     syncState,
-    addToHistory, // This will be passed to persistence integration
+    addToHistory, // Keep this for drawing operations
     undo: finalUndo,
     redo: finalRedo,
     canUndo: finalCanUndo,

@@ -12,86 +12,138 @@ interface HistoryReplayResult {
     selectionState: any;
     lastActivity?: ActivityMetadata;
   }>;
+  finalHistoryIndex: number;
 }
 
 /**
  * @hook useSharedHistoryReplay
- * @description Replays operations sequentially to rebuild both final state and history stack
+ * @description Pure simulator that replays operations to rebuild state and history stack
  */
 export const useSharedHistoryReplay = () => {
   const replayOperations = useCallback((
     orderedOperations: WhiteboardOperation[],
-    initialState: WhiteboardState,
-    addToHistory: (snapshot: any, activityMetadata?: ActivityMetadata) => void
+    initialState: WhiteboardState
   ): HistoryReplayResult => {
-    console.log(`[HistoryReplay] Starting replay of ${orderedOperations.length} operations`);
+    console.log(`[HistoryReplay] Starting pure simulation of ${orderedOperations.length} operations`);
     
-    // Start with a complete WhiteboardState object
-    let currentState: WhiteboardState = {
-      ...initialState,
-      lines: [...initialState.lines],
-      images: [...initialState.images]
-    };
-    
-    const historyStack: Array<{
+    // Initialize internal history stack and index for simulation
+    let historyStack: Array<{
       lines: any[];
       images: any[];
       selectionState: any;
       lastActivity?: ActivityMetadata;
     }> = [];
     
+    let historyIndex = -1; // Start at -1, will become 0 when first state is added
+    
+    // Start with initial state
+    let currentState: WhiteboardState = {
+      ...initialState,
+      lines: [...initialState.lines],
+      images: [...initialState.images]
+    };
+    
     // Add initial state to history
     const initialSnapshot = {
       lines: [...currentState.lines],
       images: [...currentState.images],
-      selectionState: currentState.selectionState
+      selectionState: {
+        selectedObjects: [],
+        selectionBounds: null,
+        isSelecting: false,
+        transformationData: {}
+      }
     };
     historyStack.push(initialSnapshot);
+    historyIndex = 0;
     
-    // Replay each operation and build history
+    // Process each operation in the simulation
     orderedOperations.forEach((operation, index) => {
-      console.log(`[HistoryReplay] Replaying operation ${index + 1}/${orderedOperations.length}: ${operation.operation_type}`);
+      console.log(`[HistoryReplay] Simulating operation ${index + 1}/${orderedOperations.length}: ${operation.operation_type}`);
       
-      // Skip undo/redo operations during replay - they would interfere with history building
-      if (operation.operation_type === 'undo' || operation.operation_type === 'redo') {
-        console.log(`[HistoryReplay] Skipping ${operation.operation_type} operation during replay`);
+      if (operation.operation_type === 'undo') {
+        // Undo: Move back in history if possible
+        if (historyIndex > 0) {
+          historyIndex--;
+          const previousSnapshot = historyStack[historyIndex];
+          currentState = {
+            ...currentState,
+            lines: [...previousSnapshot.lines],
+            images: [...previousSnapshot.images]
+          };
+          console.log(`[HistoryReplay] Undo applied - moved to history index ${historyIndex}`);
+        } else {
+          console.log(`[HistoryReplay] Undo ignored - already at beginning of history`);
+        }
         return;
       }
       
-      // Apply the operation to get the new state - now using complete WhiteboardState
+      if (operation.operation_type === 'redo') {
+        // Redo: Move forward in history if possible
+        if (historyIndex < historyStack.length - 1) {
+          historyIndex++;
+          const nextSnapshot = historyStack[historyIndex];
+          currentState = {
+            ...currentState,
+            lines: [...nextSnapshot.lines],
+            images: [...nextSnapshot.images]
+          };
+          console.log(`[HistoryReplay] Redo applied - moved to history index ${historyIndex}`);
+        } else {
+          console.log(`[HistoryReplay] Redo ignored - already at end of history`);
+        }
+        return;
+      }
+      
+      // For all other operations: apply them and create new history state
+      console.log(`[HistoryReplay] Applying ${operation.operation_type} operation`);
+      
+      // Apply the operation to get the new state
       const newState = applyOperation(currentState, operation);
       
       // Create activity metadata for this operation
       const activityMetadata = createActivityFromOperation(operation, newState);
       
-      // Create history snapshot
-      const snapshot = {
+      // Create new history snapshot
+      const newSnapshot = {
         lines: [...newState.lines],
         images: [...newState.images],
-        selectionState: currentState.selectionState, // Keep current selection state
+        selectionState: {
+          selectedObjects: [],
+          selectionBounds: null,
+          isSelecting: false,
+          transformationData: {}
+        },
         lastActivity: activityMetadata
       };
       
-      // Add to history stack
-      historyStack.push(snapshot);
+      // Truncate any "future" history if we're not at the end (user had previously undone)
+      if (historyIndex < historyStack.length - 1) {
+        historyStack = historyStack.slice(0, historyIndex + 1);
+        console.log(`[HistoryReplay] Truncated future history, new length: ${historyStack.length}`);
+      }
       
-      // Call addToHistory to properly integrate with the history system
-      addToHistory(snapshot, activityMetadata);
+      // Add new snapshot to history and advance index
+      historyStack.push(newSnapshot);
+      historyIndex++;
       
-      // Update current state for next iteration - maintain complete state structure
+      // Update current state
       currentState = {
         ...currentState,
         lines: [...newState.lines],
         images: [...newState.images]
       };
+      
+      console.log(`[HistoryReplay] Operation applied - history index: ${historyIndex}, stack length: ${historyStack.length}`);
     });
     
-    console.log(`[HistoryReplay] Replay complete. Final state: ${currentState.lines.length} lines, ${currentState.images.length} images`);
-    console.log(`[HistoryReplay] History stack length: ${historyStack.length}`);
+    console.log(`[HistoryReplay] Simulation complete. Final state: ${currentState.lines.length} lines, ${currentState.images.length} images`);
+    console.log(`[HistoryReplay] Final history: index ${historyIndex}, stack length ${historyStack.length}`);
     
     return {
       finalState: currentState,
-      historyStack
+      historyStack,
+      finalHistoryIndex: historyIndex
     };
   }, []);
   

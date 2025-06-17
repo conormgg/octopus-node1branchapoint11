@@ -29,14 +29,14 @@ export const useSharedOperationsHandler = (
   // Coordinate all operations (drawing, sync, history, etc.) with whiteboard ID
   const operations = useSharedOperationsCoordinator(syncConfig, state, setState, whiteboardId);
 
-  // Handle persistence and context integration - now with addToHistory for history replay
+  // Handle persistence and context integration - no longer needs addToHistory for pure replay
   useSharedPersistenceIntegration(
     state, 
     setState, 
     syncConfig, 
     whiteboardId, 
-    undefined, // isApplyingRemoteOperation - will be passed from parent if needed
-    operations.addToHistory // NEW: Pass addToHistory for history replay
+    undefined // isApplyingRemoteOperation - will be passed from parent if needed
+    // Removed addToHistory parameter - pure replay doesn't need it
   );
 
   // Pointer event handlers with proper safety checks
