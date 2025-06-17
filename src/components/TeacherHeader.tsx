@@ -34,6 +34,7 @@ interface TeacherHeaderProps {
   activeSession?: Session | null;
   onEndSession?: () => void;
   onSignOut?: () => void;
+  onOpenAddDialog?: () => void;
 }
 
 const TeacherHeader: React.FC<TeacherHeaderProps> = ({
@@ -54,6 +55,7 @@ const TeacherHeader: React.FC<TeacherHeaderProps> = ({
   activeSession,
   onEndSession,
   onSignOut,
+  onOpenAddDialog,
 }) => {
   const [isHovered, setIsHovered] = useState(false);
   const [copied, setCopied] = useState(false);
@@ -267,6 +269,16 @@ const TeacherHeader: React.FC<TeacherHeaderProps> = ({
                       <ExternalLink className="w-4 h-4 mr-2" />
                       Open in New Window
                     </DropdownMenuItem>
+                    
+                    <DropdownMenuSeparator />
+                    
+                    {/* Add Student option */}
+                    {onOpenAddDialog && (
+                      <DropdownMenuItem onClick={onOpenAddDialog} className="cursor-pointer">
+                        <UserPlus className="w-4 h-4 mr-2" />
+                        Add Student
+                      </DropdownMenuItem>
+                    )}
                     
                     <DropdownMenuSeparator />
                     

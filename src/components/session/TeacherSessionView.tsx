@@ -119,6 +119,7 @@ const TeacherSessionView: React.FC<TeacherSessionViewProps> = ({
         onToggleControlsCollapse={onToggleControlsCollapse}
         onEndSession={onEndSession}
         onSignOut={onSignOut}
+        onOpenAddDialog={onOpenAddDialog}
       />
 
       <TeacherSessionMainContent
