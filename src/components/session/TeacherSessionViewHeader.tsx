@@ -180,40 +180,42 @@ const TeacherSessionViewHeader: React.FC<TeacherSessionViewHeaderProps> = ({
           </div>
         </div>
 
-        {/* Sync Direction Controls Panel */}
-        <CollapsibleContent>
-          <div className="mt-4 pt-4 border-t border-gray-200">
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-lg">Student Sync Controls</CardTitle>
-                <p className="text-sm text-gray-600">
-                  Control who has drawing authority for each student board. 
-                  <span className="font-medium text-green-600"> Teacher Active</span> means you control the board, 
-                  <span className="font-medium text-blue-600"> Student Active</span> means the student controls it.
-                </p>
-              </CardHeader>
-              <CardContent>
-                {participants.length > 0 ? (
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-                    {participants.map((participant) => (
-                      <SyncDirectionToggle
-                        key={participant.id}
-                        participant={participant}
-                        onToggle={updateSyncDirection}
-                      />
-                    ))}
-                  </div>
-                ) : (
-                  <div className="text-center py-8 text-gray-500">
-                    <Users className="w-12 h-12 mx-auto mb-4 opacity-50" />
-                    <p>No students have joined this session yet.</p>
-                    <p className="text-sm">Share the session URL to get started.</p>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          </div>
-        </CollapsibleContent>
+        {/* Sync Direction Controls Panel - Now properly nested within Collapsible */}
+        <Collapsible open={syncControlsOpen} onOpenChange={setSyncControlsOpen}>
+          <CollapsibleContent>
+            <div className="mt-4 pt-4 border-t border-gray-200">
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-lg">Student Sync Controls</CardTitle>
+                  <p className="text-sm text-gray-600">
+                    Control who has drawing authority for each student board. 
+                    <span className="font-medium text-green-600"> Teacher Active</span> means you control the board, 
+                    <span className="font-medium text-blue-600"> Student Active</span> means the student controls it.
+                  </p>
+                </CardHeader>
+                <CardContent>
+                  {participants.length > 0 ? (
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                      {participants.map((participant) => (
+                        <SyncDirectionToggle
+                          key={participant.id}
+                          participant={participant}
+                          onToggle={updateSyncDirection}
+                        />
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="text-center py-8 text-gray-500">
+                      <Users className="w-12 h-12 mx-auto mb-4 opacity-50" />
+                      <p>No students have joined this session yet.</p>
+                      <p className="text-sm">Share the session URL to get started.</p>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            </div>
+          </CollapsibleContent>
+        </Collapsible>
       </div>
     </div>
   );
