@@ -11,20 +11,21 @@ export const useGracePeriod = ({ studentName, markInactive }: UseGracePeriodProp
 
   // Start grace period for delayed inactive marking
   const startGracePeriod = useCallback(() => {
-    console.log(`[StudentPresence:${studentName}] Starting grace period - will continue heartbeat for 7 minutes`);
+    // Reduced grace period from 7 minutes to 3 minutes for better responsiveness
+    console.log(`[StudentPresence:${studentName}] Starting grace period - will continue heartbeat for 3 minutes`);
     
     // Clear any existing grace period
     if (gracePeriodTimeoutRef.current) {
       clearTimeout(gracePeriodTimeoutRef.current);
     }
     
-    // Continue heartbeat for 7 minutes even when tab is hidden
+    // Continue heartbeat for 3 minutes when tab is hidden/minimized
     gracePeriodTimeoutRef.current = setTimeout(() => {
       console.log(`[StudentPresence:${studentName}] Grace period expired, marking inactive`);
       markInactive().then(success => {
         console.log(`[StudentPresence:${studentName}] Grace period markInactive result:`, success);
       });
-    }, 7 * 60 * 1000); // 7 minutes
+    }, 3 * 60 * 1000); // 3 minutes instead of 7
   }, [markInactive, studentName]);
 
   // Cancel grace period

@@ -1,6 +1,7 @@
 
 import { useCallback, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
+import { updateThrottler } from '@/utils/presence/updateThrottler';
 
 interface UseHeartbeatProps {
   participantId?: number;
@@ -20,8 +21,17 @@ export const useHeartbeat = ({ participantId, studentName, sessionId }: UseHeart
       return false;
     }
 
+    // Check throttling before attempting update
+    if (!updateThrottler.shouldAllowUpdate(participantId)) {
+      const stats = updateThrottler.getStats(participantId);
+      console.log(`[StudentPresence:${studentName}] Heartbeat throttled:`, stats);
+      return true; // Return true to avoid triggering retry logic
+    }
+
     const heartbeatTime = new Date();
-    console.log(`[StudentPresence:${studentName}] Attempting heartbeat for participant ${participantId} at ${heartbeatTime.toISOString()}`);
+    const transactionId = `heartbeat_${participantId}_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+    
+    console.log(`[StudentPresence:${studentName}] Attempting heartbeat for participant ${participantId} at ${heartbeatTime.toISOString()} [${transactionId}]`);
 
     try {
       const { data, error } = await supabase
@@ -33,7 +43,7 @@ export const useHeartbeat = ({ participantId, studentName, sessionId }: UseHeart
         .select();
 
       if (error) {
-        console.error(`[StudentPresence:${studentName}] Heartbeat failed:`, {
+        console.error(`[StudentPresence:${studentName}] Heartbeat failed [${transactionId}]:`, {
           error,
           participantId,
           sessionId,
@@ -46,7 +56,7 @@ export const useHeartbeat = ({ participantId, studentName, sessionId }: UseHeart
         
         // Only stop trying after max retries
         if (retryCountRef.current >= maxRetries) {
-          console.warn(`[StudentPresence:${studentName}] Max retries reached, will mark inactive`);
+          console.warn(`[StudentPresence:${studentName}] Max retries reached, will mark inactive [${transactionId}]`);
           return false;
         }
         
@@ -58,17 +68,20 @@ export const useHeartbeat = ({ participantId, studentName, sessionId }: UseHeart
         return false;
       }
 
+      // Record successful update
+      updateThrottler.recordUpdate(participantId);
+      
       // Reset retry count on successful heartbeat
       retryCountRef.current = 0;
       lastHeartbeatRef.current = heartbeatTime;
-      console.log(`[StudentPresence:${studentName}] Heartbeat SUCCESS:`, {
+      console.log(`[StudentPresence:${studentName}] Heartbeat SUCCESS [${transactionId}]:`, {
         participantId,
         timestamp: heartbeatTime.toISOString(),
         updateCount: data?.length || 0
       });
       return true;
     } catch (error) {
-      console.error(`[StudentPresence:${studentName}] Heartbeat exception:`, {
+      console.error(`[StudentPresence:${studentName}] Heartbeat exception [${transactionId}]:`, {
         error,
         participantId,
         sessionId,
@@ -86,8 +99,17 @@ export const useHeartbeat = ({ participantId, studentName, sessionId }: UseHeart
       return;
     }
 
+    // Check throttling for inactive marking too
+    if (!updateThrottler.shouldAllowUpdate(participantId)) {
+      const stats = updateThrottler.getStats(participantId);
+      console.log(`[StudentPresence:${studentName}] Mark inactive throttled:`, stats);
+      return true; // Already inactive or will be handled by cleanup
+    }
+
     const inactiveTime = new Date();
-    console.log(`[StudentPresence:${studentName}] Marking participant ${participantId} as INACTIVE at ${inactiveTime.toISOString()}`);
+    const transactionId = `inactive_${participantId}_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+    
+    console.log(`[StudentPresence:${studentName}] Marking participant ${participantId} as INACTIVE at ${inactiveTime.toISOString()} [${transactionId}]`);
 
     try {
       const { data, error } = await supabase
@@ -100,7 +122,7 @@ export const useHeartbeat = ({ participantId, studentName, sessionId }: UseHeart
         .select();
 
       if (error) {
-        console.error(`[StudentPresence:${studentName}] Mark inactive failed:`, {
+        console.error(`[StudentPresence:${studentName}] Mark inactive failed [${transactionId}]:`, {
           error,
           participantId,
           sessionId,
@@ -109,14 +131,17 @@ export const useHeartbeat = ({ participantId, studentName, sessionId }: UseHeart
         return false;
       }
 
-      console.log(`[StudentPresence:${studentName}] Mark inactive SUCCESS:`, {
+      // Record successful update
+      updateThrottler.recordUpdate(participantId);
+
+      console.log(`[StudentPresence:${studentName}] Mark inactive SUCCESS [${transactionId}]:`, {
         participantId,
         timestamp: inactiveTime.toISOString(),
         updateCount: data?.length || 0
       });
       return true;
     } catch (error) {
-      console.error(`[StudentPresence:${studentName}] Mark inactive exception:`, {
+      console.error(`[StudentPresence:${studentName}] Mark inactive exception [${transactionId}]:`, {
         error,
         participantId,
         sessionId,

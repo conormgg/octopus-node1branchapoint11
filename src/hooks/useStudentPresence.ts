@@ -1,9 +1,9 @@
-
 import { useEffect } from 'react';
 import { useHeartbeat } from './presence/useHeartbeat';
 import { useHeartbeatInterval } from './presence/useHeartbeatInterval';
 import { useGracePeriod } from './presence/useGracePeriod';
 import { usePresenceEventHandlers } from './presence/usePresenceEventHandlers';
+import { usePresenceMonitor } from './presence/usePresenceMonitor';
 
 interface UseStudentPresenceProps {
   sessionId: string;
@@ -57,6 +57,13 @@ export const useStudentPresence = ({
     isActive
   });
 
+  // Add presence monitoring
+  const { getStats } = usePresenceMonitor({
+    participantId,
+    studentName,
+    enabled: !!participantId
+  });
+
   // Set up presence tracking only when participantId is available
   useEffect(() => {
     if (!participantId) {
@@ -105,6 +112,7 @@ export const useStudentPresence = ({
     sendHeartbeat,
     markInactive,
     isActive,
-    lastHeartbeat
+    lastHeartbeat,
+    getPresenceStats: getStats
   };
 };
