@@ -15,8 +15,10 @@ interface Session {
 }
 
 interface Participant {
+  id: number;
   student_name: string;
   assigned_board_suffix: string;
+  joined_at: string | null;
 }
 
 const StudentJoinPage: React.FC = () => {
@@ -58,10 +60,10 @@ const StudentJoinPage: React.FC = () => {
 
       setSession(sessionData);
 
-      // Fetch participants
+      // Fetch participants with join status
       const { data: participantsData, error: participantsError } = await supabase
         .from('session_participants')
-        .select('student_name, assigned_board_suffix')
+        .select('id, student_name, assigned_board_suffix, joined_at')
         .eq('session_id', sessionData.id);
 
       if (participantsError) throw participantsError;
@@ -99,7 +101,17 @@ const StudentJoinPage: React.FC = () => {
         return;
       }
 
-      // Join the session (navigate to student view)
+      // Update joined_at timestamp to mark student as joined
+      const { error: updateError } = await supabase
+        .from('session_participants')
+        .update({ 
+          joined_at: new Date().toISOString() 
+        })
+        .eq('id', matchingParticipant.id);
+
+      if (updateError) throw updateError;
+
+      // Navigate to student view
       navigate(`/session/${sessionSlug}/student`, {
         state: {
           sessionId: session.id,
@@ -186,7 +198,12 @@ const StudentJoinPage: React.FC = () => {
               <h4 className="text-sm font-medium mb-2">Students in this session:</h4>
               <div className="text-xs text-gray-600 space-y-1">
                 {participants.map((participant, index) => (
-                  <div key={index}>• {participant.student_name}</div>
+                  <div key={index} className="flex items-center justify-between">
+                    <span>• {participant.student_name}</span>
+                    {participant.joined_at && (
+                      <span className="text-green-600 text-xs">✓ Joined</span>
+                    )}
+                  </div>
                 ))}
               </div>
             </div>

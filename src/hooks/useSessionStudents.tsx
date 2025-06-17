@@ -71,7 +71,7 @@ export const useSessionStudents = (activeSession: Session | null | undefined) =>
   // Total registered students
   const totalStudentCount = sessionStudents.length;
 
-  // Remove this mock implementation and replace with real database operations
+  // Fixed student count change to ensure joined_at starts as null
   const handleStudentCountChange = async (newCount: number) => {
     if (!activeSession) return;
     
@@ -79,7 +79,7 @@ export const useSessionStudents = (activeSession: Session | null | undefined) =>
     const currentCount = sessionStudents.length;
     
     if (clampedCount > currentCount) {
-      // Add new students
+      // Add new students - ensure joined_at is null (pending state)
       const studentsToAdd = clampedCount - currentCount;
       for (let i = 0; i < studentsToAdd; i++) {
         const nextSuffix = String.fromCharCode(65 + currentCount + i); // A, B, C, etc.
@@ -92,7 +92,7 @@ export const useSessionStudents = (activeSession: Session | null | undefined) =>
               student_name: `Student ${nextSuffix}`,
               assigned_board_suffix: nextSuffix,
               student_email: null,
-              joined_at: null // Initially pending
+              joined_at: null // CRITICAL: Start as null (pending)
             });
         } catch (error) {
           console.error('Error adding student:', error);

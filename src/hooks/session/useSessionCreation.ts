@@ -55,7 +55,7 @@ export const useSessionCreation = ({
 
       if (sessionError) throw sessionError;
 
-      // Add students to session
+      // Add students to session - ensure they start as pending
       const validStudents = students.filter(student => student.name.trim());
       if (validStudents.length > 0) {
         const participantsToInsert = validStudents.map((student, index) => ({
@@ -63,6 +63,7 @@ export const useSessionCreation = ({
           student_name: student.name.trim(),
           student_email: student.email.trim() || null,
           assigned_board_suffix: String.fromCharCode(65 + index), // A, B, C, etc.
+          joined_at: null, // CRITICAL: Start as null (pending state)
         }));
 
         const { error: participantsError } = await supabase
