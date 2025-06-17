@@ -28,7 +28,6 @@ const TeacherView: React.FC<TeacherViewProps> = ({
     studentsWithStatus, 
     activeStudentCount, 
     totalStudentCount, 
-    handleStudentCountChange,
     handleAddIndividualStudent,
     handleRemoveIndividualStudent,
     isLoading 
@@ -58,14 +57,6 @@ const TeacherView: React.FC<TeacherViewProps> = ({
   useEffect(() => {
     setIsUrlModalOpen(showUrlModal);
   }, [showUrlModal]);
-
-  const increaseStudentCount = () => {
-    handleStudentCountChange(totalStudentCount + 1);
-  };
-
-  const decreaseStudentCount = () => {
-    handleStudentCountChange(totalStudentCount - 1);
-  };
 
   const handleCloseUrlModal = () => {
     setIsUrlModalOpen(false);
@@ -118,8 +109,6 @@ const TeacherView: React.FC<TeacherViewProps> = ({
         onToggleControlsCollapse={handleToggleControlsCollapse}
         onPreviousPage={handlePreviousPage}
         onNextPage={handleNextPage}
-        onIncreaseStudentCount={increaseStudentCount}
-        onDecreaseStudentCount={decreaseStudentCount}
         onEndSession={onEndSession!}
         onSignOut={onSignOut!}
         onAddIndividualStudent={handleAddIndividualStudent}

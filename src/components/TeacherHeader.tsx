@@ -1,6 +1,6 @@
 
 import React, { useState } from 'react';
-import { GraduationCap, Users, Plus, Minus, UserPlus, Monitor, ChevronUp, ChevronDown, Columns2, Rows2, Settings, Copy, Check, ExternalLink, LogOut, X, UserMinus } from 'lucide-react';
+import { GraduationCap, ChevronUp, ChevronDown, Columns2, Rows2, Settings, Copy, Check, ExternalLink, LogOut, X, UserMinus, Monitor, UserPlus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
@@ -21,14 +21,11 @@ interface Session {
 }
 
 interface TeacherHeaderProps {
-  studentCount: number;
-  activeStudentCount?: number; // Add optional active student count
+  activeStudentCount?: number; // Keep for internal use
   currentLayout: LayoutOption | undefined;
   availableLayouts: LayoutOption[];
   selectedLayoutId: string;
   gridOrientation: GridOrientation;
-  onIncreaseStudentCount: () => void;
-  onDecreaseStudentCount: () => void;
   onLayoutChange: (layoutId: string) => void;
   onOrientationChange: (orientation: GridOrientation) => void;
   onToggleSplitView?: () => void;
@@ -38,21 +35,18 @@ interface TeacherHeaderProps {
   activeSession?: Session | null;
   onEndSession?: () => void;
   onSignOut?: () => void;
-  // New props for individual student management
+  // Individual student management props
   sessionStudents?: SessionParticipant[];
   onAddIndividualStudent?: (name: string, email: string) => Promise<void>;
   onRemoveIndividualStudent?: (participantId: number) => Promise<void>;
 }
 
 const TeacherHeader: React.FC<TeacherHeaderProps> = ({
-  studentCount,
   activeStudentCount,
   currentLayout,
   availableLayouts,
   selectedLayoutId,
   gridOrientation,
-  onIncreaseStudentCount,
-  onDecreaseStudentCount,
   onLayoutChange,
   onOrientationChange,
   onToggleSplitView,
@@ -197,55 +191,6 @@ const TeacherHeader: React.FC<TeacherHeaderProps> = ({
                   <span>{isSplitViewActive ? 'Close Split View' : 'Split View'}</span>
                 </Button>
               )}
-              
-              {/* Add Student Button */}
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={onIncreaseStudentCount}
-                disabled={studentCount >= 8}
-                className="flex items-center space-x-2"
-              >
-                <UserPlus className="w-4 h-4" />
-                <span>Add Student</span>
-              </Button>
-              
-              {/* Student Count Controls with Active/Total display */}
-              <div className="flex items-center space-x-3">
-                <div className="flex items-center space-x-2 px-3 py-2 bg-gray-50 rounded-lg">
-                  <Users className="w-4 h-4 text-gray-600" />
-                  <span className="text-sm font-medium text-gray-700">
-                    {activeStudentCount !== undefined ? (
-                      <>
-                        {activeStudentCount}/{studentCount} Student{studentCount !== 1 ? 's' : ''}
-                      </>
-                    ) : (
-                      <>
-                        {studentCount} Student{studentCount !== 1 ? 's' : ''}
-                      </>
-                    )}
-                  </span>
-                </div>
-                
-                <div className="flex items-center space-x-1">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={onDecreaseStudentCount}
-                    disabled={studentCount <= 1}
-                  >
-                    <Minus className="w-4 h-4" />
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={onIncreaseStudentCount}
-                    disabled={studentCount >= 8}
-                  >
-                    <Plus className="w-4 h-4" />
-                  </Button>
-                </div>
-              </div>
 
               {/* Session Options Dropdown */}
               {activeSession && (

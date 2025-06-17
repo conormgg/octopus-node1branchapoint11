@@ -45,11 +45,9 @@ interface TeacherSessionViewProps {
   onToggleControlsCollapse: () => void;
   onPreviousPage: () => void;
   onNextPage: () => void;
-  onIncreaseStudentCount: () => void;
-  onDecreaseStudentCount: () => void;
   onEndSession: () => void;
   onSignOut: () => void;
-  // New props for individual student management
+  // Individual student management props
   onAddIndividualStudent?: (name: string, email: string) => Promise<void>;
   onRemoveIndividualStudent?: (participantId: number) => Promise<void>;
 }
@@ -78,8 +76,6 @@ const TeacherSessionView: React.FC<TeacherSessionViewProps> = ({
   onToggleControlsCollapse,
   onPreviousPage,
   onNextPage,
-  onIncreaseStudentCount,
-  onDecreaseStudentCount,
   onEndSession,
   onSignOut,
   onAddIndividualStudent,
@@ -103,7 +99,6 @@ const TeacherSessionView: React.FC<TeacherSessionViewProps> = ({
   return (
     <div className="min-h-screen bg-gray-100">
       <TeacherSessionViewHeader
-        studentCount={totalStudentCount}
         activeStudentCount={activeStudentCount}
         currentLayout={currentLayout}
         availableLayouts={availableLayouts}
@@ -113,8 +108,6 @@ const TeacherSessionView: React.FC<TeacherSessionViewProps> = ({
         isControlsCollapsed={isControlsCollapsed}
         activeSession={activeSession}
         sessionStudents={sessionStudents}
-        onIncreaseStudentCount={onIncreaseStudentCount}
-        onDecreaseStudentCount={onDecreaseStudentCount}
         onLayoutChange={onLayoutChange}
         onOrientationChange={onOrientationChange}
         onToggleSplitView={onToggleSplitView}
@@ -146,8 +139,6 @@ const TeacherSessionView: React.FC<TeacherSessionViewProps> = ({
         onNextPage={onNextPage}
         onLayoutChange={onLayoutChange}
         onOrientationChange={onOrientationChange}
-        onIncreaseStudentCount={onIncreaseStudentCount}
-        onDecreaseStudentCount={onDecreaseStudentCount}
         onCloseSplitView={onCloseSplitView}
       />
     </div>

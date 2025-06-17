@@ -4,8 +4,7 @@ import TeacherHeader from '../TeacherHeader';
 import { SessionParticipant } from '@/types/student';
 
 interface TeacherSessionViewHeaderProps {
-  studentCount: number;
-  activeStudentCount?: number; // Add optional active count
+  activeStudentCount?: number; // Keep for internal use
   currentLayout: any;
   availableLayouts: any[];
   selectedLayoutId: string;
@@ -21,8 +20,6 @@ interface TeacherSessionViewHeaderProps {
     teacher_id: string;
   };
   sessionStudents?: SessionParticipant[];
-  onIncreaseStudentCount: () => void;
-  onDecreaseStudentCount: () => void;
   onLayoutChange: (layoutId: string) => void;
   onOrientationChange: (orientation: 'columns-first' | 'rows-first') => void;
   onToggleSplitView: () => void;
@@ -34,7 +31,6 @@ interface TeacherSessionViewHeaderProps {
 }
 
 const TeacherSessionViewHeader: React.FC<TeacherSessionViewHeaderProps> = ({
-  studentCount,
   activeStudentCount,
   currentLayout,
   availableLayouts,
@@ -44,8 +40,6 @@ const TeacherSessionViewHeader: React.FC<TeacherSessionViewHeaderProps> = ({
   isControlsCollapsed,
   activeSession,
   sessionStudents,
-  onIncreaseStudentCount,
-  onDecreaseStudentCount,
   onLayoutChange,
   onOrientationChange,
   onToggleSplitView,
@@ -65,14 +59,11 @@ const TeacherSessionViewHeader: React.FC<TeacherSessionViewHeaderProps> = ({
       )}
 
       <TeacherHeader
-        studentCount={studentCount}
         activeStudentCount={activeStudentCount}
         currentLayout={currentLayout}
         availableLayouts={availableLayouts}
         selectedLayoutId={selectedLayoutId}
         gridOrientation={gridOrientation}
-        onIncreaseStudentCount={onIncreaseStudentCount}
-        onDecreaseStudentCount={onDecreaseStudentCount}
         onLayoutChange={onLayoutChange}
         onOrientationChange={onOrientationChange}
         onToggleSplitView={onToggleSplitView}
