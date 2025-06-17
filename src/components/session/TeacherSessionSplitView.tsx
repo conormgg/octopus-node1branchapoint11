@@ -3,6 +3,7 @@ import React from 'react';
 import TeacherMainBoard from '../TeacherMainBoard';
 import StudentBoardsWindow from '../StudentBoardsWindow';
 import { GridOrientation } from '../TeacherView';
+import { StudentBoardInfo } from '@/utils/studentBoardGenerator';
 
 interface TeacherSessionSplitViewProps {
   activeSession: {
@@ -14,10 +15,12 @@ interface TeacherSessionSplitViewProps {
     teacher_id: string;
   };
   studentCount: number;
+  activeStudentCount?: number;
   currentLayout: any;
   availableLayouts: any[];
   selectedLayoutId: string;
   currentStudentBoards: any[];
+  currentStudentBoardsInfo: (StudentBoardInfo | null)[];
   currentPage: number;
   totalPages: number;
   gridOrientation: GridOrientation;
@@ -37,10 +40,12 @@ interface TeacherSessionSplitViewProps {
 const TeacherSessionSplitView: React.FC<TeacherSessionSplitViewProps> = ({
   activeSession,
   studentCount,
+  activeStudentCount,
   currentLayout,
   availableLayouts,
   selectedLayoutId,
   currentStudentBoards,
+  currentStudentBoardsInfo,
   currentPage,
   totalPages,
   gridOrientation,
@@ -61,10 +66,12 @@ const TeacherSessionSplitView: React.FC<TeacherSessionSplitViewProps> = ({
       {/* Split View Window */}
       <StudentBoardsWindow
         studentCount={studentCount}
+        activeStudentCount={activeStudentCount || 0}
         currentLayout={currentLayout}
         availableLayouts={availableLayouts}
         selectedLayoutId={selectedLayoutId}
         currentStudentBoards={currentStudentBoards}
+        currentStudentBoardsInfo={currentStudentBoardsInfo}
         currentPage={currentPage}
         totalPages={totalPages}
         gridOrientation={gridOrientation}

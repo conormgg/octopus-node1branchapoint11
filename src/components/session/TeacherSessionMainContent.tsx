@@ -3,6 +3,7 @@ import React from 'react';
 import TeacherSessionSplitView from './TeacherSessionSplitView';
 import TeacherSessionResizablePanels from './TeacherSessionResizablePanels';
 import { GridOrientation } from '../TeacherView';
+import { StudentBoardInfo } from '@/utils/studentBoardGenerator';
 
 interface TeacherSessionMainContentProps {
   activeSession: {
@@ -14,11 +15,12 @@ interface TeacherSessionMainContentProps {
     teacher_id: string;
   };
   studentCount: number;
-  activeStudentCount?: number; // Add optional active student count
+  activeStudentCount?: number;
   currentLayout: any;
   availableLayouts: any[];
   selectedLayoutId: string;
   currentStudentBoards: any[];
+  currentStudentBoardsInfo: (StudentBoardInfo | null)[];
   currentPage: number;
   totalPages: number;
   gridOrientation: GridOrientation;
@@ -44,6 +46,7 @@ const TeacherSessionMainContent: React.FC<TeacherSessionMainContentProps> = ({
   availableLayouts,
   selectedLayoutId,
   currentStudentBoards,
+  currentStudentBoardsInfo,
   currentPage,
   totalPages,
   gridOrientation,
@@ -66,10 +69,12 @@ const TeacherSessionMainContent: React.FC<TeacherSessionMainContentProps> = ({
         <TeacherSessionSplitView
           activeSession={activeSession}
           studentCount={studentCount}
+          activeStudentCount={activeStudentCount}
           currentLayout={currentLayout}
           availableLayouts={availableLayouts}
           selectedLayoutId={selectedLayoutId}
           currentStudentBoards={currentStudentBoards}
+          currentStudentBoardsInfo={currentStudentBoardsInfo}
           currentPage={currentPage}
           totalPages={totalPages}
           gridOrientation={gridOrientation}
@@ -89,8 +94,10 @@ const TeacherSessionMainContent: React.FC<TeacherSessionMainContentProps> = ({
         <TeacherSessionResizablePanels
           activeSession={activeSession}
           studentCount={studentCount}
+          activeStudentCount={activeStudentCount}
           currentLayout={currentLayout}
           currentStudentBoards={currentStudentBoards}
+          currentStudentBoardsInfo={currentStudentBoardsInfo}
           currentPage={currentPage}
           totalPages={totalPages}
           gridOrientation={gridOrientation}

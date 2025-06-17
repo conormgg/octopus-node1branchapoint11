@@ -4,6 +4,7 @@ import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from '@/componen
 import TeacherMainBoard from '../TeacherMainBoard';
 import StudentBoardsGrid from '../StudentBoardsGrid';
 import { GridOrientation } from '../TeacherView';
+import { StudentBoardInfo } from '@/utils/studentBoardGenerator';
 
 interface TeacherSessionResizablePanelsProps {
   activeSession: {
@@ -15,8 +16,10 @@ interface TeacherSessionResizablePanelsProps {
     teacher_id: string;
   };
   studentCount: number;
+  activeStudentCount?: number;
   currentLayout: any;
   currentStudentBoards: any[];
+  currentStudentBoardsInfo: (StudentBoardInfo | null)[];
   currentPage: number;
   totalPages: number;
   gridOrientation: GridOrientation;
@@ -31,8 +34,10 @@ interface TeacherSessionResizablePanelsProps {
 const TeacherSessionResizablePanels: React.FC<TeacherSessionResizablePanelsProps> = ({
   activeSession,
   studentCount,
+  activeStudentCount,
   currentLayout,
   currentStudentBoards,
+  currentStudentBoardsInfo,
   currentPage,
   totalPages,
   gridOrientation,
@@ -66,8 +71,9 @@ const TeacherSessionResizablePanels: React.FC<TeacherSessionResizablePanelsProps
         <div className="h-full relative">
           <StudentBoardsGrid
             studentCount={studentCount}
+            activeStudentCount={activeStudentCount || 0}
             currentLayout={currentLayout}
-            currentStudentBoards={currentStudentBoards}
+            currentStudentBoardsInfo={currentStudentBoardsInfo}
             currentPage={currentPage}
             totalPages={totalPages}
             gridOrientation={gridOrientation}

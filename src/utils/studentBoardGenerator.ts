@@ -48,6 +48,7 @@ export const getStudentBoardsForPageWithStatus = (
 
 /**
  * Generate grid slots with proper typing for empty placeholders
+ * This function fills out the grid to match the layout's expected number of slots
  */
 export const generateGridSlotsWithStatus = (
   studentBoards: StudentBoardInfo[],

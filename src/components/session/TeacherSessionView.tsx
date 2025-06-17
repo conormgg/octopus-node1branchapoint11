@@ -2,7 +2,7 @@
 import React from 'react';
 import TeacherSessionViewHeader from './TeacherSessionViewHeader';
 import TeacherSessionMainContent from './TeacherSessionMainContent';
-import { generateStudentBoardsFromParticipants, getStudentBoardsForPageWithStatus } from '@/utils/studentBoardGenerator';
+import { generateStudentBoardsFromParticipants, generateGridSlotsWithStatus } from '@/utils/studentBoardGenerator';
 import { GridOrientation } from '../TeacherView';
 import { SessionParticipant } from '@/types/student';
 
@@ -82,14 +82,18 @@ const TeacherSessionView: React.FC<TeacherSessionViewProps> = ({
 }) => {
   // Generate student boards with status information using the correct SessionParticipant[] type
   const allStudentBoards = generateStudentBoardsFromParticipants(sessionStudents);
-  const currentStudentBoardsInfo = getStudentBoardsForPageWithStatus(
+  
+  // Generate grid slots with null placeholders for empty slots
+  const currentStudentBoardsInfo = generateGridSlotsWithStatus(
     allStudentBoards, 
     currentPage, 
     currentLayout?.studentsPerPage || 4
   );
 
-  // Extract boardId strings for components that expect string[]
-  const currentStudentBoards = currentStudentBoardsInfo.map(board => board.boardId);
+  // Extract boardId strings for components that still expect string[] (backward compatibility)
+  const currentStudentBoards = currentStudentBoardsInfo
+    .filter(board => board !== null)
+    .map(board => board!.boardId);
 
   return (
     <div className="min-h-screen bg-gray-100">
@@ -116,10 +120,12 @@ const TeacherSessionView: React.FC<TeacherSessionViewProps> = ({
       <TeacherSessionMainContent
         activeSession={activeSession}
         studentCount={totalStudentCount}
+        activeStudentCount={activeStudentCount}
         currentLayout={currentLayout}
         availableLayouts={availableLayouts}
         selectedLayoutId={selectedLayoutId}
         currentStudentBoards={currentStudentBoards}
+        currentStudentBoardsInfo={currentStudentBoardsInfo}
         currentPage={currentPage}
         totalPages={totalPages}
         gridOrientation={gridOrientation}
