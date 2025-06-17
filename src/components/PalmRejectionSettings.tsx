@@ -28,7 +28,7 @@ export const PalmRejectionSettings: React.FC<PalmRejectionSettingsProps> = ({
   };
 
   return (
-    <div className="absolute top-3 left-80 z-10">
+    <div className="absolute top-3 left-20 z-10">
       <Card className="w-full max-w-md">
         <CardHeader>
           <CardTitle>Palm Rejection Settings</CardTitle>
