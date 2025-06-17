@@ -1,12 +1,16 @@
+
 import React, { useState } from 'react';
-import { GraduationCap, Users, Plus, Minus, UserPlus, Monitor, ChevronUp, ChevronDown, Columns2, Rows2, Settings, Copy, Check, ExternalLink, LogOut, X } from 'lucide-react';
+import { GraduationCap, Users, Plus, Minus, UserPlus, Monitor, ChevronUp, ChevronDown, Columns2, Rows2, Settings, Copy, Check, ExternalLink, LogOut, X, UserMinus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { useToast } from '@/hooks/use-toast';
 import LayoutSelector from './LayoutSelector';
+import AddStudentDialog from './session/AddStudentDialog';
+import RemoveStudentDialog from './session/RemoveStudentDialog';
 import { LayoutOption } from '@/utils/layoutCalculator';
 import { GridOrientation } from './TeacherView';
+import { SessionParticipant } from '@/types/student';
 
 interface Session {
   id: string;
@@ -34,6 +38,10 @@ interface TeacherHeaderProps {
   activeSession?: Session | null;
   onEndSession?: () => void;
   onSignOut?: () => void;
+  // New props for individual student management
+  sessionStudents?: SessionParticipant[];
+  onAddIndividualStudent?: (name: string, email: string) => Promise<void>;
+  onRemoveIndividualStudent?: (participantId: number) => Promise<void>;
 }
 
 const TeacherHeader: React.FC<TeacherHeaderProps> = ({
@@ -54,9 +62,14 @@ const TeacherHeader: React.FC<TeacherHeaderProps> = ({
   activeSession,
   onEndSession,
   onSignOut,
+  sessionStudents = [],
+  onAddIndividualStudent,
+  onRemoveIndividualStudent,
 }) => {
   const [isHovered, setIsHovered] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [showAddStudentDialog, setShowAddStudentDialog] = useState(false);
+  const [showRemoveStudentDialog, setShowRemoveStudentDialog] = useState(false);
   const { toast } = useToast();
 
   const shouldShowHeader = !isCollapsed || isHovered;
@@ -86,6 +99,18 @@ const TeacherHeader: React.FC<TeacherHeaderProps> = ({
   const openInNewWindow = () => {
     if (sessionUrl) {
       window.open(sessionUrl, '_blank');
+    }
+  };
+
+  const handleAddStudent = async (name: string, email: string) => {
+    if (onAddIndividualStudent) {
+      await onAddIndividualStudent(name, email);
+    }
+  };
+
+  const handleRemoveStudent = async (participantId: number) => {
+    if (onRemoveIndividualStudent) {
+      await onRemoveIndividualStudent(participantId);
     }
   };
 
@@ -271,6 +296,26 @@ const TeacherHeader: React.FC<TeacherHeaderProps> = ({
                     <DropdownMenuSeparator />
                     
                     <DropdownMenuItem 
+                      onClick={() => setShowAddStudentDialog(true)} 
+                      className="cursor-pointer"
+                    >
+                      <UserPlus className="w-4 h-4 mr-2" />
+                      Add Student
+                    </DropdownMenuItem>
+                    
+                    {sessionStudents.length > 0 && (
+                      <DropdownMenuItem 
+                        onClick={() => setShowRemoveStudentDialog(true)} 
+                        className="cursor-pointer"
+                      >
+                        <UserMinus className="w-4 h-4 mr-2" />
+                        Remove Student
+                      </DropdownMenuItem>
+                    )}
+                    
+                    <DropdownMenuSeparator />
+                    
+                    <DropdownMenuItem 
                       onClick={onEndSession} 
                       className="cursor-pointer text-orange-600 focus:text-orange-600"
                     >
@@ -314,6 +359,21 @@ const TeacherHeader: React.FC<TeacherHeaderProps> = ({
           </div>
         </div>
       </div>
+
+      {/* Add Student Dialog */}
+      <AddStudentDialog
+        isOpen={showAddStudentDialog}
+        onClose={() => setShowAddStudentDialog(false)}
+        onAddStudent={handleAddStudent}
+      />
+
+      {/* Remove Student Dialog */}
+      <RemoveStudentDialog
+        isOpen={showRemoveStudentDialog}
+        onClose={() => setShowRemoveStudentDialog(false)}
+        onRemoveStudent={handleRemoveStudent}
+        sessionStudents={sessionStudents}
+      />
     </>
   );
 };

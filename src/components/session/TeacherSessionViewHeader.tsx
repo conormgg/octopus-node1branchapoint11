@@ -1,6 +1,7 @@
 
 import React from 'react';
 import TeacherHeader from '../TeacherHeader';
+import { SessionParticipant } from '@/types/student';
 
 interface TeacherSessionViewHeaderProps {
   studentCount: number;
@@ -19,6 +20,7 @@ interface TeacherSessionViewHeaderProps {
     created_at: string;
     teacher_id: string;
   };
+  sessionStudents?: SessionParticipant[];
   onIncreaseStudentCount: () => void;
   onDecreaseStudentCount: () => void;
   onLayoutChange: (layoutId: string) => void;
@@ -27,6 +29,8 @@ interface TeacherSessionViewHeaderProps {
   onToggleControlsCollapse: () => void;
   onEndSession: () => void;
   onSignOut: () => void;
+  onAddIndividualStudent?: (name: string, email: string) => Promise<void>;
+  onRemoveIndividualStudent?: (participantId: number) => Promise<void>;
 }
 
 const TeacherSessionViewHeader: React.FC<TeacherSessionViewHeaderProps> = ({
@@ -39,6 +43,7 @@ const TeacherSessionViewHeader: React.FC<TeacherSessionViewHeaderProps> = ({
   isSplitViewActive,
   isControlsCollapsed,
   activeSession,
+  sessionStudents,
   onIncreaseStudentCount,
   onDecreaseStudentCount,
   onLayoutChange,
@@ -47,6 +52,8 @@ const TeacherSessionViewHeader: React.FC<TeacherSessionViewHeaderProps> = ({
   onToggleControlsCollapse,
   onEndSession,
   onSignOut,
+  onAddIndividualStudent,
+  onRemoveIndividualStudent,
 }) => {
   return (
     <>
@@ -73,8 +80,11 @@ const TeacherSessionViewHeader: React.FC<TeacherSessionViewHeaderProps> = ({
         isCollapsed={isControlsCollapsed}
         onToggleCollapse={onToggleControlsCollapse}
         activeSession={activeSession}
+        sessionStudents={sessionStudents}
         onEndSession={onEndSession}
         onSignOut={onSignOut}
+        onAddIndividualStudent={onAddIndividualStudent}
+        onRemoveIndividualStudent={onRemoveIndividualStudent}
       />
     </>
   );

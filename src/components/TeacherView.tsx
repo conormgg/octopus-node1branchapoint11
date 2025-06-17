@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState } from 'react';
 import SessionUrlModal from './session/SessionUrlModal';
 import TeacherSessionView from './session/TeacherSessionView';
@@ -28,6 +29,8 @@ const TeacherView: React.FC<TeacherViewProps> = ({
     activeStudentCount, 
     totalStudentCount, 
     handleStudentCountChange,
+    handleAddIndividualStudent,
+    handleRemoveIndividualStudent,
     isLoading 
   } = useSessionStudents(activeSession);
   
@@ -119,6 +122,8 @@ const TeacherView: React.FC<TeacherViewProps> = ({
         onDecreaseStudentCount={decreaseStudentCount}
         onEndSession={onEndSession!}
         onSignOut={onSignOut!}
+        onAddIndividualStudent={handleAddIndividualStudent}
+        onRemoveIndividualStudent={handleRemoveIndividualStudent}
       />
     </>
   );
