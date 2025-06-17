@@ -11,7 +11,7 @@ export const usePresenceCleanup = ({
   sessionId, 
   enabled = true 
 }: UsePresenceCleanupProps) => {
-  // Clean up inactive students (those who haven't pinged in over 7 minutes)
+  // Clean up inactive students (those who haven't pinged in over 3 minutes)
   const cleanupInactiveStudents = useCallback(async () => {
     if (!enabled) {
       console.log(`[PresenceCleanup:${sessionId}] Cleanup disabled, skipping`);
@@ -19,11 +19,11 @@ export const usePresenceCleanup = ({
     }
 
     const cleanupTime = new Date();
-    // Increased from 2 minutes to 7 minutes to account for grace period
-    const sevenMinutesAgo = new Date(Date.now() - 7 * 60 * 1000);
+    // Reduced from 7 minutes to 3 minutes since we now have immediate beacon detection
+    const threeMinutesAgo = new Date(Date.now() - 3 * 60 * 1000);
     
     console.log(`[PresenceCleanup:${sessionId}] Starting cleanup at ${cleanupTime.toISOString()}`);
-    console.log(`[PresenceCleanup:${sessionId}] Looking for students inactive since ${sevenMinutesAgo.toISOString()}`);
+    console.log(`[PresenceCleanup:${sessionId}] Looking for students inactive since ${threeMinutesAgo.toISOString()}`);
 
     try {
       // Find students who joined but haven't pinged recently
@@ -47,27 +47,27 @@ export const usePresenceCleanup = ({
         })) || []
       );
 
-      // Filter for inactive students (more conservative approach)
+      // Filter for inactive students (more aggressive since beacon handles immediate detection)
       const inactiveStudents = allParticipants?.filter(student => {
         // Must have joined (joined_at is not null)
         if (!student.joined_at) {
           return false;
         }
 
-        // Must either have never pinged OR last ping was over 7 minutes ago
+        // Must either have never pinged OR last ping was over 3 minutes ago
         if (!student.last_ping_at) {
-          // If they joined but never sent a heartbeat, give them more time (10 minutes)
+          // If they joined but never sent a heartbeat, give them 5 minutes
           const joinTime = new Date(student.joined_at);
-          const tenMinutesAgo = new Date(Date.now() - 10 * 60 * 1000);
-          if (joinTime < tenMinutesAgo) {
-            console.log(`[PresenceCleanup:${sessionId}] Student ${student.student_name} joined but never sent heartbeat (over 10 minutes ago)`);
+          const fiveMinutesAgo = new Date(Date.now() - 5 * 60 * 1000);
+          if (joinTime < fiveMinutesAgo) {
+            console.log(`[PresenceCleanup:${sessionId}] Student ${student.student_name} joined but never sent heartbeat (over 5 minutes ago)`);
             return true;
           }
           return false;
         }
 
         const lastPing = new Date(student.last_ping_at);
-        const isInactive = lastPing < sevenMinutesAgo;
+        const isInactive = lastPing < threeMinutesAgo;
         
         if (isInactive) {
           const minutesInactive = Math.round((Date.now() - lastPing.getTime()) / 60000);
@@ -109,15 +109,15 @@ export const usePresenceCleanup = ({
         // Log details about why no students were found inactive
         const joinedStudents = allParticipants?.filter(s => s.joined_at) || [];
         const recentlyActiveStudents = joinedStudents.filter(s => 
-          s.last_ping_at && new Date(s.last_ping_at) >= sevenMinutesAgo
+          s.last_ping_at && new Date(s.last_ping_at) >= threeMinutesAgo
         );
         console.log(`[PresenceCleanup:${sessionId}] Status summary:`, {
           totalParticipants: allParticipants?.length || 0,
           joinedStudents: joinedStudents.length,
           studentsWithRecentPings: recentlyActiveStudents.length,
           studentsWithNullPings: joinedStudents.filter(s => !s.last_ping_at).length,
-          cutoffTime: sevenMinutesAgo.toISOString(),
-          thresholdMinutes: 7
+          cutoffTime: threeMinutesAgo.toISOString(),
+          thresholdMinutes: 3
         });
       }
     } catch (error) {
@@ -132,15 +132,15 @@ export const usePresenceCleanup = ({
       return;
     }
 
-    console.log(`[PresenceCleanup:${sessionId}] Setting up cleanup system with 7-minute threshold`);
+    console.log(`[PresenceCleanup:${sessionId}] Setting up cleanup system with 3-minute threshold`);
 
     // Run cleanup immediately
     cleanupInactiveStudents();
 
-    // Set up interval to run cleanup every 2 minutes (more frequent checks)
+    // Set up interval to run cleanup every 90 seconds (more frequent checks with shorter threshold)
     const cleanupInterval = setInterval(() => {
       cleanupInactiveStudents();
-    }, 2 * 60 * 1000); // Run every 2 minutes
+    }, 90 * 1000); // Run every 90 seconds
 
     return () => {
       console.log(`[PresenceCleanup:${sessionId}] Cleaning up interval`);

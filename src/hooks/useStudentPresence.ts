@@ -4,6 +4,7 @@ import { useHeartbeat } from './presence/useHeartbeat';
 import { useHeartbeatInterval } from './presence/useHeartbeatInterval';
 import { useGracePeriod } from './presence/useGracePeriod';
 import { usePresenceEventHandlers } from './presence/usePresenceEventHandlers';
+import { useBeaconUnloadHandler } from './presence/useBeaconUnloadHandler';
 
 interface UseStudentPresenceProps {
   sessionId: string;
@@ -23,7 +24,7 @@ export const useStudentPresence = ({
     sessionId
   });
 
-  // Grace period management
+  // Grace period management (reduced to 3 minutes)
   const { startGracePeriod, cancelGracePeriod, cleanupGracePeriod } = useGracePeriod({
     studentName,
     markInactive
@@ -40,10 +41,18 @@ export const useStudentPresence = ({
     }
   });
 
+  // Beacon-based unload detection for immediate marking
+  const { sendInactiveBeacon } = useBeaconUnloadHandler({
+    participantId,
+    studentName,
+    sessionId
+  });
+
   // Event handlers for presence detection
   const {
     handleVisibilityChange,
     handleBeforeUnload,
+    handlePageHide,
     handleUnload,
     handleFocus,
     handleBlur
@@ -54,6 +63,7 @@ export const useStudentPresence = ({
     markInactive,
     startGracePeriod,
     cancelGracePeriod,
+    sendInactiveBeacon,
     isActive
   });
 
@@ -64,27 +74,36 @@ export const useStudentPresence = ({
       return;
     }
 
-    console.log(`[StudentPresence:${studentName}] Setting up presence tracking for participant ${participantId} in session ${sessionId}`);
+    console.log(`[StudentPresence:${studentName}] Setting up enhanced presence tracking for participant ${participantId} in session ${sessionId}`);
     
     startHeartbeat();
 
+    // Standard presence events
     document.addEventListener('visibilitychange', handleVisibilityChange);
-    window.addEventListener('beforeunload', handleBeforeUnload);
-    window.addEventListener('unload', handleUnload);
     window.addEventListener('focus', handleFocus);
     window.addEventListener('blur', handleBlur);
+    
+    // Unload detection events (beacon-based)
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    window.addEventListener('pagehide', handlePageHide);
+    window.addEventListener('unload', handleUnload);
 
     return () => {
-      console.log(`[StudentPresence:${studentName}] Cleaning up presence tracking`);
+      console.log(`[StudentPresence:${studentName}] Cleaning up enhanced presence tracking`);
+      
+      // Send final beacon on cleanup
+      sendInactiveBeacon('cleanup');
+      
       stopHeartbeat();
-      markInactive();
       cleanupGracePeriod();
 
+      // Remove all event listeners
       document.removeEventListener('visibilitychange', handleVisibilityChange);
-      window.removeEventListener('beforeunload', handleBeforeUnload);
-      window.removeEventListener('unload', handleUnload);
       window.removeEventListener('focus', handleFocus);
       window.removeEventListener('blur', handleBlur);
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+      window.removeEventListener('pagehide', handlePageHide);
+      window.removeEventListener('unload', handleUnload);
     };
   }, [
     participantId,
@@ -92,10 +111,11 @@ export const useStudentPresence = ({
     stopHeartbeat,
     handleVisibilityChange,
     handleBeforeUnload,
+    handlePageHide,
     handleUnload,
     handleFocus,
     handleBlur,
-    markInactive,
+    sendInactiveBeacon,
     cleanupGracePeriod,
     studentName,
     sessionId

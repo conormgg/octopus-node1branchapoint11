@@ -8,6 +8,7 @@ interface UsePresenceEventHandlersProps {
   markInactive: () => Promise<boolean | undefined>;
   startGracePeriod: () => void;
   cancelGracePeriod: () => void;
+  sendInactiveBeacon: (reason: string) => void;
   isActive: boolean;
 }
 
@@ -18,10 +19,11 @@ export const usePresenceEventHandlers = ({
   markInactive,
   startGracePeriod,
   cancelGracePeriod,
+  sendInactiveBeacon,
   isActive
 }: UsePresenceEventHandlersProps) => {
 
-  // Handle page visibility changes - DON'T stop heartbeat, just note the change
+  // Handle page visibility changes - DON'T send beacon, just note the change
   const handleVisibilityChange = useCallback(() => {
     console.log(`[StudentPresence:${studentName}] Visibility changed - hidden: ${document.hidden}`);
     if (document.hidden) {
@@ -38,19 +40,29 @@ export const usePresenceEventHandlers = ({
     }
   }, [studentName, startGracePeriod, cancelGracePeriod, isActive, startHeartbeat]);
 
-  // Handle beforeunload - this is the main signal for user leaving
+  // Handle beforeunload - send beacon immediately for real page departure
   const handleBeforeUnload = useCallback(() => {
-    console.log(`[StudentPresence:${studentName}] Page unloading - stopping heartbeat immediately`);
+    console.log(`[StudentPresence:${studentName}] Page beforeunload - sending beacon immediately`);
+    sendInactiveBeacon('beforeunload');
     stopHeartbeat();
-    markInactive();
-  }, [studentName, stopHeartbeat, markInactive]);
+  }, [studentName, sendInactiveBeacon, stopHeartbeat]);
+
+  // Handle pagehide - additional signal for page termination
+  const handlePageHide = useCallback((event: PageTransitionEvent) => {
+    console.log(`[StudentPresence:${studentName}] Page hide - persisted: ${event.persisted}`);
+    if (!event.persisted) {
+      // Page is being unloaded (not going into back/forward cache)
+      sendInactiveBeacon('pagehide');
+      stopHeartbeat();
+    }
+  }, [studentName, sendInactiveBeacon, stopHeartbeat]);
 
   // Handle page unload as backup
   const handleUnload = useCallback(() => {
-    console.log(`[StudentPresence:${studentName}] Page unload - stopping heartbeat immediately`);
+    console.log(`[StudentPresence:${studentName}] Page unload - sending beacon as backup`);
+    sendInactiveBeacon('unload');
     stopHeartbeat();
-    markInactive();
-  }, [studentName, stopHeartbeat, markInactive]);
+  }, [studentName, sendInactiveBeacon, stopHeartbeat]);
 
   // Handle window focus/blur for additional presence signals
   const handleFocus = useCallback(() => {
@@ -62,13 +74,14 @@ export const usePresenceEventHandlers = ({
 
   const handleBlur = useCallback(() => {
     console.log(`[StudentPresence:${studentName}] Window blurred - continuing heartbeat with grace period`);
-    // Don't stop heartbeat on blur, just start grace period
+    // Don't send beacon on blur, just start grace period
     startGracePeriod();
   }, [studentName, startGracePeriod]);
 
   return {
     handleVisibilityChange,
     handleBeforeUnload,
+    handlePageHide,
     handleUnload,
     handleFocus,
     handleBlur
