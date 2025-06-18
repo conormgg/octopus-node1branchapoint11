@@ -92,7 +92,7 @@ export const useAuth = () => {
         userChannel
           .on('broadcast', { event: 'new-tab-opened' }, handleNewTabEvent)
           .subscribe((status, err) => {
-            if (status === 'SUBSCRIBE_FAILED' || err) {
+            if (status !== 'SUBSCRIBED' || err) {
               console.error(
                 'Could not connect to single-tab presence channel. This feature will be disabled for this session.',
                 err
