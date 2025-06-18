@@ -84,9 +84,20 @@ const TeacherSessionView: React.FC<TeacherSessionViewProps> = ({
   // Generate student boards with status information using the correct SessionParticipant[] type
   const allStudentBoards = generateStudentBoardsFromParticipants(sessionStudents);
   
+  // Add the teacherA board to test one-way sync (Phase 1)
+  const teacherABoard = {
+    boardId: 'teacherA',
+    studentName: 'Student A (Sync Test)',
+    participant: null,
+    status: 'active' as const
+  };
+  
+  // Include teacherA board in the grid for testing
+  const allStudentBoardsWithTeacherA = [...allStudentBoards, teacherABoard];
+  
   // Generate grid slots with null placeholders for empty slots
   const currentStudentBoardsInfo = generateGridSlotsWithStatus(
-    allStudentBoards, 
+    allStudentBoardsWithTeacherA, 
     currentPage, 
     currentLayout?.studentsPerPage || 4
   );
