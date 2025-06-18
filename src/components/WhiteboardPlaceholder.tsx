@@ -27,7 +27,7 @@ const WhiteboardPlaceholder: React.FC<WhiteboardPlaceholderProps> = ({
 }) => {
   const { user } = useAuth();
   const containerRef = useRef<HTMLDivElement>(null);
-  const { sessionExpiration } = useSessionExpiration();
+  const sessionExpiration = useSessionExpiration({ sessionId, onSessionExpired: () => {} });
   
   // State management
   const [syncState, setSyncState] = useState<{ isConnected: boolean; isReceiveOnly: boolean } | null>(null);
@@ -35,7 +35,18 @@ const WhiteboardPlaceholder: React.FC<WhiteboardPlaceholderProps> = ({
   const [centerCallback, setCenterCallback] = useState<((bounds: any) => void) | null>(null);
 
   // Get whiteboard dimensions
-  const { width, height } = useWhiteboardDimensions(containerRef, isMaximized);
+  const { containerRef: dimensionsContainerRef, whiteboardWidth, whiteboardHeight } = useWhiteboardDimensions(
+    800, // initial width
+    600, // initial height
+    isMaximized
+  );
+
+  // Use the dimensions container ref
+  useEffect(() => {
+    if (dimensionsContainerRef.current && containerRef.current) {
+      // Sync the refs if needed
+    }
+  }, [dimensionsContainerRef]);
 
   // Sync configuration
   const syncConfig = useSyncConfiguration(
@@ -121,8 +132,8 @@ const WhiteboardPlaceholder: React.FC<WhiteboardPlaceholderProps> = ({
         isExpired={sessionExpiration.isExpired}
         sessionEndReason={sessionExpiration.sessionEndReason}
         isRedirecting={sessionExpiration.isRedirecting}
-        whiteboardWidth={width}
-        whiteboardHeight={height}
+        whiteboardWidth={whiteboardWidth}
+        whiteboardHeight={whiteboardHeight}
         syncConfig={syncConfig}
         hasLastActivity={!!lastActivity}
         syncState={syncState}
@@ -188,8 +199,8 @@ const WhiteboardPlaceholder: React.FC<WhiteboardPlaceholderProps> = ({
 
       {/* Whiteboard Content */}
       <WhiteboardContent
-        whiteboardWidth={width}
-        whiteboardHeight={height}
+        whiteboardWidth={whiteboardWidth}
+        whiteboardHeight={whiteboardHeight}
         syncConfig={syncConfig}
         id={id}
         onSyncStateChange={handleSyncStateChange}

@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { GraduationCap } from 'lucide-react';
 import WhiteboardPlaceholder from './WhiteboardPlaceholder';
@@ -38,7 +37,6 @@ const TeacherMainBoard: React.FC<TeacherMainBoardProps> = ({
           onMaximize={() => onMaximize("teacher-main")}
           onMinimize={onMinimize}
           sessionId={sessionId}
-          senderId={senderId}
         />
       </div>
     </div>
