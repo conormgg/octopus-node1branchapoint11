@@ -1,5 +1,4 @@
 
-
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { User, Session, RealtimeChannel } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
@@ -135,6 +134,23 @@ export const useAuth = () => {
       
       // Check for existing channel to prevent duplicates (StrictMode handling)
       const existingChannel = supabase.getChannels().find(c => c.topic === `realtime:${channelName}`);
+      
+      // If we already have a channel reference and it's the same as existing, reuse it
+      if (userChannelRef.current && existingChannel && userChannelRef.current === existingChannel) {
+        console.log(`Reusing existing channel for tab ${tabId}`);
+        return;
+      }
+
+      // Clean up any previous channel
+      if (userChannelRef.current) {
+        try {
+          supabase.removeChannel(userChannelRef.current);
+        } catch (error) {
+          console.error('Error removing previous channel:', error);
+        }
+      }
+
+      // Use existing channel or create new one
       userChannelRef.current = existingChannel || supabase.channel(channelName);
       
       const handleNewTabEvent = (payload: any) => {
@@ -148,8 +164,7 @@ export const useAuth = () => {
         }
       };
 
-      // Prevent duplicate event handlers by calling .off() first
-      userChannelRef.current.off('broadcast', { event: 'new-tab-opened' });
+      // Set up event handler
       userChannelRef.current.on('broadcast', { event: 'new-tab-opened' }, handleNewTabEvent);
 
       // Only subscribe if not already subscribed
@@ -180,6 +195,8 @@ export const useAuth = () => {
             }, randomDelay);
           }
         });
+      } else {
+        console.log(`Channel already subscribed for tab ${tabId}`);
       }
 
     } catch (error) {
@@ -211,4 +228,3 @@ export const useAuth = () => {
     isAuthenticated,
   };
 };
-
