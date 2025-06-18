@@ -46,6 +46,51 @@ export const useAuth = () => {
   const [loading, setLoading] = useState(true);
   const userChannelRef = useRef<RealtimeChannel | null>(null);
 
+  /**
+   * Signs out the user, clearing all auth state and redirecting to auth page
+   */
+  const signOut = async () => {
+    try {
+      // First, cleanup presence channel if it exists
+      if (userChannelRef.current) {
+        try {
+          console.log('Cleaning up presence channel during sign out');
+          supabase.removeChannel(userChannelRef.current);
+          userChannelRef.current = null;
+        } catch (channelError) {
+          console.error('Error cleaning up presence channel during sign out:', channelError);
+        }
+      }
+
+      // Clear local auth state immediately
+      setSession(null);
+      setUser(null);
+      
+      // Clear localStorage
+      clearAuthLocalStorage();
+      
+      // Attempt Supabase sign out (don't fail if session doesn't exist)
+      try {
+        const { error } = await supabase.auth.signOut();
+        if (error && error.message !== "Session not found") {
+          console.error('Error signing out:', error);
+        }
+      } catch (supabaseError) {
+        console.warn('Supabase sign out failed, but local state cleared:', supabaseError);
+      }
+      
+      // Force refresh to ensure clean state
+      window.location.href = '/auth';
+      
+    } catch (error) {
+      console.error('Sign out error:', error);
+      // Fallback: force clear state and redirect anyway
+      setSession(null);
+      setUser(null);
+      window.location.href = '/auth';
+    }
+  };
+
   useEffect(() => {
     // Set up auth state listener FIRST
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
@@ -144,41 +189,7 @@ export const useAuth = () => {
         }
       }
     };
-  }, [user]); // Note: signOut will be added to dependencies in step 2
-
-  /**
-   * Signs out the user, clearing all auth state and redirecting to auth page
-   */
-  const signOut = async () => {
-    try {
-      // Clear local auth state immediately
-      setSession(null);
-      setUser(null);
-      
-      // Clear localStorage
-      clearAuthLocalStorage();
-      
-      // Attempt Supabase sign out (don't fail if session doesn't exist)
-      try {
-        const { error } = await supabase.auth.signOut();
-        if (error && error.message !== "Session not found") {
-          console.error('Error signing out:', error);
-        }
-      } catch (supabaseError) {
-        console.warn('Supabase sign out failed, but local state cleared:', supabaseError);
-      }
-      
-      // Force refresh to ensure clean state
-      window.location.href = '/auth';
-      
-    } catch (error) {
-      console.error('Sign out error:', error);
-      // Fallback: force clear state and redirect anyway
-      setSession(null);
-      setUser(null);
-      window.location.href = '/auth';
-    }
-  };
+  }, [user, signOut]); // Added signOut to dependencies
 
   const isAuthenticated = !!user;
 
