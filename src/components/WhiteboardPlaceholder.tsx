@@ -31,8 +31,6 @@ const WhiteboardPlaceholder: React.FC<WhiteboardPlaceholderProps> = ({
   
   // State management
   const [syncState, setSyncState] = useState<{ isConnected: boolean; isReceiveOnly: boolean } | null>(null);
-  const [lastActivity, setLastActivity] = useState<ActivityMetadata | null>(null);
-  const [centerCallback, setCenterCallback] = useState<((bounds: any) => void) | null>(null);
 
   // Get whiteboard dimensions
   const { containerRef: dimensionsContainerRef, whiteboardWidth, whiteboardHeight } = useWhiteboardDimensions(
@@ -55,12 +53,13 @@ const WhiteboardPlaceholder: React.FC<WhiteboardPlaceholderProps> = ({
     user?.id ? `${user.id}-${id}` : undefined
   );
 
-  // Eye button logic
-  const { shouldShowEyeButton, handleEyeClick } = useEyeButtonLogic(
-    lastActivity,
-    centerCallback,
-    syncState?.isReceiveOnly || false
-  );
+  // Eye button logic - only pass the id
+  const { 
+    shouldShowEyeButton, 
+    handleEyeClick, 
+    handleLastActivityUpdate, 
+    handleCenterCallbackUpdate 
+  } = useEyeButtonLogic(id);
 
   // Handlers
   const handleMaximizeClick = useCallback(() => {
@@ -73,14 +72,6 @@ const WhiteboardPlaceholder: React.FC<WhiteboardPlaceholderProps> = ({
 
   const handleSyncStateChange = useCallback((newSyncState: { isConnected: boolean; isReceiveOnly: boolean } | null) => {
     setSyncState(newSyncState);
-  }, []);
-
-  const handleLastActivityUpdate = useCallback((activity: ActivityMetadata | null) => {
-    setLastActivity(activity);
-  }, []);
-
-  const handleCenterCallbackUpdate = useCallback((callback: (bounds: any) => void) => {
-    setCenterCallback(() => callback);
   }, []);
 
   // Get board type display information
@@ -135,7 +126,7 @@ const WhiteboardPlaceholder: React.FC<WhiteboardPlaceholderProps> = ({
         whiteboardWidth={whiteboardWidth}
         whiteboardHeight={whiteboardHeight}
         syncConfig={syncConfig}
-        hasLastActivity={!!lastActivity}
+        hasLastActivity={false}
         syncState={syncState}
         onLastActivityUpdate={handleLastActivityUpdate}
         onCenterCallbackUpdate={handleCenterCallbackUpdate}
