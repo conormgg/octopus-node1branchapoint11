@@ -1,5 +1,5 @@
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { User, Session, RealtimeChannel } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
 
@@ -48,8 +48,9 @@ export const useAuth = () => {
 
   /**
    * Signs out the user, clearing all auth state and redirecting to auth page
+   * Using useCallback to ensure stable reference across renders
    */
-  const signOut = async () => {
+  const signOut = useCallback(async () => {
     try {
       // First, cleanup presence channel if it exists
       if (userChannelRef.current) {
@@ -89,7 +90,7 @@ export const useAuth = () => {
       setUser(null);
       window.location.href = '/auth';
     }
-  };
+  }, []); // Empty dependency array ensures stable reference
 
   useEffect(() => {
     // Set up auth state listener FIRST
@@ -117,6 +118,18 @@ export const useAuth = () => {
       try {
         const tabId = getOrCreateTabId();
         const channelName = `user-presence-${user.id}`;
+        
+        // Cleanup any existing channel before creating a new one
+        if (userChannelRef.current) {
+          try {
+            console.log('Cleaning up existing channel before creating new one');
+            supabase.removeChannel(userChannelRef.current);
+            userChannelRef.current = null;
+          } catch (error) {
+            console.error('Error cleaning up existing channel:', error);
+          }
+        }
+        
         const userChannel = supabase.channel(channelName);
         
         // Store channel reference for cleanup
@@ -146,6 +159,7 @@ export const useAuth = () => {
             }
 
             if (status === 'SUBSCRIBED') {
+              console.log(`Tab ${tabId} successfully subscribed to presence channel`);
               // Add randomized delay to prevent race conditions
               const randomDelay = Math.floor(Math.random() * 250);
               setTimeout(() => {
@@ -170,6 +184,7 @@ export const useAuth = () => {
       // User signed out, cleanup channel
       if (userChannelRef.current) {
         try {
+          console.log('User signed out, cleaning up presence channel');
           supabase.removeChannel(userChannelRef.current);
           userChannelRef.current = null;
         } catch (error) {
@@ -182,6 +197,7 @@ export const useAuth = () => {
     return () => {
       if (userChannelRef.current) {
         try {
+          console.log('Cleaning up presence channel on unmount');
           supabase.removeChannel(userChannelRef.current);
           userChannelRef.current = null;
         } catch (error) {
@@ -189,7 +205,7 @@ export const useAuth = () => {
         }
       }
     };
-  }, [user, signOut]); // Added signOut to dependencies
+  }, [user, signOut]); // Now signOut has a stable reference
 
   const isAuthenticated = !!user;
 
