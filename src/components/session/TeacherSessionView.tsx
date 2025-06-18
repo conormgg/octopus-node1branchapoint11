@@ -84,9 +84,23 @@ const TeacherSessionView: React.FC<TeacherSessionViewProps> = ({
   // Generate student boards with status information using the correct SessionParticipant[] type
   const allStudentBoards = generateStudentBoardsFromParticipants(sessionStudents);
   
+  // Add teacherA board for observing Student A's student2 workspace
+  const teacherObserverBoards = [
+    {
+      boardId: 'teacherA',
+      studentName: 'Student A Workspace',
+      studentEmail: '',
+      hasJoined: true,
+      status: 'active' as const
+    }
+  ];
+  
+  // Combine regular student boards with teacher observer boards
+  const allBoardsWithTeacherA = [...allStudentBoards, ...teacherObserverBoards];
+  
   // Generate grid slots with null placeholders for empty slots
   const currentStudentBoardsInfo = generateGridSlotsWithStatus(
-    allStudentBoards, 
+    allBoardsWithTeacherA, 
     currentPage, 
     currentLayout?.studentsPerPage || 4
   );
