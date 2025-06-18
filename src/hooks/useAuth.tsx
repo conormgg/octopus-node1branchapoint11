@@ -1,4 +1,5 @@
 
+
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { User, Session, RealtimeChannel } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
@@ -56,7 +57,7 @@ export const useAuth = () => {
       if (userChannelRef.current) {
         try {
           console.log('Cleaning up presence channel during sign out');
-          supabase.removeChannel(userChannelRef.current);
+          await supabase.removeChannel(userChannelRef.current);
           userChannelRef.current = null;
         } catch (channelError) {
           console.error('Error cleaning up presence channel during sign out:', channelError);
@@ -112,75 +113,9 @@ export const useAuth = () => {
     return () => subscription.unsubscribe();
   }, []);
 
-  // Single-tab enforcement effect
+  // Single-tab enforcement effect - Hybrid solution
   useEffect(() => {
-    if (user) {
-      try {
-        const tabId = getOrCreateTabId();
-        const channelName = `user-presence-${user.id}`;
-        
-        // Cleanup any existing channel before creating a new one
-        if (userChannelRef.current) {
-          try {
-            console.log('Cleaning up existing channel before creating new one');
-            supabase.removeChannel(userChannelRef.current);
-            userChannelRef.current = null;
-          } catch (error) {
-            console.error('Error cleaning up existing channel:', error);
-          }
-        }
-        
-        const userChannel = supabase.channel(channelName);
-        
-        // Store channel reference for cleanup
-        userChannelRef.current = userChannel;
-
-        // Set up broadcast listener for new tab events
-        const handleNewTabEvent = (payload: any) => {
-          try {
-            if (payload.event === 'new-tab-opened' && payload.message?.tabId !== tabId) {
-              console.warn(`New tab detected (${payload.message?.tabId}). This tab (${tabId}) will be signed out.`);
-              signOut();
-            }
-          } catch (error) {
-            console.error('Error handling new tab event:', error);
-          }
-        };
-
-        userChannel
-          .on('broadcast', { event: 'new-tab-opened' }, handleNewTabEvent)
-          .subscribe((status, err) => {
-            if (status !== 'SUBSCRIBED' || err) {
-              console.error(
-                'Could not connect to single-tab presence channel. This feature will be disabled for this session.',
-                err
-              );
-              return;
-            }
-
-            if (status === 'SUBSCRIBED') {
-              console.log(`Tab ${tabId} successfully subscribed to presence channel`);
-              // Add randomized delay to prevent race conditions
-              const randomDelay = Math.floor(Math.random() * 250);
-              setTimeout(() => {
-                try {
-                  userChannel.send({
-                    type: 'broadcast',
-                    event: 'new-tab-opened',
-                    message: { tabId: tabId },
-                  });
-                } catch (broadcastError) {
-                  console.error('Error broadcasting tab presence:', broadcastError);
-                }
-              }, randomDelay);
-            }
-          });
-
-      } catch (error) {
-        console.error('Error setting up single-tab enforcement:', error);
-        // Graceful degradation - continue without single-tab enforcement
-      }
-    } else {
+    if (!user) {
       // User signed out, cleanup channel
       if (userChannelRef.current) {
         try {
@@ -191,6 +126,65 @@ export const useAuth = () => {
           console.error('Error cleaning up presence channel:', error);
         }
       }
+      return;
+    }
+
+    try {
+      const tabId = getOrCreateTabId();
+      const channelName = `user-presence-${user.id}`;
+      
+      // Check for existing channel to prevent duplicates (StrictMode handling)
+      const existingChannel = supabase.getChannels().find(c => c.topic === `realtime:${channelName}`);
+      userChannelRef.current = existingChannel || supabase.channel(channelName);
+      
+      const handleNewTabEvent = (payload: any) => {
+        try {
+          if (payload.event === 'new-tab-opened' && payload.message?.tabId !== tabId) {
+            console.warn(`New tab detected (${payload.message?.tabId}). This tab (${tabId}) will be signed out.`);
+            signOut();
+          }
+        } catch (error) {
+          console.error('Error handling new tab event:', error);
+        }
+      };
+
+      // Prevent duplicate event handlers by calling .off() first
+      userChannelRef.current.off('broadcast', { event: 'new-tab-opened' });
+      userChannelRef.current.on('broadcast', { event: 'new-tab-opened' }, handleNewTabEvent);
+
+      // Only subscribe if not already subscribed
+      if (userChannelRef.current.state !== 'joined') {
+        userChannelRef.current.subscribe((status, err) => {
+          if (status !== 'SUBSCRIBED' || err) {
+            console.error(
+              'Could not connect to single-tab presence channel. This feature will be disabled for this session.',
+              err
+            );
+            return;
+          }
+
+          if (status === 'SUBSCRIBED') {
+            console.log(`Tab ${tabId} successfully subscribed to presence channel`);
+            // Add randomized delay to prevent race conditions
+            const randomDelay = Math.floor(Math.random() * 250);
+            setTimeout(() => {
+              try {
+                userChannelRef.current?.send({
+                  type: 'broadcast',
+                  event: 'new-tab-opened',
+                  message: { tabId: tabId },
+                });
+              } catch (broadcastError) {
+                console.error('Error broadcasting tab presence:', broadcastError);
+              }
+            }, randomDelay);
+          }
+        });
+      }
+
+    } catch (error) {
+      console.error('Error setting up single-tab enforcement:', error);
+      // Graceful degradation - continue without single-tab enforcement
     }
 
     // Cleanup function
@@ -205,7 +199,7 @@ export const useAuth = () => {
         }
       }
     };
-  }, [user, signOut]); // Now signOut has a stable reference
+  }, [user, signOut]); // signOut now has a stable reference
 
   const isAuthenticated = !!user;
 
@@ -217,3 +211,4 @@ export const useAuth = () => {
     isAuthenticated,
   };
 };
+
