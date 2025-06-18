@@ -38,28 +38,7 @@ export const useSyncConfiguration = (
       };
     }
 
-    // Teacher's view of Student A's student2 board -> receives only
-    if (id === "teacherA") {
-      return {
-        whiteboardId: `session-${sessionId}-student-A-board2`,
-        senderId: `teacher-observer-A-${sessionId}`,
-        sessionId: sessionId,
-        isReceiveOnly: true,
-      };
-    }
-
-    // Student A's second board -> broadcasts to teacherA
-    if (id === "student2" && senderId?.includes('A')) {
-      if (!senderId) return undefined;
-      return {
-        whiteboardId: `session-${sessionId}-student-A-board2`,
-        senderId: senderId,
-        sessionId: sessionId,
-        isReceiveOnly: false,
-      };
-    }
-
-    // Individual student boards (existing functionality)
+    // Individual student boards
     if (id.startsWith('student-board-')) {
       const studentNumber = id.replace('student-board-', '');
       if (!senderId) return undefined;

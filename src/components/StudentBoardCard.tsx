@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { X, UserPlus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -27,6 +28,7 @@ const StudentBoardCard: React.FC<StudentBoardCardProps> = ({
   senderId,
   portalContainer,
 }) => {
+  // Empty slot - compressed/hidden for now, can be expanded later for "add student" functionality
   if (!boardInfo) {
     return (
       <div className="h-full flex items-center justify-center bg-gray-50 border-2 border-dashed border-gray-200 rounded-lg opacity-50">
@@ -48,9 +50,11 @@ const StudentBoardCard: React.FC<StudentBoardCardProps> = ({
     );
   }
 
+  // Pending state - student registered but not joined
   if (boardInfo.status === 'pending') {
     return (
       <div className="h-full relative">
+        {/* Close button for pending students */}
         <div className="absolute top-2 right-2 z-10">
           <Button
             variant="outline"
@@ -63,6 +67,7 @@ const StudentBoardCard: React.FC<StudentBoardCardProps> = ({
           </Button>
         </div>
         
+        {/* Greyed out whiteboard */}
         <div className="h-full bg-gray-100 border-2 border-gray-200 rounded-lg opacity-60 relative">
           <div className="absolute inset-0 flex items-center justify-center">
             <div className="text-center">
@@ -82,8 +87,10 @@ const StudentBoardCard: React.FC<StudentBoardCardProps> = ({
     );
   }
 
+  // Active state - student has joined, show normal whiteboard
   return (
     <div className="h-full relative">
+      {/* Student name badge */}
       <div className="absolute top-2 left-2 z-10 bg-green-100 border border-green-200 rounded-lg px-2 py-1">
         <div className="flex items-center space-x-2">
           <div className="w-2 h-2 bg-green-500 rounded-full"></div>
@@ -99,6 +106,8 @@ const StudentBoardCard: React.FC<StudentBoardCardProps> = ({
         onMaximize={() => onMaximize(boardInfo.boardId)}
         onMinimize={onMinimize}
         sessionId={sessionId}
+        senderId={senderId}
+        portalContainer={portalContainer}
       />
     </div>
   );

@@ -2,7 +2,7 @@
 import React, { useState } from 'react';
 import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from '@/components/ui/resizable';
 import WhiteboardPlaceholder from './WhiteboardPlaceholder';
-import { GraduationCap, User, PenTool } from 'lucide-react';
+import { GraduationCap, User } from 'lucide-react';
 
 interface StudentViewProps {
   sessionId: string;
@@ -35,17 +35,17 @@ const StudentView: React.FC<StudentViewProps> = ({ sessionId }) => {
           </div>
           <div className="flex items-center space-x-2 px-3 py-2 bg-gray-50 rounded-lg">
             <User className="w-4 h-4 text-gray-600" />
-            <span className="text-sm font-medium text-gray-700">Student A</span>
+            <span className="text-sm font-medium text-gray-700">Student View</span>
           </div>
         </div>
       </div>
 
       {/* Main Content */}
       <div className="h-[calc(100vh-5rem)] p-4 relative">
-        {/* Three Panel Layout */}
+        {/* Normal Layout */}
         <ResizablePanelGroup direction="horizontal" className="rounded-lg overflow-hidden">
           {/* Left Pane - Teacher's Shared Board */}
-          <ResizablePanel defaultSize={33} minSize={25}>
+          <ResizablePanel defaultSize={50} minSize={30}>
             <div className="h-full p-2 relative">
               <div className="mb-3">
                 <h2 className="text-lg font-semibold text-gray-800 flex items-center">
@@ -74,8 +74,8 @@ const StudentView: React.FC<StudentViewProps> = ({ sessionId }) => {
 
           <ResizableHandle className="w-2 bg-gray-200 hover:bg-gray-300 transition-colors duration-150" />
 
-          {/* Center Pane - Student's Personal Board */}
-          <ResizablePanel defaultSize={33} minSize={25}>
+          {/* Right Pane - Student's Personal Board */}
+          <ResizablePanel defaultSize={50} minSize={30}>
             <div className="h-full p-2 relative">
               <div className="mb-3">
                 <h2 className="text-lg font-semibold text-gray-800 flex items-center">
@@ -95,36 +95,6 @@ const StudentView: React.FC<StudentViewProps> = ({ sessionId }) => {
                   id="student-personal"
                   isMaximized={maximizedBoard === "student-personal"}
                   onMaximize={() => handleMaximize("student-personal")}
-                  onMinimize={handleMinimize}
-                  sessionId={sessionId}
-                />
-              </div>
-            </div>
-          </ResizablePanel>
-
-          <ResizableHandle className="w-2 bg-gray-200 hover:bg-gray-300 transition-colors duration-150" />
-
-          {/* Right Pane - Student2 Board (New Shared Workspace) */}
-          <ResizablePanel defaultSize={34} minSize={25}>
-            <div className="h-full p-2 relative">
-              <div className="mb-3">
-                <h2 className="text-lg font-semibold text-gray-800 flex items-center">
-                  <PenTool className="w-5 h-5 mr-2 text-purple-500" />
-                  Shared Workspace
-                </h2>
-                <p className="text-sm text-gray-600">Teacher can observe your work here</p>
-              </div>
-              <div 
-                className={`h-[calc(100%-4rem)] ${
-                  maximizedBoard === "student2" 
-                    ? "fixed inset-4 z-50 bg-gray-100" 
-                    : ""
-                }`}
-              >
-                <WhiteboardPlaceholder
-                  id="student2"
-                  isMaximized={maximizedBoard === "student2"}
-                  onMaximize={() => handleMaximize("student2")}
                   onMinimize={handleMinimize}
                   sessionId={sessionId}
                 />
