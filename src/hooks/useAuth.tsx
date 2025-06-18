@@ -1,5 +1,6 @@
-import { useState, useEffect } from 'react';
-import { User, Session } from '@supabase/supabase-js';
+
+import { useState, useEffect, useRef } from 'react';
+import { User, Session, RealtimeChannel } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
 
 /**
@@ -19,12 +20,31 @@ const clearAuthLocalStorage = () => {
 };
 
 /**
+ * Gets or creates a unique tab ID for single-tab enforcement
+ */
+const getOrCreateTabId = (): string => {
+  try {
+    let tabId = sessionStorage.getItem('tabId');
+    if (!tabId) {
+      tabId = `tab-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+      sessionStorage.setItem('tabId', tabId);
+    }
+    return tabId;
+  } catch (error) {
+    console.warn('Could not access sessionStorage for tab ID:', error);
+    // Fallback to memory-only tab ID
+    return `tab-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+  }
+};
+
+/**
  * Custom hook for managing authentication state
  */
 export const useAuth = () => {
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
+  const userChannelRef = useRef<RealtimeChannel | null>(null);
 
   useEffect(() => {
     // Set up auth state listener FIRST
@@ -45,6 +65,86 @@ export const useAuth = () => {
 
     return () => subscription.unsubscribe();
   }, []);
+
+  // Single-tab enforcement effect
+  useEffect(() => {
+    if (user) {
+      try {
+        const tabId = getOrCreateTabId();
+        const channelName = `user-presence-${user.id}`;
+        const userChannel = supabase.channel(channelName);
+        
+        // Store channel reference for cleanup
+        userChannelRef.current = userChannel;
+
+        // Set up broadcast listener for new tab events
+        const handleNewTabEvent = (payload: any) => {
+          try {
+            if (payload.event === 'new-tab-opened' && payload.message?.tabId !== tabId) {
+              console.warn(`New tab detected (${payload.message?.tabId}). This tab (${tabId}) will be signed out.`);
+              signOut();
+            }
+          } catch (error) {
+            console.error('Error handling new tab event:', error);
+          }
+        };
+
+        userChannel
+          .on('broadcast', { event: 'new-tab-opened' }, handleNewTabEvent)
+          .subscribe((status, err) => {
+            if (status === 'SUBSCRIBE_FAILED' || err) {
+              console.error(
+                'Could not connect to single-tab presence channel. This feature will be disabled for this session.',
+                err
+              );
+              return;
+            }
+
+            if (status === 'SUBSCRIBED') {
+              // Add randomized delay to prevent race conditions
+              const randomDelay = Math.floor(Math.random() * 250);
+              setTimeout(() => {
+                try {
+                  userChannel.send({
+                    type: 'broadcast',
+                    event: 'new-tab-opened',
+                    message: { tabId: tabId },
+                  });
+                } catch (broadcastError) {
+                  console.error('Error broadcasting tab presence:', broadcastError);
+                }
+              }, randomDelay);
+            }
+          });
+
+      } catch (error) {
+        console.error('Error setting up single-tab enforcement:', error);
+        // Graceful degradation - continue without single-tab enforcement
+      }
+    } else {
+      // User signed out, cleanup channel
+      if (userChannelRef.current) {
+        try {
+          supabase.removeChannel(userChannelRef.current);
+          userChannelRef.current = null;
+        } catch (error) {
+          console.error('Error cleaning up presence channel:', error);
+        }
+      }
+    }
+
+    // Cleanup function
+    return () => {
+      if (userChannelRef.current) {
+        try {
+          supabase.removeChannel(userChannelRef.current);
+          userChannelRef.current = null;
+        } catch (error) {
+          console.error('Error cleaning up presence channel on unmount:', error);
+        }
+      }
+    };
+  }, [user]); // Note: signOut will be added to dependencies in step 2
 
   /**
    * Signs out the user, clearing all auth state and redirecting to auth page
