@@ -5,6 +5,9 @@ import MovableToolbar from './MovableToolbar';
 import { useSharedWhiteboardState } from '@/hooks/useSharedWhiteboardState';
 import { SyncConfig } from '@/types/sync';
 import { ActivityMetadata } from '@/types/whiteboard';
+import { createDebugLogger, logError } from '@/utils/debug/debugConfig';
+
+const debugLog = createDebugLogger('sync');
 
 interface SyncWhiteboardProps {
   syncConfig?: SyncConfig;
@@ -32,7 +35,7 @@ export const SyncWhiteboard: React.FC<SyncWhiteboardProps> = ({
   // Reduce logging frequency - only log once per component mount and when read-only state changes
   const prevReadOnlyRef = useRef<boolean | null>(null);
   if (prevReadOnlyRef.current !== isReadOnly) {
-    console.log('[SyncWhiteboard] Read-only state changed:', {
+    debugLog('Component', 'Read-only state changed', {
       whiteboardId,
       isReadOnly,
       isReceiveOnly: syncConfig?.isReceiveOnly,
@@ -87,9 +90,9 @@ export const SyncWhiteboard: React.FC<SyncWhiteboardProps> = ({
       onCenterCallbackUpdate(centerOnLastActivity);
     }
 
-    // Only log when there are actual changes and in development mode
-    if (hasChanges && process.env.NODE_ENV === 'development') {
-      console.log('[SyncWhiteboard] State updated for whiteboard:', whiteboardId);
+    // Only log when there are actual changes
+    if (hasChanges) {
+      debugLog('StateUpdate', 'State updated for whiteboard', { whiteboardId });
     }
   }, [
     syncState?.isConnected, 

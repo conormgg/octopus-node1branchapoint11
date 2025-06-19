@@ -44,21 +44,16 @@ export const useMouseEventHandlers = ({
   const stablePalmRejectionEnabled = useMemo(() => palmRejectionConfig.enabled, [palmRejectionConfig.enabled]);
   const stableIsReadOnly = useMemo(() => isReadOnly, [isReadOnly]);
 
-  // Log mouse events with stable reference - using centralized debug system
-  const logMouseEvent = useCallback((eventType: string, e: any) => {
-    debugLog('MouseEvents', `${eventType} from mouse`, {
-      button: e.evt.button,
-      buttons: e.evt.buttons,
-      currentTool: stableCurrentTool,
-      palmRejectionEnabled: stablePalmRejectionEnabled
-    });
-  }, [stableCurrentTool, stablePalmRejectionEnabled]);
-
   // Use memoized event handlers for stability
   const handlers = useMemoizedEventHandlers({
     handleMouseDown: {
       handler: (e: Konva.KonvaEventObject<MouseEvent>) => {
-        logMouseEvent('mousedown', e);
+        debugLog('MouseEvents', `mousedown from mouse`, {
+          button: e.evt.button,
+          buttons: e.evt.buttons,
+          currentTool: stableCurrentTool,
+          palmRejectionEnabled: stablePalmRejectionEnabled
+        });
         
         // Handle right-click pan - works for everyone, including read-only users
         if (e.evt.button === 2) {
@@ -95,12 +90,17 @@ export const useMouseEventHandlers = ({
         const { x, y } = getRelativePointerPosition(stage, e.evt.clientX, e.evt.clientY);
         handlePointerDown(x, y);
       },
-      deps: [logMouseEvent, panZoom, selection, stableCurrentTool, stableIsReadOnly, onStageClick, stablePalmRejectionEnabled, getRelativePointerPosition, handlePointerDown]
+      deps: [panZoom, selection, stableCurrentTool, stableIsReadOnly, onStageClick, stablePalmRejectionEnabled, getRelativePointerPosition, handlePointerDown]
     },
 
     handleMouseMove: {
       handler: (e: Konva.KonvaEventObject<MouseEvent>) => {
-        logMouseEvent('mousemove', e);
+        debugLog('MouseEvents', `mousemove from mouse`, {
+          button: e.evt.button,
+          buttons: e.evt.buttons,
+          currentTool: stableCurrentTool,
+          palmRejectionEnabled: stablePalmRejectionEnabled
+        });
         
         // Handle right-click pan - works for everyone, including read-only users
         if (e.evt.buttons === 2) {
@@ -122,12 +122,15 @@ export const useMouseEventHandlers = ({
         const { x, y } = getRelativePointerPosition(stage, e.evt.clientX, e.evt.clientY);
         handlePointerMove(x, y);
       },
-      deps: [logMouseEvent, panZoom, selection, stableIsReadOnly, stablePalmRejectionEnabled, stableCurrentTool, getRelativePointerPosition, handlePointerMove]
+      deps: [panZoom, selection, stableIsReadOnly, stablePalmRejectionEnabled, stableCurrentTool, getRelativePointerPosition, handlePointerMove]
     },
 
     handleMouseUp: {
       handler: (e: Konva.KonvaEventObject<MouseEvent>) => {
-        logMouseEvent('mouseup', e);
+        debugLog('MouseEvents', `mouseup from mouse`, {
+          button: e.evt.button,
+          currentTool: stableCurrentTool
+        });
         
         // Handle right-click pan end - works for everyone, including read-only users
         if (e.evt.button === 2) {
@@ -140,7 +143,7 @@ export const useMouseEventHandlers = ({
         
         handlePointerUp();
       },
-      deps: [logMouseEvent, panZoom, stableIsReadOnly, stablePalmRejectionEnabled, stableCurrentTool, handlePointerUp]
+      deps: [panZoom, stableIsReadOnly, stablePalmRejectionEnabled, stableCurrentTool, handlePointerUp]
     }
   });
 

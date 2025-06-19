@@ -22,7 +22,7 @@ import { SyncConfig } from '@/types/sync';
 import { useSharedWhiteboardCore } from './shared/useSharedWhiteboardCore';
 import { useSharedNormalizedState } from './shared/useSharedNormalizedState';
 import { useSharedOperationsHandler } from './shared/useSharedOperationsHandler';
-import { createDebugLogger } from '@/utils/debug/debugConfig';
+import { createDebugLogger, logError } from '@/utils/debug/debugConfig';
 
 const debugLog = createDebugLogger('state');
 
@@ -68,12 +68,18 @@ export const useSharedWhiteboardState = (syncConfig?: SyncConfig, whiteboardId?:
   // Enhanced centering function that uses viewport dimensions
   const centerOnLastActivity = useCallback((bounds: { x: number; y: number; width: number; height: number }) => {
     if (!panZoom.centerOnBounds || !containerWidth || !containerHeight) {
-      console.log('[SharedWhiteboardState] Cannot center - missing centerOnBounds or dimensions');
+      debugLog('CenterOnActivity', 'Cannot center - missing dependencies', {
+        hasCenterOnBounds: !!panZoom.centerOnBounds,
+        containerWidth,
+        containerHeight
+      });
       return;
     }
     
-    console.log('[SharedWhiteboardState] Centering on bounds:', bounds);
-    console.log('[SharedWhiteboardState] Container dimensions:', { containerWidth, containerHeight });
+    debugLog('CenterOnActivity', 'Centering on bounds', {
+      bounds,
+      containerDimensions: { containerWidth, containerHeight }
+    });
     
     panZoom.centerOnBounds(bounds, containerWidth, containerHeight);
   }, [panZoom, containerWidth, containerHeight]);

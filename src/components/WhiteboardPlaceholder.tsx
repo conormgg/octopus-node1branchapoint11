@@ -9,6 +9,7 @@ import { useWhiteboardDimensions } from '@/hooks/whiteboard/useWhiteboardDimensi
 import { useEscapeKeyHandler } from '@/hooks/whiteboard/useEscapeKeyHandler';
 import { useEyeButtonLogic } from '@/hooks/whiteboard/useEyeButtonLogic';
 import { useSyncConfiguration } from '@/hooks/whiteboard/useSyncConfiguration';
+import { logError } from '@/utils/debug/debugConfig';
 
 interface WhiteboardPlaceholderProps {
   id: string;
@@ -39,7 +40,7 @@ const WhiteboardPlaceholder: React.FC<WhiteboardPlaceholderProps> = ({
   
   // Guard against invalid id prop
   if (!id || typeof id !== 'string') {
-    console.error('[WhiteboardPlaceholder] Invalid id prop received:', id);
+    logError('WhiteboardPlaceholder', 'Invalid id prop received', { id });
     return (
       <div className="flex items-center justify-center h-full bg-gray-100 border-2 border-red-200 rounded-lg">
         <p className="text-red-600">Invalid whiteboard ID</p>

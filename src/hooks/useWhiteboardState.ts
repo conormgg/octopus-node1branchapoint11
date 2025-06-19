@@ -1,3 +1,4 @@
+
 import { useState, useCallback, useEffect } from 'react';
 import { WhiteboardState, PanZoomState, LineObject } from '@/types/whiteboard';
 import { useHistoryState } from './useHistoryState';
@@ -10,13 +11,7 @@ import { useWhiteboardPointerHandlers } from './useWhiteboardPointerHandlers';
 import { useNormalizedWhiteboardState } from './performance/useNormalizedWhiteboardState';
 import { createDebugLogger } from '@/utils/debug/debugConfig';
 
-const DEBUG_ENABLED = process.env.NODE_ENV === 'development';
 const USE_NORMALIZED_STATE = true; // Feature flag for gradual rollout
-
-/**
- * @function debugLog
- * @description Centralized debug logging for whiteboard operations
- */
 const debugLog = createDebugLogger('state');
 
 /**

@@ -3,6 +3,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
 import { Student } from '@/types/student';
+import { logError } from '@/utils/debug/debugConfig';
 
 interface UseSessionCreationProps {
   title: string;
@@ -80,6 +81,7 @@ export const useSessionCreation = ({
 
       onSessionCreated(sessionData.id);
     } catch (error: any) {
+      logError('SessionCreation', 'Failed to create session', error);
       toast({
         title: "Error Creating Session",
         description: error.message,

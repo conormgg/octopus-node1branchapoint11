@@ -2,6 +2,9 @@
 import { useCallback } from 'react';
 import Konva from 'konva';
 import { Tool } from '@/types/whiteboard';
+import { createDebugLogger } from '@/utils/debug/debugConfig';
+
+const debugLog = createDebugLogger('touchEvents');
 
 interface UseTouchEventHandlersProps {
   currentTool: Tool;
@@ -15,7 +18,7 @@ export const useTouchEventHandlers = ({
   onStageClick
 }: UseTouchEventHandlersProps) => {
   const handleTouchStart = useCallback((e: Konva.KonvaEventObject<TouchEvent>) => {
-    console.log('[EventDebug] touchstart from konva', {
+    debugLog('TouchEvents', 'touchstart from konva', {
       touches: e.evt.touches.length,
       currentTool,
       palmRejectionEnabled: palmRejectionConfig.enabled
