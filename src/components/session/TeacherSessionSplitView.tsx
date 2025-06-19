@@ -26,6 +26,7 @@ interface TeacherSessionSplitViewProps {
   gridOrientation: GridOrientation;
   maximizedBoard: string | null;
   isControlsCollapsed: boolean;
+  teacherSenderId?: string;
   onMaximize: (boardId: string) => void;
   onMinimize: () => void;
   onPreviousPage: () => void;
@@ -49,6 +50,7 @@ const TeacherSessionSplitView: React.FC<TeacherSessionSplitViewProps> = ({
   gridOrientation,
   maximizedBoard,
   isControlsCollapsed,
+  teacherSenderId,
   onMaximize,
   onMinimize,
   onPreviousPage,
@@ -76,7 +78,7 @@ const TeacherSessionSplitView: React.FC<TeacherSessionSplitViewProps> = ({
         onOrientationChange={onOrientationChange}
         onClose={onCloseSplitView}
         sessionId={activeSession.id}
-        senderId={activeSession.teacher_id}
+        senderId={teacherSenderId || activeSession.teacher_id}
       />
 
       {/* Single panel view - only teacher's board when split view is active */}
@@ -87,7 +89,7 @@ const TeacherSessionSplitView: React.FC<TeacherSessionSplitViewProps> = ({
           maximizedBoard={maximizedBoard}
           isHeaderCollapsed={isControlsCollapsed}
           sessionId={activeSession.id}
-          senderId={activeSession.teacher_id}
+          senderId={teacherSenderId || activeSession.teacher_id}
         />
       </div>
     </>

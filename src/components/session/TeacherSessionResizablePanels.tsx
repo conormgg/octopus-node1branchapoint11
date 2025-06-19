@@ -25,6 +25,7 @@ interface TeacherSessionResizablePanelsProps {
   gridOrientation: GridOrientation;
   maximizedBoard: string | null;
   isControlsCollapsed: boolean;
+  teacherSenderId?: string;
   onMaximize: (boardId: string) => void;
   onMinimize: () => void;
   onPreviousPage: () => void;
@@ -43,6 +44,7 @@ const TeacherSessionResizablePanels: React.FC<TeacherSessionResizablePanelsProps
   gridOrientation,
   maximizedBoard,
   isControlsCollapsed,
+  teacherSenderId,
   onMaximize,
   onMinimize,
   onPreviousPage,
@@ -59,7 +61,7 @@ const TeacherSessionResizablePanels: React.FC<TeacherSessionResizablePanelsProps
             maximizedBoard={maximizedBoard}
             isHeaderCollapsed={isControlsCollapsed}
             sessionId={activeSession.id}
-            senderId={activeSession.teacher_id}
+            senderId={teacherSenderId || activeSession.teacher_id}
           />
         </div>
       </ResizablePanel>
@@ -84,7 +86,7 @@ const TeacherSessionResizablePanels: React.FC<TeacherSessionResizablePanelsProps
             onNextPage={onNextPage}
             isHeaderCollapsed={isControlsCollapsed}
             sessionId={activeSession.id}
-            senderId={activeSession.teacher_id}
+            senderId={teacherSenderId || activeSession.teacher_id}
           />
         </div>
       </ResizablePanel>
