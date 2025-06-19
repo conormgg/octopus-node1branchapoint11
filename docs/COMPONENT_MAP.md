@@ -115,10 +115,13 @@ TopRightButtons
     └── Viewport Centering
 ```
 
-## Hook Dependencies
+## Hook Dependencies and Selection Guide
 
+### 🚨 CRITICAL: Current Sync Hook Usage
+
+**PRIMARY HOOKS (Use These):**
 ```
-useSharedWhiteboardState
+useSharedWhiteboardState ✅ RECOMMENDED
 ├── useSharedOperationsCoordinator
 │   ├── useSharedDrawingOperations (with activity tracking)
 │   ├── useSharedImageOperations (with activity tracking)
@@ -130,7 +133,35 @@ useSharedWhiteboardState
     ├── usePointerEventHandlers
     ├── useTouchEventHandlers
     └── useWheelEventHandlers
+```
 
+**DEPRECATED HOOKS (Avoid These):**
+```
+useSyncWhiteboardState ❌ DEPRECATED
+├── Direct state manipulation
+├── Manual sync management
+└── Limited collaboration features
+⚠️ Only use for specific sync-only scenarios
+```
+
+### Hook Selection Criteria
+
+**Use `useSharedWhiteboardState` when:**
+- Building collaborative whiteboards (most common)
+- Need full feature set (drawing, images, selection, etc.)
+- Want automatic sync integration
+- Building teacher/student views
+- Need eye button functionality
+
+**Use `useSyncWhiteboardState` only when:**
+- Building sync-only components
+- Need manual state control
+- Working with receive-only scenarios
+- Legacy compatibility required
+
+### Other Session Management Hooks
+
+```
 useSessionStudents (Simplified)
 ├── Real-time Participant Subscription
 ├── Individual Student Addition
@@ -221,3 +252,90 @@ UI Button Enable/Disable
     ↓
 User Click → Viewport Centering
 ```
+
+## Sync Architecture Integration Points
+
+### 🚨 CRITICAL: Sender ID Management
+
+**Connection Creation Pattern:**
+```
+Component A (Teacher1):
+- connectionId: 'board-123-session-456-teacher1'
+- originalConfig.senderId: 'teacher1' (IMMUTABLE)
+- Receives operations from: student1 ✓, teacher1 ✗ (filtered)
+
+Component B (Student1):
+- connectionId: 'board-123-session-456-student1'
+- originalConfig.senderId: 'student1' (IMMUTABLE)
+- Receives operations from: teacher1 ✓, student1 ✗ (filtered)
+```
+
+**Handler Registration Flow:**
+```
+First Registration → Create Connection → Store Immutable Config
+Second Registration → Reuse Connection → Add Handler → Keep Original Config
+Component Unmount → Remove Handler → Grace Period → Cleanup
+```
+
+### Operation Filtering Integration
+
+**Multi-Component Scenario:**
+```
+Teacher Component:
+useSharedWhiteboardState(syncConfig: { senderId: 'teacher1' })
+    ↓
+useSyncState → SyncConnectionManager → Connection (teacher1)
+    ↓
+Filters operations: Receives from student1 ✓, blocks teacher1 ✗
+
+Student Component:
+useSharedWhiteboardState(syncConfig: { senderId: 'student1' })
+    ↓
+useSyncState → SyncConnectionManager → Connection (student1)
+    ↓
+Filters operations: Receives from teacher1 ✓, blocks student1 ✗
+```
+
+### Debug Integration Points
+
+**Sync Debug Logging:**
+```
+useSharedWhiteboardState → useSyncState → Connection
+    ↓
+debugLog('Connection', 'Created with senderId: teacher1')
+debugLog('Dispatch', 'Operation from: student1, local: teacher1')
+debugLog('Dispatch', 'Skipping operation from self (teacher1)')
+```
+
+## Migration Guide
+
+### From useSyncWhiteboardState to useSharedWhiteboardState
+
+**Before (Deprecated):**
+```typescript
+const { state, sendOperation } = useSyncWhiteboardState(syncConfig);
+```
+
+**After (Recommended):**
+```typescript
+const whiteboard = useSharedWhiteboardState(syncConfig, whiteboardId);
+const { state, handlePointerDown, handlePointerMove } = whiteboard;
+```
+
+**Key Differences:**
+- `useSharedWhiteboardState` includes full drawing operations
+- Automatic sync integration
+- Built-in activity tracking for eye button
+- Better performance with normalized state
+- Comprehensive event handling
+
+### When to Use Each Hook
+
+| Scenario | Hook | Reason |
+|----------|------|--------|
+| Teacher whiteboard | `useSharedWhiteboardState` | Full features + collaboration |
+| Student whiteboard | `useSharedWhiteboardState` | Full features + collaboration |
+| Sync-only component | `useSyncWhiteboardState` | Minimal sync functionality |
+| Local-only whiteboard | `useWhiteboardState` | No sync needed |
+| History replay | `useSharedHistoryReplay` | Pure simulation |
+
