@@ -90,7 +90,11 @@ const StudentSessionContent: React.FC<{ state: LocationState; sessionSlug?: stri
           </div>
         </div>
       </div>
-      <StudentView sessionId={state.sessionId} />
+      <StudentView 
+        sessionId={state.sessionId} 
+        boardSuffix={state.boardSuffix}
+        senderId={state.studentName}
+      />
     </div>
   );
 };

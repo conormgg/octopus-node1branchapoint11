@@ -6,9 +6,11 @@ import { GraduationCap, User } from 'lucide-react';
 
 interface StudentViewProps {
   sessionId: string;
+  boardSuffix: string;
+  senderId: string;
 }
 
-const StudentView: React.FC<StudentViewProps> = ({ sessionId }) => {
+const StudentView: React.FC<StudentViewProps> = ({ sessionId, boardSuffix, senderId }) => {
   const [maximizedBoard, setMaximizedBoard] = useState<string | null>(null);
 
   const handleMaximize = (boardId: string) => {
@@ -18,6 +20,9 @@ const StudentView: React.FC<StudentViewProps> = ({ sessionId }) => {
   const handleMinimize = () => {
     setMaximizedBoard(null);
   };
+
+  // Generate dynamic board ID for student's personal board
+  const personalBoardId = `student-personal-view-${boardSuffix.toLowerCase()}`;
 
   return (
     <div className="min-h-screen bg-gray-100">
@@ -67,6 +72,7 @@ const StudentView: React.FC<StudentViewProps> = ({ sessionId }) => {
                   onMaximize={() => handleMaximize("student-shared-teacher")}
                   onMinimize={handleMinimize}
                   sessionId={sessionId}
+                  senderId={senderId}
                 />
               </div>
             </div>
@@ -86,17 +92,18 @@ const StudentView: React.FC<StudentViewProps> = ({ sessionId }) => {
               </div>
               <div 
                 className={`h-[calc(100%-4rem)] ${
-                  maximizedBoard === "student-personal" 
+                  maximizedBoard === personalBoardId
                     ? "fixed inset-4 z-50 bg-gray-100" 
                     : ""
                 }`}
               >
                 <WhiteboardPlaceholder
-                  id="student-personal"
-                  isMaximized={maximizedBoard === "student-personal"}
-                  onMaximize={() => handleMaximize("student-personal")}
+                  id={personalBoardId}
+                  isMaximized={maximizedBoard === personalBoardId}
+                  onMaximize={() => handleMaximize(personalBoardId)}
                   onMinimize={handleMinimize}
                   sessionId={sessionId}
+                  senderId={senderId}
                 />
               </div>
             </div>

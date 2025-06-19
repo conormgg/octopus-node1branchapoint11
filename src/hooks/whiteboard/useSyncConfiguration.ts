@@ -38,7 +38,19 @@ export const useSyncConfiguration = (
       };
     }
 
-    // Individual student boards
+    // Student's personal board (student2) is now the source of truth
+    if (id.startsWith("student-personal-view-")) {
+      const studentSuffix = id.replace("student-personal-view-", "");
+      if (!senderId) return undefined;
+      return {
+        whiteboardId: `session-${sessionId}-student-${studentSuffix}`,
+        senderId: senderId,
+        sessionId: sessionId,
+        isReceiveOnly: false, // Student can write to this board
+      };
+    }
+
+    // Teacher's view of a student board is now read-only
     if (id.startsWith('student-board-')) {
       const studentNumber = id.replace('student-board-', '');
       if (!senderId) return undefined;
@@ -47,7 +59,7 @@ export const useSyncConfiguration = (
         whiteboardId: `session-${sessionId}-student-${studentNumber}`,
         senderId: senderId,
         sessionId: sessionId,
-        isReceiveOnly: false,
+        isReceiveOnly: true, // Teacher's view is now receive-only
       };
     }
 
