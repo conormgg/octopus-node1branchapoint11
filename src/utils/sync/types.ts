@@ -1,5 +1,6 @@
 
 import { WhiteboardOperation, SyncConfig } from '@/types/sync';
+import { RealtimeChannel } from '@supabase/supabase-js';
 
 export type OperationHandler = (operation: WhiteboardOperation) => void;
 
@@ -9,10 +10,4 @@ export interface ConnectionInfo {
   handlers: Set<OperationHandler>;
   isConnected: boolean;
   lastActivity: number;
-}
-
-// Minimal type for Supabase Realtime Channel
-interface RealtimeChannel {
-  unsubscribe: () => void;
-  subscribe: () => RealtimeChannel;
 }
