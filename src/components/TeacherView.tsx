@@ -73,6 +73,9 @@ const TeacherView: React.FC<TeacherViewProps> = ({
     );
   }
 
+  // Generate a teacher senderId for viewing student boards
+  const teacherSenderId = activeSession ? `teacher-${activeSession.teacher_id}` : 'teacher-default';
+
   return (
     <>
       {/* Session URL Modal */}
@@ -113,6 +116,7 @@ const TeacherView: React.FC<TeacherViewProps> = ({
         onSignOut={onSignOut!}
         onAddIndividualStudent={handleAddIndividualStudent}
         onRemoveIndividualStudent={handleRemoveIndividualStudent}
+        teacherSenderId={teacherSenderId}
       />
     </>
   );

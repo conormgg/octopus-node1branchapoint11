@@ -50,6 +50,7 @@ interface TeacherSessionViewProps {
   // Individual student management props
   onAddIndividualStudent?: (name: string, email: string) => Promise<void>;
   onRemoveIndividualStudent?: (participantId: number) => Promise<void>;
+  teacherSenderId?: string;
 }
 
 const TeacherSessionView: React.FC<TeacherSessionViewProps> = ({
@@ -80,6 +81,7 @@ const TeacherSessionView: React.FC<TeacherSessionViewProps> = ({
   onSignOut,
   onAddIndividualStudent,
   onRemoveIndividualStudent,
+  teacherSenderId,
 }) => {
   // Generate student boards with status information using the correct SessionParticipant[] type
   const allStudentBoards = generateStudentBoardsFromParticipants(sessionStudents);
@@ -140,6 +142,7 @@ const TeacherSessionView: React.FC<TeacherSessionViewProps> = ({
         onLayoutChange={onLayoutChange}
         onOrientationChange={onOrientationChange}
         onCloseSplitView={onCloseSplitView}
+        teacherSenderId={teacherSenderId}
       />
     </div>
   );

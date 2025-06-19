@@ -29,10 +29,20 @@ export const SyncWhiteboard: React.FC<SyncWhiteboardProps> = ({
   const whiteboardState = useSharedWhiteboardState(syncConfig, whiteboardId, width, height);
   const isReadOnly = whiteboardState.isReadOnly;
   
+  // Add debug logging for read-only state
+  console.log('[SyncWhiteboard] Render state:', {
+    whiteboardId,
+    isReadOnly,
+    isReceiveOnly: syncConfig?.isReceiveOnly,
+    syncConfigExists: !!syncConfig
+  });
+  
   // Memoized stroke width handler
   const handleStrokeWidthChange = useCallback((strokeWidth: number) => {
-    whiteboardState.setStrokeWidth(strokeWidth);
-  }, [whiteboardState.setStrokeWidth]);
+    if (!isReadOnly) {
+      whiteboardState.setStrokeWidth(strokeWidth);
+    }
+  }, [whiteboardState.setStrokeWidth, isReadOnly]);
 
   // Extract lastActivity and centerOnLastActivity for stable dependencies
   const { getLastActivity, centerOnLastActivity, syncState } = whiteboardState;
@@ -132,26 +142,36 @@ export const SyncWhiteboard: React.FC<SyncWhiteboardProps> = ({
         }}
       />
       
-      <MovableToolbar
-        currentTool={whiteboardState.state.currentTool}
-        currentStrokeWidth={whiteboardState.state.currentStrokeWidth}
-        currentStrokeColor={whiteboardState.state.currentColor}
-        pencilSettings={whiteboardState.state.pencilSettings}
-        highlighterSettings={whiteboardState.state.highlighterSettings}
-        canUndo={whiteboardState.canUndo}
-        canRedo={whiteboardState.canRedo}
-        onToolChange={whiteboardState.setTool}
-        onStrokeWidthChange={handleStrokeWidthChange}
-        onStrokeColorChange={whiteboardState.setColor}
-        onPencilColorChange={whiteboardState.setPencilColor}
-        onHighlighterColorChange={whiteboardState.setHighlighterColor}
-        onUndo={whiteboardState.undo}
-        onRedo={whiteboardState.redo}
-        isReadOnly={isReadOnly}
-        containerWidth={width}
-        containerHeight={height}
-        portalContainer={portalContainer}
-      />
+      {/* Only show toolbar if not read-only */}
+      {!isReadOnly && (
+        <MovableToolbar
+          currentTool={whiteboardState.state.currentTool}
+          currentStrokeWidth={whiteboardState.state.currentStrokeWidth}
+          currentStrokeColor={whiteboardState.state.currentColor}
+          pencilSettings={whiteboardState.state.pencilSettings}
+          highlighterSettings={whiteboardState.state.highlighterSettings}
+          canUndo={whiteboardState.canUndo}
+          canRedo={whiteboardState.canRedo}
+          onToolChange={whiteboardState.setTool}
+          onStrokeWidthChange={handleStrokeWidthChange}
+          onStrokeColorChange={whiteboardState.setColor}
+          onPencilColorChange={whiteboardState.setPencilColor}
+          onHighlighterColorChange={whiteboardState.setHighlighterColor}
+          onUndo={whiteboardState.undo}
+          onRedo={whiteboardState.redo}
+          isReadOnly={isReadOnly}
+          containerWidth={width}
+          containerHeight={height}
+          portalContainer={portalContainer}
+        />
+      )}
+      
+      {/* Read-only indicator */}
+      {isReadOnly && (
+        <div className="absolute top-2 right-2 bg-gray-800/80 text-white text-xs px-2 py-1 rounded">
+          Read Only
+        </div>
+      )}
     </div>
   );
 };

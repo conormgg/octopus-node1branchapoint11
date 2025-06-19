@@ -88,6 +88,16 @@ const StudentBoardCard: React.FC<StudentBoardCardProps> = ({
   }
 
   // Active state - student has joined, show normal whiteboard
+  // For teacher viewing student board, we need to ensure senderId is set properly
+  const teacherSenderId = senderId || 'teacher-viewer';
+  
+  console.log('[StudentBoardCard] Rendering active student board:', {
+    boardId: boardInfo.boardId,
+    studentName: boardInfo.studentName,
+    sessionId,
+    teacherSenderId
+  });
+
   return (
     <div className="h-full relative">
       {/* Student name badge */}
@@ -106,7 +116,7 @@ const StudentBoardCard: React.FC<StudentBoardCardProps> = ({
         onMaximize={() => onMaximize(boardInfo.boardId)}
         onMinimize={onMinimize}
         sessionId={sessionId}
-        senderId={senderId}
+        senderId={teacherSenderId}
         portalContainer={portalContainer}
       />
     </div>
