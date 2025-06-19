@@ -47,6 +47,105 @@ ActivityMetadata {
    - User activity → Bounds calculation → Activity metadata → History integration → Button state update
    - Button click → Activity retrieval → Viewport centering
 
+## Sync Operation Flow (CRITICAL ARCHITECTURE)
+
+### 🚨 Sender ID Filtering and Connection Management
+
+The sync system uses a **sender-specific connection pooling** strategy that requires extreme care when modifying:
+
+#### Connection Creation and Lifecycle
+```
+Component Mount:
+syncConfig = { whiteboardId: 'board-123', sessionId: 'session-456', senderId: 'teacher1' }
+    ↓
+SyncConnectionManager.registerHandler(syncConfig, handler)
+    ↓
+connectionId = `board-123-session-456-teacher1` (includes sender ID)
+    ↓
+Check if connection exists:
+- If NO: Create new Connection with IMMUTABLE config
+- If YES: Add handler to existing connection, KEEP original config
+    ↓
+Connection stores originalConfig = { ...syncConfig } (NEVER modified)
+```
+
+#### Operation Sending Flow
+```
+Local User Action (Teacher1):
+User draws line → Tool handler → sendOperation({ type: 'draw', data: lineData })
+    ↓
+Connection.sendOperation():
+- Add sender_id from originalConfig.senderId ('teacher1')
+- Add timestamp and whiteboard_id
+- Convert to database format
+    ↓
+Supabase.insert(database_record)
+    ↓
+Database triggers realtime notification to ALL subscribers
+```
+
+#### Operation Receiving Flow
+```
+Supabase Realtime Event:
+Database insert triggers realtime → ALL connections on same whiteboard receive payload
+    ↓
+Connection.handlePayload(payload):
+- Convert payload to WhiteboardOperation
+- Extract sender_id from operation
+    ↓
+Filter Logic (CRITICAL):
+if (operation.sender_id !== this.originalConfig.senderId) {
+  // Forward to handlers (not from self)
+  handlers.forEach(handler => handler(operation))
+} else {
+  // Skip - this is our own operation
+  debugLog('Skipping operation from self')
+}
+```
+
+#### Multi-Component Scenario (Teacher1 + Student1)
+```
+Teacher1 Component:
+- connectionId: 'board-123-session-456-teacher1'
+- originalConfig.senderId: 'teacher1'
+- Receives operations from: student1 ✓, teacher1 ✗ (filtered out)
+
+Student1 Component:
+- connectionId: 'board-123-session-456-student1'  
+- originalConfig.senderId: 'student1'
+- Receives operations from: teacher1 ✓, student1 ✗ (filtered out)
+
+Both share same Supabase channel but maintain separate sender identity!
+```
+
+### Connection Pooling and Handler Management
+```
+First Handler Registration:
+registerHandler(config, handler1) → Create new connection → Store immutable config
+
+Second Handler Registration (same sender):
+registerHandler(config, handler2) → Reuse connection → Add handler2 → Keep original config
+
+Component Unmount:
+unregisterHandler(config, handler) → Remove handler → Start 30s grace period → Cleanup if unused
+```
+
+### Debug Logging for Sync Issues
+```typescript
+// Enable sync debugging
+const debugLog = createDebugLogger('sync');
+
+// Connection creation
+debugLog('Connection', `Created connection ${connectionId} with senderId: ${config.senderId}`);
+
+// Operation filtering
+debugLog('Dispatch', `Operation from: ${operation.sender_id}, local: ${this.originalConfig.senderId}`);
+debugLog('Dispatch', `Skipping operation from self (${operation.sender_id})`);
+
+// Config protection
+debugLog('Manager', `Keeping original config for ${connectionId} to prevent sender ID conflicts`);
+```
+
 ## Collaborative Undo/Redo Flow (Phase 2 Implementation)
 
 ### Synchronized Undo/Redo Operations
@@ -187,3 +286,29 @@ Page Refresh → Database Load → Activity Reconstruction → Button State Rest
 - **Cross-Window Sync**: Activity state maintained across minimize/maximize
 - **History Replay**: Pure simulation ensures accurate state reconstruction
 - **Undo/Redo Sync**: Teacher1-Student1 synchronized undo/redo operations
+- **🚨 Sender ID Immutability**: Connection configs NEVER change after creation
+- **🚨 Operation Filtering**: Critical for preventing infinite loops and echo-back
+- **🚨 Connection Isolation**: Different sender IDs must maintain separate connections
+
+## Debugging Sync Issues
+
+### Common Symptoms and Causes
+1. **Infinite Loops**: Usually caused by operation echo-back (check sender ID filtering)
+2. **Missing Operations**: Check if sender IDs are being overwritten
+3. **Cross-Component Interference**: Verify connection isolation by sender ID
+4. **Config Overwrites**: Look for unauthorized `updateConfig` calls
+
+### Debug Checklist
+```typescript
+// Check connection creation
+debugLog('Connection', `Created connection ${connectionId} with senderId: ${config.senderId}`);
+
+// Verify filtering logic
+debugLog('Dispatch', `Operation from: ${operation.sender_id}, local: ${this.originalConfig.senderId}`);
+
+// Confirm config immutability
+debugLog('Manager', `Keeping original config for ${connectionId} to prevent sender ID conflicts`);
+
+// Monitor connection reuse
+debugLog('Manager', `Reusing existing connection for ${connectionId}`);
+```

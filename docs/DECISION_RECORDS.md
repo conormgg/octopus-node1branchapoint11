@@ -1,4 +1,3 @@
-
 # Architecture Decision Records
 
 ## ADR-001: Event Handling Strategy
@@ -262,3 +261,181 @@ function useStateManager<T>(initialState: T): StateManager<T>
 - **Positive**: Better code quality, improved developer experience
 - **Negative**: Additional upfront development time, learning curve
 - **Maintenance**: Type definitions must be kept in sync with implementation
+
+---
+
+## ADR-008: Sender ID Filtering and Immutable Sync Configuration
+
+### Status
+Accepted - CRITICAL ARCHITECTURE
+
+### Context
+Multiple components (Teacher1, Student1) need to share the same Supabase realtime channel while maintaining separate operation filtering to prevent echo-back loops. Previous attempts to share or update sync configurations have caused production outages due to sender ID conflicts.
+
+### Decision
+Implement immutable sync configuration with sender-specific connection pooling:
+1. **Immutable Configuration**: Each connection stores its original config that NEVER changes
+2. **Sender-Specific Connection IDs**: Include sender ID in connection identifier for isolation
+3. **Operation Filtering**: Use original sender ID for filtering, never updated sender ID
+4. **No Config Updates**: Remove all `updateConfig` functionality to prevent overwrites
+
+### Rationale
+- Multiple components must coexist on the same channel without interfering
+- Operation echo-back causes infinite loops and corrupted state
+- Config overwrites break the filtering logic by changing sender IDs mid-connection
+- Immutable configuration ensures predictable filtering behavior
+
+### Implementation
+```typescript
+// Connection creation with immutable config
+class Connection {
+  private readonly originalConfig: SyncConfig; // Immutable
+  
+  constructor(config: SyncConfig, handler: OperationHandler) {
+    this.originalConfig = { ...config }; // Store immutable copy
+    this.connectionId = `${config.whiteboardId}-${config.sessionId}-${config.senderId}`;
+  }
+  
+  private handlePayload(payload: any) {
+    const operation = PayloadConverter.toOperation(payload);
+    // Use ORIGINAL config for filtering
+    if (operation.sender_id !== this.originalConfig.senderId) {
+      this.handlers.forEach(handler => handler(operation));
+    }
+  }
+}
+
+// Connection manager prevents config overwrites
+class SyncConnectionManager {
+  registerHandler(config: SyncConfig, handler: OperationHandler) {
+    const connection = this.connections.get(connectionId);
+    if (connection) {
+      connection.addHandler(handler);
+      // DO NOT update config - keep original immutable config
+    }
+  }
+}
+```
+
+### Consequences
+- **Positive**: Reliable multi-component sync, predictable operation filtering
+- **Negative**: More complex connection management, requires careful understanding
+- **Critical**: Breaking this pattern causes production outages and infinite loops
+
+### Maintenance Rules
+- **NEVER** add `updateConfig` functionality to Connection class
+- **NEVER** modify `originalConfig` after construction
+- **ALWAYS** use `originalConfig.senderId` for operation filtering
+- **ALWAYS** include sender ID in connection identifier
+- **TEST** with multiple components (Teacher1 + Student1) before deployment
+
+---
+
+## ADR-009: Connection Pooling with Sender Identity Isolation
+
+### Status
+Accepted - CRITICAL ARCHITECTURE
+
+### Context
+The application needs efficient connection management while ensuring different components with different sender IDs can safely share Supabase channels without operation conflicts.
+
+### Decision
+Implement sender-aware connection pooling with identity isolation:
+1. **Sender-Specific Connection IDs**: Include sender ID in connection pooling key
+2. **Handler Registration**: Multiple handlers per connection, but each connection maintains original sender ID
+3. **Grace Period Cleanup**: 30-second delay before closing unused connections
+4. **Connection Reuse**: Reuse connections only for same sender ID combinations
+
+### Rationale
+- Efficient resource usage by sharing connections when possible
+- Prevents cross-contamination between different sender contexts
+- Graceful handling of component remounts and reconnections
+- Clear separation of concerns between connection management and operation filtering
+
+### Implementation
+```typescript
+// Sender-aware connection pooling
+class SyncConnectionManager {
+  // Connection ID includes sender ID for isolation
+  private generateConnectionId(config: SyncConfig): string {
+    return `${config.whiteboardId}-${config.sessionId}-${config.senderId}`;
+  }
+  
+  registerHandler(config: SyncConfig, handler: OperationHandler) {
+    const connectionId = this.generateConnectionId(config);
+    let connection = this.connections.get(connectionId);
+    
+    if (!connection) {
+      // Create new connection with immutable config
+      connection = new Connection(config, handler);
+      this.connections.set(connectionId, connection);
+    } else {
+      // Reuse existing connection, add handler
+      connection.addHandler(handler);
+      // CRITICAL: Do NOT update config
+    }
+  }
+}
+```
+
+### Consequences
+- **Positive**: Efficient connection usage, clear sender isolation
+- **Negative**: More complex lifecycle management
+- **Critical**: Sender ID must remain in connection key for proper isolation
+
+---
+
+## ADR-010: Operation Filtering Logic for Shared Whiteboards
+
+### Status
+Accepted - CRITICAL ARCHITECTURE
+
+### Context
+When multiple components subscribe to the same whiteboard channel, operations must be filtered to prevent components from processing their own operations (echo-back), while still receiving operations from other components.
+
+### Decision
+Implement sender-based operation filtering with debug logging:
+1. **Sender ID Comparison**: Filter operations where sender_id matches connection's original sender ID
+2. **Debug Logging**: Extensive logging to track filtering decisions
+3. **Operation Flow**: Clear separation between sending and receiving operations
+4. **Error Prevention**: Robust error handling for malformed operations
+
+### Rationale
+- Prevents infinite loops from operation echo-back
+- Enables debugging of filtering logic
+- Maintains clear separation between local and remote operations
+- Provides visibility into sync behavior for troubleshooting
+
+### Implementation
+```typescript
+// Operation filtering with debug logging
+private handlePayload(payload: any) {
+  const operation = PayloadConverter.toOperation(payload);
+  
+  // Update activity timestamp
+  this.info.lastActivity = Date.now();
+  
+  // Notify all registered handlers except the sender
+  this.info.handlers.forEach(handler => {
+    if (operation.sender_id !== this.originalConfig.senderId) {
+      debugLog('Dispatch', `Operation to handler from: ${operation.sender_id}, local: ${this.originalConfig.senderId}`);
+      handler(operation);
+    } else {
+      debugLog('Dispatch', `Skipping operation from self (${operation.sender_id})`);
+    }
+  });
+}
+```
+
+### Consequences
+- **Positive**: Reliable operation filtering, excellent debugging capabilities
+- **Negative**: Requires consistent sender ID management
+- **Critical**: Filtering logic depends on immutable sender ID configuration
+
+### Debug Patterns
+```typescript
+// Enable sync debugging
+debugLog('Connection', `Created connection ${connectionId} with senderId: ${config.senderId}`);
+debugLog('Payload', 'Received operation', payload);
+debugLog('Dispatch', `Operation from: ${operation.sender_id}, local: ${this.originalConfig.senderId}`);
+```
