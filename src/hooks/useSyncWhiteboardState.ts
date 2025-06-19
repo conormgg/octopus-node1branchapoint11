@@ -1,4 +1,3 @@
-
 /**
  * @fileoverview Synchronization-focused whiteboard state hook
  * @description Manages whiteboard state with real-time synchronization as the primary concern.
@@ -23,18 +22,9 @@ import { WhiteboardState, SelectionState } from '@/types/whiteboard';
 import { useSyncState } from './useSyncState';
 import { useRemoteOperationHandler } from './useRemoteOperationHandler';
 import { SyncConfig } from '@/types/sync';
+import { createDebugLogger } from '@/utils/debug/debugConfig';
 
-const DEBUG_ENABLED = process.env.NODE_ENV === 'development';
-
-/**
- * @function debugLog
- * @description Debug logging for sync whiteboard operations
- */
-const debugLog = (context: string, action: string, data?: any) => {
-  if (DEBUG_ENABLED) {
-    console.log(`[SyncWhiteboardState:${context}] ${action}`, data || '');
-  }
-};
+const debugLog = createDebugLogger('sync');
 
 /**
  * @hook useSyncWhiteboardState

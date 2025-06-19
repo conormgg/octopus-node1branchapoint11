@@ -2,6 +2,9 @@
 import { useEffect, useRef, useCallback, useState } from 'react';
 import { WhiteboardOperation, SyncConfig, SyncState, OperationType } from '@/types/sync';
 import { SyncConnectionManager } from '@/utils/sync';
+import { createDebugLogger } from '@/utils/debug/debugConfig';
+
+const debugLog = createDebugLogger('sync');
 
 export const useSyncState = (
   config: SyncConfig,
@@ -31,12 +34,12 @@ export const useSyncState = (
   const sendOperation = useCallback((operation: Omit<WhiteboardOperation, 'id' | 'timestamp' | 'sender_id'>) => {
     if (configRef.current.isReceiveOnly) return null;
     
-    console.log(`[useSyncState] Sending operation of type ${operation.operation_type} for whiteboard: ${config.whiteboardId}`);
+    debugLog('useSyncState', `Sending operation of type ${operation.operation_type} for whiteboard: ${config.whiteboardId}`);
 
     const fullOperation = SyncConnectionManager.sendOperation(configRef.current, operation);
     
     if (!fullOperation) {
-      console.error('[useSyncState] Failed to send operation through connection manager');
+      debugLog('useSyncState', 'Failed to send operation through connection manager');
       return null;
     }
     
@@ -51,11 +54,11 @@ export const useSyncState = (
 
   // Register with the connection manager
   useEffect(() => {
-    console.log(`[useSyncState] Registering handler for whiteboard: ${config.whiteboardId}`);
+    debugLog('useSyncState', `Registering handler for whiteboard: ${config.whiteboardId}`);
     
     // Create a stable handler reference that always calls the latest handler function
     const stableHandler = (operation: WhiteboardOperation) => {
-      console.log('[useSyncState] Received operation via connection manager:', operation);
+      debugLog('useSyncState', 'Received operation via connection manager:', operation);
       
       // Update last sync timestamp
       setSyncState(prev => ({
@@ -81,7 +84,7 @@ export const useSyncState = (
       const status = SyncConnectionManager.getConnectionStatus(config);
       setSyncState(prev => {
         if (prev.isConnected !== status.isConnected) {
-          console.log(`[useSyncState] Connection status changed: ${status.isConnected}`);
+          debugLog('useSyncState', `Connection status changed: ${status.isConnected}`);
           return {
             ...prev,
             isConnected: status.isConnected
@@ -92,7 +95,7 @@ export const useSyncState = (
     }, 5000);
     
     return () => {
-      console.log(`[useSyncState] Unregistering handler for whiteboard: ${config.whiteboardId}`);
+      debugLog('useSyncState', `Unregistering handler for whiteboard: ${config.whiteboardId}`);
       SyncConnectionManager.unregisterHandler(config, stableHandler);
       clearInterval(statusInterval);
     };

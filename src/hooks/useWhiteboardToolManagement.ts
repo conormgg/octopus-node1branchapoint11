@@ -1,18 +1,9 @@
 
 import { useState, useCallback } from 'react';
 import { Tool, ToolSettings } from '@/types/whiteboard';
+import { createDebugLogger } from '@/utils/debug/debugConfig';
 
-const DEBUG_ENABLED = process.env.NODE_ENV === 'development';
-
-/**
- * @function debugLog
- * @description Debug logging for tool management operations
- */
-const debugLog = (context: string, action: string, data?: any) => {
-  if (DEBUG_ENABLED) {
-    console.log(`[ToolManagement:${context}] ${action}`, data || '');
-  }
-};
+const debugLog = createDebugLogger('state');
 
 /**
  * @hook useWhiteboardToolManagement

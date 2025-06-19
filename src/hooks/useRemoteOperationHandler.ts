@@ -1,9 +1,11 @@
-
 import { useCallback, useRef } from 'react';
 import { WhiteboardOperation } from '@/types/sync';
 import { ActivityMetadata } from '@/types/whiteboard';
 import { applyOperation } from '@/utils/operationSerializer';
 import { calculateLineBounds } from './shared/drawing/useDrawingBounds';
+import { createDebugLogger } from '@/utils/debug/debugConfig';
+
+const debugLog = createDebugLogger('operations');
 
 export const useRemoteOperationHandler = (
   setState: (updater: (prev: any) => any) => void,
@@ -127,17 +129,17 @@ export const useRemoteOperationHandler = (
 
   // Handle incoming operations from other clients
   const handleRemoteOperation = useCallback((operation: WhiteboardOperation) => {
-    console.log(`[RemoteOperationHandler] Processing operation: ${operation.operation_type} from sender: ${operation.sender_id}`);
+    debugLog('RemoteOperationHandler', `Processing operation: ${operation.operation_type} from sender: ${operation.sender_id}`);
     
     // Handle undo/redo operations directly without applying to state
     if (operation.operation_type === 'undo' && undo) {
-      console.log('[RemoteOperationHandler] Calling local undo from remote operation');
+      debugLog('RemoteOperationHandler', 'Calling local undo from remote operation');
       undo();
       return;
     }
 
     if (operation.operation_type === 'redo' && redo) {
-      console.log('[RemoteOperationHandler] Calling local redo from remote operation');
+      debugLog('RemoteOperationHandler', 'Calling local redo from remote operation');
       redo();
       return;
     }
@@ -148,18 +150,18 @@ export const useRemoteOperationHandler = (
       // Apply the operation to get the updated state
       const updatedState = applyOperation(prev, operation);
       
-      console.log(`[RemoteOperationHandler] State updated - Lines: ${prev.lines.length} -> ${updatedState.lines.length}, Images: ${prev.images.length} -> ${updatedState.images.length}`);
+      debugLog('RemoteOperationHandler', `State updated - Lines: ${prev.lines.length} -> ${updatedState.lines.length}, Images: ${prev.images.length} -> ${updatedState.images.length}`);
       
       // Check for deletions
       if (operation.operation_type === 'delete_objects' || operation.operation_type === 'erase') {
-        console.log('[RemoteOperationHandler] Processing deletion operation', operation.data);
+        debugLog('RemoteOperationHandler', 'Processing deletion operation', operation.data);
       }
 
       // Create activity metadata from the remote operation
       const activityMetadata = createActivityFromOperation(operation, updatedState);
       
       if (activityMetadata) {
-        console.log('[RemoteOperationHandler] Created activity metadata from remote operation:', activityMetadata);
+        debugLog('RemoteOperationHandler', 'Created activity metadata from remote operation:', activityMetadata);
       }
       
       // Create new history snapshot with activity metadata
@@ -175,7 +177,7 @@ export const useRemoteOperationHandler = (
       const newHistory = [...prev.history.slice(0, prev.historyIndex + 1), newHistorySnapshot];
       const newHistoryIndex = newHistory.length - 1;
       
-      console.log(`[RemoteOperationHandler] History updated - Index: ${prev.historyIndex} -> ${Math.min(newHistoryIndex, 9)}, Length: ${prev.history.length} -> ${newHistory.slice(-10).length}`);
+      debugLog('RemoteOperationHandler', `History updated - Index: ${prev.historyIndex} -> ${Math.min(newHistoryIndex, 9)}, Length: ${prev.history.length} -> ${newHistory.slice(-10).length}`);
       
       return {
         ...prev,
@@ -196,6 +198,6 @@ export const useRemoteOperationHandler = (
 
   return {
     handleRemoteOperation,
-    isApplyingRemoteOperation
+    isApplyingRemoteOperation: isApplyingRemoteOperation.current
   };
 };

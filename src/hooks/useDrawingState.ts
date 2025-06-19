@@ -1,4 +1,3 @@
-
 /**
  * @fileoverview Drawing operations state management
  * @description Handles pencil and highlighter drawing operations with proper state management.
@@ -11,18 +10,9 @@
 
 import { useCallback, useRef } from 'react';
 import { LineObject, Tool } from '@/types/whiteboard';
+import { createDebugLogger } from '@/utils/debug/debugConfig';
 
-const DEBUG_ENABLED = process.env.NODE_ENV === 'development';
-
-/**
- * @function debugLog
- * @description Debug logging for drawing operations
- */
-const debugLog = (context: string, action: string, data?: any) => {
-  if (DEBUG_ENABLED) {
-    console.log(`[DrawingState:${context}] ${action}`, data || '');
-  }
-};
+const debugLog = createDebugLogger('drawing');
 
 /**
  * @hook useDrawingState

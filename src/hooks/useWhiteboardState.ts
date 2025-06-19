@@ -1,4 +1,3 @@
-
 import { useState, useCallback, useEffect } from 'react';
 import { WhiteboardState, PanZoomState, LineObject } from '@/types/whiteboard';
 import { useHistoryState } from './useHistoryState';
@@ -9,6 +8,7 @@ import { useWhiteboardDrawingCoordination } from './useWhiteboardDrawingCoordina
 import { useWhiteboardImageOperations } from './useWhiteboardImageOperations';
 import { useWhiteboardPointerHandlers } from './useWhiteboardPointerHandlers';
 import { useNormalizedWhiteboardState } from './performance/useNormalizedWhiteboardState';
+import { createDebugLogger } from '@/utils/debug/debugConfig';
 
 const DEBUG_ENABLED = process.env.NODE_ENV === 'development';
 const USE_NORMALIZED_STATE = true; // Feature flag for gradual rollout
@@ -17,11 +17,7 @@ const USE_NORMALIZED_STATE = true; // Feature flag for gradual rollout
  * @function debugLog
  * @description Centralized debug logging for whiteboard operations
  */
-const debugLog = (context: string, action: string, data?: any) => {
-  if (DEBUG_ENABLED) {
-    console.log(`[WhiteboardState:${context}] ${action}`, data || '');
-  }
-};
+const debugLog = createDebugLogger('state');
 
 /**
  * @hook useWhiteboardState
@@ -63,13 +59,11 @@ export const useWhiteboardState = () => {
   // Normalized state for performance optimization
   const normalizedState = useNormalizedWhiteboardState(state.lines, state.images);
 
-  if (DEBUG_ENABLED && USE_NORMALIZED_STATE) {
-    debugLog('Performance', 'Normalized state stats', {
-      lineCount: normalizedState.lineCount,
-      imageCount: normalizedState.imageCount,
-      totalObjects: normalizedState.totalObjectCount
-    });
-  }
+  debugLog('Performance', 'Normalized state stats', {
+    lineCount: normalizedState.lineCount,
+    imageCount: normalizedState.imageCount,
+    totalObjects: normalizedState.totalObjectCount
+  });
 
   // Update state when tool management changes
   useEffect(() => {

@@ -3,18 +3,9 @@ import { useCallback } from 'react';
 import { v4 as uuidv4 } from 'uuid';
 import { ImageObject } from '@/types/whiteboard';
 import Konva from 'konva';
+import { createDebugLogger } from '@/utils/debug/debugConfig';
 
-const DEBUG_ENABLED = process.env.NODE_ENV === 'development';
-
-/**
- * @function debugLog
- * @description Debug logging for image operations
- */
-const debugLog = (context: string, action: string, data?: any) => {
-  if (DEBUG_ENABLED) {
-    console.log(`[ImageOperations:${context}] ${action}`, data || '');
-  }
-};
+const debugLog = createDebugLogger('images');
 
 /**
  * @hook useWhiteboardImageOperations
