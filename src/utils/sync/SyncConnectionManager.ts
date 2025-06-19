@@ -46,8 +46,9 @@ class SyncConnectionManager {
       debugLog('Manager', `Reusing existing connection for ${connectionId}`);
       connection.addHandler(handler);
       
-      // Update the config in case it has changed
-      connection.updateConfig(config);
+      // DO NOT update config - each connection maintains its immutable config
+      // This prevents sender ID overwrites that cause operation filtering issues
+      debugLog('Manager', `Keeping original config for ${connectionId} to prevent sender ID conflicts`);
     }
     
     return {
@@ -134,6 +135,24 @@ class SyncConnectionManager {
     return {
       isConnected: connection?.isConnected || false
     };
+  }
+  
+  /**
+   * Debug method to inspect current connections
+   */
+  public getDebugInfo(): { connectionId: string; handlerCount: number; isConnected: boolean; senderId: string }[] {
+    const info: { connectionId: string; handlerCount: number; isConnected: boolean; senderId: string }[] = [];
+    
+    this.connections.forEach((connection, connectionId) => {
+      info.push({
+        connectionId,
+        handlerCount: connection.handlerCount,
+        isConnected: connection.isConnected,
+        senderId: connection.getConnectionId().split('-').pop() || 'unknown'
+      });
+    });
+    
+    return info;
   }
 }
 

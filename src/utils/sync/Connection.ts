@@ -1,3 +1,4 @@
+
 import { supabase } from '@/integrations/supabase/client';
 import { ConnectionInfo, OperationHandler } from './types';
 import { PayloadConverter } from './PayloadConverter';
@@ -9,8 +10,12 @@ const debugLog = createDebugLogger('connection');
 export class Connection {
   private info: ConnectionInfo;
   private connectionId: string;
+  private readonly originalConfig: SyncConfig; // Store immutable original config
   
   constructor(config: SyncConfig, handler: OperationHandler) {
+    // Store the original config as immutable to prevent overwrites
+    this.originalConfig = { ...config };
+    
     // Include senderId in connectionId to ensure unique connections per sender
     this.connectionId = `${config.whiteboardId}-${config.sessionId}-${config.senderId}`;
     
@@ -35,11 +40,13 @@ export class Connection {
     
     this.info = {
       channel,
-      config,
+      config: this.originalConfig, // Use immutable config
       handlers: new Set([handler]),
       isConnected: false,
       lastActivity: Date.now()
     };
+    
+    debugLog('Connection', `Created connection ${this.connectionId} with senderId: ${config.senderId}`);
   }
   
   /**
@@ -58,9 +65,9 @@ export class Connection {
     
     // Notify all registered handlers except the sender
     this.info.handlers.forEach(handler => {
-      // Don't send operations back to the sender
-      if (operation.sender_id !== this.info.config.senderId) {
-        debugLog('Dispatch', `Operation to handler from: ${operation.sender_id}, local: ${this.info.config.senderId}`);
+      // Don't send operations back to the sender using the ORIGINAL config
+      if (operation.sender_id !== this.originalConfig.senderId) {
+        debugLog('Dispatch', `Operation to handler from: ${operation.sender_id}, local: ${this.originalConfig.senderId}`);
         handler(operation);
       } else {
         debugLog('Dispatch', `Skipping operation from self (${operation.sender_id})`);
@@ -74,6 +81,7 @@ export class Connection {
   addHandler(handler: OperationHandler) {
     this.info.handlers.add(handler);
     this.info.lastActivity = Date.now();
+    debugLog('Connection', `Added handler to ${this.connectionId}, total handlers: ${this.info.handlers.size}`);
   }
   
   /**
@@ -82,27 +90,28 @@ export class Connection {
   removeHandler(handler: OperationHandler) {
     this.info.handlers.delete(handler);
     this.info.lastActivity = Date.now();
+    debugLog('Connection', `Removed handler from ${this.connectionId}, remaining handlers: ${this.info.handlers.size}`);
   }
   
   /**
    * Send an operation using this connection
    */
   sendOperation(operation: Omit<WhiteboardOperation, 'id' | 'timestamp' | 'sender_id'>): WhiteboardOperation | null {
-    if (this.info.config.isReceiveOnly) return null;
+    if (this.originalConfig.isReceiveOnly) return null;
     
     const fullOperation: WhiteboardOperation = {
       ...operation,
-      whiteboard_id: this.info.config.whiteboardId,
+      whiteboard_id: this.originalConfig.whiteboardId,
       timestamp: Date.now(),
-      sender_id: this.info.config.senderId
+      sender_id: this.originalConfig.senderId // Use original config sender ID
     };
     
-    debugLog('Send', `Sending ${fullOperation.operation_type} to database`);
+    debugLog('Send', `Sending ${fullOperation.operation_type} to database from ${this.originalConfig.senderId}`);
     
     // Send to Supabase
     const dbRecord = PayloadConverter.toDatabaseRecord(
       fullOperation, 
-      this.info.config.sessionId
+      this.originalConfig.sessionId
     );
     
     supabase
@@ -125,6 +134,7 @@ export class Connection {
    */
   close() {
     supabase.removeChannel(this.info.channel);
+    debugLog('Connection', `Closed connection ${this.connectionId}`);
   }
   
   /**
@@ -149,16 +159,21 @@ export class Connection {
   }
   
   /**
-   * Update the config for this connection
+   * REMOVED: updateConfig method to prevent config overwrites
+   * Each connection maintains its immutable original configuration
    */
-  updateConfig(config: SyncConfig) {
-    this.info.config = config;
-  }
   
   /**
    * Get the connection ID
    */
   getConnectionId(): string {
     return this.connectionId;
+  }
+  
+  /**
+   * Get the original sender ID for debugging
+   */
+  getSenderId(): string {
+    return this.originalConfig.senderId;
   }
 }
