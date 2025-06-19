@@ -95,7 +95,8 @@ const StudentBoardCard: React.FC<StudentBoardCardProps> = ({
     boardId: boardInfo.boardId,
     studentName: boardInfo.studentName,
     sessionId,
-    teacherSenderId
+    teacherSenderId,
+    shouldBeReadOnly: true // Teacher view should always be read-only
   });
 
   return (

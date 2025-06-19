@@ -17,12 +17,15 @@ export const generateStudentBoardsFromParticipants = (
   return participants.map(participant => {
     // Ensure we always have a valid board suffix
     const boardSuffix = participant.assigned_board_suffix || 'unknown';
-    const boardId = `student-${boardSuffix.toLowerCase()}`; // A -> student-a, B -> student-b
+    // Generate correct board ID format for teacher's view of student boards
+    const boardId = `student-board-${boardSuffix.toLowerCase()}`; // Now creates: student-board-a, student-board-b
     
     // Validate that we're creating a valid string ID
     if (typeof boardId !== 'string' || !boardId) {
       console.error('[generateStudentBoardsFromParticipants] Invalid boardId generated:', boardId, 'for participant:', participant);
     }
+
+    console.log('[generateStudentBoardsFromParticipants] Generated board ID:', boardId, 'for participant:', participant.student_name);
     
     return {
       boardId,
