@@ -1,3 +1,4 @@
+
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Session } from '@/types/session';
@@ -133,7 +134,7 @@ export const useSessionStudents = (activeSession: Session | null | undefined) =>
   }, [activeSession, fetchSessionStudents, retrySubscription, stopFallbackPolling]);
 
   useEffect(() => {
-    if (activeSession) {
+    if (activeSession?.id) {
       // Reset retry count for new session
       retryCountRef.current = 0;
       
@@ -144,7 +145,7 @@ export const useSessionStudents = (activeSession: Session | null | undefined) =>
       setupRealtimeSubscription();
 
       return () => {
-        console.log(`[useSessionStudents] Cleaning up subscription for session: ${activeSession.id}`);
+        console.log(`[useSessionStudents] Cleaning up for session: ${activeSession.id}`);
         
         // Clear retry timeout
         if (retryTimeoutRef.current) {
@@ -157,10 +158,11 @@ export const useSessionStudents = (activeSession: Session | null | undefined) =>
         // Remove channel
         if (channelRef.current) {
           supabase.removeChannel(channelRef.current);
+          channelRef.current = null;
         }
       };
     }
-  }, [activeSession, fetchSessionStudents, setupRealtimeSubscription, stopFallbackPolling]);
+  }, [activeSession?.id, setupRealtimeSubscription, fetchSessionStudents, stopFallbackPolling]);
 
   // Get students with their join status
   const getStudentsWithStatus = () => {

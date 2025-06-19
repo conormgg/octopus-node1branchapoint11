@@ -201,43 +201,42 @@ export const useAuth = () => {
   useEffect(() => {
     let mounted = true;
 
-    const handleAuthChange = async (event: string, session: Session | null) => {
-      if (!mounted) return;
+    // Set initial loading state
+    setLoading(true);
 
-      console.log('[Auth] Auth state changed:', event, session?.user?.id);
-      
-      setSession(session);
-      setUser(session?.user ?? null);
-      setLoading(false);
-
-      if (event === 'SIGNED_IN' && session?.user) {
-        // Setup single-tab enforcement for new sign-ins
-        await setupPresenceChannel(session.user);
-      } else if (event === 'SIGNED_OUT') {
-        // Cleanup on sign out
-        await cleanupPresenceChannel();
-        sessionStorage.removeItem('tabId');
-        tabIdRef.current = null;
+    // Get initial session once
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (mounted) {
+        const currentUser = session?.user ?? null;
+        setUser(currentUser);
+        setSession(session);
+        if (currentUser) {
+          setupPresenceChannel(currentUser);
+        }
+        setLoading(false);
       }
-    };
-
-    // Get initial session
-    supabase.auth.getSession().then(async ({ data: { session } }) => {
-      if (!mounted) return;
-      
-      setSession(session);
-      setUser(session?.user ?? null);
-      
-      // Setup single-tab enforcement if user is authenticated
-      if (session?.user) {
-        await setupPresenceChannel(session.user);
-      }
-      
-      setLoading(false);
     });
 
-    // Listen for auth changes
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(handleAuthChange);
+    // Set up the listener
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      async (event, session) => {
+        if (!mounted) return;
+
+        console.log('[Auth] Auth state changed:', event, session?.user?.id);
+        const currentUser = session?.user ?? null;
+        setUser(currentUser);
+        setSession(session);
+
+        // Only react to definitive sign-in/sign-out events to set up/tear down channels
+        if (event === 'SIGNED_IN' && currentUser) {
+          await setupPresenceChannel(currentUser);
+        } else if (event === 'SIGNED_OUT') {
+          await cleanupPresenceChannel();
+          sessionStorage.removeItem('tabId');
+          tabIdRef.current = null;
+        }
+      }
+    );
 
     // Cleanup on component unmount
     return () => {
@@ -245,7 +244,7 @@ export const useAuth = () => {
       subscription.unsubscribe();
       cleanupPresenceChannel();
     };
-  }, [setupPresenceChannel, cleanupPresenceChannel]);
+  }, [cleanupPresenceChannel, setupPresenceChannel]);
 
   return {
     user,
