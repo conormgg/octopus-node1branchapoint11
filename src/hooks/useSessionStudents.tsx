@@ -1,3 +1,4 @@
+
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Session } from '@/types/session';
@@ -14,6 +15,7 @@ export const useSessionStudents = (activeSession: Session | null | undefined) =>
 
     setIsLoading(true);
     try {
+      console.log(`[useSessionStudents] Fetching students for session: ${activeSession.id}`);
       const { data, error } = await supabase
         .from('session_participants')
         .select('*')
@@ -21,19 +23,27 @@ export const useSessionStudents = (activeSession: Session | null | undefined) =>
         .order('assigned_board_suffix');
 
       if (error) throw error;
+      console.log(`[useSessionStudents] Found ${data?.length || 0} students:`, data);
       setSessionStudents(data || []);
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error fetching session students:', error);
+      toast({
+        title: "Error fetching students",
+        description: error.message || "Failed to load session participants",
+        variant: "destructive"
+      });
       setSessionStudents([]);
     } finally {
       setIsLoading(false);
     }
-  }, [activeSession]);
+  }, [activeSession, toast]);
 
   useEffect(() => {
     if (activeSession) {
       fetchSessionStudents();
+      
       // Set up real-time subscription for participant changes
+      console.log(`[useSessionStudents] Setting up real-time subscription for session: ${activeSession.id}`);
       const channel = supabase
         .channel(`session-participants-${activeSession.id}`)
         .on(
@@ -44,13 +54,27 @@ export const useSessionStudents = (activeSession: Session | null | undefined) =>
             table: 'session_participants',
             filter: `session_id=eq.${activeSession.id}`
           },
-          () => {
+          (payload) => {
+            console.log('[useSessionStudents] Real-time change received from session_participants:', payload);
             fetchSessionStudents();
           }
         )
-        .subscribe();
+        .subscribe((status) => {
+          console.log(`[useSessionStudents] Subscription status: ${status} for session ${activeSession.id}`);
+          if (status === 'SUBSCRIBED') {
+            console.log(`[useSessionStudents] Successfully subscribed to participant updates for session ${activeSession.id}`);
+          } else if (status === 'CHANNEL_ERROR') {
+            console.error(`[useSessionStudents] Channel error for session ${activeSession.id}`);
+            toast({
+              title: "Real-time connection error",
+              description: "Student status updates may not appear immediately",
+              variant: "destructive"
+            });
+          }
+        });
 
       return () => {
+        console.log(`[useSessionStudents] Cleaning up subscription for session: ${activeSession.id}`);
         supabase.removeChannel(channel);
       };
     }
@@ -68,8 +92,6 @@ export const useSessionStudents = (activeSession: Session | null | undefined) =>
 
   // Count active students (who have actually joined)
   const activeStudentCount = sessionStudents.filter(s => s.joined_at !== null).length;
-  
-  // Total registered students
   const totalStudentCount = sessionStudents.length;
 
   // Add individual student with name and email
