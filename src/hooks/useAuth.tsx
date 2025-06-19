@@ -1,8 +1,6 @@
-
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect } from 'react';
 import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
-import SingleTabEnforcementService from '@/services/SingleTabEnforcement';
 
 /**
  * Clears all authentication-related data from localStorage
@@ -28,15 +26,31 @@ export const useAuth = () => {
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
 
+  useEffect(() => {
+    // Set up auth state listener FIRST
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      (event, session) => {
+        setSession(session);
+        setUser(session?.user ?? null);
+        setLoading(false);
+      }
+    );
+
+    // THEN check for existing session
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setSession(session);
+      setUser(session?.user ?? null);
+      setLoading(false);
+    });
+
+    return () => subscription.unsubscribe();
+  }, []);
+
   /**
    * Signs out the user, clearing all auth state and redirecting to auth page
-   * Using useCallback to ensure stable reference across renders
    */
-  const signOut = useCallback(async () => {
+  const signOut = async () => {
     try {
-      // First, cleanup single-tab enforcement
-      SingleTabEnforcementService.cleanup();
-
       // Clear local auth state immediately
       setSession(null);
       setUser(null);
@@ -64,44 +78,7 @@ export const useAuth = () => {
       setUser(null);
       window.location.href = '/auth';
     }
-  }, []); // Empty dependency array ensures stable reference
-
-  useEffect(() => {
-    // Set up auth state listener FIRST
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (event, session) => {
-        setSession(session);
-        setUser(session?.user ?? null);
-        setLoading(false);
-
-        // Handle single-tab enforcement
-        if (session?.user) {
-          // Initialize single-tab enforcement when user signs in
-          SingleTabEnforcementService.initialize(session.user, signOut);
-        } else {
-          // Clean up when user signs out
-          SingleTabEnforcementService.cleanup();
-        }
-      }
-    );
-
-    // THEN check for existing session
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session);
-      setUser(session?.user ?? null);
-      setLoading(false);
-
-      // Initialize single-tab enforcement if user is already logged in
-      if (session?.user) {
-        SingleTabEnforcementService.initialize(session.user, signOut);
-      }
-    });
-
-    return () => {
-      subscription.unsubscribe();
-      SingleTabEnforcementService.cleanup();
-    };
-  }, [signOut]);
+  };
 
   const isAuthenticated = !!user;
 
