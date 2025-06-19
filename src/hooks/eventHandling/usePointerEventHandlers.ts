@@ -23,7 +23,7 @@ interface UsePointerEventHandlersProps {
   handlePointerUp: () => void;
   isReadOnly: boolean;
   currentToolRef: React.RefObject<string>;
-  logEventHandling: (eventType: string, source: 'pointer' | 'touch' | 'mouse', detail?: any) => void;
+  logEventHandling: (eventType: string, source: 'pointer' | 'touch' | 'mouse', detail?: Record<string, unknown>) => void;
   supportsPointerEvents: boolean;
 }
 

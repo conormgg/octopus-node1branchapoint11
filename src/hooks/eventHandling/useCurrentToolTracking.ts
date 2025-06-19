@@ -2,6 +2,10 @@
 import { useEffect, useRef } from 'react';
 import Konva from 'konva';
 
+interface UseCurrentToolTrackingProps {
+  stageRef: React.RefObject<Konva.Stage>;
+}
+
 export const useCurrentToolTracking = (stageRef: React.RefObject<Konva.Stage>) => {
   const currentToolRef = useRef<string>('pencil');
 
@@ -11,7 +15,7 @@ export const useCurrentToolTracking = (stageRef: React.RefObject<Konva.Stage>) =
     if (!stage) return;
     
     const updateTool = () => {
-      currentToolRef.current = stage.getAttr('currentTool') || 'pencil';
+      currentToolRef.current = (stage.getAttr('currentTool') as string) || 'pencil';
     };
     
     // Initial update

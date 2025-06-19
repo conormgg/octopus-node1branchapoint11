@@ -1,5 +1,5 @@
 
-import { useCallback, useMemo } from 'react';
+import { useMemo } from 'react';
 import Konva from 'konva';
 import { useStageCoordinates } from '@/hooks/useStageCoordinates';
 import { Tool, PanZoomState } from '@/types/whiteboard';
@@ -22,7 +22,9 @@ interface UseMouseEventHandlersProps {
   handlePointerUp: () => void;
   isReadOnly: boolean;
   onStageClick?: (e: Konva.KonvaEventObject<MouseEvent | TouchEvent>) => void;
-  selection?: any;
+  selection?: {
+    setHoveredObjectId?: (id: string | null) => void;
+  };
 }
 
 export const useMouseEventHandlers = ({

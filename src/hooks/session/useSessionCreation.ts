@@ -1,4 +1,5 @@
 
+import React from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
@@ -10,6 +11,10 @@ interface UseSessionCreationProps {
   duration: number | '';
   students: Student[];
   setIsLoading: (loading: boolean) => void;
+}
+
+interface SessionCreationError {
+  message: string;
 }
 
 export const useSessionCreation = ({
@@ -80,11 +85,12 @@ export const useSessionCreation = ({
       });
 
       onSessionCreated(sessionData.id);
-    } catch (error: any) {
-      logError('SessionCreation', 'Failed to create session', error);
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : 'An unknown error occurred';
+      logError('SessionCreation', 'Failed to create session', error as SessionCreationError);
       toast({
         title: "Error Creating Session",
-        description: error.message,
+        description: errorMessage,
         variant: "destructive",
       });
     } finally {
