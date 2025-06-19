@@ -1,3 +1,4 @@
+
 /**
  * @fileoverview Synchronization-focused whiteboard state hook
  * @description Manages whiteboard state with real-time synchronization as the primary concern.
@@ -15,6 +16,7 @@
  * 
  * @ai-context This hook prioritizes synchronization and is used when the primary
  * concern is real-time collaboration rather than local state management.
+ * @deprecated Consider using useSharedWhiteboardState for new implementations
  */
 
 import { useState, useCallback } from 'react';
@@ -38,13 +40,6 @@ const debugLog = createDebugLogger('sync');
  * @returns {SyncState} syncState - Real-time synchronization status
  * @returns {Function} sendOperation - Send operations to other clients
  * @returns {Function} saveToHistory - Manual history management
- * 
- * @ai-understanding
- * This hook is designed for scenarios where:
- * - Real-time sync is the primary requirement
- * - Manual control over state updates is needed
- * - Session-based collaboration is required
- * - Direct operation sending is necessary
  */
 export const useSyncWhiteboardState = (syncConfig: SyncConfig) => {
   debugLog('Hook', 'Initializing useSyncWhiteboardState', { 
@@ -53,10 +48,6 @@ export const useSyncWhiteboardState = (syncConfig: SyncConfig) => {
     isReceiveOnly: syncConfig.isReceiveOnly
   });
 
-  /**
-   * @constant defaultSelectionState
-   * @description Default selection state for clean initialization
-   */
   const defaultSelectionState: SelectionState = {
     selectedObjects: [],
     selectionBounds: null,
@@ -64,10 +55,6 @@ export const useSyncWhiteboardState = (syncConfig: SyncConfig) => {
     transformationData: {}
   };
 
-  /**
-   * @state state
-   * @description Main whiteboard state with comprehensive initial values
-   */
   const [state, setState] = useState<WhiteboardState>({
     lines: [],
     images: [],
@@ -128,19 +115,12 @@ export const useSyncWhiteboardState = (syncConfig: SyncConfig) => {
     });
   }, []);
 
-  // Handle received operations - now with proper undo/redo support
+  // Handle received operations
   const { handleRemoteOperation } = useRemoteOperationHandler(setState, undo, redo);
 
   // Set up sync with proper operation handling
   const { syncState, sendOperation } = useSyncState(syncConfig, handleRemoteOperation);
 
-  /**
-   * @function saveToHistory
-   * @description Manually saves current state to history
-   * 
-   * @ai-context This function provides manual control over history snapshots,
-   * useful for precise timing of history saves in collaborative scenarios.
-   */
   const saveToHistory = useCallback(() => {
     debugLog('History', 'Saving to history');
     setState(prev => {

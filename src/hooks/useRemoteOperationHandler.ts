@@ -1,5 +1,7 @@
+
 import { useCallback } from 'react';
 import { WhiteboardOperation, DrawOperationData, EraseOperationData, AddImageOperationData, UpdateImageOperationData, DeleteImageOperationData } from '@/types/sync';
+import { WhiteboardState } from '@/types/whiteboard';
 import { createDebugLogger } from '@/utils/debug/debugConfig';
 
 const debugLog = createDebugLogger('operations');
@@ -17,7 +19,7 @@ const debugLog = createDebugLogger('operations');
  * @returns {Function} handleRemoteOperation - Process incoming remote operations
  */
 export const useRemoteOperationHandler = (
-  setState: (updater: (prev: any) => any) => void,
+  setState: (updater: (prev: WhiteboardState) => WhiteboardState) => void,
   undo: () => void,
   redo: () => void,
   isApplyingRemoteOperationRef?: React.MutableRefObject<boolean>
@@ -55,7 +57,7 @@ export const useRemoteOperationHandler = (
           const eraseData = operation.data as EraseOperationData;
           setState(prev => ({
             ...prev,
-            lines: prev.lines.filter((line: any) => !eraseData.line_ids.includes(line.id))
+            lines: prev.lines.filter(line => !eraseData.line_ids.includes(line.id))
           }));
           break;
 
@@ -71,7 +73,7 @@ export const useRemoteOperationHandler = (
           const updateImageData = operation.data as UpdateImageOperationData;
           setState(prev => ({
             ...prev,
-            images: prev.images.map((img: any) =>
+            images: prev.images.map(img =>
               img.id === updateImageData.image_id ? { ...img, ...updateImageData.updates } : img
             )
           }));
@@ -81,7 +83,7 @@ export const useRemoteOperationHandler = (
           const deleteImageData = operation.data as DeleteImageOperationData;
           setState(prev => ({
             ...prev,
-            images: prev.images.filter((img: any) => img.id !== deleteImageData.image_id)
+            images: prev.images.filter(img => img.id !== deleteImageData.image_id)
           }));
           break;
 
