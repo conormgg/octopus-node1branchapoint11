@@ -8,7 +8,7 @@
  * of operations to their appropriate handlers while maintaining synchronization.
  */
 
-import { useCallback } from 'react';
+import { useCallback, useRef } from 'react';
 import { SyncConfig } from '@/types/sync';
 import { WhiteboardState, ActivityMetadata } from '@/types/whiteboard';
 import { useHistoryState } from '../useHistoryState';
@@ -16,18 +16,9 @@ import { useSyncState } from '../useSyncState';
 import { useRemoteOperationHandler } from '../useRemoteOperationHandler';
 import { useSharedDrawingOperations } from './useSharedDrawingOperations';
 import { useSharedImageOperations } from './useSharedImageOperations';
+import { createDebugLogger } from '@/utils/debug/debugConfig';
 
-const DEBUG_ENABLED = process.env.NODE_ENV === 'development';
-
-/**
- * @function debugLog
- * @description Debug logging for operations coordination
- */
-const debugLog = (context: string, action: string, data?: any) => {
-  if (DEBUG_ENABLED) {
-    console.log(`[OperationsCoordinator:${context}] ${action}`, data || '');
-  }
-};
+const debugLog = createDebugLogger('operations');
 
 /**
  * @hook useSharedOperationsCoordinator
@@ -67,6 +58,9 @@ export const useSharedOperationsCoordinator = (
     isReceiveOnly: syncConfig?.isReceiveOnly
   });
 
+  // Create a ref for isApplyingRemoteOperation to share between handlers
+  const isApplyingRemoteOperationRef = useRef(false);
+
   // Set up sync if config is provided
   const { syncState, sendOperation } = syncConfig 
     ? useSyncState(syncConfig, (operation) => handleRemoteOperation(operation))
@@ -89,10 +83,11 @@ export const useSharedOperationsCoordinator = (
   } = useHistoryState(state, setState, undefined, syncConfig ? sendOperation : null);
 
   // Handle remote operations with undo/redo support
-  const { handleRemoteOperation, isApplyingRemoteOperation } = useRemoteOperationHandler(
+  const { handleRemoteOperation } = useRemoteOperationHandler(
     setState, 
     undo, 
-    redo
+    redo,
+    isApplyingRemoteOperationRef
   );
 
   /**
@@ -125,13 +120,13 @@ export const useSharedOperationsCoordinator = (
   
   debugLog('Operations', 'Setting up drawing operations', { actualWhiteboardId });
   const drawingOperations = useSharedDrawingOperations(
-    state, setState, addToHistoryWithActivity, sendOperation, isApplyingRemoteOperation, actualWhiteboardId
+    state, setState, addToHistoryWithActivity, sendOperation, isApplyingRemoteOperationRef, actualWhiteboardId
   );
 
   // Image operations with proper parameter handling
   debugLog('Operations', 'Setting up image operations', { actualWhiteboardId });
   const imageOperations = useSharedImageOperations(
-    state, setState, addToHistoryWithActivity, sendOperation, isApplyingRemoteOperation, actualWhiteboardId
+    state, setState, addToHistoryWithActivity, sendOperation, isApplyingRemoteOperationRef, actualWhiteboardId
   );
 
   debugLog('Hook', 'Operations coordinator initialized', {
