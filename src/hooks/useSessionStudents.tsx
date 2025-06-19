@@ -62,7 +62,7 @@ export const useSessionStudents = (activeSession: Session | null | undefined) =>
     return sessionStudents.map(student => ({
       ...student,
       hasJoined: student.joined_at !== null,
-      boardId: `student-${student.assigned_board_suffix.toLowerCase()}`,
+      boardId: `student-board-${student.assigned_board_suffix.toLowerCase()}`, // Fixed: now matches teacher's view format
       status: student.joined_at ? 'active' : 'pending' as 'active' | 'pending'
     }));
   };
