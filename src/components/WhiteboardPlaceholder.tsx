@@ -64,31 +64,6 @@ const WhiteboardPlaceholder: React.FC<WhiteboardPlaceholderProps> = ({
     }
   };
 
-  // Helper function to get board styling based on type
-  const getBoardStyling = () => {
-    if (id === 'teacherA') {
-      return {
-        borderColor: 'border-purple-300',
-        bgColor: 'bg-purple-50',
-        hoverColor: 'hover:shadow-purple-100'
-      };
-    }
-    if (id === 'student2') {
-      return {
-        borderColor: 'border-green-300',
-        bgColor: 'bg-green-50',
-        hoverColor: 'hover:shadow-green-100'
-      };
-    }
-    return {
-      borderColor: 'border-gray-200',
-      bgColor: 'bg-white',
-      hoverColor: 'hover:shadow-md'
-    };
-  };
-
-  const { borderColor, bgColor, hoverColor } = getBoardStyling();
-
   // Render the maximized view in a portal to escape parent constraints
   if (isMaximized) {
     return (
@@ -118,25 +93,12 @@ const WhiteboardPlaceholder: React.FC<WhiteboardPlaceholderProps> = ({
   return (
     <div 
       ref={containerRef}
-      className={`flex flex-col ${bgColor} border-2 ${borderColor} rounded-lg shadow-sm ${hoverColor} transition-all duration-200 relative h-full`}
+      className="flex flex-col bg-white border-2 border-gray-200 rounded-lg shadow-sm hover:shadow-md transition-all duration-200 relative h-full"
       style={{ 
         width: initialWidth ? `${initialWidth}px` : '100%',
         height: initialHeight ? `${initialHeight}px` : '100%'
       }}
     >
-      {/* Visual indicator for sync test boards */}
-      {(id === 'teacherA' || id === 'student2') && (
-        <div className="absolute top-2 left-2 z-20">
-          <div className={`px-2 py-1 rounded-md text-xs font-medium ${
-            id === 'teacherA' 
-              ? 'bg-purple-100 text-purple-700 border border-purple-200'
-              : 'bg-green-100 text-green-700 border border-green-200'
-          }`}>
-            {id === 'teacherA' ? 'SYNC: READ ONLY' : 'SYNC: STUDENT A'}
-          </div>
-        </div>
-      )}
-      
       <TopRightButtons
         isMaximized={isMaximized}
         shouldShowEyeButton={shouldShowEyeButton}

@@ -74,7 +74,7 @@ const StudentView: React.FC<StudentViewProps> = ({ sessionId }) => {
 
           <ResizableHandle className="w-2 bg-gray-200 hover:bg-gray-300 transition-colors duration-150" />
 
-          {/* Right Pane - Personal Board (synced with teacherA) */}
+          {/* Right Pane - Student's Personal Board */}
           <ResizablePanel defaultSize={50} minSize={30}>
             <div className="h-full p-2 relative">
               <div className="mb-3">
@@ -82,19 +82,19 @@ const StudentView: React.FC<StudentViewProps> = ({ sessionId }) => {
                   <User className="w-5 h-5 mr-2 text-green-500" />
                   Your Personal Board
                 </h2>
-                <p className="text-sm text-gray-600">Your workspace - shared with teacher for feedback</p>
+                <p className="text-sm text-gray-600">Your private workspace for notes and practice</p>
               </div>
               <div 
                 className={`h-[calc(100%-4rem)] ${
-                  maximizedBoard === "student2" 
+                  maximizedBoard === "student-personal" 
                     ? "fixed inset-4 z-50 bg-gray-100" 
                     : ""
                 }`}
               >
                 <WhiteboardPlaceholder
-                  id="student2"
-                  isMaximized={maximizedBoard === "student2"}
-                  onMaximize={() => handleMaximize("student2")}
+                  id="student-personal"
+                  isMaximized={maximizedBoard === "student-personal"}
+                  onMaximize={() => handleMaximize("student-personal")}
                   onMinimize={handleMinimize}
                   sessionId={sessionId}
                 />
