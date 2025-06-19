@@ -1,203 +1,116 @@
-import { useCallback, useRef } from 'react';
-import { WhiteboardOperation } from '@/types/sync';
-import { ActivityMetadata } from '@/types/whiteboard';
-import { applyOperation } from '@/utils/operationSerializer';
-import { calculateLineBounds } from './shared/drawing/useDrawingBounds';
+import { useCallback } from 'react';
+import { WhiteboardOperation, DrawOperationData, EraseOperationData, AddImageOperationData, UpdateImageOperationData, DeleteImageOperationData } from '@/types/sync';
 import { createDebugLogger } from '@/utils/debug/debugConfig';
 
-const debugLog = createDebugLogger('operations');
+const debugLog = createDebugLogger('remote-op');
 
+/**
+ * @hook useRemoteOperationHandler
+ * @description Handles remote operations received from other clients
+ * 
+ * @param setState - Function to update whiteboard state
+ * @param undo - Undo function from history state
+ * @param redo - Redo function from history state
+ * @param isApplyingRemoteOperationRef - Ref to track if currently applying remote operation
+ * 
+ * @returns {Object} Remote operation handlers
+ * @returns {Function} handleRemoteOperation - Process incoming remote operations
+ */
 export const useRemoteOperationHandler = (
   setState: (updater: (prev: any) => any) => void,
-  undo?: () => void,
-  redo?: () => void
+  undo: () => void,
+  redo: () => void,
+  isApplyingRemoteOperationRef?: React.MutableRefObject<boolean>
 ) => {
-  const isApplyingRemoteOperation = useRef(false);
+  debugLog('Hook', 'Initializing remote operation handler');
 
-  // Helper function to create activity metadata from operations
-  const createActivityFromOperation = (operation: WhiteboardOperation, updatedState: any): ActivityMetadata | undefined => {
-    const timestamp = operation.timestamp || Date.now();
-
-    switch (operation.operation_type) {
-      case 'draw': {
-        const drawnLine = operation.data?.line;
-        if (drawnLine) {
-          const bounds = calculateLineBounds(drawnLine);
-          return {
-            type: 'draw',
-            bounds,
-            timestamp
-          };
-        }
-        break;
-      }
-      
-      case 'erase': {
-        const lineIds = operation.data?.line_ids || [];
-        const erasedBounds = operation.data?.erased_bounds;
-        
-        if (lineIds.length > 0) {
-          // Use stored bounds if available, otherwise create default bounds
-          const bounds = erasedBounds || { x: 0, y: 0, width: 50, height: 50 };
-          return {
-            type: 'erase',
-            bounds,
-            timestamp
-          };
-        }
-        break;
-      }
-      
-      case 'add_image': {
-        const image = operation.data?.image;
-        if (image) {
-          return {
-            type: 'paste',
-            bounds: {
-              x: image.x || 0,
-              y: image.y || 0,
-              width: image.width || 100,
-              height: image.height || 100
-            },
-            timestamp
-          };
-        }
-        break;
-      }
-      
-      case 'update_line': {
-        const lineId = operation.data?.line_id;
-        const updates = operation.data?.updates;
-        if (lineId && updates && (updates.x !== undefined || updates.y !== undefined)) {
-          // Find the updated line to get its bounds
-          const updatedLine = updatedState.lines.find((line: any) => line.id === lineId);
-          if (updatedLine) {
-            const bounds = calculateLineBounds(updatedLine);
-            return {
-              type: 'move',
-              bounds,
-              timestamp
-            };
-          }
-        }
-        break;
-      }
-      
-      case 'update_image': {
-        const imageId = operation.data?.image_id;
-        const updates = operation.data?.updates;
-        if (imageId && updates && (updates.x !== undefined || updates.y !== undefined)) {
-          // Find the updated image to get its bounds
-          const updatedImage = updatedState.images.find((image: any) => image.id === imageId);
-          if (updatedImage) {
-            return {
-              type: 'move',
-              bounds: {
-                x: updatedImage.x || 0,
-                y: updatedImage.y || 0,
-                width: updatedImage.width || 100,
-                height: updatedImage.height || 100
-              },
-              timestamp
-            };
-          }
-        }
-        break;
-      }
-
-      case 'undo': {
-        // Create a generic activity for undo operations
-        return {
-          type: 'erase', // Use 'erase' type as it's the closest to undo visually
-          bounds: { x: 0, y: 0, width: 100, height: 100 }, // Generic bounds
-          timestamp
-        };
-      }
-
-      case 'redo': {
-        // Create a generic activity for redo operations
-        return {
-          type: 'draw', // Use 'draw' type as it's the closest to redo visually
-          bounds: { x: 0, y: 0, width: 100, height: 100 }, // Generic bounds
-          timestamp
-        };
-      }
-    }
-    
-    return undefined;
-  };
-
-  // Handle incoming operations from other clients
+  /**
+   * @function handleRemoteOperation
+   * @description Processes operations received from remote clients
+   * @param operation - The remote operation to apply
+   */
   const handleRemoteOperation = useCallback((operation: WhiteboardOperation) => {
-    debugLog('RemoteOperationHandler', `Processing operation: ${operation.operation_type} from sender: ${operation.sender_id}`);
-    
-    // Handle undo/redo operations directly without applying to state
-    if (operation.operation_type === 'undo' && undo) {
-      debugLog('RemoteOperationHandler', 'Calling local undo from remote operation');
-      undo();
-      return;
-    }
-
-    if (operation.operation_type === 'redo' && redo) {
-      debugLog('RemoteOperationHandler', 'Calling local redo from remote operation');
-      redo();
-      return;
-    }
-    
-    isApplyingRemoteOperation.current = true;
-    
-    setState(prev => {
-      // Apply the operation to get the updated state
-      const updatedState = applyOperation(prev, operation);
-      
-      debugLog('RemoteOperationHandler', `State updated - Lines: ${prev.lines.length} -> ${updatedState.lines.length}, Images: ${prev.images.length} -> ${updatedState.images.length}`);
-      
-      // Check for deletions
-      if (operation.operation_type === 'delete_objects' || operation.operation_type === 'erase') {
-        debugLog('RemoteOperationHandler', 'Processing deletion operation', operation.data);
-      }
-
-      // Create activity metadata from the remote operation
-      const activityMetadata = createActivityFromOperation(operation, updatedState);
-      
-      if (activityMetadata) {
-        debugLog('RemoteOperationHandler', 'Created activity metadata from remote operation:', activityMetadata);
-      }
-      
-      // Create new history snapshot with activity metadata
-      const newHistorySnapshot = {
-        lines: [...updatedState.lines],
-        images: [...updatedState.images],
-        selectionState: prev.selectionState,
-        lastActivity: activityMetadata
-      };
-      
-      // Fix the history management logic
-      // Append the new state to history correctly, maintaining proper sequence
-      const newHistory = [...prev.history.slice(0, prev.historyIndex + 1), newHistorySnapshot];
-      const newHistoryIndex = newHistory.length - 1;
-      
-      debugLog('RemoteOperationHandler', `History updated - Index: ${prev.historyIndex} -> ${Math.min(newHistoryIndex, 9)}, Length: ${prev.history.length} -> ${newHistory.slice(-10).length}`);
-      
-      return {
-        ...prev,
-        lines: [...updatedState.lines],
-        images: [...updatedState.images],
-        // Correct history management: append new state and advance index
-        history: newHistory.slice(-10), // Keep history limited to the last 10 entries
-        historyIndex: Math.min(newHistoryIndex, 9) // Ensure index doesn't exceed array bounds
-      };
+    debugLog('Operation', 'Handling remote operation', {
+      type: operation.operation_type,
+      sender: operation.sender_id,
+      timestamp: operation.timestamp
     });
-    
-    // Keep the flag set longer for delete operations to prevent persistence interference
-    const clearDelay = (operation.operation_type === 'delete_objects' || operation.operation_type === 'erase') ? 200 : 0;
-    setTimeout(() => {
-      isApplyingRemoteOperation.current = false;
-    }, clearDelay);
-  }, [setState, undo, redo]);
+
+    // Set flag to prevent local operation broadcasting during remote operation application
+    if (isApplyingRemoteOperationRef) {
+      isApplyingRemoteOperationRef.current = true;
+    }
+
+    try {
+      switch (operation.operation_type) {
+        case 'draw':
+          const drawData = operation.data as DrawOperationData;
+          setState(prev => ({
+            ...prev,
+            lines: [...prev.lines, drawData.line]
+          }));
+          break;
+
+        case 'erase':
+          const eraseData = operation.data as EraseOperationData;
+          setState(prev => ({
+            ...prev,
+            lines: prev.lines.filter((line: any) => !eraseData.line_ids.includes(line.id))
+          }));
+          break;
+
+        case 'add_image':
+          const addImageData = operation.data as AddImageOperationData;
+          setState(prev => ({
+            ...prev,
+            images: [...prev.images, addImageData.image]
+          }));
+          break;
+
+        case 'update_image':
+          const updateImageData = operation.data as UpdateImageOperationData;
+          setState(prev => ({
+            ...prev,
+            images: prev.images.map((img: any) =>
+              img.id === updateImageData.image_id ? { ...img, ...updateImageData.updates } : img
+            )
+          }));
+          break;
+
+        case 'delete_image':
+          const deleteImageData = operation.data as DeleteImageOperationData;
+          setState(prev => ({
+            ...prev,
+            images: prev.images.filter((img: any) => img.id !== deleteImageData.image_id)
+          }));
+          break;
+
+        case 'undo':
+          debugLog('Operation', 'Processing remote undo');
+          undo();
+          break;
+
+        case 'redo':
+          debugLog('Operation', 'Processing remote redo');
+          redo();
+          break;
+
+        default:
+          debugLog('Operation', 'Unknown operation type', operation.operation_type);
+      }
+
+      debugLog('Operation', 'Remote operation applied successfully');
+    } catch (error) {
+      debugLog('Operation', 'Error applying remote operation', error);
+    } finally {
+      // Always reset the flag
+      if (isApplyingRemoteOperationRef) {
+        isApplyingRemoteOperationRef.current = false;
+      }
+    }
+  }, [setState, undo, redo, isApplyingRemoteOperationRef]);
 
   return {
-    handleRemoteOperation,
-    isApplyingRemoteOperation: isApplyingRemoteOperation.current
+    handleRemoteOperation
   };
 };
