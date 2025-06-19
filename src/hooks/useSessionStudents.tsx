@@ -1,5 +1,4 @@
-
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Session } from '@/types/session';
 import { SessionParticipant } from '@/types/student';
@@ -9,6 +8,27 @@ export const useSessionStudents = (activeSession: Session | null | undefined) =>
   const [sessionStudents, setSessionStudents] = useState<SessionParticipant[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
+
+  const fetchSessionStudents = useCallback(async () => {
+    if (!activeSession) return;
+
+    setIsLoading(true);
+    try {
+      const { data, error } = await supabase
+        .from('session_participants')
+        .select('*')
+        .eq('session_id', activeSession.id)
+        .order('assigned_board_suffix');
+
+      if (error) throw error;
+      setSessionStudents(data || []);
+    } catch (error) {
+      console.error('Error fetching session students:', error);
+      setSessionStudents([]);
+    } finally {
+      setIsLoading(false);
+    }
+  }, [activeSession]);
 
   useEffect(() => {
     if (activeSession) {
@@ -34,28 +54,7 @@ export const useSessionStudents = (activeSession: Session | null | undefined) =>
         supabase.removeChannel(channel);
       };
     }
-  }, [activeSession]);
-
-  const fetchSessionStudents = async () => {
-    if (!activeSession) return;
-
-    setIsLoading(true);
-    try {
-      const { data, error } = await supabase
-        .from('session_participants')
-        .select('*')
-        .eq('session_id', activeSession.id)
-        .order('assigned_board_suffix');
-
-      if (error) throw error;
-      setSessionStudents(data || []);
-    } catch (error) {
-      console.error('Error fetching session students:', error);
-      setSessionStudents([]);
-    } finally {
-      setIsLoading(false);
-    }
-  };
+  }, [activeSession, fetchSessionStudents]);
 
   // Get students with their join status
   const getStudentsWithStatus = () => {
