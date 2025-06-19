@@ -33,7 +33,15 @@ const ViewSwitcher: React.FC = () => {
       </div>
 
       {/* Current View */}
-      {currentView === 'teacher' ? <TeacherView /> : <StudentView sessionId="demo-session" />}
+      {currentView === 'teacher' ? (
+        <TeacherView />
+      ) : (
+        <StudentView 
+          sessionId="demo-session" 
+          boardSuffix="A"
+          senderId="Demo Student"
+        />
+      )}
     </div>
   );
 };
