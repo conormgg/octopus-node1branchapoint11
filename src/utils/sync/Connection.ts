@@ -1,4 +1,3 @@
-
 import { supabase } from '@/integrations/supabase/client';
 import { ConnectionInfo, OperationHandler } from './types';
 import { PayloadConverter } from './PayloadConverter';
@@ -12,7 +11,8 @@ export class Connection {
   private connectionId: string;
   
   constructor(config: SyncConfig, handler: OperationHandler) {
-    this.connectionId = `${config.whiteboardId}-${config.sessionId}`;
+    // Include senderId in connectionId to ensure unique connections per sender
+    this.connectionId = `${config.whiteboardId}-${config.sessionId}-${config.senderId}`;
     
     const channelName = `whiteboard-${config.whiteboardId}`;
     const channel = supabase
