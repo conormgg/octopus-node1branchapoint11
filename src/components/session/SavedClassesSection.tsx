@@ -89,7 +89,7 @@ const SavedClassesSection: React.FC<SavedClassesSectionProps> = ({
             </DropdownMenuTrigger>
             <DropdownMenuContent className="w-full min-w-[var(--radix-dropdown-menu-trigger-width)] max-w-md">
               {templates.map((template, index) => (
-                <div key={template.id}>
+                <React.Fragment key={template.id}>
                   <DropdownMenuItem
                     className="flex items-center justify-between cursor-pointer p-3"
                     onSelect={() => onTemplateSelect(template.id.toString())}
@@ -117,7 +117,7 @@ const SavedClassesSection: React.FC<SavedClassesSectionProps> = ({
                     </div>
                   </DropdownMenuItem>
                   {index < templates.length - 1 && <DropdownMenuSeparator />}
-                </div>
+                </React.Fragment>
               ))}
             </DropdownMenuContent>
           </DropdownMenu>
