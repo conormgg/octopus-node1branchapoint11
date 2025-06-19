@@ -1,5 +1,5 @@
 
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useState, useRef, useCallback } from 'react';
 import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
@@ -13,6 +13,9 @@ export const useAuth = () => {
   // Single-tab enforcement refs
   const presenceChannelRef = useRef<any>(null);
   const tabIdRef = useRef<string | null>(null);
+  
+  // Flag to prevent concurrent setup/cleanup operations
+  const isChannelSetupInProgress = useRef(false);
 
   // Generate or retrieve tab ID from sessionStorage
   const getTabId = () => {
@@ -27,18 +30,40 @@ export const useAuth = () => {
     return tabIdRef.current;
   };
 
-  // Setup presence channel for single-tab enforcement
-  const setupPresenceChannel = (currentUser: User) => {
+  // Create an async cleanup function to be awaited
+  const cleanupPresenceChannel = useCallback(async () => {
     if (presenceChannelRef.current) {
-      supabase.removeChannel(presenceChannelRef.current);
+      console.log('[SingleTabAuth] Cleaning up existing presence channel...');
+      try {
+        await supabase.removeChannel(presenceChannelRef.current);
+        console.log('[SingleTabAuth] Channel successfully removed.');
+      } catch (error) {
+        console.error('[SingleTabAuth] Error removing channel:', error);
+      } finally {
+        presenceChannelRef.current = null;
+      }
     }
+  }, []);
 
-    const channelName = `user-presence-${currentUser.id}`;
-    console.log(`[SingleTabAuth] Setting up presence channel: ${channelName}`);
+  // Setup presence channel for single-tab enforcement
+  const setupPresenceChannel = useCallback(async (currentUser: User) => {
+    // Prevent another setup from starting if one is already in progress
+    if (isChannelSetupInProgress.current) {
+      console.log('[SingleTabAuth] Channel setup already in progress. Aborting.');
+      return;
+    }
+    isChannelSetupInProgress.current = true;
+    
+    try {
+      // Ensure any old channel is fully removed before creating a new one
+      await cleanupPresenceChannel();
 
-    presenceChannelRef.current = supabase
-      .channel(channelName)
-      .on('broadcast', { event: 'new-tab-opened' }, (payload) => {
+      const channelName = `user-presence-${currentUser.id}`;
+      console.log(`[SingleTabAuth] Setting up new presence channel: ${channelName}`);
+      
+      const newChannel = supabase.channel(channelName);
+
+      newChannel.on('broadcast', { event: 'new-tab-opened' }, (payload) => {
         console.log('[SingleTabAuth] Received new-tab-opened broadcast:', payload);
         
         const { tabId: newTabId } = payload.payload;
@@ -53,8 +78,9 @@ export const useAuth = () => {
           });
           signOut();
         }
-      })
-      .subscribe(async (status) => {
+      });
+
+      newChannel.subscribe(async (status, err) => {
         console.log(`[SingleTabAuth] Presence channel status: ${status}`);
         
         if (status === 'SUBSCRIBED') {
@@ -65,7 +91,7 @@ export const useAuth = () => {
             const tabId = getTabId();
             console.log(`[SingleTabAuth] Broadcasting presence for tab: ${tabId}`);
             
-            presenceChannelRef.current?.send({
+            newChannel.send({
               type: 'broadcast',
               event: 'new-tab-opened',
               payload: { tabId }
@@ -74,26 +100,24 @@ export const useAuth = () => {
             });
           }, delay);
         } else if (status === 'CHANNEL_ERROR') {
-          console.error('[SingleTabAuth] Presence channel error - graceful degradation');
+          console.error('[SingleTabAuth] Presence channel error - graceful degradation', err);
         } else if (status === 'TIMED_OUT') {
           console.error('[SingleTabAuth] Presence channel timed out - graceful degradation');
         }
       });
-  };
 
-  // Cleanup presence channel
-  const cleanupPresenceChannel = () => {
-    if (presenceChannelRef.current) {
-      console.log('[SingleTabAuth] Cleaning up presence channel');
-      supabase.removeChannel(presenceChannelRef.current);
-      presenceChannelRef.current = null;
+      presenceChannelRef.current = newChannel;
+    } catch (error) {
+      console.error('[SingleTabAuth] Error setting up presence channel:', error);
+    } finally {
+      isChannelSetupInProgress.current = false;
     }
-  };
+  }, [cleanupPresenceChannel, toast]);
 
-  const signOut = async () => {
+  const signOut = useCallback(async () => {
     try {
       // Cleanup presence channel before signing out
-      cleanupPresenceChannel();
+      await cleanupPresenceChannel();
       
       // Clear tab ID from sessionStorage
       sessionStorage.removeItem('tabId');
@@ -111,7 +135,7 @@ export const useAuth = () => {
     } catch (error) {
       console.error('Error during sign out:', error);
     }
-  };
+  }, [cleanupPresenceChannel, toast]);
 
   const signInWithGoogle = async () => {
     const { error } = await supabase.auth.signInWithOAuth({
@@ -175,46 +199,53 @@ export const useAuth = () => {
   };
 
   useEffect(() => {
+    let mounted = true;
+
+    const handleAuthChange = async (event: string, session: Session | null) => {
+      if (!mounted) return;
+
+      console.log('[Auth] Auth state changed:', event, session?.user?.id);
+      
+      setSession(session);
+      setUser(session?.user ?? null);
+      setLoading(false);
+
+      if (event === 'SIGNED_IN' && session?.user) {
+        // Setup single-tab enforcement for new sign-ins
+        await setupPresenceChannel(session.user);
+      } else if (event === 'SIGNED_OUT') {
+        // Cleanup on sign out
+        await cleanupPresenceChannel();
+        sessionStorage.removeItem('tabId');
+        tabIdRef.current = null;
+      }
+    };
+
     // Get initial session
-    supabase.auth.getSession().then(({ data: { session } }) => {
+    supabase.auth.getSession().then(async ({ data: { session } }) => {
+      if (!mounted) return;
+      
       setSession(session);
       setUser(session?.user ?? null);
       
       // Setup single-tab enforcement if user is authenticated
       if (session?.user) {
-        setupPresenceChannel(session.user);
+        await setupPresenceChannel(session.user);
       }
       
       setLoading(false);
     });
 
     // Listen for auth changes
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event, session) => {
-        console.log('[Auth] Auth state changed:', event, session?.user?.id);
-        
-        setSession(session);
-        setUser(session?.user ?? null);
-        setLoading(false);
-
-        if (event === 'SIGNED_IN' && session?.user) {
-          // Setup single-tab enforcement for new sign-ins
-          setupPresenceChannel(session.user);
-        } else if (event === 'SIGNED_OUT') {
-          // Cleanup on sign out
-          cleanupPresenceChannel();
-          sessionStorage.removeItem('tabId');
-          tabIdRef.current = null;
-        }
-      }
-    );
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(handleAuthChange);
 
     // Cleanup on component unmount
     return () => {
+      mounted = false;
       subscription.unsubscribe();
       cleanupPresenceChannel();
     };
-  }, []);
+  }, [setupPresenceChannel, cleanupPresenceChannel]);
 
   return {
     user,
