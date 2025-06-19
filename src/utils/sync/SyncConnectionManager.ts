@@ -32,7 +32,8 @@ class SyncConnectionManager {
     config: SyncConfig,
     handler: OperationHandler
   ): { isConnected: boolean } {
-    const connectionId = `${config.whiteboardId}-${config.sessionId}`;
+    // Include sender ID in connection ID to prevent conflicts
+    const connectionId = `${config.whiteboardId}-${config.sessionId}-${config.senderId}`;
     let connection = this.connections.get(connectionId);
     
     // If connection doesn't exist, create it
@@ -45,7 +46,7 @@ class SyncConnectionManager {
       debugLog('Manager', `Reusing existing connection for ${connectionId}`);
       connection.addHandler(handler);
       
-      // Update the config in case it has changed (e.g., different senderId)
+      // Update the config in case it has changed
       connection.updateConfig(config);
     }
     
@@ -62,7 +63,7 @@ class SyncConnectionManager {
     config: SyncConfig,
     handler: OperationHandler
   ): void {
-    const connectionId = `${config.whiteboardId}-${config.sessionId}`;
+    const connectionId = `${config.whiteboardId}-${config.sessionId}-${config.senderId}`;
     const connection = this.connections.get(connectionId);
     
     if (connection) {
@@ -89,7 +90,7 @@ class SyncConnectionManager {
   ): WhiteboardOperation | null {
     if (config.isReceiveOnly) return null;
     
-    const connectionId = `${config.whiteboardId}-${config.sessionId}`;
+    const connectionId = `${config.whiteboardId}-${config.sessionId}-${config.senderId}`;
     const connection = this.connections.get(connectionId);
     
     if (!connection) {
@@ -127,7 +128,7 @@ class SyncConnectionManager {
    * Get connection status
    */
   public getConnectionStatus(config: SyncConfig): { isConnected: boolean } {
-    const connectionId = `${config.whiteboardId}-${config.sessionId}`;
+    const connectionId = `${config.whiteboardId}-${config.sessionId}-${config.senderId}`;
     const connection = this.connections.get(connectionId);
     
     return {
