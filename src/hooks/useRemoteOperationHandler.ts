@@ -2,7 +2,7 @@ import { useCallback } from 'react';
 import { WhiteboardOperation, DrawOperationData, EraseOperationData, AddImageOperationData, UpdateImageOperationData, DeleteImageOperationData } from '@/types/sync';
 import { createDebugLogger } from '@/utils/debug/debugConfig';
 
-const debugLog = createDebugLogger('remote-op');
+const debugLog = createDebugLogger('operations');
 
 /**
  * @hook useRemoteOperationHandler

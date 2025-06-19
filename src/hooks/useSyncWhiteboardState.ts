@@ -93,8 +93,43 @@ export const useSyncWhiteboardState = (syncConfig: SyncConfig) => {
     historyIndex: 0
   });
 
-  // Handle received operations
-  const { handleRemoteOperation } = useRemoteOperationHandler(setState);
+  // Simple undo/redo functions for remote operations
+  const undo = useCallback(() => {
+    setState(prev => {
+      if (prev.historyIndex > 0) {
+        const newIndex = prev.historyIndex - 1;
+        const snapshot = prev.history[newIndex];
+        return {
+          ...prev,
+          lines: snapshot.lines,
+          images: snapshot.images,
+          selectionState: snapshot.selectionState,
+          historyIndex: newIndex
+        };
+      }
+      return prev;
+    });
+  }, []);
+
+  const redo = useCallback(() => {
+    setState(prev => {
+      if (prev.historyIndex < prev.history.length - 1) {
+        const newIndex = prev.historyIndex + 1;
+        const snapshot = prev.history[newIndex];
+        return {
+          ...prev,
+          lines: snapshot.lines,
+          images: snapshot.images,
+          selectionState: snapshot.selectionState,
+          historyIndex: newIndex
+        };
+      }
+      return prev;
+    });
+  }, []);
+
+  // Handle received operations - now with proper undo/redo support
+  const { handleRemoteOperation } = useRemoteOperationHandler(setState, undo, redo);
 
   // Set up sync with proper operation handling
   const { syncState, sendOperation } = useSyncState(syncConfig, handleRemoteOperation);
