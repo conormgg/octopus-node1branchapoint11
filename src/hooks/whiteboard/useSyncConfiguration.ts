@@ -19,13 +19,26 @@ export const useSyncConfiguration = (
       return null;
     }
 
-    // Determine if this should be receive-only based on sync direction and user role
+    // Determine if this should be receive-only based on board type and user role
     let isReceiveOnly = false;
     
+    debugLog('config', `Configuring sync for board: ${whiteboardId}, role: ${currentUserRole}`);
+    
     if (currentUserRole === 'teacher') {
-      // Teacher viewing student boards - always receive-only
-      isReceiveOnly = true;
-      debugLog('config', `Teacher viewing ${whiteboardId} - receive-only mode`);
+      // Check if this is the teacher's main board or a student board
+      if (whiteboardId === 'teacher-main') {
+        // Teacher's main board - always interactive
+        isReceiveOnly = false;
+        debugLog('config', `Teacher main board ${whiteboardId} - interactive mode`);
+      } else if (whiteboardId.startsWith('student-board-')) {
+        // Teacher viewing student boards - always receive-only
+        isReceiveOnly = true;
+        debugLog('config', `Teacher viewing student board ${whiteboardId} - receive-only mode`);
+      } else {
+        // Fallback for other teacher boards - assume interactive
+        isReceiveOnly = false;
+        debugLog('config', `Teacher on unknown board type ${whiteboardId} - defaulting to interactive mode`);
+      }
     } else if (currentUserRole === 'student') {
       // Student on their personal board - check sync direction from participant data
       const syncDirection = participant?.sync_direction || 'student_active';

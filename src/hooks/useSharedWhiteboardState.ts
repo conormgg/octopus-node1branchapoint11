@@ -49,7 +49,8 @@ const debugLog = createDebugLogger('state');
 export const useSharedWhiteboardState = (syncConfig?: SyncConfig, whiteboardId?: string, containerWidth?: number, containerHeight?: number) => {
   debugLog('Hook', 'Initializing useSharedWhiteboardState', { 
     syncConfig: syncConfig ? 'provided' : 'none',
-    whiteboardId 
+    whiteboardId,
+    isReceiveOnly: syncConfig?.isReceiveOnly
   });
 
   // Core state management
@@ -63,7 +64,14 @@ export const useSharedWhiteboardState = (syncConfig?: SyncConfig, whiteboardId?:
   const operationsHandler = useSharedOperationsHandler(syncConfig, state, setState, panZoom, selection, whiteboardId);
   const { operations, handlePointerDown, handlePointerMove, handlePointerUp, deleteSelectedObjects } = operationsHandler;
 
+  // Use sync config to determine read-only status, with proper fallback
   const isReadOnly = syncConfig?.isReceiveOnly || false;
+  
+  debugLog('Hook', 'Read-only status determined', {
+    isReadOnly,
+    whiteboardId,
+    syncConfigReceiveOnly: syncConfig?.isReceiveOnly
+  });
 
   // Enhanced centering function that uses viewport dimensions
   const centerOnLastActivity = useCallback((bounds: { x: number; y: number; width: number; height: number }) => {
