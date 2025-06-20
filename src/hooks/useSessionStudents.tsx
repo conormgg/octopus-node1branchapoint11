@@ -1,5 +1,5 @@
 
-import { useMemo } from 'react';
+import { useMemo, useCallback } from 'react';
 import { Session } from '@/types/session';
 import { useFetchSessionStudents } from '@/hooks/session/useFetchSessionStudents';
 import { useParticipantRealtime } from '@/hooks/session/useParticipantRealtime';
@@ -21,10 +21,17 @@ export const useSessionStudents = (activeSession: Session | null | undefined) =>
     handleRemoveIndividualStudent
   } = useStudentManagement(activeSession, sessionStudents);
 
-  // Set up real-time subscriptions
+  // FIX: Stabilize the fetch function with useCallback
+  const memoizedFetch = useCallback(() => {
+    if (activeSession) {
+      fetchSessionStudents(activeSession);
+    }
+  }, [fetchSessionStudents, activeSession]);
+
+  // Set up real-time subscriptions with the stabilized function
   useSessionStudentsRealtime(
     activeSession,
-    () => fetchSessionStudents(activeSession),
+    memoizedFetch, // Use the memoized function here
     handleParticipantChange,
     setSessionStudents
   );
