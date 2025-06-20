@@ -15,7 +15,8 @@ export const useSharedErasing = (
   setState: any,
   addToHistory: (snapshot?: any, activityMetadata?: ActivityMetadata) => void,
   sendOperation: any,
-  isApplyingRemoteOperation: React.MutableRefObject<boolean>
+  isApplyingRemoteOperation: React.MutableRefObject<boolean>,
+  whiteboardId?: string
 ) => {
   // Track lines before erasing to detect what was erased
   const linesBeforeErasingRef = useRef<LineObject[]>([]);
@@ -75,11 +76,11 @@ export const useSharedErasing = (
     // Always send the operation to the database for persistence
     // But only sync to other clients if we're on the teacher's main board
     if (sendOperation && !isApplyingRemoteOperation.current && erasedLineIds.length > 0) {
-      // Create the operation with bounds data for remote activity tracking
+      // Create the operation with proper whiteboardId and bounds data for remote activity tracking
       const operation = {
-        ...serializeEraseOperation(erasedLineIds),
+        ...serializeEraseOperation(erasedLineIds, whiteboardId),
         data: {
-          ...serializeEraseOperation(erasedLineIds).data,
+          ...serializeEraseOperation(erasedLineIds, whiteboardId).data,
           erased_bounds: activityMetadata?.bounds // Include bounds for remote activity tracking
         }
       };
@@ -92,7 +93,7 @@ export const useSharedErasing = (
     
     // Clear the reference
     linesBeforeErasingRef.current = [];
-  }, [state.isDrawing, state.lines, state.images, state.selectionState, baseStopErasing, sendOperation, isApplyingRemoteOperation, addToHistory]);
+  }, [state.isDrawing, state.lines, state.images, state.selectionState, baseStopErasing, sendOperation, isApplyingRemoteOperation, addToHistory, whiteboardId]);
 
   return {
     startErasing,

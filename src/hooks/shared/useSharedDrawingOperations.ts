@@ -17,14 +17,14 @@ export const useSharedDrawingOperations = (
   isApplyingRemoteOperation: React.MutableRefObject<boolean>,
   whiteboardId?: string
 ) => {
-  // Drawing operations (pencil, highlighter)
-  const drawingOps = useSharedDrawing(state, setState, addToHistory, sendOperation, isApplyingRemoteOperation);
+  // Drawing operations (pencil, highlighter) - now with whiteboardId
+  const drawingOps = useSharedDrawing(state, setState, addToHistory, sendOperation, isApplyingRemoteOperation, whiteboardId);
   
-  // Erasing operations
-  const erasingOps = useSharedErasing(state, setState, addToHistory, sendOperation, isApplyingRemoteOperation);
+  // Erasing operations - now with whiteboardId
+  const erasingOps = useSharedErasing(state, setState, addToHistory, sendOperation, isApplyingRemoteOperation, whiteboardId);
   
-  // Object operations (update, delete)
-  const objectOps = useSharedObjectOperations(state, setState, addToHistory, sendOperation, isApplyingRemoteOperation);
+  // Object operations (update, delete) - now with whiteboardId
+  const objectOps = useSharedObjectOperations(state, setState, addToHistory, sendOperation, isApplyingRemoteOperation, whiteboardId);
 
   return {
     ...drawingOps,

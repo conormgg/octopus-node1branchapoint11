@@ -17,7 +17,8 @@ export const useSharedObjectOperations = (
   setState: any,
   addToHistory: (snapshot?: any, activityMetadata?: ActivityMetadata) => void,
   sendOperation: any,
-  isApplyingRemoteOperation: React.MutableRefObject<boolean>
+  isApplyingRemoteOperation: React.MutableRefObject<boolean>,
+  whiteboardId?: string
 ) => {
   // Update line position/transformation
   const updateLine = useCallback((lineId: string, updates: Partial<LineObject>) => {
@@ -65,8 +66,8 @@ export const useSharedObjectOperations = (
     // Always send the operation to the database for persistence
     // But only sync to other clients if we're on the teacher's main board
     if (sendOperation && !isApplyingRemoteOperation.current) {
-      // Create the operation
-      const operation = serializeUpdateLineOperation(lineId, updates);
+      // Create the operation with proper whiteboardId
+      const operation = serializeUpdateLineOperation(lineId, updates, whiteboardId);
       
       if (DEBUG_LINE_MOVEMENT) {
         console.log(`[Line Movement] Sending operation to database:`, operation);
@@ -84,7 +85,7 @@ export const useSharedObjectOperations = (
         selectionState: state.selectionState
       }, activityMetadata);
     }, 0);
-  }, [setState, state.lines, state.images, state.selectionState, addToHistory, sendOperation, isApplyingRemoteOperation]);
+  }, [setState, state.lines, state.images, state.selectionState, addToHistory, sendOperation, isApplyingRemoteOperation, whiteboardId]);
 
   // Delete selected objects
   const deleteSelectedObjects = useCallback((selectedObjects: Array<{ id: string; type: 'line' | 'image' }>) => {
@@ -119,8 +120,8 @@ export const useSharedObjectOperations = (
     // But only sync to other clients if we're on the teacher's main board
     if (sendOperation && !isApplyingRemoteOperation.current) {
       console.log(`[DeleteObjects] Sending delete operation to sync`);
-      // Create the operation
-      const operation = serializeDeleteObjectsOperation(selectedLineIds, selectedImageIds);
+      // Create the operation with proper whiteboardId
+      const operation = serializeDeleteObjectsOperation(selectedLineIds, selectedImageIds, whiteboardId);
       console.log(`[DeleteObjects] Delete operation:`, operation);
       
       // Send it to the database/sync system
@@ -128,7 +129,7 @@ export const useSharedObjectOperations = (
     } else {
       console.log(`[DeleteObjects] Not sending operation - sendOperation: ${!!sendOperation}, isApplyingRemoteOperation: ${isApplyingRemoteOperation.current}`);
     }
-  }, [setState, state.lines, state.images, state.selectionState, addToHistory, sendOperation, isApplyingRemoteOperation]);
+  }, [setState, state.lines, state.images, state.selectionState, addToHistory, sendOperation, isApplyingRemoteOperation, whiteboardId]);
 
   return {
     updateLine,
