@@ -52,9 +52,9 @@ export const useSyncState = (
     return fullOperation;
   }, [config.whiteboardId]);
 
-  // Register with the connection manager
+  // Register with the connection manager - NOW REACTIVE TO isReceiveOnly CHANGES
   useEffect(() => {
-    debugLog('useSyncState', `Registering handler for whiteboard: ${config.whiteboardId}`);
+    debugLog('useSyncState', `Registering handler for whiteboard: ${config.whiteboardId}`, { isReceiveOnly: config.isReceiveOnly });
     
     // Create a stable handler reference that always calls the latest handler function
     const stableHandler = (operation: WhiteboardOperation) => {
@@ -73,10 +73,11 @@ export const useSyncState = (
     // Register with the connection manager
     const { isConnected } = SyncConnectionManager.registerHandler(config, stableHandler);
     
-    // Update initial connection state
+    // Update connection state and sync the isReceiveOnly flag
     setSyncState(prev => ({
       ...prev,
-      isConnected
+      isConnected,
+      isReceiveOnly: config.isReceiveOnly || false
     }));
     
     // Set up a periodic check for connection status
@@ -95,11 +96,11 @@ export const useSyncState = (
     }, 5000);
     
     return () => {
-      debugLog('useSyncState', `Unregistering handler for whiteboard: ${config.whiteboardId}`);
+      debugLog('useSyncState', `Unregistering handler for whiteboard: ${config.whiteboardId}`, { isReceiveOnly: config.isReceiveOnly });
       SyncConnectionManager.unregisterHandler(config, stableHandler);
       clearInterval(statusInterval);
     };
-  }, [config.whiteboardId, config.sessionId, config.senderId]);
+  }, [config.whiteboardId, config.sessionId, config.senderId, config.isReceiveOnly]); // CRITICAL: Added config.isReceiveOnly to dependencies
 
   return {
     syncState,
