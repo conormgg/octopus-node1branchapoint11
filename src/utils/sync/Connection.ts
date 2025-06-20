@@ -1,9 +1,10 @@
 
-import { supabase } from '@/integrations/supabase/client';
 import { ConnectionInfo, OperationHandler } from './types';
 import { PayloadConverter } from './PayloadConverter';
 import { SyncConfig, WhiteboardOperation } from '@/types/sync';
 import { createDebugLogger, logError } from '@/utils/debug/debugConfig';
+import { RealtimeChannel } from '@supabase/supabase-js';
+import { supabase } from '@/integrations/supabase/client';
 
 const debugLog = createDebugLogger('connection');
 
@@ -12,37 +13,18 @@ export class Connection {
   private connectionId: string;
   private readonly originalConfig: SyncConfig; // Store immutable original config
   
-  constructor(config: SyncConfig, handler: OperationHandler) {
+  constructor(config: SyncConfig, handler: OperationHandler, channel: RealtimeChannel) {
     // Store the original config as immutable to prevent overwrites
     this.originalConfig = { ...config };
     
-    // Include senderId in connectionId to ensure unique connections per sender
-    this.connectionId = `${config.whiteboardId}-${config.sessionId}-${config.senderId}`;
-    
-    const channelName = `whiteboard-${config.whiteboardId}`;
-    const channel = supabase
-      .channel(channelName)
-      .on(
-        'postgres_changes',
-        {
-          event: 'INSERT',
-          schema: 'public',
-          table: 'whiteboard_data',
-          filter: `board_id=eq.${config.whiteboardId}`
-        },
-        (payload) => this.handlePayload(payload)
-      )
-      .subscribe((status) => {
-        debugLog('Subscription', `Status for ${this.connectionId}: ${status}`);
-        this.info.isConnected = status === 'SUBSCRIBED';
-        this.info.lastActivity = Date.now();
-      });
+    // Include senderId and read/write state in connectionId to ensure unique connections
+    this.connectionId = `${config.whiteboardId}-${config.sessionId}-${config.senderId}-${config.isReceiveOnly ? 'ro' : 'rw'}`;
     
     this.info = {
-      channel,
+      channel, // Use the provided shared channel
       config: this.originalConfig, // Use immutable config
       handlers: new Set([handler]),
-      isConnected: false,
+      isConnected: channel.state === 'joined',
       lastActivity: Date.now()
     };
     
@@ -50,9 +32,9 @@ export class Connection {
   }
   
   /**
-   * Handle incoming payload from database
+   * Handle incoming payload from database (called by SyncConnectionManager)
    */
-  private handlePayload(payload: any) {
+  public handlePayload(payload: any): void {
     debugLog('Payload', 'Received operation', payload);
     
     // Convert to our internal operation format
@@ -73,6 +55,14 @@ export class Connection {
         debugLog('Dispatch', `Skipping operation from self (${operation.sender_id})`);
       }
     });
+  }
+  
+  /**
+   * Update connection status (called by SyncConnectionManager)
+   */
+  public updateConnectionStatus(isConnected: boolean): void {
+    this.info.isConnected = isConnected;
+    this.info.lastActivity = Date.now();
   }
   
   /**
@@ -130,10 +120,9 @@ export class Connection {
   }
   
   /**
-   * Close this connection
+   * Close this connection (channel cleanup is handled by SyncConnectionManager)
    */
   close() {
-    supabase.removeChannel(this.info.channel);
     debugLog('Connection', `Closed connection ${this.connectionId}`);
   }
   
@@ -159,15 +148,17 @@ export class Connection {
   }
   
   /**
-   * REMOVED: updateConfig method to prevent config overwrites
-   * Each connection maintains its immutable original configuration
-   */
-  
-  /**
    * Get the connection ID
    */
   getConnectionId(): string {
     return this.connectionId;
+  }
+  
+  /**
+   * Get the whiteboard ID for channel cleanup
+   */
+  getWhiteboardId(): string {
+    return this.originalConfig.whiteboardId;
   }
   
   /**
