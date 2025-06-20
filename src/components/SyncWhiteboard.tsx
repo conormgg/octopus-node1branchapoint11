@@ -29,6 +29,18 @@ export const SyncWhiteboard: React.FC<SyncWhiteboardProps> = ({
   onCenterCallbackUpdate
 }) => {
   const whiteboardId = syncConfig?.whiteboardId;
+  
+  // Add debugging for sync config initialization
+  useEffect(() => {
+    if (syncConfig) {
+      debugLog('Component', `SyncWhiteboard initializing for ${whiteboardId}`, {
+        senderId: syncConfig.senderId,
+        isReceiveOnly: syncConfig.isReceiveOnly,
+        sessionId: syncConfig.sessionId
+      });
+    }
+  }, [syncConfig, whiteboardId]);
+  
   const whiteboardState = useSharedWhiteboardState(syncConfig, whiteboardId, width, height);
   const isReadOnly = whiteboardState.isReadOnly;
   
@@ -70,43 +82,47 @@ export const SyncWhiteboard: React.FC<SyncWhiteboardProps> = ({
   const prevReportedTimestampRef = useRef<number | null>(null);
   const prevSyncStateRef = useRef<any>(null);
 
-  // Optimized effect with stable dependencies
+  // Optimized effect with stable dependencies and error handling
   useEffect(() => {
     let hasChanges = false;
 
-    // Handle sync state changes - only if actually changed
-    if (onSyncStateChange) {
-      const newSyncState = syncConfig ? {
-        isConnected: syncState?.isConnected || false,
-        isReceiveOnly: syncState?.isReceiveOnly || false
-      } : null;
-      
-      const syncStateChanged = JSON.stringify(newSyncState) !== JSON.stringify(prevSyncStateRef.current);
-      if (syncStateChanged) {
-        onSyncStateChange(newSyncState);
-        prevSyncStateRef.current = newSyncState;
-        hasChanges = true;
-        debugLog('StateUpdate', 'Sync state propagated to parent', { whiteboardId, newSyncState });
+    try {
+      // Handle sync state changes - only if actually changed
+      if (onSyncStateChange) {
+        const newSyncState = syncConfig ? {
+          isConnected: syncState?.isConnected || false,
+          isReceiveOnly: syncState?.isReceiveOnly || false
+        } : null;
+        
+        const syncStateChanged = JSON.stringify(newSyncState) !== JSON.stringify(prevSyncStateRef.current);
+        if (syncStateChanged) {
+          onSyncStateChange(newSyncState);
+          prevSyncStateRef.current = newSyncState;
+          hasChanges = true;
+          debugLog('StateUpdate', 'Sync state propagated to parent', { whiteboardId, newSyncState });
+        }
       }
-    }
 
-    // Handle last activity updates - only update if it's genuinely new
-    if (onLastActivityUpdate && lastActivity) {
-      if (lastActivity.timestamp !== prevReportedTimestampRef.current) {
-        onLastActivityUpdate(lastActivity);
-        prevReportedTimestampRef.current = lastActivity.timestamp;
-        hasChanges = true;
+      // Handle last activity updates - only update if it's genuinely new
+      if (onLastActivityUpdate && lastActivity) {
+        if (lastActivity.timestamp !== prevReportedTimestampRef.current) {
+          onLastActivityUpdate(lastActivity);
+          prevReportedTimestampRef.current = lastActivity.timestamp;
+          hasChanges = true;
+        }
       }
-    }
 
-    // Handle center callback updates - only once per mount
-    if (onCenterCallbackUpdate && centerOnLastActivity) {
-      onCenterCallbackUpdate(centerOnLastActivity);
-    }
+      // Handle center callback updates - only once per mount
+      if (onCenterCallbackUpdate && centerOnLastActivity) {
+        onCenterCallbackUpdate(centerOnLastActivity);
+      }
 
-    // Only log when there are actual changes
-    if (hasChanges) {
-      debugLog('StateUpdate', 'State updated for whiteboard', { whiteboardId });
+      // Only log when there are actual changes
+      if (hasChanges) {
+        debugLog('StateUpdate', 'State updated for whiteboard', { whiteboardId });
+      }
+    } catch (error) {
+      logError('SyncWhiteboard', 'Error in state update effect', error);
     }
   }, [
     syncState?.isConnected, 
@@ -128,26 +144,60 @@ export const SyncWhiteboard: React.FC<SyncWhiteboardProps> = ({
     overflow: 'hidden' as const
   };
 
+  // Add error boundary for the whiteboard canvas
+  const [hasError, setHasError] = React.useState(false);
+  
+  useEffect(() => {
+    // Reset error state when sync config changes
+    setHasError(false);
+  }, [syncConfig]);
+
+  if (hasError) {
+    return (
+      <div className="relative w-full h-full select-none flex items-center justify-center bg-gray-50" style={containerStyles}>
+        <div className="text-center">
+          <p className="text-red-600 mb-2">Whiteboard Error</p>
+          <button 
+            onClick={() => setHasError(false)}
+            className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
+          >
+            Retry
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div 
       className="relative w-full h-full select-none" 
       data-whiteboard-container
       style={containerStyles}
     >
-      <WhiteboardCanvas
-        width={width}
-        height={height}
-        whiteboardState={whiteboardState}
-        isReadOnly={isReadOnly}
-        palmRejectionConfig={{
-          maxContactSize: 40,
-          minPressure: 0.1,
-          palmTimeoutMs: 500,
-          clusterDistance: 100,
-          preferStylus: true,
-          enabled: false
-        }}
-      />
+      {React.createElement(() => {
+        try {
+          return (
+            <WhiteboardCanvas
+              width={width}
+              height={height}
+              whiteboardState={whiteboardState}
+              isReadOnly={isReadOnly}
+              palmRejectionConfig={{
+                maxContactSize: 40,
+                minPressure: 0.1,
+                palmTimeoutMs: 500,
+                clusterDistance: 100,
+                preferStylus: true,
+                enabled: false
+              }}
+            />
+          );
+        } catch (error) {
+          logError('SyncWhiteboard', 'Error rendering WhiteboardCanvas', error);
+          setHasError(true);
+          return null;
+        }
+      })}
       
       {/* Only show toolbar if not read-only */}
       {!isReadOnly && (

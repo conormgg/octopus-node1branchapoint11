@@ -39,11 +39,18 @@ class SyncConnectionManager {
     // If connection doesn't exist, create it
     if (!connection) {
       debugLog('Manager', `Creating new connection for ${connectionId}`);
-      connection = new Connection(config, handler);
-      this.connections.set(connectionId, connection);
+      
+      try {
+        connection = new Connection(config, handler);
+        this.connections.set(connectionId, connection);
+        debugLog('Manager', `Successfully created connection for ${connectionId} with channel: ${connection.getChannelName()}`);
+      } catch (error) {
+        logError('Manager', `Failed to create connection for ${connectionId}`, error);
+        return { isConnected: false };
+      }
     } else {
       // Connection exists, just add the handler
-      debugLog('Manager', `Reusing existing connection for ${connectionId}`);
+      debugLog('Manager', `Reusing existing connection for ${connectionId} with channel: ${connection.getChannelName()}`);
       connection.addHandler(handler);
       
       // DO NOT update config - each connection maintains its immutable config
@@ -112,7 +119,7 @@ class SyncConnectionManager {
       // Check if there's been any activity in the last 30 seconds
       const inactiveTime = Date.now() - connection.lastActivity;
       if (inactiveTime > 30000) {
-        debugLog('Manager', `Cleaning up inactive connection for ${connectionId}`);
+        debugLog('Manager', `Cleaning up inactive connection for ${connectionId} with channel ${connection.getChannelName()}`);
         connection.close();
         this.connections.delete(connectionId);
       } else {
@@ -140,19 +147,32 @@ class SyncConnectionManager {
   /**
    * Debug method to inspect current connections
    */
-  public getDebugInfo(): { connectionId: string; handlerCount: number; isConnected: boolean; senderId: string }[] {
-    const info: { connectionId: string; handlerCount: number; isConnected: boolean; senderId: string }[] = [];
+  public getDebugInfo(): { connectionId: string; handlerCount: number; isConnected: boolean; senderId: string; channelName: string }[] {
+    const info: { connectionId: string; handlerCount: number; isConnected: boolean; senderId: string; channelName: string }[] = [];
     
     this.connections.forEach((connection, connectionId) => {
       info.push({
         connectionId,
         handlerCount: connection.handlerCount,
         isConnected: connection.isConnected,
-        senderId: connection.getConnectionId().split('-').pop() || 'unknown'
+        senderId: connection.getSenderId(),
+        channelName: connection.getChannelName()
       });
     });
     
     return info;
+  }
+  
+  /**
+   * Emergency cleanup - close all connections (for debugging)
+   */
+  public closeAllConnections(): void {
+    debugLog('Manager', 'Emergency cleanup - closing all connections');
+    this.connections.forEach((connection, connectionId) => {
+      debugLog('Manager', `Force closing connection ${connectionId}`);
+      connection.close();
+    });
+    this.connections.clear();
   }
 }
 

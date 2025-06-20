@@ -38,14 +38,20 @@ export const useStudentParticipant = (sessionId: string, boardSuffix: string) =>
     }
   }, [sessionId, boardSuffix]);
 
-  // Enhanced real-time subscription with immediate sync direction handling
+  // Enhanced real-time subscription with unique channel naming to prevent conflicts
   useEffect(() => {
     fetchParticipant();
 
     if (!sessionId || !boardSuffix) return;
 
+    // Use a unique channel name that won't conflict with whiteboard sync channels
+    // Format: participant-{sessionId}-{boardSuffix}-{timestamp} for absolute uniqueness
+    const uniqueChannelName = `participant-${sessionId}-${boardSuffix}-${Date.now()}`;
+    
+    debugLog('realtime', `Creating participant subscription channel: ${uniqueChannelName}`);
+
     const channel = supabase
-      .channel(`student-participant-${sessionId}-${boardSuffix}`)
+      .channel(uniqueChannelName)
       .on(
         'postgres_changes',
         {
@@ -79,9 +85,16 @@ export const useStudentParticipant = (sessionId: string, boardSuffix: string) =>
           }
         }
       )
-      .subscribe();
+      .subscribe((status) => {
+        debugLog('realtime', `Participant subscription status: ${status} for channel ${uniqueChannelName}`);
+        
+        if (status === 'CHANNEL_ERROR') {
+          debugLog('realtime', `Channel error for ${uniqueChannelName}, attempting to recover`);
+        }
+      });
 
     return () => {
+      debugLog('realtime', `Cleaning up participant subscription channel: ${uniqueChannelName}`);
       supabase.removeChannel(channel);
     };
   }, [sessionId, boardSuffix, fetchParticipant]);
