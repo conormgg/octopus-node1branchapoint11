@@ -32,13 +32,26 @@ export const SyncWhiteboard: React.FC<SyncWhiteboardProps> = ({
   const whiteboardState = useSharedWhiteboardState(syncConfig, whiteboardId, width, height);
   const isReadOnly = whiteboardState.isReadOnly;
   
-  // Reduce logging frequency - only log once per component mount and when read-only state changes
+  // Enhanced logging for sync config changes and toolbar visibility
+  const prevSyncConfigRef = useRef<SyncConfig | undefined>(undefined);
   const prevReadOnlyRef = useRef<boolean | null>(null);
-  if (prevReadOnlyRef.current !== isReadOnly) {
-    debugLog('Component', 'Read-only state changed', {
+  
+  if (JSON.stringify(prevSyncConfigRef.current) !== JSON.stringify(syncConfig)) {
+    debugLog('Component', 'Sync config changed', {
       whiteboardId,
+      oldConfig: prevSyncConfigRef.current,
+      newConfig: syncConfig,
+      isReceiveOnly: syncConfig?.isReceiveOnly
+    });
+    prevSyncConfigRef.current = syncConfig;
+  }
+  
+  if (prevReadOnlyRef.current !== isReadOnly) {
+    debugLog('Component', 'Read-only state changed - toolbar visibility affected', {
+      whiteboardId,
+      wasReadOnly: prevReadOnlyRef.current,
       isReadOnly,
-      isReceiveOnly: syncConfig?.isReceiveOnly,
+      toolbarVisible: !isReadOnly,
       syncConfigExists: !!syncConfig
     });
     prevReadOnlyRef.current = isReadOnly;
@@ -73,6 +86,7 @@ export const SyncWhiteboard: React.FC<SyncWhiteboardProps> = ({
         onSyncStateChange(newSyncState);
         prevSyncStateRef.current = newSyncState;
         hasChanges = true;
+        debugLog('StateUpdate', 'Sync state propagated to parent', { whiteboardId, newSyncState });
       }
     }
 

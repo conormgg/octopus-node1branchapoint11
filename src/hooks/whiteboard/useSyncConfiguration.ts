@@ -22,7 +22,7 @@ export const useSyncConfiguration = (
     let sharedWhiteboardId: string;
     let isReceiveOnly: boolean;
 
-    debugLog('config', `Configuring sync for board: ${whiteboardId}, role: ${currentUserRole}`);
+    debugLog('config', `Configuring sync for board: ${whiteboardId}, role: ${currentUserRole}, participant sync direction: ${participant?.sync_direction}`);
     
     // Map component IDs to shared sync channels
     if (whiteboardId === 'teacher-main') {
@@ -73,8 +73,15 @@ export const useSyncConfiguration = (
     };
 
     debugLog('config', 'Generated sync config:', config);
+    debugLog('config', `Sync config recalculated due to participant sync direction change: ${participant?.sync_direction}`);
     return config;
-  }, [whiteboardId, sessionId, senderId, participant?.sync_direction, currentUserRole]); // More specific dependency on sync_direction
+  }, [
+    whiteboardId, 
+    sessionId, 
+    senderId, 
+    participant?.sync_direction, // CRITICAL: Depend on the primitive value directly
+    currentUserRole
+  ]);
 
   return syncConfig;
 };

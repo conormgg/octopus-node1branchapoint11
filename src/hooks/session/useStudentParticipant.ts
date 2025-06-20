@@ -37,7 +37,7 @@ export const useStudentParticipant = (sessionId: string, boardSuffix: string) =>
     }
   }, [sessionId, boardSuffix]);
 
-  // Enhanced real-time subscription for sync direction changes
+  // Enhanced real-time subscription with proper object reference handling
   useEffect(() => {
     fetchParticipant();
 
@@ -51,23 +51,19 @@ export const useStudentParticipant = (sessionId: string, boardSuffix: string) =>
           event: 'UPDATE',
           schema: 'public',
           table: 'session_participants',
-          filter: `session_id=eq.${sessionId} AND assigned_board_suffix=eq.${boardSuffix.toUpperCase()}`
+          filter: `session_id=eq.${sessionId}`
         },
         (payload) => {
-          debugLog('realtime', `Participant updated:`, payload.new);
           const updatedParticipant = payload.new as SessionParticipant;
           
-          // Update participant state immediately for reactive sync configuration
-          setParticipant(prevParticipant => {
-            if (!prevParticipant) return updatedParticipant;
+          // Check if this update is for our specific board suffix
+          if (updatedParticipant.assigned_board_suffix === boardSuffix.toUpperCase()) {
+            debugLog('realtime', `Participant updated for board ${boardSuffix}:`, updatedParticipant);
+            debugLog('realtime', `Sync direction changed to: ${updatedParticipant.sync_direction}`);
             
-            // Log sync direction changes specifically
-            if (prevParticipant.sync_direction !== updatedParticipant.sync_direction) {
-              debugLog('realtime', `Sync direction changed: ${prevParticipant.sync_direction} → ${updatedParticipant.sync_direction}`);
-            }
-            
-            return updatedParticipant;
-          });
+            // CRITICAL FIX: Create new object reference to ensure React detects the change
+            setParticipant({ ...updatedParticipant });
+          }
         }
       )
       .subscribe();
