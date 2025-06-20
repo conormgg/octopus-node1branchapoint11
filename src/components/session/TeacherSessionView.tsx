@@ -1,10 +1,10 @@
 
-import React, { useMemo } from 'react';
+import React from 'react';
 import TeacherSessionViewHeader from './TeacherSessionViewHeader';
 import TeacherSessionMainContent from './TeacherSessionMainContent';
 import { generateStudentBoardsFromParticipants, generateGridSlotsWithStatus } from '@/utils/studentBoardGenerator';
 import { GridOrientation } from '../TeacherView';
-import { SessionParticipant, SyncDirection } from '@/types/student';
+import { SessionParticipant } from '@/types/student';
 
 interface StudentWithStatus extends SessionParticipant {
   hasJoined: boolean;
@@ -51,10 +51,6 @@ interface TeacherSessionViewProps {
   onAddIndividualStudent?: (name: string, email: string) => Promise<void>;
   onRemoveIndividualStudent?: (participantId: number) => Promise<void>;
   teacherSenderId?: string;
-  // New sync direction props
-  onToggleSyncDirection?: (participantId: number) => Promise<boolean>;
-  getSyncDirection?: (participantId: number) => SyncDirection;
-  isParticipantUpdating?: (participantId: number) => boolean;
 }
 
 const TeacherSessionView: React.FC<TeacherSessionViewProps> = ({
@@ -86,33 +82,21 @@ const TeacherSessionView: React.FC<TeacherSessionViewProps> = ({
   onAddIndividualStudent,
   onRemoveIndividualStudent,
   teacherSenderId,
-  onToggleSyncDirection,
-  getSyncDirection,
-  isParticipantUpdating,
 }) => {
-  // Memoize expensive computations to prevent unnecessary re-renders
-  const allStudentBoards = useMemo(() => 
-    generateStudentBoardsFromParticipants(sessionStudents),
-    [sessionStudents]
-  );
+  // Generate student boards with status information using the correct SessionParticipant[] type
+  const allStudentBoards = generateStudentBoardsFromParticipants(sessionStudents);
   
-  // Memoize grid slots calculation
-  const currentStudentBoardsInfo = useMemo(() => 
-    generateGridSlotsWithStatus(
-      allStudentBoards, 
-      currentPage, 
-      currentLayout?.studentsPerPage || 4
-    ),
-    [allStudentBoards, currentPage, currentLayout?.studentsPerPage]
+  // Generate grid slots with null placeholders for empty slots
+  const currentStudentBoardsInfo = generateGridSlotsWithStatus(
+    allStudentBoards, 
+    currentPage, 
+    currentLayout?.studentsPerPage || 4
   );
 
   // Extract boardId strings for components that still expect string[] (backward compatibility)
-  const currentStudentBoards = useMemo(() => 
-    currentStudentBoardsInfo
-      .filter(board => board !== null)
-      .map(board => board!.boardId),
-    [currentStudentBoardsInfo]
-  );
+  const currentStudentBoards = currentStudentBoardsInfo
+    .filter(board => board !== null)
+    .map(board => board!.boardId);
 
   return (
     <div className="min-h-screen bg-gray-100">
@@ -159,9 +143,6 @@ const TeacherSessionView: React.FC<TeacherSessionViewProps> = ({
         onOrientationChange={onOrientationChange}
         onCloseSplitView={onCloseSplitView}
         teacherSenderId={teacherSenderId}
-        onToggleSyncDirection={onToggleSyncDirection}
-        getSyncDirection={getSyncDirection}
-        isParticipantUpdating={isParticipantUpdating}
       />
     </div>
   );

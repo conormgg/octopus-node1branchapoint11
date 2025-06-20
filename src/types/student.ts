@@ -9,11 +9,6 @@ export interface Student {
 }
 
 /**
- * Sync direction type for controlling who can actively modify the whiteboard
- */
-export type SyncDirection = 'student_active' | 'teacher_active';
-
-/**
  * Represents a student who has joined a session (a participant).
  * This corresponds to the 'session_participants' table.
  */
@@ -24,5 +19,4 @@ export interface SessionParticipant {
   student_email: string | null;
   assigned_board_suffix: string;
   joined_at: string | null;
-  sync_direction: SyncDirection;
 }

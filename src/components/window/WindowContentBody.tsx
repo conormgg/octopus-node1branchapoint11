@@ -4,7 +4,6 @@ import StudentBoardsGrid from '../StudentBoardsGrid';
 import { LayoutOption } from '@/utils/layoutCalculator';
 import { GridOrientation } from '../TeacherView';
 import { StudentBoardInfo } from '@/utils/studentBoardGenerator';
-import { SyncDirection } from '@/types/student';
 
 interface WindowContentBodyProps {
   studentCount: number;
@@ -22,10 +21,6 @@ interface WindowContentBodyProps {
   onNextPage: () => void;
   sessionId?: string;
   senderId?: string;
-  // Add sync direction props
-  onToggleSyncDirection?: (participantId: number) => Promise<boolean>;
-  getSyncDirection?: (participantId: number) => SyncDirection;
-  isParticipantUpdating?: (participantId: number) => boolean;
 }
 
 const WindowContentBody: React.FC<WindowContentBodyProps> = ({
@@ -44,9 +39,6 @@ const WindowContentBody: React.FC<WindowContentBodyProps> = ({
   onNextPage,
   sessionId,
   senderId,
-  onToggleSyncDirection,
-  getSyncDirection,
-  isParticipantUpdating,
 }) => {
   return (
     <div className={`flex-1 min-h-0 ${isHeaderCollapsed ? 'p-4 pt-2' : 'px-4 pb-4'}`}>
@@ -66,10 +58,6 @@ const WindowContentBody: React.FC<WindowContentBodyProps> = ({
         isHeaderCollapsed={isHeaderCollapsed}
         sessionId={sessionId}
         senderId={senderId}
-        onToggleSyncDirection={onToggleSyncDirection}
-        getSyncDirection={getSyncDirection}
-        isParticipantUpdating={isParticipantUpdating}
-        isTeacher={true}
       />
     </div>
   );

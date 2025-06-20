@@ -4,7 +4,6 @@ import SessionUrlModal from './session/SessionUrlModal';
 import TeacherSessionView from './session/TeacherSessionView';
 import { useSessionStudents } from '@/hooks/useSessionStudents';
 import { useTeacherViewState } from '@/hooks/useTeacherViewState';
-import { useSyncDirectionManager } from '@/hooks/useSyncDirectionManager';
 import { Session } from '@/types/session';
 
 export type GridOrientation = 'columns-first' | 'rows-first';
@@ -33,13 +32,6 @@ const TeacherView: React.FC<TeacherViewProps> = ({
     handleRemoveIndividualStudent,
     isLoading 
   } = useSessionStudents(activeSession);
-  
-  // Add sync direction management
-  const {
-    getSyncDirection,
-    toggleSyncDirection,
-    isParticipantUpdating
-  } = useSyncDirectionManager(activeSession?.id, 'teacher');
   
   const {
     maximizedBoard,
@@ -125,10 +117,6 @@ const TeacherView: React.FC<TeacherViewProps> = ({
         onAddIndividualStudent={handleAddIndividualStudent}
         onRemoveIndividualStudent={handleRemoveIndividualStudent}
         teacherSenderId={teacherSenderId}
-        // Pass sync direction management functions
-        onToggleSyncDirection={toggleSyncDirection}
-        getSyncDirection={getSyncDirection}
-        isParticipantUpdating={isParticipantUpdating}
       />
     </>
   );
