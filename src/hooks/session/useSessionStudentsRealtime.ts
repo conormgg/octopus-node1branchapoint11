@@ -17,7 +17,19 @@ export const useSessionStudentsRealtime = (
     if (activeSession) {
       fetchSessionStudents();
       
-      // Set up real-time subscription with specific event handlers
+      // Consolidated real-time subscription with throttling to prevent rapid updates
+      let updateTimeout: NodeJS.Timeout | null = null;
+      
+      const throttledHandleChange = (payload: any) => {
+        if (updateTimeout) {
+          clearTimeout(updateTimeout);
+        }
+        
+        updateTimeout = setTimeout(() => {
+          handleParticipantChange(payload, setSessionStudents);
+        }, 50); // 50ms throttle to prevent rapid-fire updates
+      };
+      
       const channel = supabase
         .channel(`session-participants-${activeSession.id}`)
         .on(
@@ -28,7 +40,10 @@ export const useSessionStudentsRealtime = (
             table: 'session_participants',
             filter: `session_id=eq.${activeSession.id}`
           },
-          (payload) => handleParticipantChange({ ...payload, eventType: 'INSERT' }, setSessionStudents)
+          (payload) => {
+            debugLog('realtimeInsert', `New participant added:`, payload.new);
+            throttledHandleChange({ ...payload, eventType: 'INSERT' });
+          }
         )
         .on(
           'postgres_changes',
@@ -39,13 +54,21 @@ export const useSessionStudentsRealtime = (
             filter: `session_id=eq.${activeSession.id}`
           },
           (payload) => {
-            // Log sync_direction changes specifically
+            // Log specific field changes for debugging
             const oldDirection = payload.old?.sync_direction;
             const newDirection = payload.new?.sync_direction;
+            const oldJoinedAt = payload.old?.joined_at;
+            const newJoinedAt = payload.new?.joined_at;
+            
             if (oldDirection !== newDirection) {
-              debugLog('syncDirectionChange', `Participant ${payload.new.id} sync direction changed: ${oldDirection} → ${newDirection}`);
+              debugLog('syncDirectionChange', `Participant ${payload.new.id} sync direction: ${oldDirection} → ${newDirection}`);
             }
-            handleParticipantChange({ ...payload, eventType: 'UPDATE' }, setSessionStudents);
+            
+            if (oldJoinedAt !== newJoinedAt) {
+              debugLog('participantJoin', `Participant ${payload.new.id} join status changed`);
+            }
+            
+            throttledHandleChange({ ...payload, eventType: 'UPDATE' });
           }
         )
         .on(
@@ -56,12 +79,19 @@ export const useSessionStudentsRealtime = (
             table: 'session_participants',
             filter: `session_id=eq.${activeSession.id}`
           },
-          (payload) => handleParticipantChange({ ...payload, eventType: 'DELETE' }, setSessionStudents)
+          (payload) => {
+            debugLog('realtimeDelete', `Participant removed:`, payload.old);
+            throttledHandleChange({ ...payload, eventType: 'DELETE' });
+          }
         )
         .subscribe();
 
       return () => {
+        if (updateTimeout) {
+          clearTimeout(updateTimeout);
+        }
         supabase.removeChannel(channel);
+        debugLog('cleanup', `Cleaned up real-time subscription for session ${activeSession.id}`);
       };
     }
   }, [activeSession, fetchSessionStudents, handleParticipantChange, setSessionStudents]);

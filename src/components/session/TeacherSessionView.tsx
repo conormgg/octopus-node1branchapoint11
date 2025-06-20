@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useMemo } from 'react';
 import TeacherSessionViewHeader from './TeacherSessionViewHeader';
 import TeacherSessionMainContent from './TeacherSessionMainContent';
 import { generateStudentBoardsFromParticipants, generateGridSlotsWithStatus } from '@/utils/studentBoardGenerator';
@@ -90,20 +90,29 @@ const TeacherSessionView: React.FC<TeacherSessionViewProps> = ({
   getSyncDirection,
   isParticipantUpdating,
 }) => {
-  // Generate student boards with status information using the correct SessionParticipant[] type
-  const allStudentBoards = generateStudentBoardsFromParticipants(sessionStudents);
+  // Memoize expensive computations to prevent unnecessary re-renders
+  const allStudentBoards = useMemo(() => 
+    generateStudentBoardsFromParticipants(sessionStudents),
+    [sessionStudents]
+  );
   
-  // Generate grid slots with null placeholders for empty slots
-  const currentStudentBoardsInfo = generateGridSlotsWithStatus(
-    allStudentBoards, 
-    currentPage, 
-    currentLayout?.studentsPerPage || 4
+  // Memoize grid slots calculation
+  const currentStudentBoardsInfo = useMemo(() => 
+    generateGridSlotsWithStatus(
+      allStudentBoards, 
+      currentPage, 
+      currentLayout?.studentsPerPage || 4
+    ),
+    [allStudentBoards, currentPage, currentLayout?.studentsPerPage]
   );
 
   // Extract boardId strings for components that still expect string[] (backward compatibility)
-  const currentStudentBoards = currentStudentBoardsInfo
-    .filter(board => board !== null)
-    .map(board => board!.boardId);
+  const currentStudentBoards = useMemo(() => 
+    currentStudentBoardsInfo
+      .filter(board => board !== null)
+      .map(board => board!.boardId),
+    [currentStudentBoardsInfo]
+  );
 
   return (
     <div className="min-h-screen bg-gray-100">
