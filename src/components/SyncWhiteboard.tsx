@@ -41,7 +41,8 @@ export const SyncWhiteboard: React.FC<SyncWhiteboardProps> = ({
       whiteboardId,
       oldConfig: prevSyncConfigRef.current,
       newConfig: syncConfig,
-      isReceiveOnly: syncConfig?.isReceiveOnly
+      isReceiveOnly: syncConfig?.isReceiveOnly,
+      senderId: syncConfig?.senderId
     });
     prevSyncConfigRef.current = syncConfig;
   }
@@ -52,7 +53,8 @@ export const SyncWhiteboard: React.FC<SyncWhiteboardProps> = ({
       wasReadOnly: prevReadOnlyRef.current,
       isReadOnly,
       toolbarVisible: !isReadOnly,
-      syncConfigExists: !!syncConfig
+      syncConfigExists: !!syncConfig,
+      senderId: syncConfig?.senderId
     });
     prevReadOnlyRef.current = isReadOnly;
   }
@@ -86,7 +88,7 @@ export const SyncWhiteboard: React.FC<SyncWhiteboardProps> = ({
         onSyncStateChange(newSyncState);
         prevSyncStateRef.current = newSyncState;
         hasChanges = true;
-        debugLog('StateUpdate', 'Sync state propagated to parent', { whiteboardId, newSyncState });
+        debugLog('StateUpdate', 'Sync state propagated to parent', { whiteboardId, newSyncState, senderId: syncConfig?.senderId });
       }
     }
 
@@ -106,7 +108,7 @@ export const SyncWhiteboard: React.FC<SyncWhiteboardProps> = ({
 
     // Only log when there are actual changes
     if (hasChanges) {
-      debugLog('StateUpdate', 'State updated for whiteboard', { whiteboardId });
+      debugLog('StateUpdate', 'State updated for whiteboard', { whiteboardId, senderId: syncConfig?.senderId });
     }
   }, [
     syncState?.isConnected, 
@@ -173,10 +175,10 @@ export const SyncWhiteboard: React.FC<SyncWhiteboardProps> = ({
         />
       )}
       
-      {/* Read-only indicator */}
+      {/* Read-only indicator with sender ID for debugging */}
       {isReadOnly && (
         <div className="absolute top-2 right-2 bg-gray-800/80 text-white text-xs px-2 py-1 rounded">
-          Read Only
+          Read Only {syncConfig?.senderId && `(${syncConfig.senderId})`}
         </div>
       )}
     </div>

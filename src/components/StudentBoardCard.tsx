@@ -99,7 +99,10 @@ const StudentBoardCard: React.FC<StudentBoardCardProps> = ({
   }
 
   // Active state - student has joined, show normal whiteboard
-  const teacherSenderId = senderId || 'teacher-viewer';
+  // CRITICAL FIX: Use consistent sender ID based on participant data
+  const studentSenderId = boardInfo.participant?.id 
+    ? `student-${boardInfo.participant.id}` 
+    : `student-${boardInfo.participant?.assigned_board_suffix?.toLowerCase() || 'unknown'}`;
 
   return (
     <div className="h-full relative">
@@ -132,11 +135,11 @@ const StudentBoardCard: React.FC<StudentBoardCardProps> = ({
         onMaximize={() => onMaximize(boardInfo.boardId)}
         onMinimize={onMinimize}
         sessionId={sessionId}
-        senderId={teacherSenderId}
+        senderId={studentSenderId}
         portalContainer={portalContainer}
         participant={boardInfo.participant}
         currentUserRole="teacher"
-        currentSyncDirection={currentSyncDirection} // NEW: Pass optimistic sync direction
+        currentSyncDirection={currentSyncDirection}
       />
     </div>
   );

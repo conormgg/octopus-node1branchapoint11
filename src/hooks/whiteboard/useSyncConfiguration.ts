@@ -1,4 +1,3 @@
-
 import { useMemo } from 'react';
 import { SyncConfig } from '@/types/sync';
 import { SessionParticipant, SyncDirection } from '@/types/student';
@@ -67,10 +66,21 @@ export const useSyncConfiguration = (
       isReceiveOnly = false;
     }
 
+    // CRITICAL FIX: Ensure consistent sender ID for student boards
+    let finalSenderId = senderId;
+    
+    // If this is a teacher viewing a student board, but the senderId suggests it's for that student,
+    // keep the student's sender ID to maintain sync consistency
+    if (whiteboardId.startsWith('student-board-') && senderId.startsWith('student-')) {
+      // Keep the student sender ID as-is for proper attribution
+      finalSenderId = senderId;
+      debugLog('config', `Using student sender ID for teacher view: ${finalSenderId}`);
+    }
+
     const config: SyncConfig = {
       whiteboardId: sharedWhiteboardId,
       sessionId,
-      senderId,
+      senderId: finalSenderId,
       isReceiveOnly
     };
 
