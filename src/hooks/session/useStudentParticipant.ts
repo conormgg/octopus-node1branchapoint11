@@ -1,10 +1,9 @@
-
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { SessionParticipant } from '@/types/student';
 import { createDebugLogger } from '@/utils/debug/debugConfig';
 
-const debugLog = createDebugLogger('student-participant');
+const debugLog = createDebugLogger('session-students');
 
 export const useStudentParticipant = (sessionId: string, boardSuffix: string) => {
   const [participant, setParticipant] = useState<SessionParticipant | null>(null);
