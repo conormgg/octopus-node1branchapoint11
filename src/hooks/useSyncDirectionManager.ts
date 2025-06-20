@@ -17,6 +17,7 @@ export const useSyncDirectionManager = (
 ) => {
   const [syncDirections, setSyncDirections] = useState<SyncDirectionState>({});
   const [isUpdating, setIsUpdating] = useState<{ [participantId: number]: boolean }>({});
+  const [optimisticUpdates, setOptimisticUpdates] = useState<SyncDirectionState>({});
   const subscriptionRef = useRef<any>(null);
 
   // Initialize sync directions from session participants
@@ -62,6 +63,13 @@ export const useSyncDirectionManager = (
           ...prev,
           [participantId]: newDirection
         }));
+        
+        // Clear optimistic update once real update arrives
+        setOptimisticUpdates(prev => {
+          const updated = { ...prev };
+          delete updated[participantId];
+          return updated;
+        });
       }
     }
   }, []);
@@ -109,16 +117,41 @@ export const useSyncDirectionManager = (
       return false;
     }
 
-    const currentDirection = syncDirections[participantId] || 'student_active';
-    const newDirection: SyncDirection = currentDirection === 'student_active' 
-      ? 'teacher_active' 
-      : 'student_active';
-
-    debugLog('toggle', `Toggling participant ${participantId}: ${currentDirection} → ${newDirection}`);
-
-    setIsUpdating(prev => ({ ...prev, [participantId]: true }));
+    // Prevent rapid clicks
+    if (isUpdating[participantId]) {
+      debugLog('toggle', `Participant ${participantId} already updating, ignoring click`);
+      return false;
+    }
 
     try {
+      setIsUpdating(prev => ({ ...prev, [participantId]: true }));
+
+      // Fetch fresh participant data to get current sync direction
+      const { data: participantData, error: fetchError } = await supabase
+        .from('session_participants')
+        .select('sync_direction')
+        .eq('id', participantId)
+        .single();
+
+      if (fetchError) {
+        debugLog('toggle', `Error fetching participant ${participantId}: ${fetchError.message}`);
+        return false;
+      }
+
+      const currentDirection = participantData.sync_direction as SyncDirection;
+      const newDirection: SyncDirection = currentDirection === 'student_active' 
+        ? 'teacher_active' 
+        : 'student_active';
+
+      debugLog('toggle', `Toggling participant ${participantId}: ${currentDirection} → ${newDirection}`);
+
+      // Apply optimistic update immediately
+      setOptimisticUpdates(prev => ({
+        ...prev,
+        [participantId]: newDirection
+      }));
+
+      // Update database
       const result = await updateParticipantSyncDirection(participantId, newDirection);
       
       if (result.success) {
@@ -126,20 +159,35 @@ export const useSyncDirectionManager = (
         return true;
       } else {
         debugLog('toggle', `Failed to toggle participant ${participantId}: ${result.error}`);
+        
+        // Remove optimistic update on failure
+        setOptimisticUpdates(prev => {
+          const updated = { ...prev };
+          delete updated[participantId];
+          return updated;
+        });
         return false;
       }
     } catch (error) {
       debugLog('toggle', `Exception toggling participant ${participantId}: ${error}`);
+      
+      // Remove optimistic update on failure
+      setOptimisticUpdates(prev => {
+        const updated = { ...prev };
+        delete updated[participantId];
+        return updated;
+      });
       return false;
     } finally {
       setIsUpdating(prev => ({ ...prev, [participantId]: false }));
     }
-  }, [syncDirections, currentUserRole]);
+  }, [currentUserRole, isUpdating]);
 
-  // Get sync direction for a specific participant
+  // Get sync direction for a specific participant (including optimistic updates)
   const getSyncDirection = useCallback((participantId: number): SyncDirection => {
-    return syncDirections[participantId] || 'student_active';
-  }, [syncDirections]);
+    // Check optimistic updates first, then actual state
+    return optimisticUpdates[participantId] || syncDirections[participantId] || 'student_active';
+  }, [syncDirections, optimisticUpdates]);
 
   // Check if teacher is currently controlling a specific participant
   const isTeacherControlling = useCallback((participantId: number): boolean => {

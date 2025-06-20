@@ -1,3 +1,4 @@
+
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { SessionParticipant } from '@/types/student';
@@ -36,7 +37,7 @@ export const useStudentParticipant = (sessionId: string, boardSuffix: string) =>
     }
   }, [sessionId, boardSuffix]);
 
-  // Set up real-time subscription for sync direction changes
+  // Set up real-time subscription for all participant changes
   useEffect(() => {
     fetchParticipant();
 
@@ -54,7 +55,13 @@ export const useStudentParticipant = (sessionId: string, boardSuffix: string) =>
         },
         (payload) => {
           debugLog('realtime', `Participant updated:`, payload.new);
-          setParticipant(payload.new as SessionParticipant);
+          const updatedParticipant = payload.new as SessionParticipant;
+          setParticipant(updatedParticipant);
+          
+          // Log sync direction changes specifically
+          if (participant && participant.sync_direction !== updatedParticipant.sync_direction) {
+            debugLog('realtime', `Sync direction changed: ${participant.sync_direction} → ${updatedParticipant.sync_direction}`);
+          }
         }
       )
       .subscribe();
@@ -62,7 +69,7 @@ export const useStudentParticipant = (sessionId: string, boardSuffix: string) =>
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [sessionId, boardSuffix, fetchParticipant]);
+  }, [sessionId, boardSuffix, fetchParticipant, participant?.sync_direction]);
 
   return {
     participant,
