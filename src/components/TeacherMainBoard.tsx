@@ -39,6 +39,7 @@ const TeacherMainBoard: React.FC<TeacherMainBoardProps> = ({
           onMinimize={onMinimize}
           sessionId={sessionId}
           senderId={senderId}
+          currentUserRole="teacher"
         />
       </div>
     </div>

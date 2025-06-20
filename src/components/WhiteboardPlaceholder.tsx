@@ -10,6 +10,7 @@ import { useEscapeKeyHandler } from '@/hooks/whiteboard/useEscapeKeyHandler';
 import { useEyeButtonLogic } from '@/hooks/whiteboard/useEyeButtonLogic';
 import { useSyncConfiguration } from '@/hooks/whiteboard/useSyncConfiguration';
 import { logError } from '@/utils/debug/debugConfig';
+import { SessionParticipant } from '@/types/student';
 
 interface WhiteboardPlaceholderProps {
   id: string;
@@ -22,6 +23,8 @@ interface WhiteboardPlaceholderProps {
   sessionId?: string;
   senderId?: string;
   portalContainer?: Element | null;
+  participant?: SessionParticipant | null;
+  currentUserRole?: 'teacher' | 'student';
 }
 
 const WhiteboardPlaceholder: React.FC<WhiteboardPlaceholderProps> = ({
@@ -34,7 +37,9 @@ const WhiteboardPlaceholder: React.FC<WhiteboardPlaceholderProps> = ({
   isTeacher = false,
   sessionId,
   senderId,
-  portalContainer
+  portalContainer,
+  participant,
+  currentUserRole
 }) => {
   const [syncState, setSyncState] = useState<{ isConnected: boolean; isReceiveOnly: boolean } | null>(null);
   
@@ -56,14 +61,15 @@ const WhiteboardPlaceholder: React.FC<WhiteboardPlaceholderProps> = ({
   useEscapeKeyHandler(isMaximized, onMinimize);
   const { shouldShowEyeButton, handleEyeClick, handleLastActivityUpdate, handleCenterCallbackUpdate, hasLastActivity } = useEyeButtonLogic(id);
   
-  // Determine user role based on isTeacher prop and pass to sync configuration
-  const currentUserRole = isTeacher ? 'teacher' : 'student';
+  // Determine user role - prioritize explicit currentUserRole prop, fallback to isTeacher
+  const userRole = currentUserRole || (isTeacher ? 'teacher' : 'student');
+  
   const syncConfig = useSyncConfiguration(
     id, 
     sessionId, 
     senderId || 'unknown-sender',
-    null, // participant data - will be handled inside the hook if needed
-    currentUserRole
+    participant,
+    userRole
   );
 
   const handleMaximizeClick = () => {

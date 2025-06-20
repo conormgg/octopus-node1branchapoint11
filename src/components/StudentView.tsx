@@ -3,6 +3,7 @@ import React, { useState } from 'react';
 import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from '@/components/ui/resizable';
 import WhiteboardPlaceholder from './WhiteboardPlaceholder';
 import { GraduationCap, User } from 'lucide-react';
+import { useStudentParticipant } from '@/hooks/session/useStudentParticipant';
 
 interface StudentViewProps {
   sessionId: string;
@@ -12,6 +13,7 @@ interface StudentViewProps {
 
 const StudentView: React.FC<StudentViewProps> = ({ sessionId, boardSuffix, senderId }) => {
   const [maximizedBoard, setMaximizedBoard] = useState<string | null>(null);
+  const { participant } = useStudentParticipant(sessionId, boardSuffix);
 
   const handleMaximize = (boardId: string) => {
     setMaximizedBoard(boardId);
@@ -73,6 +75,7 @@ const StudentView: React.FC<StudentViewProps> = ({ sessionId, boardSuffix, sende
                   onMinimize={handleMinimize}
                   sessionId={sessionId}
                   senderId={senderId}
+                  currentUserRole="student"
                 />
               </div>
             </div>
@@ -104,6 +107,8 @@ const StudentView: React.FC<StudentViewProps> = ({ sessionId, boardSuffix, sende
                   onMinimize={handleMinimize}
                   sessionId={sessionId}
                   senderId={senderId}
+                  participant={participant}
+                  currentUserRole="student"
                 />
               </div>
             </div>

@@ -19,43 +19,54 @@ export const useSyncConfiguration = (
       return null;
     }
 
-    // Determine if this should be receive-only based on board type and user role
-    let isReceiveOnly = false;
-    
+    let sharedWhiteboardId: string;
+    let isReceiveOnly: boolean;
+
     debugLog('config', `Configuring sync for board: ${whiteboardId}, role: ${currentUserRole}`);
     
-    if (currentUserRole === 'teacher') {
-      // Check if this is the teacher's main board or a student board
-      if (whiteboardId === 'teacher-main') {
-        // Teacher's main board - always interactive
-        isReceiveOnly = false;
-        debugLog('config', `Teacher main board ${whiteboardId} - interactive mode`);
-      } else if (whiteboardId.startsWith('student-board-')) {
-        // Teacher viewing student boards - always receive-only
-        isReceiveOnly = true;
-        debugLog('config', `Teacher viewing student board ${whiteboardId} - receive-only mode`);
-      } else {
-        // Fallback for other teacher boards - assume interactive
-        isReceiveOnly = false;
-        debugLog('config', `Teacher on unknown board type ${whiteboardId} - defaulting to interactive mode`);
-      }
-    } else if (currentUserRole === 'student') {
-      // Student on their personal board - check sync direction from participant data
+    // Map component IDs to shared sync channels
+    if (whiteboardId === 'teacher-main') {
+      // Teacher's main board
+      sharedWhiteboardId = `session-${sessionId}-main`;
+      isReceiveOnly = false; // Teacher can always edit their main board
+      debugLog('config', `Teacher main board - interactive mode`);
+      
+    } else if (whiteboardId === 'student-shared-teacher') {
+      // Student's view of teacher board - shares same channel as teacher-main
+      sharedWhiteboardId = `session-${sessionId}-main`;
+      isReceiveOnly = true; // Student's view is always read-only
+      debugLog('config', `Student viewing teacher board - read-only mode`);
+      
+    } else if (whiteboardId.startsWith('student-personal-view-')) {
+      // Student's personal board
+      const studentSuffix = whiteboardId.replace('student-personal-view-', '').toLowerCase();
+      sharedWhiteboardId = `session-${sessionId}-student-${studentSuffix}`;
+      
+      // Student can edit unless teacher has taken control
       const syncDirection = participant?.sync_direction || 'student_active';
       isReceiveOnly = syncDirection === 'teacher_active';
       
-      debugLog('config', `Student on ${whiteboardId} - sync direction: ${syncDirection}, receive-only: ${isReceiveOnly}`);
+      debugLog('config', `Student personal board ${studentSuffix} - sync direction: ${syncDirection}, receive-only: ${isReceiveOnly}`);
       
-      // Additional logging for sync direction changes
-      if (syncDirection === 'teacher_active') {
-        debugLog('config', `Student board ${whiteboardId} is under teacher control - read-only mode`);
-      } else {
-        debugLog('config', `Student board ${whiteboardId} is under student control - interactive mode`);
-      }
+    } else if (whiteboardId.startsWith('student-board-')) {
+      // Teacher's view of student board - shares same channel as student's personal board
+      const studentSuffix = whiteboardId.replace('student-board-', '').toLowerCase();
+      sharedWhiteboardId = `session-${sessionId}-student-${studentSuffix}`;
+      
+      // Teacher can edit only when they have taken control
+      const syncDirection = participant?.sync_direction || 'student_active';
+      isReceiveOnly = syncDirection !== 'teacher_active';
+      
+      debugLog('config', `Teacher viewing student board ${studentSuffix} - sync direction: ${syncDirection}, receive-only: ${isReceiveOnly}`);
+      
+    } else {
+      debugLog('config', `Unknown board type: ${whiteboardId}, defaulting to interactive mode`);
+      sharedWhiteboardId = whiteboardId;
+      isReceiveOnly = false;
     }
 
     const config: SyncConfig = {
-      whiteboardId,
+      whiteboardId: sharedWhiteboardId,
       sessionId,
       senderId,
       isReceiveOnly

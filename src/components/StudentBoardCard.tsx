@@ -99,17 +99,8 @@ const StudentBoardCard: React.FC<StudentBoardCardProps> = ({
   }
 
   // Active state - student has joined, show normal whiteboard
-  // For teacher viewing student board, we need to ensure senderId is set properly
   const teacherSenderId = senderId || 'teacher-viewer';
   
-  console.log('[StudentBoardCard] Rendering active student board:', {
-    boardId: boardInfo.boardId,
-    studentName: boardInfo.studentName,
-    sessionId,
-    teacherSenderId,
-    shouldBeReadOnly: true // Teacher view should always be read-only
-  });
-
   // Get current sync direction if participant and functions are available
   const currentSyncDirection = boardInfo.participant && getSyncDirection 
     ? getSyncDirection(boardInfo.participant.id)
@@ -152,6 +143,8 @@ const StudentBoardCard: React.FC<StudentBoardCardProps> = ({
         sessionId={sessionId}
         senderId={teacherSenderId}
         portalContainer={portalContainer}
+        participant={boardInfo.participant}
+        currentUserRole="teacher"
       />
     </div>
   );
