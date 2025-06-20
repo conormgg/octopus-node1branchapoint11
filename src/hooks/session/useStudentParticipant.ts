@@ -14,6 +14,8 @@ export const useStudentParticipant = (sessionId: string, boardSuffix: string) =>
     if (!sessionId || !boardSuffix) return;
 
     try {
+      debugLog('fetch', `Fetching participant for session: ${sessionId}, boardSuffix: ${boardSuffix}`);
+      
       const { data, error } = await supabase
         .from('session_participants')
         .select('*')
@@ -51,16 +53,21 @@ export const useStudentParticipant = (sessionId: string, boardSuffix: string) =>
           event: 'UPDATE',
           schema: 'public',
           table: 'session_participants',
-          filter: `session_id=eq.${sessionId} AND assigned_board_suffix=eq.${boardSuffix.toUpperCase()}`
+          // FIX: Use proper Supabase filter format instead of concatenated string
+          filter: `session_id=eq.${sessionId}`,
         },
         (payload) => {
           debugLog('realtime', `Participant updated:`, payload.new);
           const updatedParticipant = payload.new as SessionParticipant;
-          setParticipant(updatedParticipant);
           
-          // Log sync direction changes specifically
-          if (participant && participant.sync_direction !== updatedParticipant.sync_direction) {
-            debugLog('realtime', `Sync direction changed: ${participant.sync_direction} → ${updatedParticipant.sync_direction}`);
+          // Only update if this is the participant we're tracking
+          if (updatedParticipant.assigned_board_suffix?.toUpperCase() === boardSuffix.toUpperCase()) {
+            setParticipant(updatedParticipant);
+            
+            // Log sync direction changes specifically
+            if (participant && participant.sync_direction !== updatedParticipant.sync_direction) {
+              debugLog('realtime', `Sync direction changed: ${participant.sync_direction} → ${updatedParticipant.sync_direction}`);
+            }
           }
         }
       )

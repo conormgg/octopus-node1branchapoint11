@@ -23,7 +23,12 @@ const SyncDirectionToggle: React.FC<SyncDirectionToggleProps> = ({
   const isTeacherActive = currentDirection === 'teacher_active';
 
   const handleToggle = async () => {
-    if (isUpdating) return;
+    if (isUpdating) {
+      console.log(`Toggle ignored - participant ${participantId} is already updating`);
+      return;
+    }
+    
+    console.log(`Toggling sync direction for participant ${participantId} (${studentName})`);
     await onToggle(participantId);
   };
 

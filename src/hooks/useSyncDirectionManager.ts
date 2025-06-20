@@ -70,6 +70,9 @@ export const useSyncDirectionManager = (
           delete updated[participantId];
           return updated;
         });
+
+        // Clear updating state when real update arrives
+        setIsUpdating(prev => ({ ...prev, [participantId]: false }));
       }
     }
   }, []);
@@ -117,14 +120,38 @@ export const useSyncDirectionManager = (
       return false;
     }
 
+    // Validate inputs
+    if (!participantId || typeof participantId !== 'number') {
+      debugLog('toggle', `Invalid participant ID: ${participantId}`);
+      return false;
+    }
+
+    if (!sessionId) {
+      debugLog('toggle', 'No session ID available');
+      return false;
+    }
+
     // Prevent rapid clicks
     if (isUpdating[participantId]) {
       debugLog('toggle', `Participant ${participantId} already updating, ignoring click`);
       return false;
     }
 
+    // Set up timeout protection
+    const timeoutId = setTimeout(() => {
+      debugLog('toggle', `Operation timeout for participant ${participantId}, clearing updating state`);
+      setIsUpdating(prev => ({ ...prev, [participantId]: false }));
+      setOptimisticUpdates(prev => {
+        const updated = { ...prev };
+        delete updated[participantId];
+        return updated;
+      });
+    }, 10000); // 10 second timeout
+
     try {
       setIsUpdating(prev => ({ ...prev, [participantId]: true }));
+
+      debugLog('toggle', `Starting toggle for participant ${participantId} in session ${sessionId}`);
 
       // Fetch fresh participant data to get current sync direction
       const { data: participantData, error: fetchError } = await supabase
@@ -156,6 +183,7 @@ export const useSyncDirectionManager = (
       
       if (result.success) {
         debugLog('toggle', `Successfully toggled participant ${participantId} to ${newDirection}`);
+        clearTimeout(timeoutId);
         return true;
       } else {
         debugLog('toggle', `Failed to toggle participant ${participantId}: ${result.error}`);
@@ -179,9 +207,10 @@ export const useSyncDirectionManager = (
       });
       return false;
     } finally {
+      clearTimeout(timeoutId);
       setIsUpdating(prev => ({ ...prev, [participantId]: false }));
     }
-  }, [currentUserRole, isUpdating]);
+  }, [currentUserRole, isUpdating, sessionId]);
 
   // Get sync direction for a specific participant (including optimistic updates)
   const getSyncDirection = useCallback((participantId: number): SyncDirection => {
