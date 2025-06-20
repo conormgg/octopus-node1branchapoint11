@@ -1,4 +1,3 @@
-
 import React, { memo } from 'react';
 import { X, UserPlus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -17,10 +16,10 @@ interface StudentBoardCardProps {
   sessionId?: string;
   senderId?: string;
   portalContainer?: Element | null;
-  // New props for sync direction control
+  // Updated sync direction props - now using direct values instead of functions
   onToggleSyncDirection?: (participantId: number) => Promise<boolean>;
-  getSyncDirection?: (participantId: number) => SyncDirection;
-  isParticipantUpdating?: (participantId: number) => boolean;
+  currentSyncDirection?: SyncDirection;
+  isParticipantUpdating?: boolean;
   isTeacher?: boolean;
 }
 
@@ -35,8 +34,8 @@ const StudentBoardCard: React.FC<StudentBoardCardProps> = ({
   senderId,
   portalContainer,
   onToggleSyncDirection,
-  getSyncDirection,
-  isParticipantUpdating,
+  currentSyncDirection = 'student_active',
+  isParticipantUpdating = false,
   isTeacher = false,
 }) => {
   // Empty slot - compressed/hidden for now, can be expanded later for "add student" functionality
@@ -100,15 +99,6 @@ const StudentBoardCard: React.FC<StudentBoardCardProps> = ({
 
   // Active state - student has joined, show normal whiteboard
   const teacherSenderId = senderId || 'teacher-viewer';
-  
-  // Get current sync direction if participant and functions are available
-  const currentSyncDirection = boardInfo.participant && getSyncDirection 
-    ? getSyncDirection(boardInfo.participant.id)
-    : 'student_active';
-  
-  const isUpdating = boardInfo.participant && isParticipantUpdating 
-    ? isParticipantUpdating(boardInfo.participant.id)
-    : false;
 
   return (
     <div className="h-full relative">
@@ -128,7 +118,7 @@ const StudentBoardCard: React.FC<StudentBoardCardProps> = ({
           <SyncDirectionToggle
             participantId={boardInfo.participant.id}
             currentDirection={currentSyncDirection}
-            isUpdating={isUpdating}
+            isUpdating={isParticipantUpdating}
             onToggle={onToggleSyncDirection}
             studentName={boardInfo.studentName}
           />
@@ -150,7 +140,7 @@ const StudentBoardCard: React.FC<StudentBoardCardProps> = ({
   );
 };
 
-// Custom comparison function to prevent unnecessary re-renders
+// Enhanced comparison function to properly detect sync direction changes
 const areEqual = (prevProps: StudentBoardCardProps, nextProps: StudentBoardCardProps) => {
   // If one is null and the other isn't, they're different
   if ((!prevProps.boardInfo) !== (!nextProps.boardInfo)) return false;
@@ -167,18 +157,17 @@ const areEqual = (prevProps: StudentBoardCardProps, nextProps: StudentBoardCardP
     if (boardChanged) return false;
   }
   
-  // Compare sync direction related props
-  const syncPropsChanged = prevProps.isTeacher !== nextProps.isTeacher ||
-                          (prevProps.boardInfo?.participant?.id && nextProps.getSyncDirection &&
-                           prevProps.getSyncDirection?.(prevProps.boardInfo.participant.id) !== 
-                           nextProps.getSyncDirection(prevProps.boardInfo.participant.id));
+  // Compare sync direction and loading state - CRITICAL for reactive updates
+  const syncStateChanged = prevProps.currentSyncDirection !== nextProps.currentSyncDirection ||
+                          prevProps.isParticipantUpdating !== nextProps.isParticipantUpdating;
   
-  if (syncPropsChanged) return false;
+  if (syncStateChanged) return false;
   
   // Compare other props that affect rendering
   return prevProps.isMaximized === nextProps.isMaximized &&
          prevProps.sessionId === nextProps.sessionId &&
-         prevProps.senderId === nextProps.senderId;
+         prevProps.senderId === nextProps.senderId &&
+         prevProps.isTeacher === nextProps.isTeacher;
 };
 
 export default memo(StudentBoardCard, areEqual);

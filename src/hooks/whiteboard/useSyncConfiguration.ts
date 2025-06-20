@@ -74,7 +74,7 @@ export const useSyncConfiguration = (
 
     debugLog('config', 'Generated sync config:', config);
     return config;
-  }, [whiteboardId, sessionId, senderId, participant?.sync_direction, currentUserRole]);
+  }, [whiteboardId, sessionId, senderId, participant?.sync_direction, currentUserRole]); // More specific dependency on sync_direction
 
   return syncConfig;
 };

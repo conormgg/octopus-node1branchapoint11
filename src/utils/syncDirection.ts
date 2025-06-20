@@ -6,19 +6,28 @@ import { SyncDirection } from '@/types/student';
 const debugLog = createDebugLogger('sync-direction');
 
 /**
- * Update sync direction for a specific session participant
+ * Update sync direction for a specific session participant with timeout protection
  */
 export const updateParticipantSyncDirection = async (
   participantId: number,
-  newDirection: SyncDirection
+  newDirection: SyncDirection,
+  timeoutMs: number = 10000 // 10 second timeout
 ): Promise<{ success: boolean; error?: string }> => {
   try {
     debugLog('updateSyncDirection', `Updating participant ${participantId} to ${newDirection}`);
     
-    const { error } = await supabase
+    // Create a promise that rejects after timeout
+    const timeoutPromise = new Promise<never>((_, reject) => {
+      setTimeout(() => reject(new Error('Request timeout')), timeoutMs);
+    });
+    
+    // Race the update against the timeout
+    const updatePromise = supabase
       .from('session_participants')
       .update({ sync_direction: newDirection })
       .eq('id', participantId);
+    
+    const { error } = await Promise.race([updatePromise, timeoutPromise]);
 
     if (error) {
       debugLog('updateSyncDirection', `Error updating sync direction: ${error.message}`);

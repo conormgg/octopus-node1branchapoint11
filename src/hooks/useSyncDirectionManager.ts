@@ -1,9 +1,9 @@
-
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { SessionParticipant, SyncDirection } from '@/types/student';
 import { updateParticipantSyncDirection } from '@/utils/syncDirection';
 import { createDebugLogger } from '@/utils/debug/debugConfig';
+import { useToast } from '@/hooks/use-toast';
 
 const debugLog = createDebugLogger('sync-direction-manager');
 
@@ -18,6 +18,7 @@ export const useSyncDirectionManager = (
   const [syncDirections, setSyncDirections] = useState<SyncDirectionState>({});
   const [isUpdating, setIsUpdating] = useState<{ [participantId: number]: boolean }>({});
   const subscriptionRef = useRef<any>(null);
+  const { toast } = useToast();
 
   // Initialize sync directions from session participants
   const initializeSyncDirections = useCallback(async () => {
@@ -102,7 +103,7 @@ export const useSyncDirectionManager = (
     };
   }, [sessionId, initializeSyncDirections, handleSyncDirectionChange]);
 
-  // Toggle sync direction for a participant
+  // Enhanced toggle with optimistic updates and error handling
   const toggleSyncDirection = useCallback(async (participantId: number): Promise<boolean> => {
     if (currentUserRole !== 'teacher') {
       debugLog('toggle', 'Only teachers can toggle sync direction');
@@ -116,25 +117,63 @@ export const useSyncDirectionManager = (
 
     debugLog('toggle', `Toggling participant ${participantId}: ${currentDirection} → ${newDirection}`);
 
+    // Step 1: Set loading state immediately to prevent rapid clicks
     setIsUpdating(prev => ({ ...prev, [participantId]: true }));
 
+    // Step 2: Optimistic update - immediately update local state for instant UI feedback
+    setSyncDirections(prev => ({
+      ...prev,
+      [participantId]: newDirection
+    }));
+
     try {
+      // Step 3: Make async database call
       const result = await updateParticipantSyncDirection(participantId, newDirection);
       
       if (result.success) {
         debugLog('toggle', `Successfully toggled participant ${participantId} to ${newDirection}`);
+        // Success - the real-time listener will confirm the state, no need to update again
         return true;
       } else {
         debugLog('toggle', `Failed to toggle participant ${participantId}: ${result.error}`);
+        
+        // Step 4: Rollback optimistic update on failure
+        setSyncDirections(prev => ({
+          ...prev,
+          [participantId]: currentDirection
+        }));
+        
+        // Show error toast
+        toast({
+          title: "Sync Direction Update Failed",
+          description: result.error || "Unable to update sync direction. Please try again.",
+          variant: "destructive",
+        });
+        
         return false;
       }
     } catch (error) {
       debugLog('toggle', `Exception toggling participant ${participantId}: ${error}`);
+      
+      // Step 4: Rollback optimistic update on exception
+      setSyncDirections(prev => ({
+        ...prev,
+        [participantId]: currentDirection
+      }));
+      
+      // Show error toast
+      toast({
+        title: "Sync Direction Update Failed",
+        description: "Network error. Please check your connection and try again.",
+        variant: "destructive",
+      });
+      
       return false;
     } finally {
+      // Step 5: Always clear loading state
       setIsUpdating(prev => ({ ...prev, [participantId]: false }));
     }
-  }, [syncDirections, currentUserRole]);
+  }, [syncDirections, currentUserRole, toast]);
 
   // Get sync direction for a specific participant
   const getSyncDirection = useCallback((participantId: number): SyncDirection => {

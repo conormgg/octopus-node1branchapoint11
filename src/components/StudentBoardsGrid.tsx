@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Users, ChevronLeft, ChevronRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -28,7 +27,7 @@ interface StudentBoardsGridProps {
   sessionId?: string;
   senderId?: string;
   portalContainer?: Element | null;
-  // New sync direction props
+  // Sync direction props
   onToggleSyncDirection?: (participantId: number) => Promise<boolean>;
   getSyncDirection?: (participantId: number) => SyncDirection;
   isParticipantUpdating?: (participantId: number) => boolean;
@@ -70,6 +69,15 @@ const StudentBoardsGrid: React.FC<StudentBoardsGridProps> = ({
           // Use stable key for React optimization
           const key = boardInfo?.key || `empty-slot-${index}`;
           
+          // Calculate current sync direction for this specific board
+          const currentSyncDirection = boardInfo?.participant && getSyncDirection 
+            ? getSyncDirection(boardInfo.participant.id)
+            : 'student_active';
+          
+          const isUpdating = boardInfo?.participant && isParticipantUpdating 
+            ? isParticipantUpdating(boardInfo.participant.id)
+            : false;
+          
           return (
             <div key={key} className="min-h-0 h-full">
               <StudentBoardCard
@@ -83,8 +91,8 @@ const StudentBoardsGrid: React.FC<StudentBoardsGridProps> = ({
                 senderId={senderId}
                 portalContainer={portalContainer}
                 onToggleSyncDirection={onToggleSyncDirection}
-                getSyncDirection={getSyncDirection}
-                isParticipantUpdating={isParticipantUpdating}
+                currentSyncDirection={currentSyncDirection}
+                isParticipantUpdating={isUpdating}
                 isTeacher={isTeacher}
               />
             </div>
