@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { SessionParticipant } from '@/types/student';
@@ -14,8 +13,6 @@ export const useStudentParticipant = (sessionId: string, boardSuffix: string) =>
     if (!sessionId || !boardSuffix) return;
 
     try {
-      debugLog('fetch', `Fetching participant for session: ${sessionId}, boardSuffix: ${boardSuffix}`);
-      
       const { data, error } = await supabase
         .from('session_participants')
         .select('*')
@@ -39,7 +36,7 @@ export const useStudentParticipant = (sessionId: string, boardSuffix: string) =>
     }
   }, [sessionId, boardSuffix]);
 
-  // Set up real-time subscription for all participant changes
+  // Set up real-time subscription for sync direction changes
   useEffect(() => {
     fetchParticipant();
 
@@ -53,22 +50,11 @@ export const useStudentParticipant = (sessionId: string, boardSuffix: string) =>
           event: 'UPDATE',
           schema: 'public',
           table: 'session_participants',
-          // FIX: Use proper Supabase filter format instead of concatenated string
-          filter: `session_id=eq.${sessionId}`,
+          filter: `session_id=eq.${sessionId} AND assigned_board_suffix=eq.${boardSuffix.toUpperCase()}`
         },
         (payload) => {
           debugLog('realtime', `Participant updated:`, payload.new);
-          const updatedParticipant = payload.new as SessionParticipant;
-          
-          // Only update if this is the participant we're tracking
-          if (updatedParticipant.assigned_board_suffix?.toUpperCase() === boardSuffix.toUpperCase()) {
-            setParticipant(updatedParticipant);
-            
-            // Log sync direction changes specifically
-            if (participant && participant.sync_direction !== updatedParticipant.sync_direction) {
-              debugLog('realtime', `Sync direction changed: ${participant.sync_direction} → ${updatedParticipant.sync_direction}`);
-            }
-          }
+          setParticipant(payload.new as SessionParticipant);
         }
       )
       .subscribe();
@@ -76,7 +62,7 @@ export const useStudentParticipant = (sessionId: string, boardSuffix: string) =>
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [sessionId, boardSuffix, fetchParticipant, participant?.sync_direction]);
+  }, [sessionId, boardSuffix, fetchParticipant]);
 
   return {
     participant,

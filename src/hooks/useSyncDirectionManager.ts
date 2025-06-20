@@ -17,7 +17,6 @@ export const useSyncDirectionManager = (
 ) => {
   const [syncDirections, setSyncDirections] = useState<SyncDirectionState>({});
   const [isUpdating, setIsUpdating] = useState<{ [participantId: number]: boolean }>({});
-  const [optimisticUpdates, setOptimisticUpdates] = useState<SyncDirectionState>({});
   const subscriptionRef = useRef<any>(null);
 
   // Initialize sync directions from session participants
@@ -63,16 +62,6 @@ export const useSyncDirectionManager = (
           ...prev,
           [participantId]: newDirection
         }));
-        
-        // Clear optimistic update once real update arrives
-        setOptimisticUpdates(prev => {
-          const updated = { ...prev };
-          delete updated[participantId];
-          return updated;
-        });
-
-        // Clear updating state when real update arrives
-        setIsUpdating(prev => ({ ...prev, [participantId]: false }));
       }
     }
   }, []);
@@ -120,103 +109,37 @@ export const useSyncDirectionManager = (
       return false;
     }
 
-    // Validate inputs
-    if (!participantId || typeof participantId !== 'number') {
-      debugLog('toggle', `Invalid participant ID: ${participantId}`);
-      return false;
-    }
+    const currentDirection = syncDirections[participantId] || 'student_active';
+    const newDirection: SyncDirection = currentDirection === 'student_active' 
+      ? 'teacher_active' 
+      : 'student_active';
 
-    if (!sessionId) {
-      debugLog('toggle', 'No session ID available');
-      return false;
-    }
+    debugLog('toggle', `Toggling participant ${participantId}: ${currentDirection} → ${newDirection}`);
 
-    // Prevent rapid clicks
-    if (isUpdating[participantId]) {
-      debugLog('toggle', `Participant ${participantId} already updating, ignoring click`);
-      return false;
-    }
-
-    // Set up timeout protection
-    const timeoutId = setTimeout(() => {
-      debugLog('toggle', `Operation timeout for participant ${participantId}, clearing updating state`);
-      setIsUpdating(prev => ({ ...prev, [participantId]: false }));
-      setOptimisticUpdates(prev => {
-        const updated = { ...prev };
-        delete updated[participantId];
-        return updated;
-      });
-    }, 10000); // 10 second timeout
+    setIsUpdating(prev => ({ ...prev, [participantId]: true }));
 
     try {
-      setIsUpdating(prev => ({ ...prev, [participantId]: true }));
-
-      debugLog('toggle', `Starting toggle for participant ${participantId} in session ${sessionId}`);
-
-      // Fetch fresh participant data to get current sync direction
-      const { data: participantData, error: fetchError } = await supabase
-        .from('session_participants')
-        .select('sync_direction')
-        .eq('id', participantId)
-        .single();
-
-      if (fetchError) {
-        debugLog('toggle', `Error fetching participant ${participantId}: ${fetchError.message}`);
-        return false;
-      }
-
-      const currentDirection = participantData.sync_direction as SyncDirection;
-      const newDirection: SyncDirection = currentDirection === 'student_active' 
-        ? 'teacher_active' 
-        : 'student_active';
-
-      debugLog('toggle', `Toggling participant ${participantId}: ${currentDirection} → ${newDirection}`);
-
-      // Apply optimistic update immediately
-      setOptimisticUpdates(prev => ({
-        ...prev,
-        [participantId]: newDirection
-      }));
-
-      // Update database
       const result = await updateParticipantSyncDirection(participantId, newDirection);
       
       if (result.success) {
         debugLog('toggle', `Successfully toggled participant ${participantId} to ${newDirection}`);
-        clearTimeout(timeoutId);
         return true;
       } else {
         debugLog('toggle', `Failed to toggle participant ${participantId}: ${result.error}`);
-        
-        // Remove optimistic update on failure
-        setOptimisticUpdates(prev => {
-          const updated = { ...prev };
-          delete updated[participantId];
-          return updated;
-        });
         return false;
       }
     } catch (error) {
       debugLog('toggle', `Exception toggling participant ${participantId}: ${error}`);
-      
-      // Remove optimistic update on failure
-      setOptimisticUpdates(prev => {
-        const updated = { ...prev };
-        delete updated[participantId];
-        return updated;
-      });
       return false;
     } finally {
-      clearTimeout(timeoutId);
       setIsUpdating(prev => ({ ...prev, [participantId]: false }));
     }
-  }, [currentUserRole, isUpdating, sessionId]);
+  }, [syncDirections, currentUserRole]);
 
-  // Get sync direction for a specific participant (including optimistic updates)
+  // Get sync direction for a specific participant
   const getSyncDirection = useCallback((participantId: number): SyncDirection => {
-    // Check optimistic updates first, then actual state
-    return optimisticUpdates[participantId] || syncDirections[participantId] || 'student_active';
-  }, [syncDirections, optimisticUpdates]);
+    return syncDirections[participantId] || 'student_active';
+  }, [syncDirections]);
 
   // Check if teacher is currently controlling a specific participant
   const isTeacherControlling = useCallback((participantId: number): boolean => {
