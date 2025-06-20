@@ -4,6 +4,9 @@ import { supabase } from '@/integrations/supabase/client';
 import { Session } from '@/types/session';
 import { SessionParticipant } from '@/types/student';
 import { useToast } from '@/hooks/use-toast';
+import { createDebugLogger } from '@/utils/debug/debugConfig';
+
+const debugLog = createDebugLogger('session-students');
 
 export const useSessionStudents = (activeSession: Session | null | undefined) => {
   const [sessionStudents, setSessionStudents] = useState<SessionParticipant[]>([]);
@@ -22,6 +25,7 @@ export const useSessionStudents = (activeSession: Session | null | undefined) =>
         .order('assigned_board_suffix');
 
       if (error) throw error;
+      debugLog('fetchStudents', `Fetched ${data?.length || 0} students`);
       setSessionStudents(data || []);
     } catch (error) {
       console.error('Error fetching session students:', error);
@@ -34,6 +38,8 @@ export const useSessionStudents = (activeSession: Session | null | undefined) =>
   // Handle incremental updates to prevent full re-renders
   const handleParticipantChange = useCallback((payload: any) => {
     const { eventType, new: newRecord, old: oldRecord } = payload;
+    
+    debugLog('participantChange', `Received ${eventType} event for participant:`, newRecord || oldRecord);
     
     setSessionStudents(prevStudents => {
       switch (eventType) {
@@ -87,7 +93,15 @@ export const useSessionStudents = (activeSession: Session | null | undefined) =>
             table: 'session_participants',
             filter: `session_id=eq.${activeSession.id}`
           },
-          (payload) => handleParticipantChange({ ...payload, eventType: 'UPDATE' })
+          (payload) => {
+            // Log sync_direction changes specifically
+            const oldDirection = payload.old?.sync_direction;
+            const newDirection = payload.new?.sync_direction;
+            if (oldDirection !== newDirection) {
+              debugLog('syncDirectionChange', `Participant ${payload.new.id} sync direction changed: ${oldDirection} → ${newDirection}`);
+            }
+            handleParticipantChange({ ...payload, eventType: 'UPDATE' });
+          }
         )
         .on(
           'postgres_changes',
