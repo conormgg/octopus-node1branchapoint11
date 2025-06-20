@@ -32,8 +32,8 @@ class SyncConnectionManager {
     config: SyncConfig,
     handler: OperationHandler
   ): { isConnected: boolean } {
-    // Include sender ID in connection ID to prevent conflicts
-    const connectionId = `${config.whiteboardId}-${config.sessionId}-${config.senderId}`;
+    // Include read/write state in connection ID to prevent stale connection reuse
+    const connectionId = `${config.whiteboardId}-${config.sessionId}-${config.senderId}-${config.isReceiveOnly ? 'ro' : 'rw'}`;
     let connection = this.connections.get(connectionId);
     
     // If connection doesn't exist, create it
@@ -64,7 +64,8 @@ class SyncConnectionManager {
     config: SyncConfig,
     handler: OperationHandler
   ): void {
-    const connectionId = `${config.whiteboardId}-${config.sessionId}-${config.senderId}`;
+    // Include read/write state in connection ID to find the correct connection
+    const connectionId = `${config.whiteboardId}-${config.sessionId}-${config.senderId}-${config.isReceiveOnly ? 'ro' : 'rw'}`;
     const connection = this.connections.get(connectionId);
     
     if (connection) {
@@ -91,7 +92,8 @@ class SyncConnectionManager {
   ): WhiteboardOperation | null {
     if (config.isReceiveOnly) return null;
     
-    const connectionId = `${config.whiteboardId}-${config.sessionId}-${config.senderId}`;
+    // Include read/write state in connection ID to find the correct connection
+    const connectionId = `${config.whiteboardId}-${config.sessionId}-${config.senderId}-${config.isReceiveOnly ? 'ro' : 'rw'}`;
     const connection = this.connections.get(connectionId);
     
     if (!connection) {
@@ -129,7 +131,8 @@ class SyncConnectionManager {
    * Get connection status
    */
   public getConnectionStatus(config: SyncConfig): { isConnected: boolean } {
-    const connectionId = `${config.whiteboardId}-${config.sessionId}-${config.senderId}`;
+    // Include read/write state in connection ID to find the correct connection
+    const connectionId = `${config.whiteboardId}-${config.sessionId}-${config.senderId}-${config.isReceiveOnly ? 'ro' : 'rw'}`;
     const connection = this.connections.get(connectionId);
     
     return {
