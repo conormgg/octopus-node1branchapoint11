@@ -24,6 +24,7 @@ export const useSyncState = (
   // Update refs when dependencies change
   useEffect(() => {
     configRef.current = config;
+    debugLog('useSyncState', `Config updated for whiteboard: ${config.whiteboardId}, isReceiveOnly: ${config.isReceiveOnly}`);
   }, [config]);
 
   useEffect(() => {
@@ -32,16 +33,25 @@ export const useSyncState = (
 
   // Send operation to other clients using the connection manager
   const sendOperation = useCallback((operation: Omit<WhiteboardOperation, 'id' | 'timestamp' | 'sender_id'>) => {
-    if (configRef.current.isReceiveOnly) return null;
+    const currentConfig = configRef.current;
     
-    debugLog('useSyncState', `Sending operation of type ${operation.operation_type} for whiteboard: ${config.whiteboardId}`);
-
-    const fullOperation = SyncConnectionManager.sendOperation(configRef.current, operation);
+    debugLog('useSyncState', `Attempting to send operation - type: ${operation.operation_type}, whiteboardId: ${currentConfig.whiteboardId}, isReceiveOnly: ${currentConfig.isReceiveOnly}`);
     
-    if (!fullOperation) {
-      debugLog('useSyncState', 'Failed to send operation through connection manager');
+    if (currentConfig.isReceiveOnly) {
+      debugLog('useSyncState', `Blocked send - connection is receive-only for ${currentConfig.whiteboardId}`);
       return null;
     }
+    
+    debugLog('useSyncState', `Sending operation of type ${operation.operation_type} for whiteboard: ${currentConfig.whiteboardId}`);
+
+    const fullOperation = SyncConnectionManager.sendOperation(currentConfig, operation);
+    
+    if (!fullOperation) {
+      debugLog('useSyncState', 'Failed to send operation through connection manager - no operation returned');
+      return null;
+    }
+    
+    debugLog('useSyncState', `Successfully sent operation through connection manager:`, fullOperation);
     
     // Update last sync timestamp
     setSyncState(prev => ({
@@ -50,11 +60,11 @@ export const useSyncState = (
     }));
     
     return fullOperation;
-  }, [config.whiteboardId]);
+  }, []);
 
   // Register with the connection manager
   useEffect(() => {
-    debugLog('useSyncState', `Registering handler for whiteboard: ${config.whiteboardId}`);
+    debugLog('useSyncState', `Registering handler for whiteboard: ${config.whiteboardId}, isReceiveOnly: ${config.isReceiveOnly}`);
     
     // Create a stable handler reference that always calls the latest handler function
     const stableHandler = (operation: WhiteboardOperation) => {
@@ -73,6 +83,8 @@ export const useSyncState = (
     // Register with the connection manager
     const { isConnected } = SyncConnectionManager.registerHandler(config, stableHandler);
     
+    debugLog('useSyncState', `Registration complete - isConnected: ${isConnected}`);
+    
     // Update initial connection state
     setSyncState(prev => ({
       ...prev,
@@ -84,7 +96,7 @@ export const useSyncState = (
       const status = SyncConnectionManager.getConnectionStatus(config);
       setSyncState(prev => {
         if (prev.isConnected !== status.isConnected) {
-          debugLog('useSyncState', `Connection status changed: ${status.isConnected}`);
+          debugLog('useSyncState', `Connection status changed: ${status.isConnected} for ${config.whiteboardId}`);
           return {
             ...prev,
             isConnected: status.isConnected
@@ -99,7 +111,7 @@ export const useSyncState = (
       SyncConnectionManager.unregisterHandler(config, stableHandler);
       clearInterval(statusInterval);
     };
-  }, [config.whiteboardId, config.sessionId, config.senderId]);
+  }, [config.whiteboardId, config.sessionId, config.senderId, config.isReceiveOnly]);
 
   return {
     syncState,

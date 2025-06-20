@@ -75,7 +75,7 @@ export const useSyncConfiguration = (
     };
 
     debugLog('config', 'Generated sync config:', config);
-    debugLog('config', `Sync config recalculated due to effective sync direction: ${effectiveSyncDirection}`);
+    debugLog('config', `Final config - whiteboardId: ${config.whiteboardId}, isReceiveOnly: ${config.isReceiveOnly}, senderId: ${config.senderId}`);
     return config;
   }, [
     whiteboardId, 

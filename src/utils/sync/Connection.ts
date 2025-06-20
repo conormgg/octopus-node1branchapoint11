@@ -46,7 +46,7 @@ export class Connection {
       lastActivity: Date.now()
     };
     
-    debugLog('Connection', `Created connection ${this.connectionId} with senderId: ${config.senderId}`);
+    debugLog('Connection', `Created connection ${this.connectionId} with senderId: ${config.senderId}, isReceiveOnly: ${config.isReceiveOnly}`);
   }
   
   /**
@@ -97,7 +97,12 @@ export class Connection {
    * Send an operation using this connection
    */
   sendOperation(operation: Omit<WhiteboardOperation, 'id' | 'timestamp' | 'sender_id'>): WhiteboardOperation | null {
-    if (this.originalConfig.isReceiveOnly) return null;
+    debugLog('Send', `Connection ${this.connectionId} attempting to send operation - isReceiveOnly: ${this.originalConfig.isReceiveOnly}`);
+    
+    if (this.originalConfig.isReceiveOnly) {
+      debugLog('Send', `Blocked operation send - connection is receive-only`);
+      return null;
+    }
     
     const fullOperation: WhiteboardOperation = {
       ...operation,
@@ -106,7 +111,7 @@ export class Connection {
       sender_id: this.originalConfig.senderId // Use original config sender ID
     };
     
-    debugLog('Send', `Sending ${fullOperation.operation_type} to database from ${this.originalConfig.senderId}`);
+    debugLog('Send', `Sending ${fullOperation.operation_type} to database from ${this.originalConfig.senderId}`, fullOperation);
     
     // Send to Supabase
     const dbRecord = PayloadConverter.toDatabaseRecord(
@@ -114,14 +119,17 @@ export class Connection {
       this.originalConfig.sessionId
     );
     
+    debugLog('Send', `Database record for insertion:`, dbRecord);
+    
     supabase
       .from('whiteboard_data')
       .insert(dbRecord)
       .then(({ error, data }) => {
         if (error) {
-          logError('Connection', 'Error sending operation', error);
+          logError('Connection', 'Error sending operation to database', error);
+          debugLog('Send', `Database insertion failed for ${fullOperation.operation_type}:`, error);
         } else {
-          debugLog('Send', 'Successfully sent operation', data);
+          debugLog('Send', `Successfully sent ${fullOperation.operation_type} to database`, data);
           this.info.lastActivity = Date.now();
         }
       });

@@ -83,10 +83,10 @@ const DEFAULT_DEBUG_CONFIG: DebugConfig = {
   history: false,
   panZoom: false,
   
-  // Sync and collaboration - disabled by default
-  sync: false,
-  operations: false,
-  connection: false,
+  // Sync and collaboration - TEMPORARILY ENABLED for debugging
+  sync: true,
+  operations: true,
+  connection: true,
   
   // Window management - disabled by default
   windows: false,
@@ -109,9 +109,10 @@ const DEFAULT_DEBUG_CONFIG: DebugConfig = {
 
 // Environment-based configuration
 const DEVELOPMENT_OVERRIDES: Partial<DebugConfig> = {
-  // Only enable essential debugging in development
-  connection: true, // Keep connection status visible
-  sync: false, // Disable sync spam
+  // Enable essential debugging in development for persistence issue
+  connection: true,
+  sync: true,
+  operations: true,
   events: false, // Disable event spam completely
   palmRejection: false, // Disable palm rejection spam
   layerOptimization: true, // Phase 2D.1: Enable layer optimization debugging
