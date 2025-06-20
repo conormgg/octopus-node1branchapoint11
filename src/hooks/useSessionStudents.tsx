@@ -1,5 +1,5 @@
 
-import { useMemo, useRef } from 'react';
+import { useMemo } from 'react';
 import { Session } from '@/types/session';
 import { useFetchSessionStudents } from '@/hooks/session/useFetchSessionStudents';
 import { useParticipantRealtime } from '@/hooks/session/useParticipantRealtime';
@@ -21,46 +21,32 @@ export const useSessionStudents = (activeSession: Session | null | undefined) =>
     handleRemoveIndividualStudent
   } = useStudentManagement(activeSession, sessionStudents);
 
-  // Use stable function references to prevent subscription recreation
-  const stableFetchRef = useRef<() => void>();
-  stableFetchRef.current = () => fetchSessionStudents(activeSession);
-
-  // Set up real-time subscriptions with stable references
+  // Set up real-time subscriptions
   useSessionStudentsRealtime(
     activeSession,
-    stableFetchRef.current,
+    () => fetchSessionStudents(activeSession),
     handleParticipantChange,
     setSessionStudents
   );
 
   // Memoize students with status to maintain stable object references
-  // Use a more stable dependency array to prevent unnecessary recalculations
   const studentsWithStatus = useMemo(() => {
-    return sessionStudents.map(student => {
-      const boardId = `student-board-${student.assigned_board_suffix.toLowerCase()}`;
-      const hasJoined = student.joined_at !== null;
-      const status = hasJoined ? 'active' : 'pending' as 'active' | 'pending';
-      
-      return {
-        ...student,
-        hasJoined,
-        boardId,
-        status
-      };
-    });
+    return sessionStudents.map(student => ({
+      ...student,
+      hasJoined: student.joined_at !== null,
+      boardId: `student-board-${student.assigned_board_suffix.toLowerCase()}`,
+      status: student.joined_at ? 'active' : 'pending' as 'active' | 'pending'
+    }));
   }, [sessionStudents]);
 
-  // Count active students (who have actually joined) - memoized for stability
+  // Count active students (who have actually joined)
   const activeStudentCount = useMemo(() => 
     sessionStudents.filter(s => s.joined_at !== null).length,
     [sessionStudents]
   );
   
-  // Total registered students - memoized for stability
-  const totalStudentCount = useMemo(() => 
-    sessionStudents.length,
-    [sessionStudents]
-  );
+  // Total registered students
+  const totalStudentCount = sessionStudents.length;
 
   return {
     sessionStudents,

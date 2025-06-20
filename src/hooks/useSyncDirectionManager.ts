@@ -18,18 +18,12 @@ export const useSyncDirectionManager = (
   const [syncDirections, setSyncDirections] = useState<SyncDirectionState>({});
   const [isUpdating, setIsUpdating] = useState<{ [participantId: number]: boolean }>({});
   const subscriptionRef = useRef<any>(null);
-  const isInitializedRef = useRef(false);
-
-  // Stable function references using useRef to prevent dependency loops
-  const handleSyncDirectionChangeRef = useRef<(payload: any) => void>();
-  const initializeSyncDirectionsRef = useRef<() => Promise<void>>();
 
   // Initialize sync directions from session participants
-  initializeSyncDirectionsRef.current = useCallback(async () => {
-    if (!sessionId || isInitializedRef.current) return;
+  const initializeSyncDirections = useCallback(async () => {
+    if (!sessionId) return;
 
     try {
-      debugLog('initialize', `Fetching sync directions for session ${sessionId}`);
       const { data, error } = await supabase
         .from('session_participants')
         .select('id, sync_direction')
@@ -46,15 +40,14 @@ export const useSyncDirectionManager = (
       });
 
       setSyncDirections(directions);
-      isInitializedRef.current = true;
       debugLog('initialize', `Initialized sync directions for ${Object.keys(directions).length} participants`);
     } catch (error) {
       debugLog('initialize', `Exception initializing sync directions: ${error}`);
     }
   }, [sessionId]);
 
-  // Handle real-time sync direction changes with stable reference
-  handleSyncDirectionChangeRef.current = useCallback((payload: any) => {
+  // Handle real-time sync direction changes
+  const handleSyncDirectionChange = useCallback((payload: any) => {
     const { new: newRecord, old: oldRecord } = payload;
     
     if (newRecord && oldRecord) {
@@ -73,30 +66,20 @@ export const useSyncDirectionManager = (
     }
   }, []);
 
-  // Set up real-time subscription only when sessionId changes
+  // Set up real-time subscription
   useEffect(() => {
-    if (!sessionId) {
-      // Reset state when no session
-      setSyncDirections({});
-      isInitializedRef.current = false;
-      return;
-    }
+    if (!sessionId) return;
 
-    // Initialize sync directions
-    initializeSyncDirectionsRef.current?.();
+    initializeSyncDirections();
 
     // Clean up existing subscription
     if (subscriptionRef.current) {
       supabase.removeChannel(subscriptionRef.current);
-      subscriptionRef.current = null;
     }
 
-    // Set up new subscription with stable channel name
-    const channelName = `sync-direction-${sessionId}`;
-    debugLog('subscription', `Setting up subscription for ${channelName}`);
-    
+    // Set up new subscription
     const channel = supabase
-      .channel(channelName)
+      .channel(`sync-direction-${sessionId}`)
       .on(
         'postgres_changes',
         {
@@ -105,21 +88,19 @@ export const useSyncDirectionManager = (
           table: 'session_participants',
           filter: `session_id=eq.${sessionId}`
         },
-        (payload) => handleSyncDirectionChangeRef.current?.(payload)
+        handleSyncDirectionChange
       )
       .subscribe();
 
     subscriptionRef.current = channel;
 
     return () => {
-      debugLog('subscription', `Cleaning up subscription for ${channelName}`);
       if (subscriptionRef.current) {
         supabase.removeChannel(subscriptionRef.current);
         subscriptionRef.current = null;
       }
-      isInitializedRef.current = false;
     };
-  }, [sessionId]); // Only depend on sessionId to prevent subscription recreation
+  }, [sessionId, initializeSyncDirections, handleSyncDirectionChange]);
 
   // Toggle sync direction for a participant
   const toggleSyncDirection = useCallback(async (participantId: number): Promise<boolean> => {
@@ -176,6 +157,6 @@ export const useSyncDirectionManager = (
     toggleSyncDirection,
     isTeacherControlling,
     isParticipantUpdating,
-    initializeSyncDirections: initializeSyncDirectionsRef.current
+    initializeSyncDirections
   };
 };
