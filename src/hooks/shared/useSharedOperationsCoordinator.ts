@@ -8,7 +8,7 @@
  * of operations to their appropriate handlers while maintaining synchronization.
  */
 
-import { useCallback, useRef, useMemo } from 'react';
+import { useCallback, useRef } from 'react';
 import { SyncConfig } from '@/types/sync';
 import { WhiteboardState, ActivityMetadata } from '@/types/whiteboard';
 import { useHistoryState } from '../useHistoryState';
@@ -61,27 +61,9 @@ export const useSharedOperationsCoordinator = (
   // Create a ref for isApplyingRemoteOperation to share between handlers
   const isApplyingRemoteOperationRef = useRef(false);
 
-  // Memoize the actual whiteboard ID to prevent re-computations
-  const actualWhiteboardId = useMemo(() => {
-    return syncConfig?.whiteboardId || whiteboardId;
-  }, [syncConfig?.whiteboardId, whiteboardId]);
-
-  // Handle remote operations with undo/redo support - memoize handler
-  const { handleRemoteOperation } = useRemoteOperationHandler(
-    setState, 
-    // Use placeholder functions that will be replaced after history setup
-    () => {}, // undo placeholder
-    () => {}, // redo placeholder
-    isApplyingRemoteOperationRef
-  );
-
-  // Set up sync if config is provided - memoize the handleRemoteOperation to prevent re-initialization
-  const stableHandleRemoteOperation = useCallback((operation: any) => {
-    handleRemoteOperation(operation);
-  }, [handleRemoteOperation]);
-
+  // Set up sync if config is provided
   const { syncState, sendOperation } = syncConfig 
-    ? useSyncState(syncConfig, stableHandleRemoteOperation)
+    ? useSyncState(syncConfig, (operation) => handleRemoteOperation(operation))
     : { syncState: null, sendOperation: null };
 
   debugLog('Sync', 'Sync state initialized', {
@@ -99,6 +81,14 @@ export const useSharedOperationsCoordinator = (
     canRedo,
     getLastActivity
   } = useHistoryState(state, setState, undefined, syncConfig ? sendOperation : null);
+
+  // Handle remote operations with undo/redo support
+  const { handleRemoteOperation } = useRemoteOperationHandler(
+    setState, 
+    undo, 
+    redo,
+    isApplyingRemoteOperationRef
+  );
 
   /**
    * @function addToHistoryWithActivity
@@ -124,13 +114,16 @@ export const useSharedOperationsCoordinator = (
     addToHistory(finalSnapshot, activityMetadata);
   }, [addToHistory, state.lines, state.images, state.selectionState]);
 
-  // Drawing and erasing operations with whiteboard ID - memoize to prevent re-initialization
+  // Drawing and erasing operations with whiteboard ID
+  // Use the full whiteboard ID from sync config or fallback to provided ID
+  const actualWhiteboardId = syncConfig?.whiteboardId || whiteboardId;
+  
   debugLog('Operations', 'Setting up drawing operations', { actualWhiteboardId });
   const drawingOperations = useSharedDrawingOperations(
     state, setState, addToHistoryWithActivity, sendOperation, isApplyingRemoteOperationRef, actualWhiteboardId
   );
 
-  // Image operations with proper parameter handling - memoize to prevent re-initialization
+  // Image operations with proper parameter handling
   debugLog('Operations', 'Setting up image operations', { actualWhiteboardId });
   const imageOperations = useSharedImageOperations(
     state, setState, addToHistoryWithActivity, sendOperation, isApplyingRemoteOperationRef, actualWhiteboardId
@@ -144,8 +137,7 @@ export const useSharedOperationsCoordinator = (
     hasLastActivity: !!getLastActivity()
   });
 
-  // Memoize the return object to prevent unnecessary re-renders
-  return useMemo(() => ({
+  return {
     syncState,
     addToHistory: addToHistoryWithActivity, // Keep this for drawing operations
     undo,
@@ -155,15 +147,5 @@ export const useSharedOperationsCoordinator = (
     getLastActivity,
     ...drawingOperations,
     ...imageOperations
-  }), [
-    syncState,
-    addToHistoryWithActivity,
-    undo,
-    redo,
-    canUndo,
-    canRedo,
-    getLastActivity,
-    drawingOperations,
-    imageOperations
-  ]);
+  };
 };

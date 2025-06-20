@@ -1,10 +1,13 @@
 
-import { useState, useMemo } from 'react';
+import { useState } from 'react';
 import { WhiteboardState } from '@/types/whiteboard';
+import { useWhiteboardStateContext } from '@/contexts/WhiteboardStateContext';
 
 export const useSharedStateInitialization = (whiteboardId?: string) => {
-  // Create a stable initial state that doesn't depend on external functions
-  const initialState = useMemo<WhiteboardState>(() => {
+  const { getWhiteboardState } = useWhiteboardStateContext();
+  
+  // Initialize state with empty state - persistence will load data if needed
+  const [state, setState] = useState<WhiteboardState>(() => {
     console.log(`[StateInit] Initializing whiteboard ${whiteboardId} with empty state - persistence will load data if available`);
     
     return {
@@ -41,9 +44,7 @@ export const useSharedStateInitialization = (whiteboardId?: string) => {
       }],
       historyIndex: 0
     };
-  }, [whiteboardId]); // Only depend on whiteboardId
-
-  const [state, setState] = useState<WhiteboardState>(initialState);
+  });
 
   return { state, setState };
 };

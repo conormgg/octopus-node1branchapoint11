@@ -15,8 +15,7 @@ export const useSharedDrawing = (
   setState: any,
   addToHistory: (snapshot?: any, activityMetadata?: ActivityMetadata) => void,
   sendOperation: any,
-  isApplyingRemoteOperation: React.MutableRefObject<boolean>,
-  whiteboardId?: string
+  isApplyingRemoteOperation: React.MutableRefObject<boolean>
 ) => {
   // Drawing operations with sync
   const {
@@ -63,8 +62,8 @@ export const useSharedDrawing = (
       
       // Fix: Include both pencil and highlighter tools for sync
       if (drawnLine && (drawnLine.tool === 'pencil' || drawnLine.tool === 'highlighter')) {
-        // Create the operation with proper whiteboardId
-        const operation = serializeDrawOperation(drawnLine, whiteboardId);
+        // Create the operation
+        const operation = serializeDrawOperation(drawnLine);
         
         console.log(`[DrawingOperations] Sending ${drawnLine.tool} operation to sync:`, operation);
         console.log(`[DrawingOperations] sendOperation function exists:`, !!sendOperation);
@@ -78,7 +77,7 @@ export const useSharedDrawing = (
     } else {
       console.log(`[DrawingOperations] NOT sending operation - sendOperation:`, !!sendOperation, 'isApplyingRemoteOperation:', isApplyingRemoteOperation.current);
     }
-  }, [state.isDrawing, state.lines, state.images, state.selectionState, state.currentTool, baseStopDrawing, sendOperation, isApplyingRemoteOperation, addToHistory, whiteboardId]);
+  }, [state.isDrawing, state.lines, state.images, state.selectionState, state.currentTool, baseStopDrawing, sendOperation, isApplyingRemoteOperation, addToHistory]);
 
   return {
     startDrawing,

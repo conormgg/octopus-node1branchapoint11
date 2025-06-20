@@ -14,7 +14,6 @@ export const useSyncConfiguration = (
   currentUserRole: 'teacher' | 'student' = 'teacher',
   overrideSyncDirection?: SyncDirection // NEW: Override parameter for optimistic updates
 ) => {
-  // Memoize the sync config with stable dependencies
   const syncConfig: SyncConfig | null = useMemo(() => {
     if (!sessionId) {
       debugLog('config', 'No session ID provided, sync disabled');
@@ -76,17 +75,16 @@ export const useSyncConfiguration = (
     };
 
     debugLog('config', 'Generated sync config:', config);
-    debugLog('config', `Final config - whiteboardId: ${config.whiteboardId}, isReceiveOnly: ${config.isReceiveOnly}, senderId: ${config.senderId}`);
+    debugLog('config', `Sync config recalculated due to effective sync direction: ${effectiveSyncDirection}`);
     return config;
   }, [
     whiteboardId, 
     sessionId, 
     senderId, 
-    participant?.sync_direction, // Only depend on the specific property
-    overrideSyncDirection,
+    participant?.sync_direction,
+    overrideSyncDirection, // CRITICAL: Include override in dependencies
     currentUserRole
   ]);
 
-  // Return a memoized object to prevent unnecessary re-renders
-  return useMemo(() => syncConfig, [syncConfig]);
+  return syncConfig;
 };

@@ -1,5 +1,5 @@
 
-import React, { createContext, useContext, useState, useCallback, useMemo } from 'react';
+import React, { createContext, useContext, useState, useCallback } from 'react';
 import { LineObject } from '@/types/whiteboard';
 
 interface WhiteboardStateStore {
@@ -17,17 +17,7 @@ const WhiteboardStateContext = createContext<WhiteboardStateContextType | undefi
 export const WhiteboardStateProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [stateStore, setStateStore] = useState<WhiteboardStateStore>({});
 
-  // Make getWhiteboardState stable by using useCallback with proper dependencies
   const getWhiteboardState = useCallback((whiteboardId: string): LineObject[] => {
-    return stateStore[whiteboardId] || [];
-  }, []); // Remove stateStore dependency to make it stable
-
-  // Create a stable reference that accesses current state
-  const getWhiteboardStateStable = useCallback((whiteboardId: string): LineObject[] => {
-    // Access current state directly, not through closure
-    setStateStore(currentStore => {
-      return currentStore; // Return unchanged to avoid state update
-    });
     return stateStore[whiteboardId] || [];
   }, [stateStore]);
 
@@ -45,15 +35,12 @@ export const WhiteboardStateProvider: React.FC<{ children: React.ReactNode }> = 
     });
   }, []);
 
-  // Memoize the context value to prevent unnecessary re-renders
-  const contextValue = useMemo(() => ({
-    getWhiteboardState: getWhiteboardStateStable,
-    updateWhiteboardState,
-    clearWhiteboardState
-  }), [getWhiteboardStateStable, updateWhiteboardState, clearWhiteboardState]);
-
   return (
-    <WhiteboardStateContext.Provider value={contextValue}>
+    <WhiteboardStateContext.Provider value={{
+      getWhiteboardState,
+      updateWhiteboardState,
+      clearWhiteboardState
+    }}>
       {children}
     </WhiteboardStateContext.Provider>
   );
