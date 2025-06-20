@@ -66,12 +66,16 @@ export const useSyncConfiguration = (
       // Teacher can edit only when they have taken control
       isReceiveOnly = effectiveSyncDirection !== 'teacher_active';
       
-      // Use consistent student sender ID for teacher's view of student board
+      // CRITICAL FIX: Use different sender ID for teacher viewing student board
+      // This prevents filtering conflicts with the student's personal view
       if (participant) {
-        finalSenderId = `student-${participant.id}`;
+        finalSenderId = `teacher-viewing-student-${participant.id}`;
+      } else {
+        // Fallback if no participant data
+        finalSenderId = `teacher-viewing-${studentSuffix}`;
       }
       
-      debugLog('config', `Teacher viewing student board ${studentSuffix} - sync direction: ${effectiveSyncDirection}, receive-only: ${isReceiveOnly}, sender: ${finalSenderId}`);
+      debugLog('config', `Teacher viewing student board ${studentSuffix} - sync direction: ${effectiveSyncDirection}, receive-only: ${isReceiveOnly}, sender: ${finalSenderId} [FIXED SENDER ID]`);
       
     } else {
       debugLog('config', `Unknown board type: ${whiteboardId}, defaulting to interactive mode`);

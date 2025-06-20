@@ -1,4 +1,3 @@
-
 import { supabase } from '@/integrations/supabase/client';
 import { ConnectionInfo, OperationHandler } from './types';
 import { PayloadConverter } from './PayloadConverter';
@@ -25,6 +24,7 @@ export class Connection {
     this.channelName = `wb-sync-${config.whiteboardId}-${Date.now()}`;
     
     debugLog('Connection', `Creating whiteboard sync channel: ${this.channelName} for connection ${this.connectionId}`);
+    debugLog('Connection', `SENDER ID FIX: Connection using sender ID: ${config.senderId} for whiteboard: ${config.whiteboardId}`);
     
     const channel = supabase
       .channel(this.channelName)
@@ -73,14 +73,17 @@ export class Connection {
     // Update activity timestamp
     this.info.lastActivity = Date.now();
     
+    // CRITICAL FIX: Enhanced filtering logic with better debugging
+    debugLog('Dispatch', `SENDER ID FILTER CHECK: Operation from: ${operation.sender_id}, local sender: ${this.originalConfig.senderId}`);
+    
     // Notify all registered handlers except the sender
     this.info.handlers.forEach(handler => {
       // Don't send operations back to the sender using the ORIGINAL config
       if (operation.sender_id !== this.originalConfig.senderId) {
-        debugLog('Dispatch', `Operation to handler from: ${operation.sender_id}, local: ${this.originalConfig.senderId}`);
+        debugLog('Dispatch', `✅ FORWARDING operation from: ${operation.sender_id} to local handler (${this.originalConfig.senderId})`);
         handler(operation);
       } else {
-        debugLog('Dispatch', `Skipping operation from self (${operation.sender_id})`);
+        debugLog('Dispatch', `❌ FILTERING operation from self (${operation.sender_id}) - sender ID match`);
       }
     });
   }
