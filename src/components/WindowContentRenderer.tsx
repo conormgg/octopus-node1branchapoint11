@@ -7,6 +7,7 @@ import WindowContentBody from './window/WindowContentBody';
 import { LayoutOption } from '@/utils/layoutCalculator';
 import { GridOrientation } from './TeacherView';
 import { StudentBoardInfo } from '@/utils/studentBoardGenerator';
+import { SyncDirection } from '@/types/student';
 
 interface WindowContentRendererProps {
   container: HTMLDivElement;
@@ -28,6 +29,10 @@ interface WindowContentRendererProps {
   onClose: () => void;
   sessionId?: string;
   senderId?: string;
+  // Add sync direction props
+  onToggleSyncDirection?: (participantId: number) => Promise<boolean>;
+  getSyncDirection?: (participantId: number) => SyncDirection;
+  isParticipantUpdating?: (participantId: number) => boolean;
 }
 
 const WindowContentRenderer: React.FC<WindowContentRendererProps> = ({
@@ -50,6 +55,9 @@ const WindowContentRenderer: React.FC<WindowContentRendererProps> = ({
   onClose,
   sessionId,
   senderId,
+  onToggleSyncDirection,
+  getSyncDirection,
+  isParticipantUpdating,
 }) => {
   const {
     isHeaderCollapsed,
@@ -121,6 +129,9 @@ const WindowContentRenderer: React.FC<WindowContentRendererProps> = ({
         onNextPage={onNextPage}
         sessionId={sessionId}
         senderId={senderId}
+        onToggleSyncDirection={onToggleSyncDirection}
+        getSyncDirection={getSyncDirection}
+        isParticipantUpdating={isParticipantUpdating}
       />
     </div>,
     container
