@@ -56,21 +56,26 @@ const StudentBoardsGrid: React.FC<StudentBoardsGridProps> = ({
 
     return (
       <div className={`grid ${gridClass} gap-3 h-full`}>
-        {currentStudentBoardsInfo.map((boardInfo, index) => (
-          <div key={boardInfo?.boardId || `empty-${index}`} className="min-h-0 h-full">
-            <StudentBoardCard
-              boardInfo={boardInfo}
-              isMaximized={maximizedBoard === boardInfo?.boardId}
-              onMaximize={onMaximize}
-              onMinimize={onMinimize}
-              onRemoveStudent={onRemoveStudent}
-              onAddStudent={onAddStudent}
-              sessionId={sessionId}
-              senderId={senderId}
-              portalContainer={portalContainer}
-            />
-          </div>
-        ))}
+        {currentStudentBoardsInfo.map((boardInfo, index) => {
+          // Use stable key for React optimization
+          const key = boardInfo?.key || `empty-slot-${index}`;
+          
+          return (
+            <div key={key} className="min-h-0 h-full">
+              <StudentBoardCard
+                boardInfo={boardInfo}
+                isMaximized={maximizedBoard === boardInfo?.boardId}
+                onMaximize={onMaximize}
+                onMinimize={onMinimize}
+                onRemoveStudent={onRemoveStudent}
+                onAddStudent={onAddStudent}
+                sessionId={sessionId}
+                senderId={senderId}
+                portalContainer={portalContainer}
+              />
+            </div>
+          );
+        })}
       </div>
     );
   };

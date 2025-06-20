@@ -1,5 +1,5 @@
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Session } from '@/types/session';
 import { SessionParticipant } from '@/types/student';
@@ -10,33 +10,7 @@ export const useSessionStudents = (activeSession: Session | null | undefined) =>
   const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
 
-  useEffect(() => {
-    if (activeSession) {
-      fetchSessionStudents();
-      // Set up real-time subscription for participant changes
-      const channel = supabase
-        .channel(`session-participants-${activeSession.id}`)
-        .on(
-          'postgres_changes',
-          {
-            event: '*',
-            schema: 'public',
-            table: 'session_participants',
-            filter: `session_id=eq.${activeSession.id}`
-          },
-          () => {
-            fetchSessionStudents();
-          }
-        )
-        .subscribe();
-
-      return () => {
-        supabase.removeChannel(channel);
-      };
-    }
-  }, [activeSession]);
-
-  const fetchSessionStudents = async () => {
+  const fetchSessionStudents = useCallback(async () => {
     if (!activeSession) return;
 
     setIsLoading(true);
@@ -55,20 +29,99 @@ export const useSessionStudents = (activeSession: Session | null | undefined) =>
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [activeSession]);
 
-  // Get students with their join status
-  const getStudentsWithStatus = () => {
+  // Handle incremental updates to prevent full re-renders
+  const handleParticipantChange = useCallback((payload: any) => {
+    const { eventType, new: newRecord, old: oldRecord } = payload;
+    
+    setSessionStudents(prevStudents => {
+      switch (eventType) {
+        case 'INSERT':
+          // Check if already exists to prevent duplicates
+          const exists = prevStudents.some(s => s.id === newRecord.id);
+          if (exists) return prevStudents;
+          
+          // Insert in correct position based on assigned_board_suffix
+          const newStudents = [...prevStudents, newRecord];
+          return newStudents.sort((a, b) => a.assigned_board_suffix.localeCompare(b.assigned_board_suffix));
+          
+        case 'UPDATE':
+          // Only update the specific student that changed
+          return prevStudents.map(student => 
+            student.id === newRecord.id ? { ...student, ...newRecord } : student
+          );
+          
+        case 'DELETE':
+          // Remove only the deleted student
+          return prevStudents.filter(student => student.id !== oldRecord.id);
+          
+        default:
+          return prevStudents;
+      }
+    });
+  }, []);
+
+  useEffect(() => {
+    if (activeSession) {
+      fetchSessionStudents();
+      
+      // Set up real-time subscription with specific event handlers
+      const channel = supabase
+        .channel(`session-participants-${activeSession.id}`)
+        .on(
+          'postgres_changes',
+          {
+            event: 'INSERT',
+            schema: 'public',
+            table: 'session_participants',
+            filter: `session_id=eq.${activeSession.id}`
+          },
+          (payload) => handleParticipantChange({ ...payload, eventType: 'INSERT' })
+        )
+        .on(
+          'postgres_changes',
+          {
+            event: 'UPDATE',
+            schema: 'public',
+            table: 'session_participants',
+            filter: `session_id=eq.${activeSession.id}`
+          },
+          (payload) => handleParticipantChange({ ...payload, eventType: 'UPDATE' })
+        )
+        .on(
+          'postgres_changes',
+          {
+            event: 'DELETE',
+            schema: 'public',
+            table: 'session_participants',
+            filter: `session_id=eq.${activeSession.id}`
+          },
+          (payload) => handleParticipantChange({ ...payload, eventType: 'DELETE' })
+        )
+        .subscribe();
+
+      return () => {
+        supabase.removeChannel(channel);
+      };
+    }
+  }, [activeSession, fetchSessionStudents, handleParticipantChange]);
+
+  // Memoize students with status to maintain stable object references
+  const studentsWithStatus = useMemo(() => {
     return sessionStudents.map(student => ({
       ...student,
       hasJoined: student.joined_at !== null,
-      boardId: `student-board-${student.assigned_board_suffix.toLowerCase()}`, // Fixed: now matches teacher's view format
+      boardId: `student-board-${student.assigned_board_suffix.toLowerCase()}`,
       status: student.joined_at ? 'active' : 'pending' as 'active' | 'pending'
     }));
-  };
+  }, [sessionStudents]);
 
   // Count active students (who have actually joined)
-  const activeStudentCount = sessionStudents.filter(s => s.joined_at !== null).length;
+  const activeStudentCount = useMemo(() => 
+    sessionStudents.filter(s => s.joined_at !== null).length,
+    [sessionStudents]
+  );
   
   // Total registered students
   const totalStudentCount = sessionStudents.length;
@@ -179,7 +232,7 @@ export const useSessionStudents = (activeSession: Session | null | undefined) =>
 
   return {
     sessionStudents,
-    studentsWithStatus: getStudentsWithStatus(),
+    studentsWithStatus,
     activeStudentCount,
     totalStudentCount,
     handleAddIndividualStudent,

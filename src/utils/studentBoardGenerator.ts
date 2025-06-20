@@ -6,10 +6,12 @@ export interface StudentBoardInfo {
   studentName: string;
   status: 'active' | 'pending';
   participant?: SessionParticipant;
+  // Add stable key for React optimization
+  key: string;
 }
 
 /**
- * Generate student board information from session participants
+ * Generate student board information from session participants with stable references
  */
 export const generateStudentBoardsFromParticipants = (
   participants: SessionParticipant[]
@@ -19,6 +21,9 @@ export const generateStudentBoardsFromParticipants = (
     const boardSuffix = participant.assigned_board_suffix || 'unknown';
     // Generate correct board ID format for teacher's view of student boards
     const boardId = `student-board-${boardSuffix.toLowerCase()}`; // Now creates: student-board-a, student-board-b
+    
+    // Use participant ID as stable key to prevent unnecessary re-renders
+    const stableKey = `participant-${participant.id}`;
     
     // Validate that we're creating a valid string ID
     if (typeof boardId !== 'string' || !boardId) {
@@ -31,7 +36,8 @@ export const generateStudentBoardsFromParticipants = (
       boardId,
       studentName: participant.student_name || 'Unknown Student',
       status: participant.joined_at ? 'active' : 'pending',
-      participant
+      participant,
+      key: stableKey
     };
   });
 };

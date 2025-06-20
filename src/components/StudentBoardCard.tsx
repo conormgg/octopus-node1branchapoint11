@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { memo } from 'react';
 import { X, UserPlus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import WhiteboardPlaceholder from './WhiteboardPlaceholder';
@@ -124,4 +124,27 @@ const StudentBoardCard: React.FC<StudentBoardCardProps> = ({
   );
 };
 
-export default StudentBoardCard;
+// Custom comparison function to prevent unnecessary re-renders
+const areEqual = (prevProps: StudentBoardCardProps, nextProps: StudentBoardCardProps) => {
+  // If one is null and the other isn't, they're different
+  if ((!prevProps.boardInfo) !== (!nextProps.boardInfo)) return false;
+  
+  // If both are null, they're the same
+  if (!prevProps.boardInfo && !nextProps.boardInfo) return true;
+  
+  // If both exist, compare the key properties
+  if (prevProps.boardInfo && nextProps.boardInfo) {
+    const boardChanged = prevProps.boardInfo.boardId !== nextProps.boardInfo.boardId ||
+                        prevProps.boardInfo.status !== nextProps.boardInfo.status ||
+                        prevProps.boardInfo.studentName !== nextProps.boardInfo.studentName;
+    
+    if (boardChanged) return false;
+  }
+  
+  // Compare other props that affect rendering
+  return prevProps.isMaximized === nextProps.isMaximized &&
+         prevProps.sessionId === nextProps.sessionId &&
+         prevProps.senderId === nextProps.senderId;
+};
+
+export default memo(StudentBoardCard, areEqual);
