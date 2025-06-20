@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Session } from '@/types/session';
@@ -26,7 +25,8 @@ export const useSessionStudents = (activeSession: Session | null | undefined) =>
 
       if (error) throw error;
       debugLog('fetchStudents', `Fetched ${data?.length || 0} students`);
-      setSessionStudents(data || []);
+      // Cast the data to SessionParticipant[] to handle sync_direction type
+      setSessionStudents((data || []) as SessionParticipant[]);
     } catch (error) {
       console.error('Error fetching session students:', error);
       setSessionStudents([]);
@@ -48,14 +48,14 @@ export const useSessionStudents = (activeSession: Session | null | undefined) =>
           const exists = prevStudents.some(s => s.id === newRecord.id);
           if (exists) return prevStudents;
           
-          // Insert in correct position based on assigned_board_suffix
-          const newStudents = [...prevStudents, newRecord];
+          // Cast newRecord to SessionParticipant and insert in correct position
+          const newStudents = [...prevStudents, newRecord as SessionParticipant];
           return newStudents.sort((a, b) => a.assigned_board_suffix.localeCompare(b.assigned_board_suffix));
           
         case 'UPDATE':
-          // Only update the specific student that changed
+          // Only update the specific student that changed, cast to SessionParticipant
           return prevStudents.map(student => 
-            student.id === newRecord.id ? { ...student, ...newRecord } : student
+            student.id === newRecord.id ? { ...student, ...newRecord as SessionParticipant } : student
           );
           
         case 'DELETE':
