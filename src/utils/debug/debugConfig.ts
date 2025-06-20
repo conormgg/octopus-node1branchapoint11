@@ -83,10 +83,10 @@ const DEFAULT_DEBUG_CONFIG: DebugConfig = {
   history: false,
   panZoom: false,
   
-  // Sync and collaboration - TEMPORARILY ENABLED for debugging
-  sync: true,
-  operations: true,
-  connection: true,
+  // Sync and collaboration - TEMPORARILY REDUCED for debugging infinite loop
+  sync: false, // Disabled to reduce spam
+  operations: false, // Disabled to reduce spam
+  connection: false, // Disabled to reduce spam
   
   // Window management - disabled by default
   windows: false,
@@ -109,13 +109,13 @@ const DEFAULT_DEBUG_CONFIG: DebugConfig = {
 
 // Environment-based configuration
 const DEVELOPMENT_OVERRIDES: Partial<DebugConfig> = {
-  // Enable essential debugging in development for persistence issue
-  connection: true,
-  sync: true,
-  operations: true,
+  // Only enable essential debugging to identify infinite loop
+  connection: false, // Temporarily disabled
+  sync: false, // Temporarily disabled 
+  operations: false, // Temporarily disabled
   events: false, // Disable event spam completely
   palmRejection: false, // Disable palm rejection spam
-  layerOptimization: true, // Phase 2D.1: Enable layer optimization debugging
+  layerOptimization: false, // Disable layer optimization spam
 };
 
 // Create the active debug configuration

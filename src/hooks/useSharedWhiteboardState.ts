@@ -17,7 +17,7 @@
  * - Session-based persistence
  */
 
-import { useCallback } from 'react';
+import { useCallback, useRef, useMemo } from 'react';
 import { SyncConfig } from '@/types/sync';
 import { useSharedWhiteboardCore } from './shared/useSharedWhiteboardCore';
 import { useSharedNormalizedState } from './shared/useSharedNormalizedState';
@@ -47,25 +47,37 @@ const debugLog = createDebugLogger('state');
  * - useSharedOperationsHandler: Coordinates operations, persistence, and pointer handling
  */
 export const useSharedWhiteboardState = (syncConfig?: SyncConfig, whiteboardId?: string, containerWidth?: number, containerHeight?: number) => {
+  // Track render count to detect infinite loops
+  const renderCountRef = useRef(0);
+  renderCountRef.current += 1;
+  
+  // Log excessive renders only once every 50 renders to avoid spam
+  if (renderCountRef.current % 50 === 0) {
+    console.warn(`[RenderTracking] useSharedWhiteboardState rendered ${renderCountRef.current} times for ${whiteboardId}`);
+  }
+
   debugLog('Hook', 'Initializing useSharedWhiteboardState', { 
     syncConfig: syncConfig ? 'provided' : 'none',
     whiteboardId,
-    isReceiveOnly: syncConfig?.isReceiveOnly
+    isReceiveOnly: syncConfig?.isReceiveOnly,
+    renderCount: renderCountRef.current
   });
 
-  // Core state management
+  // Core state management - memoize to prevent unnecessary re-initialization
   const coreState = useSharedWhiteboardCore(whiteboardId);
   const { state, setState, selection, setTool, setColor, setPencilColor, setHighlighterColor, setStrokeWidth, panZoom } = coreState;
 
-  // Normalized state for performance optimization
+  // Normalized state for performance optimization - memoize dependencies
   const normalizedState = useSharedNormalizedState(state.lines, state.images, whiteboardId);
 
-  // Operations handling
+  // Operations handling - memoize to prevent re-initialization
   const operationsHandler = useSharedOperationsHandler(syncConfig, state, setState, panZoom, selection, whiteboardId);
   const { operations, handlePointerDown, handlePointerMove, handlePointerUp, deleteSelectedObjects } = operationsHandler;
 
-  // Use sync config to determine read-only status, with proper fallback
-  const isReadOnly = syncConfig?.isReceiveOnly || false;
+  // Use sync config to determine read-only status, with proper fallback - memoize
+  const isReadOnly = useMemo(() => {
+    return syncConfig?.isReceiveOnly || false;
+  }, [syncConfig?.isReceiveOnly]);
   
   debugLog('Hook', 'Read-only status determined', {
     isReadOnly,
@@ -73,7 +85,7 @@ export const useSharedWhiteboardState = (syncConfig?: SyncConfig, whiteboardId?:
     syncConfigReceiveOnly: syncConfig?.isReceiveOnly
   });
 
-  // Enhanced centering function that uses viewport dimensions
+  // Enhanced centering function that uses viewport dimensions - memoize to prevent re-creation
   const centerOnLastActivity = useCallback((bounds: { x: number; y: number; width: number; height: number }) => {
     if (!panZoom.centerOnBounds || !containerWidth || !containerHeight) {
       debugLog('CenterOnActivity', 'Cannot center - missing dependencies', {
@@ -90,7 +102,7 @@ export const useSharedWhiteboardState = (syncConfig?: SyncConfig, whiteboardId?:
     });
     
     panZoom.centerOnBounds(bounds, containerWidth, containerHeight);
-  }, [panZoom, containerWidth, containerHeight]);
+  }, [panZoom.centerOnBounds, containerWidth, containerHeight]);
 
   // Reduce logging noise for last activity checks
   const currentActivity = operations.getLastActivity?.();
@@ -102,7 +114,8 @@ export const useSharedWhiteboardState = (syncConfig?: SyncConfig, whiteboardId?:
     hasLastActivity: !!currentActivity
   });
 
-  return {
+  // Memoize the return object to prevent unnecessary re-renders
+  return useMemo(() => ({
     state,
     // Expose normalized state for components that can use it
     normalizedState,
@@ -132,5 +145,34 @@ export const useSharedWhiteboardState = (syncConfig?: SyncConfig, whiteboardId?:
     selection,
     isReadOnly,
     whiteboardId // Expose whiteboard ID for component identification
-  };
+  }), [
+    state,
+    normalizedState,
+    operations.syncState,
+    setTool,
+    setColor,
+    setPencilColor,
+    setHighlighterColor,
+    setStrokeWidth,
+    handlePointerDown,
+    handlePointerMove,
+    handlePointerUp,
+    operations.handlePaste,
+    operations.addToHistory,
+    operations.undo,
+    operations.redo,
+    operations.canUndo,
+    operations.canRedo,
+    operations.getLastActivity,
+    centerOnLastActivity,
+    panZoom,
+    operations.updateImageState,
+    operations.updateLine,
+    operations.updateImage,
+    operations.toggleImageLock,
+    deleteSelectedObjects,
+    selection,
+    isReadOnly,
+    whiteboardId
+  ]);
 };
