@@ -1,3 +1,4 @@
+
 import { supabase } from '@/integrations/supabase/client';
 import { ConnectionInfo, OperationHandler } from './types';
 import { PayloadConverter } from './PayloadConverter';
@@ -10,7 +11,6 @@ export class Connection {
   private info: ConnectionInfo;
   private connectionId: string;
   private readonly originalConfig: SyncConfig; // Store immutable original config
-  private channelName: string;
   
   constructor(config: SyncConfig, handler: OperationHandler) {
     // Store the original config as immutable to prevent overwrites
@@ -19,15 +19,9 @@ export class Connection {
     // Include senderId in connectionId to ensure unique connections per sender
     this.connectionId = `${config.whiteboardId}-${config.sessionId}-${config.senderId}`;
     
-    // Create a unique channel name that won't conflict with participant channels
-    // Format: wb-sync-{whiteboardId}-{timestamp} for absolute uniqueness
-    this.channelName = `wb-sync-${config.whiteboardId}-${Date.now()}`;
-    
-    debugLog('Connection', `Creating whiteboard sync channel: ${this.channelName} for connection ${this.connectionId}`);
-    debugLog('Connection', `SENDER ID FIX: Connection using sender ID: ${config.senderId} for whiteboard: ${config.whiteboardId}`);
-    
+    const channelName = `whiteboard-${config.whiteboardId}`;
     const channel = supabase
-      .channel(this.channelName)
+      .channel(channelName)
       .on(
         'postgres_changes',
         {
@@ -39,13 +33,9 @@ export class Connection {
         (payload) => this.handlePayload(payload)
       )
       .subscribe((status) => {
-        debugLog('Subscription', `Whiteboard sync status for ${this.connectionId}: ${status} (channel: ${this.channelName})`);
+        debugLog('Subscription', `Status for ${this.connectionId}: ${status}`);
         this.info.isConnected = status === 'SUBSCRIBED';
         this.info.lastActivity = Date.now();
-        
-        if (status === 'CHANNEL_ERROR') {
-          logError('Connection', `Channel error for ${this.connectionId}`, { channelName: this.channelName });
-        }
       });
     
     this.info = {
@@ -56,7 +46,7 @@ export class Connection {
       lastActivity: Date.now()
     };
     
-    debugLog('Connection', `Created connection ${this.connectionId} with senderId: ${config.senderId}, channel: ${this.channelName}`);
+    debugLog('Connection', `Created connection ${this.connectionId} with senderId: ${config.senderId}`);
   }
   
   /**
@@ -73,17 +63,14 @@ export class Connection {
     // Update activity timestamp
     this.info.lastActivity = Date.now();
     
-    // CRITICAL FIX: Enhanced filtering logic with better debugging
-    debugLog('Dispatch', `SENDER ID FILTER CHECK: Operation from: ${operation.sender_id}, local sender: ${this.originalConfig.senderId}`);
-    
     // Notify all registered handlers except the sender
     this.info.handlers.forEach(handler => {
       // Don't send operations back to the sender using the ORIGINAL config
       if (operation.sender_id !== this.originalConfig.senderId) {
-        debugLog('Dispatch', `✅ FORWARDING operation from: ${operation.sender_id} to local handler (${this.originalConfig.senderId})`);
+        debugLog('Dispatch', `Operation to handler from: ${operation.sender_id}, local: ${this.originalConfig.senderId}`);
         handler(operation);
       } else {
-        debugLog('Dispatch', `❌ FILTERING operation from self (${operation.sender_id}) - sender ID match`);
+        debugLog('Dispatch', `Skipping operation from self (${operation.sender_id})`);
       }
     });
   }
@@ -146,8 +133,8 @@ export class Connection {
    * Close this connection
    */
   close() {
-    debugLog('Connection', `Closing connection ${this.connectionId} and removing channel ${this.channelName}`);
     supabase.removeChannel(this.info.channel);
+    debugLog('Connection', `Closed connection ${this.connectionId}`);
   }
   
   /**
@@ -172,6 +159,11 @@ export class Connection {
   }
   
   /**
+   * REMOVED: updateConfig method to prevent config overwrites
+   * Each connection maintains its immutable original configuration
+   */
+  
+  /**
    * Get the connection ID
    */
   getConnectionId(): string {
@@ -183,12 +175,5 @@ export class Connection {
    */
   getSenderId(): string {
     return this.originalConfig.senderId;
-  }
-  
-  /**
-   * Get the channel name for debugging
-   */
-  getChannelName(): string {
-    return this.channelName;
   }
 }

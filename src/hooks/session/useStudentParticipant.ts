@@ -9,7 +9,6 @@ const debugLog = createDebugLogger('session-students');
 export const useStudentParticipant = (sessionId: string, boardSuffix: string) => {
   const [participant, setParticipant] = useState<SessionParticipant | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [lastSyncDirectionUpdate, setLastSyncDirectionUpdate] = useState<number>(0);
 
   const fetchParticipant = useCallback(async () => {
     if (!sessionId || !boardSuffix) return;
@@ -38,20 +37,14 @@ export const useStudentParticipant = (sessionId: string, boardSuffix: string) =>
     }
   }, [sessionId, boardSuffix]);
 
-  // Enhanced real-time subscription with unique channel naming to prevent conflicts
+  // Enhanced real-time subscription with proper object reference handling
   useEffect(() => {
     fetchParticipant();
 
     if (!sessionId || !boardSuffix) return;
 
-    // Use a unique channel name that won't conflict with whiteboard sync channels
-    // Format: participant-{sessionId}-{boardSuffix}-{timestamp} for absolute uniqueness
-    const uniqueChannelName = `participant-${sessionId}-${boardSuffix}-${Date.now()}`;
-    
-    debugLog('realtime', `Creating participant subscription channel: ${uniqueChannelName}`);
-
     const channel = supabase
-      .channel(uniqueChannelName)
+      .channel(`student-participant-${sessionId}-${boardSuffix}`)
       .on(
         'postgres_changes',
         {
@@ -68,33 +61,14 @@ export const useStudentParticipant = (sessionId: string, boardSuffix: string) =>
             debugLog('realtime', `Participant updated for board ${boardSuffix}:`, updatedParticipant);
             debugLog('realtime', `Sync direction changed to: ${updatedParticipant.sync_direction}`);
             
-            // CRITICAL: Force immediate sync direction update with timestamp
-            const timestamp = Date.now();
-            setLastSyncDirectionUpdate(timestamp);
-            
-            // Create new object reference to ensure React detects the change
-            const newParticipant = { ...updatedParticipant };
-            setParticipant(newParticipant);
-            
-            debugLog('realtime', `IMMEDIATE sync direction update triggered at ${timestamp}`);
-            
-            // Force a small delay to ensure all sync configs recalculate
-            setTimeout(() => {
-              debugLog('realtime', 'Sync direction propagation complete');
-            }, 50);
+            // CRITICAL FIX: Create new object reference to ensure React detects the change
+            setParticipant({ ...updatedParticipant });
           }
         }
       )
-      .subscribe((status) => {
-        debugLog('realtime', `Participant subscription status: ${status} for channel ${uniqueChannelName}`);
-        
-        if (status === 'CHANNEL_ERROR') {
-          debugLog('realtime', `Channel error for ${uniqueChannelName}, attempting to recover`);
-        }
-      });
+      .subscribe();
 
     return () => {
-      debugLog('realtime', `Cleaning up participant subscription channel: ${uniqueChannelName}`);
       supabase.removeChannel(channel);
     };
   }, [sessionId, boardSuffix, fetchParticipant]);
@@ -102,7 +76,6 @@ export const useStudentParticipant = (sessionId: string, boardSuffix: string) =>
   return {
     participant,
     isLoading,
-    refetch: fetchParticipant,
-    lastSyncDirectionUpdate // NEW: Expose timestamp for forcing re-renders
+    refetch: fetchParticipant
   };
 };

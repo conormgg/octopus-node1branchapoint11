@@ -25,8 +25,7 @@ interface WhiteboardPlaceholderProps {
   portalContainer?: Element | null;
   participant?: SessionParticipant | null;
   currentUserRole?: 'teacher' | 'student';
-  currentSyncDirection?: SyncDirection; // Override sync direction for optimistic updates
-  lastSyncDirectionUpdate?: number; // NEW: Force recalculation when sync direction changes
+  currentSyncDirection?: SyncDirection; // NEW: Override sync direction for optimistic updates
 }
 
 const WhiteboardPlaceholder: React.FC<WhiteboardPlaceholderProps> = ({
@@ -42,8 +41,7 @@ const WhiteboardPlaceholder: React.FC<WhiteboardPlaceholderProps> = ({
   portalContainer,
   participant,
   currentUserRole,
-  currentSyncDirection,
-  lastSyncDirectionUpdate // NEW: Accept update timestamp
+  currentSyncDirection // NEW: Accept override sync direction
 }) => {
   const [syncState, setSyncState] = useState<{ isConnected: boolean; isReceiveOnly: boolean } | null>(null);
   
@@ -74,8 +72,7 @@ const WhiteboardPlaceholder: React.FC<WhiteboardPlaceholderProps> = ({
     senderId || 'unknown-sender',
     participant,
     userRole,
-    currentSyncDirection, // Pass override sync direction
-    lastSyncDirectionUpdate // NEW: Pass update timestamp for forced recalculation
+    currentSyncDirection // NEW: Pass override sync direction
   );
 
   const handleMaximizeClick = () => {
