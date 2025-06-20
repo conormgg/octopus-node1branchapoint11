@@ -3,7 +3,9 @@ import React, { memo } from 'react';
 import { X, UserPlus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import WhiteboardPlaceholder from './WhiteboardPlaceholder';
+import SyncDirectionToggle from './SyncDirectionToggle';
 import { StudentBoardInfo } from '@/utils/studentBoardGenerator';
+import { SyncDirection } from '@/types/student';
 
 interface StudentBoardCardProps {
   boardInfo: StudentBoardInfo | null;
@@ -15,6 +17,11 @@ interface StudentBoardCardProps {
   sessionId?: string;
   senderId?: string;
   portalContainer?: Element | null;
+  // New props for sync direction control
+  onToggleSyncDirection?: (participantId: number) => Promise<boolean>;
+  getSyncDirection?: (participantId: number) => SyncDirection;
+  isParticipantUpdating?: (participantId: number) => boolean;
+  isTeacher?: boolean;
 }
 
 const StudentBoardCard: React.FC<StudentBoardCardProps> = ({
@@ -27,6 +34,10 @@ const StudentBoardCard: React.FC<StudentBoardCardProps> = ({
   sessionId,
   senderId,
   portalContainer,
+  onToggleSyncDirection,
+  getSyncDirection,
+  isParticipantUpdating,
+  isTeacher = false,
 }) => {
   // Empty slot - compressed/hidden for now, can be expanded later for "add student" functionality
   if (!boardInfo) {
@@ -99,6 +110,15 @@ const StudentBoardCard: React.FC<StudentBoardCardProps> = ({
     shouldBeReadOnly: true // Teacher view should always be read-only
   });
 
+  // Get current sync direction if participant and functions are available
+  const currentSyncDirection = boardInfo.participant && getSyncDirection 
+    ? getSyncDirection(boardInfo.participant.id)
+    : 'student_active';
+  
+  const isUpdating = boardInfo.participant && isParticipantUpdating 
+    ? isParticipantUpdating(boardInfo.participant.id)
+    : false;
+
   return (
     <div className="h-full relative">
       {/* Student name badge */}
@@ -110,6 +130,19 @@ const StudentBoardCard: React.FC<StudentBoardCardProps> = ({
           </span>
         </div>
       </div>
+
+      {/* Sync Direction Toggle - Only show for teachers with active students */}
+      {isTeacher && boardInfo.participant && onToggleSyncDirection && (
+        <div className="absolute top-2 right-2 z-10">
+          <SyncDirectionToggle
+            participantId={boardInfo.participant.id}
+            currentDirection={currentSyncDirection}
+            isUpdating={isUpdating}
+            onToggle={onToggleSyncDirection}
+            studentName={boardInfo.studentName}
+          />
+        </div>
+      )}
 
       <WhiteboardPlaceholder
         id={boardInfo.boardId}
@@ -140,6 +173,14 @@ const areEqual = (prevProps: StudentBoardCardProps, nextProps: StudentBoardCardP
     
     if (boardChanged) return false;
   }
+  
+  // Compare sync direction related props
+  const syncPropsChanged = prevProps.isTeacher !== nextProps.isTeacher ||
+                          (prevProps.boardInfo?.participant?.id && nextProps.getSyncDirection &&
+                           prevProps.getSyncDirection?.(prevProps.boardInfo.participant.id) !== 
+                           nextProps.getSyncDirection(prevProps.boardInfo.participant.id));
+  
+  if (syncPropsChanged) return false;
   
   // Compare other props that affect rendering
   return prevProps.isMaximized === nextProps.isMaximized &&

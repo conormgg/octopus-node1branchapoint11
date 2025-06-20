@@ -4,7 +4,7 @@ import TeacherSessionViewHeader from './TeacherSessionViewHeader';
 import TeacherSessionMainContent from './TeacherSessionMainContent';
 import { generateStudentBoardsFromParticipants, generateGridSlotsWithStatus } from '@/utils/studentBoardGenerator';
 import { GridOrientation } from '../TeacherView';
-import { SessionParticipant } from '@/types/student';
+import { SessionParticipant, SyncDirection } from '@/types/student';
 
 interface StudentWithStatus extends SessionParticipant {
   hasJoined: boolean;
@@ -51,6 +51,10 @@ interface TeacherSessionViewProps {
   onAddIndividualStudent?: (name: string, email: string) => Promise<void>;
   onRemoveIndividualStudent?: (participantId: number) => Promise<void>;
   teacherSenderId?: string;
+  // New sync direction props
+  onToggleSyncDirection?: (participantId: number) => Promise<boolean>;
+  getSyncDirection?: (participantId: number) => SyncDirection;
+  isParticipantUpdating?: (participantId: number) => boolean;
 }
 
 const TeacherSessionView: React.FC<TeacherSessionViewProps> = ({
@@ -82,6 +86,9 @@ const TeacherSessionView: React.FC<TeacherSessionViewProps> = ({
   onAddIndividualStudent,
   onRemoveIndividualStudent,
   teacherSenderId,
+  onToggleSyncDirection,
+  getSyncDirection,
+  isParticipantUpdating,
 }) => {
   // Generate student boards with status information using the correct SessionParticipant[] type
   const allStudentBoards = generateStudentBoardsFromParticipants(sessionStudents);
@@ -143,6 +150,9 @@ const TeacherSessionView: React.FC<TeacherSessionViewProps> = ({
         onOrientationChange={onOrientationChange}
         onCloseSplitView={onCloseSplitView}
         teacherSenderId={teacherSenderId}
+        onToggleSyncDirection={onToggleSyncDirection}
+        getSyncDirection={getSyncDirection}
+        isParticipantUpdating={isParticipantUpdating}
       />
     </div>
   );

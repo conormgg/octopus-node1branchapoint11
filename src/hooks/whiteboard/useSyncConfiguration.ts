@@ -27,11 +27,18 @@ export const useSyncConfiguration = (
       isReceiveOnly = true;
       debugLog('config', `Teacher viewing ${whiteboardId} - receive-only mode`);
     } else if (currentUserRole === 'student') {
-      // Student on their personal board - check sync direction
+      // Student on their personal board - check sync direction from participant data
       const syncDirection = participant?.sync_direction || 'student_active';
       isReceiveOnly = syncDirection === 'teacher_active';
       
       debugLog('config', `Student on ${whiteboardId} - sync direction: ${syncDirection}, receive-only: ${isReceiveOnly}`);
+      
+      // Additional logging for sync direction changes
+      if (syncDirection === 'teacher_active') {
+        debugLog('config', `Student board ${whiteboardId} is under teacher control - read-only mode`);
+      } else {
+        debugLog('config', `Student board ${whiteboardId} is under student control - interactive mode`);
+      }
     }
 
     const config: SyncConfig = {

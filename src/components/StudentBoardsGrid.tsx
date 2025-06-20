@@ -7,6 +7,7 @@ import PersistentPageNavigation from './PersistentPageNavigation';
 import { LayoutOption, getOrientationAwareGridClasses } from '@/utils/layoutCalculator';
 import { GridOrientation } from './TeacherView';
 import { StudentBoardInfo } from '@/utils/studentBoardGenerator';
+import { SyncDirection } from '@/types/student';
 
 interface StudentBoardsGridProps {
   studentCount: number;
@@ -27,6 +28,11 @@ interface StudentBoardsGridProps {
   sessionId?: string;
   senderId?: string;
   portalContainer?: Element | null;
+  // New sync direction props
+  onToggleSyncDirection?: (participantId: number) => Promise<boolean>;
+  getSyncDirection?: (participantId: number) => SyncDirection;
+  isParticipantUpdating?: (participantId: number) => boolean;
+  isTeacher?: boolean;
 }
 
 const StudentBoardsGrid: React.FC<StudentBoardsGridProps> = ({
@@ -48,6 +54,10 @@ const StudentBoardsGrid: React.FC<StudentBoardsGridProps> = ({
   sessionId,
   senderId,
   portalContainer,
+  onToggleSyncDirection,
+  getSyncDirection,
+  isParticipantUpdating,
+  isTeacher = false,
 }) => {
   const renderStudentGrid = () => {
     if (!currentLayout) return null;
@@ -72,6 +82,10 @@ const StudentBoardsGrid: React.FC<StudentBoardsGridProps> = ({
                 sessionId={sessionId}
                 senderId={senderId}
                 portalContainer={portalContainer}
+                onToggleSyncDirection={onToggleSyncDirection}
+                getSyncDirection={getSyncDirection}
+                isParticipantUpdating={isParticipantUpdating}
+                isTeacher={isTeacher}
               />
             </div>
           );
