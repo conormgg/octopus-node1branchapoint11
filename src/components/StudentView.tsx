@@ -13,7 +13,7 @@ interface StudentViewProps {
 
 const StudentView: React.FC<StudentViewProps> = ({ sessionId, boardSuffix, senderId }) => {
   const [maximizedBoard, setMaximizedBoard] = useState<string | null>(null);
-  const { participant } = useStudentParticipant(sessionId, boardSuffix);
+  const { participant, lastSyncDirectionUpdate } = useStudentParticipant(sessionId, boardSuffix);
 
   const handleMaximize = (boardId: string) => {
     setMaximizedBoard(boardId);
@@ -109,6 +109,7 @@ const StudentView: React.FC<StudentViewProps> = ({ sessionId, boardSuffix, sende
                   senderId={senderId}
                   participant={participant}
                   currentUserRole="student"
+                  lastSyncDirectionUpdate={lastSyncDirectionUpdate} // NEW: Pass timestamp for forcing updates
                 />
               </div>
             </div>

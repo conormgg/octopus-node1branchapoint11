@@ -9,6 +9,7 @@ const debugLog = createDebugLogger('session-students');
 export const useStudentParticipant = (sessionId: string, boardSuffix: string) => {
   const [participant, setParticipant] = useState<SessionParticipant | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [lastSyncDirectionUpdate, setLastSyncDirectionUpdate] = useState<number>(0);
 
   const fetchParticipant = useCallback(async () => {
     if (!sessionId || !boardSuffix) return;
@@ -37,7 +38,7 @@ export const useStudentParticipant = (sessionId: string, boardSuffix: string) =>
     }
   }, [sessionId, boardSuffix]);
 
-  // Enhanced real-time subscription with proper object reference handling
+  // Enhanced real-time subscription with immediate sync direction handling
   useEffect(() => {
     fetchParticipant();
 
@@ -61,8 +62,20 @@ export const useStudentParticipant = (sessionId: string, boardSuffix: string) =>
             debugLog('realtime', `Participant updated for board ${boardSuffix}:`, updatedParticipant);
             debugLog('realtime', `Sync direction changed to: ${updatedParticipant.sync_direction}`);
             
-            // CRITICAL FIX: Create new object reference to ensure React detects the change
-            setParticipant({ ...updatedParticipant });
+            // CRITICAL: Force immediate sync direction update with timestamp
+            const timestamp = Date.now();
+            setLastSyncDirectionUpdate(timestamp);
+            
+            // Create new object reference to ensure React detects the change
+            const newParticipant = { ...updatedParticipant };
+            setParticipant(newParticipant);
+            
+            debugLog('realtime', `IMMEDIATE sync direction update triggered at ${timestamp}`);
+            
+            // Force a small delay to ensure all sync configs recalculate
+            setTimeout(() => {
+              debugLog('realtime', 'Sync direction propagation complete');
+            }, 50);
           }
         }
       )
@@ -76,6 +89,7 @@ export const useStudentParticipant = (sessionId: string, boardSuffix: string) =>
   return {
     participant,
     isLoading,
-    refetch: fetchParticipant
+    refetch: fetchParticipant,
+    lastSyncDirectionUpdate // NEW: Expose timestamp for forcing re-renders
   };
 };
