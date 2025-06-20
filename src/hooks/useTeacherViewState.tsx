@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useMemo, useCallback } from 'react';
 import { GridOrientation } from '@/components/TeacherView';
 import { calculateLayoutOptions, LayoutOption } from '@/utils/layoutCalculator';
@@ -23,6 +22,7 @@ export const useTeacherViewState = (studentCount: number) => {
   const totalPages = currentLayout?.totalPages || 1;
 
   // Intelligent layout management - only change when necessary
+  // FIXED: Removed circular dependencies from dependency array
   useEffect(() => {
     if (studentCount === 0) return;
 
@@ -41,7 +41,7 @@ export const useTeacherViewState = (studentCount: number) => {
       console.log('[TeacherViewState] Current page out of bounds, resetting to 0');
       setCurrentPage(0);
     }
-  }, [studentCount, availableLayouts, selectedLayoutId, currentPage]);
+  }, [studentCount, availableLayouts]); // REMOVED: selectedLayoutId, currentPage from dependencies
 
   const handleMaximize = useCallback((boardId: string) => {
     setMaximizedBoard(boardId);
