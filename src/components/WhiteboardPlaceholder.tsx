@@ -10,7 +10,7 @@ import { useEscapeKeyHandler } from '@/hooks/whiteboard/useEscapeKeyHandler';
 import { useEyeButtonLogic } from '@/hooks/whiteboard/useEyeButtonLogic';
 import { useSyncConfiguration } from '@/hooks/whiteboard/useSyncConfiguration';
 import { logError } from '@/utils/debug/debugConfig';
-import { SessionParticipant } from '@/types/student';
+import { SessionParticipant, SyncDirection } from '@/types/student';
 
 interface WhiteboardPlaceholderProps {
   id: string;
@@ -25,6 +25,7 @@ interface WhiteboardPlaceholderProps {
   portalContainer?: Element | null;
   participant?: SessionParticipant | null;
   currentUserRole?: 'teacher' | 'student';
+  currentSyncDirection?: SyncDirection; // NEW: Override sync direction for optimistic updates
 }
 
 const WhiteboardPlaceholder: React.FC<WhiteboardPlaceholderProps> = ({
@@ -39,7 +40,8 @@ const WhiteboardPlaceholder: React.FC<WhiteboardPlaceholderProps> = ({
   senderId,
   portalContainer,
   participant,
-  currentUserRole
+  currentUserRole,
+  currentSyncDirection // NEW: Accept override sync direction
 }) => {
   const [syncState, setSyncState] = useState<{ isConnected: boolean; isReceiveOnly: boolean } | null>(null);
   
@@ -69,7 +71,8 @@ const WhiteboardPlaceholder: React.FC<WhiteboardPlaceholderProps> = ({
     sessionId, 
     senderId || 'unknown-sender',
     participant,
-    userRole
+    userRole,
+    currentSyncDirection // NEW: Pass override sync direction
   );
 
   const handleMaximizeClick = () => {

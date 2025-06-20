@@ -1,3 +1,4 @@
+
 import React, { memo } from 'react';
 import { X, UserPlus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -135,6 +136,7 @@ const StudentBoardCard: React.FC<StudentBoardCardProps> = ({
         portalContainer={portalContainer}
         participant={boardInfo.participant}
         currentUserRole="teacher"
+        currentSyncDirection={currentSyncDirection} // NEW: Pass optimistic sync direction
       />
     </div>
   );
