@@ -122,9 +122,9 @@ const StudentBoardCard: React.FC<StudentBoardCardProps> = ({
         </div>
       </div>
 
-      {/* Sync Direction Toggle - Only show for teachers with active students */}
+      {/* Sync Direction Toggle - Moved to bottom left corner */}
       {isTeacher && boardInfo.participant && onToggleSyncDirection && (
-        <div className="absolute top-2 right-2 z-10">
+        <div className="absolute bottom-2 left-2 z-10">
           <SyncDirectionToggle
             participantId={boardInfo.participant.id}
             currentDirection={currentSyncDirection}
