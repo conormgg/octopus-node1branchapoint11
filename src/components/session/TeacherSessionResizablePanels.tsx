@@ -5,6 +5,7 @@ import TeacherMainBoard from '../TeacherMainBoard';
 import StudentBoardsGrid from '../StudentBoardsGrid';
 import { GridOrientation } from '../TeacherView';
 import { StudentBoardInfo } from '@/utils/studentBoardGenerator';
+import { SyncDirection } from '@/types/student';
 
 interface TeacherSessionResizablePanelsProps {
   activeSession: {
@@ -30,6 +31,10 @@ interface TeacherSessionResizablePanelsProps {
   onMinimize: () => void;
   onPreviousPage: () => void;
   onNextPage: () => void;
+  // Add sync direction props
+  onToggleSyncDirection?: (participantId: number) => Promise<boolean>;
+  getSyncDirection?: (participantId: number) => SyncDirection;
+  isParticipantUpdating?: (participantId: number) => boolean;
 }
 
 const TeacherSessionResizablePanels: React.FC<TeacherSessionResizablePanelsProps> = ({
@@ -49,6 +54,9 @@ const TeacherSessionResizablePanels: React.FC<TeacherSessionResizablePanelsProps
   onMinimize,
   onPreviousPage,
   onNextPage,
+  onToggleSyncDirection,
+  getSyncDirection,
+  isParticipantUpdating,
 }) => {
   return (
     <ResizablePanelGroup direction="horizontal" className="rounded-lg overflow-hidden">
@@ -87,6 +95,10 @@ const TeacherSessionResizablePanels: React.FC<TeacherSessionResizablePanelsProps
             isHeaderCollapsed={isControlsCollapsed}
             sessionId={activeSession.id}
             senderId={teacherSenderId || activeSession.teacher_id}
+            onToggleSyncDirection={onToggleSyncDirection}
+            getSyncDirection={getSyncDirection}
+            isParticipantUpdating={isParticipantUpdating}
+            isTeacher={true}
           />
         </div>
       </ResizablePanel>

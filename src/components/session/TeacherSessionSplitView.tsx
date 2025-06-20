@@ -4,6 +4,7 @@ import TeacherMainBoard from '../TeacherMainBoard';
 import StudentBoardsWindow from '../StudentBoardsWindow';
 import { GridOrientation } from '../TeacherView';
 import { StudentBoardInfo } from '@/utils/studentBoardGenerator';
+import { SyncDirection } from '@/types/student';
 
 interface TeacherSessionSplitViewProps {
   activeSession: {
@@ -34,6 +35,10 @@ interface TeacherSessionSplitViewProps {
   onLayoutChange: (layoutId: string) => void;
   onOrientationChange: (orientation: GridOrientation) => void;
   onCloseSplitView: () => void;
+  // Add sync direction props
+  onToggleSyncDirection?: (participantId: number) => Promise<boolean>;
+  getSyncDirection?: (participantId: number) => SyncDirection;
+  isParticipantUpdating?: (participantId: number) => boolean;
 }
 
 const TeacherSessionSplitView: React.FC<TeacherSessionSplitViewProps> = ({
@@ -58,6 +63,9 @@ const TeacherSessionSplitView: React.FC<TeacherSessionSplitViewProps> = ({
   onLayoutChange,
   onOrientationChange,
   onCloseSplitView,
+  onToggleSyncDirection,
+  getSyncDirection,
+  isParticipantUpdating,
 }) => {
   return (
     <>
@@ -79,6 +87,9 @@ const TeacherSessionSplitView: React.FC<TeacherSessionSplitViewProps> = ({
         onClose={onCloseSplitView}
         sessionId={activeSession.id}
         senderId={teacherSenderId || activeSession.teacher_id}
+        onToggleSyncDirection={onToggleSyncDirection}
+        getSyncDirection={getSyncDirection}
+        isParticipantUpdating={isParticipantUpdating}
       />
 
       {/* Single panel view - only teacher's board when split view is active */}

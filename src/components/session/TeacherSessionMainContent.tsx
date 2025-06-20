@@ -4,6 +4,7 @@ import TeacherSessionSplitView from './TeacherSessionSplitView';
 import TeacherSessionResizablePanels from './TeacherSessionResizablePanels';
 import { GridOrientation } from '../TeacherView';
 import { StudentBoardInfo } from '@/utils/studentBoardGenerator';
+import { SyncDirection } from '@/types/student';
 
 interface TeacherSessionMainContentProps {
   activeSession: {
@@ -35,6 +36,10 @@ interface TeacherSessionMainContentProps {
   onLayoutChange: (layoutId: string) => void;
   onOrientationChange: (orientation: GridOrientation) => void;
   onCloseSplitView: () => void;
+  // Add sync direction props
+  onToggleSyncDirection?: (participantId: number) => Promise<boolean>;
+  getSyncDirection?: (participantId: number) => SyncDirection;
+  isParticipantUpdating?: (participantId: number) => boolean;
 }
 
 const TeacherSessionMainContent: React.FC<TeacherSessionMainContentProps> = ({
@@ -60,6 +65,9 @@ const TeacherSessionMainContent: React.FC<TeacherSessionMainContentProps> = ({
   onLayoutChange,
   onOrientationChange,
   onCloseSplitView,
+  onToggleSyncDirection,
+  getSyncDirection,
+  isParticipantUpdating,
 }) => {
   return (
     <div className={`flex-1 ${isControlsCollapsed ? 'h-screen' : 'h-[calc(100vh-5rem)]'} p-4`}>
@@ -86,6 +94,9 @@ const TeacherSessionMainContent: React.FC<TeacherSessionMainContentProps> = ({
           onLayoutChange={onLayoutChange}
           onOrientationChange={onOrientationChange}
           onCloseSplitView={onCloseSplitView}
+          onToggleSyncDirection={onToggleSyncDirection}
+          getSyncDirection={getSyncDirection}
+          isParticipantUpdating={isParticipantUpdating}
         />
       ) : (
         <TeacherSessionResizablePanels
@@ -105,6 +116,9 @@ const TeacherSessionMainContent: React.FC<TeacherSessionMainContentProps> = ({
           onMinimize={onMinimize}
           onPreviousPage={onPreviousPage}
           onNextPage={onNextPage}
+          onToggleSyncDirection={onToggleSyncDirection}
+          getSyncDirection={getSyncDirection}
+          isParticipantUpdating={isParticipantUpdating}
         />
       )}
     </div>

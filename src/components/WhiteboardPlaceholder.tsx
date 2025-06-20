@@ -55,7 +55,16 @@ const WhiteboardPlaceholder: React.FC<WhiteboardPlaceholderProps> = ({
   const { containerRef, whiteboardWidth, whiteboardHeight } = useWhiteboardDimensions(initialWidth, initialHeight, isMaximized);
   useEscapeKeyHandler(isMaximized, onMinimize);
   const { shouldShowEyeButton, handleEyeClick, handleLastActivityUpdate, handleCenterCallbackUpdate, hasLastActivity } = useEyeButtonLogic(id);
-  const syncConfig = useSyncConfiguration(id, sessionId, senderId);
+  
+  // Determine user role based on isTeacher prop and pass to sync configuration
+  const currentUserRole = isTeacher ? 'teacher' : 'student';
+  const syncConfig = useSyncConfiguration(
+    id, 
+    sessionId, 
+    senderId || 'unknown-sender',
+    null, // participant data - will be handled inside the hook if needed
+    currentUserRole
+  );
 
   const handleMaximizeClick = () => {
     if (isMaximized && onMinimize) {

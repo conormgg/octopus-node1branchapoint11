@@ -30,7 +30,7 @@ export const generateStudentBoardsFromParticipants = (
       console.error('[generateStudentBoardsFromParticipants] Invalid boardId generated:', boardId, 'for participant:', participant);
     }
 
-    console.log('[generateStudentBoardsFromParticipants] Generated board ID:', boardId, 'for participant:', participant.student_name);
+    // Removed noisy console.log that was flooding the console during renders
     
     return {
       boardId,
