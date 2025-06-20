@@ -4,6 +4,7 @@ import WindowContentRenderer from './WindowContentRenderer';
 import { LayoutOption } from '@/utils/layoutCalculator';
 import { GridOrientation } from './TeacherView';
 import { StudentBoardInfo } from '@/utils/studentBoardGenerator';
+import { SyncDirection } from '@/types/student';
 
 interface StudentBoardsWindowProps {
   studentCount: number;
@@ -23,6 +24,10 @@ interface StudentBoardsWindowProps {
   onClose: () => void;
   sessionId?: string;
   senderId?: string;
+  // Add sync direction props
+  onToggleSyncDirection?: (participantId: number) => Promise<boolean>;
+  getSyncDirection?: (participantId: number) => SyncDirection;
+  isParticipantUpdating?: (participantId: number) => boolean;
 }
 
 const StudentBoardsWindow: React.FC<StudentBoardsWindowProps> = ({
@@ -43,6 +48,9 @@ const StudentBoardsWindow: React.FC<StudentBoardsWindowProps> = ({
   onClose,
   sessionId,
   senderId,
+  onToggleSyncDirection,
+  getSyncDirection,
+  isParticipantUpdating,
 }) => {
   const [windowContainer, setWindowContainer] = useState<HTMLDivElement | null>(null);
 
@@ -87,6 +95,9 @@ const StudentBoardsWindow: React.FC<StudentBoardsWindowProps> = ({
       onClose={onClose}
       sessionId={sessionId}
       senderId={senderId}
+      onToggleSyncDirection={onToggleSyncDirection}
+      getSyncDirection={getSyncDirection}
+      isParticipantUpdating={isParticipantUpdating}
     />
   );
 };
