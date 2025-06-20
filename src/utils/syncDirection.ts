@@ -1,10 +1,9 @@
 
 import { supabase } from '@/integrations/supabase/client';
 import { createDebugLogger } from '@/utils/debug/debugConfig';
+import { SyncDirection } from '@/types/student';
 
 const debugLog = createDebugLogger('sync-direction');
-
-export type SyncDirection = 'student_active' | 'teacher_active';
 
 /**
  * Update sync direction for a specific session participant

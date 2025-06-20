@@ -47,6 +47,12 @@ export interface DebugConfig {
   
   // Session management
   session: boolean;
+  
+  // New sync direction management
+  'sync-direction': boolean;
+  'sync-direction-manager': boolean;
+  'sync-config': boolean;
+  'session-students': boolean;
 }
 
 // Default configuration - most debugging disabled by default
@@ -92,7 +98,13 @@ const DEFAULT_DEBUG_CONFIG: DebugConfig = {
   drawing: false,
   
   // Session management - disabled by default
-  session: false
+  session: false,
+  
+  // New sync direction management - disabled by default
+  'sync-direction': false,
+  'sync-direction-manager': false,
+  'sync-config': false,
+  'session-students': false
 };
 
 // Environment-based configuration

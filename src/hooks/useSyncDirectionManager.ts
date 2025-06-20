@@ -1,8 +1,8 @@
 
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { SessionParticipant } from '@/types/student';
-import { updateParticipantSyncDirection, SyncDirection } from '@/utils/syncDirection';
+import { SessionParticipant, SyncDirection } from '@/types/student';
+import { updateParticipantSyncDirection } from '@/utils/syncDirection';
 import { createDebugLogger } from '@/utils/debug/debugConfig';
 
 const debugLog = createDebugLogger('sync-direction-manager');
