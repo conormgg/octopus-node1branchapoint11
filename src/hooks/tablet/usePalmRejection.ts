@@ -6,6 +6,7 @@
 
 import { useCallback, useRef } from 'react';
 import { createDebugLogger } from '@/utils/debug/debugConfig';
+import { tabletDebugger, logPalmRejectionStatus } from '@/utils/tablet/tabletDebugger';
 
 const debugLog = createDebugLogger('palmRejection');
 
@@ -151,6 +152,10 @@ export const usePalmRejection = (config: Partial<PalmRejectionConfig> = {}) => {
       y: event.clientY
     };
 
+    // TABLET-FRIENDLY: Log event for debugging
+    const shouldProcess = analyzePointer(pointer);
+    tabletDebugger.logEvent(event, !shouldProcess, shouldProcess ? undefined : 'palm_rejection');
+
     // TABLET-FRIENDLY: PRIORITY - Always process stylus/pen input immediately
     if (pointer.pointerType === 'pen') {
       activePointers.current.set(pointer.id, pointer);
@@ -165,8 +170,21 @@ export const usePalmRejection = (config: Partial<PalmRejectionConfig> = {}) => {
     // TABLET-FRIENDLY: Update active pointers for cluster analysis
     activePointers.current.set(pointer.id, pointer);
 
-    return analyzePointer(pointer);
-  }, [analyzePointer]);
+    // TABLET-FRIENDLY: Log palm rejection status
+    if (!shouldProcess) {
+      const status = {
+        enabled: true,
+        activePointers: activePointers.current.size,
+        rejectedPointers: rejectedPointers.current.size,
+        lastDetectionTime: lastPalmDetection.current,
+        timeoutRemaining: Math.max(0, finalConfig.palmTimeoutMs - (Date.now() - lastPalmDetection.current)),
+        config: finalConfig
+      };
+      logPalmRejectionStatus(status);
+    }
+
+    return shouldProcess;
+  }, [analyzePointer, finalConfig]);
 
   /**
    * TABLET-FRIENDLY: Clean up pointer tracking when pointer is released
@@ -188,10 +206,25 @@ export const usePalmRejection = (config: Partial<PalmRejectionConfig> = {}) => {
     debugLog('PalmRejection', 'Palm rejection state reset');
   }, []);
 
+  /**
+   * TABLET-FRIENDLY: Get current palm rejection status for debugging
+   */
+  const getStatus = useCallback(() => {
+    return {
+      enabled: true,
+      activePointers: activePointers.current.size,
+      rejectedPointers: rejectedPointers.current.size,
+      lastDetectionTime: lastPalmDetection.current,
+      timeoutRemaining: Math.max(0, finalConfig.palmTimeoutMs - (Date.now() - lastPalmDetection.current)),
+      config: finalConfig
+    };
+  }, [finalConfig]);
+
   return {
     shouldProcessPointer,
     onPointerEnd,
     reset,
+    getStatus,
     activePointerCount: activePointers.current.size,
     config: finalConfig
   };
