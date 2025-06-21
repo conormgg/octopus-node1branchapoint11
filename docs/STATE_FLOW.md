@@ -35,9 +35,9 @@ ActivityMetadata {
    - User interaction → Event handler → Tool operation → State update → Activity tracking
    - Immediate UI feedback for responsiveness
 
-2. **Collaborative Operations** (real-time sync)
-   - Local operation → Activity metadata → Sync coordinator → Supabase realtime → Remote clients
-   - Remote operation → Operation handler → State merge → UI update
+2. **Collaborative Operations** (real-time sync with centralized channels)
+   - Local operation → Activity metadata → Sync coordinator → Supabase realtime → Centralized dispatch → Remote clients
+   - Remote operation → Centralized payload handler → Individual connection filtering → State merge → UI update
 
 3. **History Management** (undo/redo)
    - State changes → Activity metadata → History stack → Undo/redo operations → State restoration
@@ -47,29 +47,45 @@ ActivityMetadata {
    - User activity → Bounds calculation → Activity metadata → History integration → Button state update
    - Button click → Activity retrieval → Viewport centering
 
-## Sync Operation Flow (CRITICAL ARCHITECTURE)
+## Sync Operation Flow (CRITICAL ARCHITECTURE - UPDATED)
 
-### 🚨 Sender ID Filtering and Connection Management
+### 🚨 Centralized Channel Management and Sender ID Filtering
 
-The sync system uses a **sender-specific connection pooling** strategy that requires extreme care when modifying:
+The sync system now uses **centralized channel management with shared channels** that requires extreme care when modifying:
 
-#### Connection Creation and Lifecycle
+#### Channel Creation and Lifecycle (NEW)
 ```
-Component Mount:
+SyncConnectionManager (Singleton):
+Manages channels centrally - one channel per whiteboard shared by all connections
+
+First Connection for Whiteboard:
 syncConfig = { whiteboardId: 'board-123', sessionId: 'session-456', senderId: 'teacher1' }
     ↓
 SyncConnectionManager.registerHandler(syncConfig, handler)
     ↓
-connectionId = `board-123-session-456-teacher1` (includes sender ID)
+channelName = `whiteboard-board-123`
     ↓
-Check if connection exists:
-- If NO: Create new Connection with IMMUTABLE config
-- If YES: Add handler to existing connection, KEEP original config
+Create new Supabase channel + Subscribe to postgres_changes + Store in channels map
+    ↓
+Create Connection with shared channel: new Connection(config, handler, channel)
     ↓
 Connection stores originalConfig = { ...syncConfig } (NEVER modified)
+
+Second Connection for Same Whiteboard:
+syncConfig = { whiteboardId: 'board-123', sessionId: 'session-456', senderId: 'student1' }
+    ↓
+SyncConnectionManager.registerHandler(syncConfig, handler)
+    ↓
+channelName = `whiteboard-board-123` (SAME as first)
+    ↓
+Reuse existing channel from channels map
+    ↓
+Create NEW Connection with SAME shared channel: new Connection(config, handler, channel)
+    ↓
+Connection stores DIFFERENT originalConfig = { ...syncConfig } (senderId: 'student1')
 ```
 
-#### Operation Sending Flow
+#### Operation Sending Flow (UPDATED)
 ```
 Local User Action (Teacher1):
 User draws line → Tool handler → sendOperation({ type: 'draw', data: lineData })
@@ -81,64 +97,83 @@ Connection.sendOperation():
     ↓
 Supabase.insert(database_record)
     ↓
-Database triggers realtime notification to ALL subscribers
+Database triggers realtime notification to shared channel: whiteboard-board-123
 ```
 
-#### Operation Receiving Flow
+#### Centralized Operation Receiving Flow (NEW)
 ```
 Supabase Realtime Event:
-Database insert triggers realtime → ALL connections on same whiteboard receive payload
+Database insert triggers realtime → Shared channel whiteboard-board-123 receives payload
     ↓
-Connection.handlePayload(payload):
+SyncConnectionManager.handleChannelPayload(payload, whiteboardId):
 - Convert payload to WhiteboardOperation
-- Extract sender_id from operation
+- Dispatch to ALL connections for this whiteboard
     ↓
-Filter Logic (CRITICAL):
-if (operation.sender_id !== this.originalConfig.senderId) {
-  // Forward to handlers (not from self)
-  handlers.forEach(handler => handler(operation))
-} else {
-  // Skip - this is our own operation
-  debugLog('Skipping operation from self')
-}
+Centralized Dispatch Loop:
+connections.forEach((connection, connectionId) => {
+  if (connectionId.startsWith('board-123')) {
+    connection.handlePayload(payload); // SAME payload to ALL connections
+  }
+});
+    ↓
+Individual Connection Filtering (Teacher1):
+Connection.handlePayload(payload):
+- Extract sender_id from operation
+- Filter Logic: if (operation.sender_id !== 'teacher1') { handler(operation) }
+- Result: Receives operations from student1 ✓, blocks teacher1 ✗
+    ↓
+Individual Connection Filtering (Student1):
+Connection.handlePayload(payload):
+- Extract sender_id from operation  
+- Filter Logic: if (operation.sender_id !== 'student1') { handler(operation) }
+- Result: Receives operations from teacher1 ✓, blocks student1 ✗
 ```
 
-#### Multi-Component Scenario (Teacher1 + Student1)
+#### Multi-Component Scenario with Shared Channel (UPDATED)
 ```
-Teacher1 Component:
-- connectionId: 'board-123-session-456-teacher1'
-- originalConfig.senderId: 'teacher1'
-- Receives operations from: student1 ✓, teacher1 ✗ (filtered out)
-
-Student1 Component:
-- connectionId: 'board-123-session-456-student1'  
-- originalConfig.senderId: 'student1'
-- Receives operations from: teacher1 ✓, student1 ✗ (filtered out)
-
-Both share same Supabase channel but maintain separate sender identity!
+Shared Channel Architecture:
+Channel: whiteboard-board-123 (managed by SyncConnectionManager)
+├── Teacher1 Connection: 'board-123-session-456-teacher1'
+│   ├── originalConfig.senderId: 'teacher1' (IMMUTABLE)
+│   ├── Receives from: student1 ✓, teacher1 ✗ (filtered)
+│   └── Uses shared channel for sending/receiving
+├── Student1 Connection: 'board-123-session-456-student1'
+│   ├── originalConfig.senderId: 'student1' (IMMUTABLE)  
+│   ├── Receives from: teacher1 ✓, student1 ✗ (filtered)
+│   └── Uses SAME shared channel for sending/receiving
+└── Centralized Dispatch: ALL connections get SAME payload, filter individually
 ```
 
-### Connection Pooling and Handler Management
+### Connection Pooling and Handler Management (UPDATED)
 ```
-First Handler Registration:
-registerHandler(config, handler1) → Create new connection → Store immutable config
+First Handler Registration (Teacher1):
+registerHandler(teacherConfig, teacherHandler) → Create channel + connection → Store immutable config
 
-Second Handler Registration (same sender):
-registerHandler(config, handler2) → Reuse connection → Add handler2 → Keep original config
+First Handler Registration (Student1, same whiteboard):
+registerHandler(studentConfig, studentHandler) → Reuse channel + create new connection → Store different immutable config
+
+Additional Handler (Teacher1, same config):
+registerHandler(teacherConfig, newHandler) → Reuse connection → Add handler → Keep original config
 
 Component Unmount:
-unregisterHandler(config, handler) → Remove handler → Start 30s grace period → Cleanup if unused
+unregisterHandler(config, handler) → Remove handler → Start 30s grace period → Cleanup connection + channel if unused
 ```
 
-### Debug Logging for Sync Issues
+### Debug Logging for Centralized Sync Issues (UPDATED)
 ```typescript
 // Enable sync debugging
 const debugLog = createDebugLogger('sync');
 
-// Connection creation
-debugLog('Connection', `Created connection ${connectionId} with senderId: ${config.senderId}`);
+// Centralized channel creation
+debugLog('Manager', `Creating and subscribing to new Supabase channel: ${channelName}`);
+debugLog('Manager', `Channel ${channelName} subscription status: ${status}`);
 
-// Operation filtering
+// Centralized payload dispatch
+debugLog('Manager', 'Received payload from channel:', payload);
+debugLog('Manager', `Dispatching to connections for whiteboard: ${whiteboardId}`);
+
+// Individual connection filtering  
+debugLog('Connection', `Created connection ${connectionId} with senderId: ${config.senderId}`);
 debugLog('Dispatch', `Operation from: ${operation.sender_id}, local: ${this.originalConfig.senderId}`);
 debugLog('Dispatch', `Skipping operation from self (${operation.sender_id})`);
 
@@ -151,10 +186,10 @@ debugLog('Manager', `Keeping original config for ${connectionId} to prevent send
 ### Synchronized Undo/Redo Operations
 ```
 Teacher Action:
-User clicks undo/redo → History operation → Send undo/redo operation → Supabase realtime
+User clicks undo/redo → History operation → Send undo/redo operation → Supabase realtime → Centralized dispatch
     ↓
 Student Sync:
-Receive undo/redo operation → Apply to local history → State update → UI refresh
+Receive undo/redo operation via shared channel → Individual filtering → Apply to local history → State update → UI refresh
 ```
 
 ### History Replay System
@@ -231,22 +266,25 @@ paste → calculate image bounds → create paste activity + history
 move/resize → calculate new bounds → create move activity + history
 ```
 
-## Sync Operation Flow
+## Sync Operation Flow (UPDATED)
 
-### Local to Remote
+### Local to Remote (with Centralized Channels)
 1. User performs operation (draw, erase, undo, redo, etc.)
 2. Activity metadata generated and stored locally (if applicable)
 3. Operation serialized to sync payload
-4. Sent via Supabase realtime channel
-5. Other clients receive and apply operation
-6. Activity metadata synchronized for eye button
+4. Sent via shared Supabase channel (managed by SyncConnectionManager)
+5. Centralized dispatch to all connections for the whiteboard
+6. Individual filtering by each connection
+7. Remote state updates and activity metadata synchronization
 
-### Remote to Local
-1. Receive operation from Supabase realtime
-2. Deserialize operation payload
-3. Apply to local state (bypassing local handlers)
-4. Update UI to reflect changes
-5. Activity metadata integrated into local history
+### Remote to Local (with Centralized Dispatch)
+1. Receive operation from shared Supabase channel
+2. Centralized dispatch to all relevant connections
+3. Individual connection filtering (sender ID comparison)
+4. Deserialize operation payload (if not filtered out)
+5. Apply to local state (bypassing local handlers)
+6. Update UI to reflect changes
+7. Activity metadata integrated into local history
 
 ## Eye Button State Flow
 
@@ -275,40 +313,90 @@ Activity Creation → History Snapshot → Database Storage (via operations)
 Page Refresh → Database Load → Activity Reconstruction → Button State Restore
 ```
 
-## Critical State Considerations
+## Critical State Considerations (UPDATED)
 
 - **Race Conditions**: Operations are timestamped and ordered
 - **Conflict Resolution**: Last-write-wins for simplicity
-- **State Consistency**: All clients eventually converge to same state
+- **State Consistency**: All clients eventually converge to same state via shared channels
 - **Performance**: Only send incremental changes, not full state
 - **Activity Persistence**: Activity metadata preserved across sessions
 - **Memory Management**: Activity timeout to prevent unbounded growth
 - **Cross-Window Sync**: Activity state maintained across minimize/maximize
 - **History Replay**: Pure simulation ensures accurate state reconstruction
-- **Undo/Redo Sync**: Teacher1-Student1 synchronized undo/redo operations
+- **Undo/Redo Sync**: Teacher1-Student1 synchronized undo/redo operations via shared channels
+- **🚨 Channel Sharing**: Multiple connections per whiteboard share one Supabase channel
+- **🚨 Centralized Dispatch**: All connections for a whiteboard receive the same payload
+- **🚨 Individual Filtering**: Each connection filters based on its own immutable sender ID
 - **🚨 Sender ID Immutability**: Connection configs NEVER change after creation
-- **🚨 Operation Filtering**: Critical for preventing infinite loops and echo-back
-- **🚨 Connection Isolation**: Different sender IDs must maintain separate connections
+- **🚨 Operation Filtering**: Critical for preventing infinite loops with shared channels
+- **🚨 Connection Isolation**: Different sender IDs maintain separate filtering despite shared channels
 
-## Debugging Sync Issues
+## Debugging Sync Issues (UPDATED)
 
-### Common Symptoms and Causes
-1. **Infinite Loops**: Usually caused by operation echo-back (check sender ID filtering)
-2. **Missing Operations**: Check if sender IDs are being overwritten
-3. **Cross-Component Interference**: Verify connection isolation by sender ID
+### Common Symptoms and Causes (Updated for Centralized Architecture)
+1. **Infinite Loops**: Usually caused by operation echo-back (check sender ID filtering with shared channels)
+2. **Missing Operations**: Check if centralized dispatch is working correctly
+3. **Cross-Component Interference**: Verify connection isolation by sender ID despite shared channels
 4. **Config Overwrites**: Look for unauthorized `updateConfig` calls
+5. **Channel Management Issues**: Check if channels are being created/cleaned up properly
+6. **Dispatch Failures**: Verify centralized payload dispatch to all connections
 
-### Debug Checklist
+### Debug Checklist (Updated)
 ```typescript
-// Check connection creation
-debugLog('Connection', `Created connection ${connectionId} with senderId: ${config.senderId}`);
+// Check centralized channel creation
+debugLog('Manager', `Creating and subscribing to new Supabase channel: ${channelName}`);
 
-// Verify filtering logic
+// Verify channel subscription status
+debugLog('Manager', `Channel ${channelName} subscription status: ${status}`);
+
+// Monitor centralized dispatch
+debugLog('Manager', 'Received payload from channel:', payload);
+debugLog('Manager', `Dispatching to connections for whiteboard: ${whiteboardId}`);
+
+// Check individual connection filtering
+debugLog('Connection', `Created connection ${connectionId} with senderId: ${config.senderId}`);
 debugLog('Dispatch', `Operation from: ${operation.sender_id}, local: ${this.originalConfig.senderId}`);
 
 // Confirm config immutability
 debugLog('Manager', `Keeping original config for ${connectionId} to prevent sender ID conflicts`);
 
-// Monitor connection reuse
+// Monitor connection reuse with shared channels
 debugLog('Manager', `Reusing existing connection for ${connectionId}`);
+debugLog('Manager', `Reusing existing channel: ${channelName}`);
+```
+
+## Real-time Connection Issues (UPDATED)
+
+### Centralized Architecture Benefits
+The new centralized channel management helps resolve cross-browser/cross-context real-time issues:
+
+**Improved Reliability:**
+- **Consistent Channel Creation**: All browser contexts use the same channel creation logic
+- **Centralized Error Handling**: WebSocket errors handled in one place
+- **Better Resource Management**: One channel per whiteboard instead of one per connection
+- **Unified Debugging**: All payload dispatch happens centrally
+
+**Cross-Context Compatibility:**
+- **iPad Safari**: Improved WebSocket handling with centralized management
+- **Incognito Mode**: Consistent channel behavior across contexts
+- **Brave Browser**: Better compatibility with ad-blockers
+- **Background Tabs**: Reduced impact of tab throttling
+
+### Debug Steps for Real-time Issues (Updated)
+```typescript
+// 1. Check centralized channel creation and subscription
+const channel = this.channels.get(channelName);
+console.log('Channel state:', channel?.state); // Should be 'joined'
+debugLog('Manager', `Channel ${channelName} subscription status: ${status}`);
+
+// 2. Verify centralized payload dispatch
+debugLog('Manager', 'Received payload from channel:', payload);
+debugLog('Manager', `Dispatching to connections for whiteboard: ${whiteboardId}`);
+
+// 3. Check individual connection filtering after dispatch
+debugLog('Dispatch', `Operation from: ${operation.sender_id}, local: ${this.originalConfig.senderId}`);
+
+// 4. Monitor connection and channel lifecycle
+debugLog('Manager', `Active connections for whiteboard ${whiteboardId}:`, 
+  Array.from(this.connections.keys()).filter(id => id.startsWith(whiteboardId)));
 ```

@@ -48,7 +48,14 @@ const MovableToolbar: React.FC<MovableToolbarProps> = ({
   containerHeight = 0,
   portalContainer
 }) => {
-  const { position, isDragging, toolbarRef, handleMouseDown } = useToolbarDrag({
+  const { 
+    position, 
+    isDragging, 
+    toolbarRef, 
+    handleMouseDown, 
+    handleTouchStart, 
+    handlePointerDown 
+  } = useToolbarDrag({
     containerWidth,
     containerHeight,
     externalPortalContainer: portalContainer
@@ -75,14 +82,22 @@ const MovableToolbar: React.FC<MovableToolbarProps> = ({
       style={{
         left: `${position.x}px`,
         top: `${position.y}px`,
-        cursor: isDragging ? 'grabbing' : 'grab'
+        cursor: isDragging ? 'grabbing' : 'grab',
+        // iPad-specific optimizations
+        WebkitUserSelect: 'none',
+        WebkitTouchCallout: 'none',
+        WebkitTapHighlightColor: 'transparent',
+        touchAction: 'none', // Prevent scrolling during drag
+        userSelect: 'none'
       }}
     >
       <div
         className="p-2 flex items-center justify-between"
         onMouseDown={handleMouseDown}
+        onTouchStart={handleTouchStart}
+        onPointerDown={handlePointerDown}
       >
-        <div className="flex space-x-1" onMouseDown={(e) => e.stopPropagation()}>
+        <div className="flex space-x-1" onMouseDown={(e) => e.stopPropagation()} onTouchStart={(e) => e.stopPropagation()} onPointerDown={(e) => e.stopPropagation()}>
           {/* Pen tool with dropdown */}
           <ToolDropdown
             icon={<Pen className="h-4 w-4" />}

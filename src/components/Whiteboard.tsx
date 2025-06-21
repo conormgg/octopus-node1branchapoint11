@@ -7,24 +7,42 @@ import { useWhiteboardState } from '@/hooks/useWhiteboardState';
 import { Settings } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+// TABLET-FRIENDLY: Import consolidated tablet configuration
+import { TabletEventConfig, DEFAULT_TABLET_CONFIG } from '@/hooks/tablet';
+
+/**
+ * TABLET-FRIENDLY: Interface for palm rejection configuration (legacy compatibility)
+ */
+interface PalmRejectionConfig {
+  maxContactSize: number;
+  minPressure: number;
+  palmTimeoutMs: number;
+  clusterDistance: number;
+  preferStylus: boolean;
+  enabled: boolean;
+}
 
 interface WhiteboardProps {
   isReadOnly?: boolean;
 }
 
+/**
+ * TABLET-FRIENDLY: Main whiteboard component with comprehensive tablet support
+ * @description Provides drawing interface optimized for tablets, stylus devices, and desktop
+ */
 const Whiteboard: React.FC<WhiteboardProps> = ({ isReadOnly = false }) => {
   const [dimensions, setDimensions] = useState({ width: 0, height: 0 });
   const containerRef = React.useRef<HTMLDivElement>(null);
   const whiteboardState = useWhiteboardState();
 
-  // Palm rejection configuration
-  const [palmRejectionConfig, setPalmRejectionConfig] = useState({
-    maxContactSize: 40,
-    minPressure: 0.1,
-    palmTimeoutMs: 500,
-    clusterDistance: 100,
-    preferStylus: true,
-    enabled: false
+  // TABLET-FRIENDLY: Palm rejection configuration - enable by default for better iPad stylus support
+  const [palmRejectionConfig, setPalmRejectionConfig] = useState<PalmRejectionConfig>({
+    maxContactSize: DEFAULT_TABLET_CONFIG.maxContactSize,
+    minPressure: DEFAULT_TABLET_CONFIG.minPressure,
+    palmTimeoutMs: DEFAULT_TABLET_CONFIG.palmTimeoutMs,
+    clusterDistance: DEFAULT_TABLET_CONFIG.clusterDistance,
+    preferStylus: DEFAULT_TABLET_CONFIG.preferStylus,
+    enabled: DEFAULT_TABLET_CONFIG.palmRejectionEnabled // Enable by default for optimal iPad stylus experience
   });
 
   const updateDimensions = () => {
@@ -37,8 +55,17 @@ const Whiteboard: React.FC<WhiteboardProps> = ({ isReadOnly = false }) => {
   useEffect(() => {
     updateDimensions();
     window.addEventListener('resize', updateDimensions);
+    
+    // TABLET-FRIENDLY: Add document-level text selection prevention
+    const preventTextSelection = (e: Event) => e.preventDefault();
+    
+    document.addEventListener('selectstart', preventTextSelection);
+    document.addEventListener('dragstart', preventTextSelection);
+    
     return () => {
       window.removeEventListener('resize', updateDimensions);
+      document.removeEventListener('selectstart', preventTextSelection);
+      document.removeEventListener('dragstart', preventTextSelection);
     };
   }, []);
 
@@ -46,13 +73,30 @@ const Whiteboard: React.FC<WhiteboardProps> = ({ isReadOnly = false }) => {
     whiteboardState.setStrokeWidth(width);
   };
 
+  // TABLET-FRIENDLY: Enhanced container styles for iPad stylus support with comprehensive text selection prevention
+  const containerStyles = {
+    WebkitUserSelect: 'none' as const,
+    WebkitTouchCallout: 'none' as const,
+    WebkitTapHighlightColor: 'transparent' as const,
+    touchAction: palmRejectionConfig.enabled ? 'none' : 'manipulation',
+    userSelect: 'none' as const,
+    MozUserSelect: 'none' as const,
+    msUserSelect: 'none' as const,
+    // TABLET-FRIENDLY: iPad-specific optimizations
+    WebkitTextSizeAdjust: 'none' as const,
+    WebkitFontSmoothing: 'antialiased' as const
+  };
+
   return (
-    <div ref={containerRef} className="relative w-full h-full select-none" style={{ 
-      WebkitUserSelect: 'none',
-      WebkitTouchCallout: 'none',
-      touchAction: 'none'
-    }}>
-      {/* Palm Rejection Settings Button - moved to bottom-right */}
+    <div 
+      ref={containerRef} 
+      className="relative w-full h-full select-none" 
+      style={containerStyles}
+      // TABLET-FRIENDLY: Prevent default on pointer interactions
+      onPointerDown={(e) => e.preventDefault()}
+      onMouseDown={(e) => e.preventDefault()}
+    >
+      {/* TABLET-FRIENDLY: Palm Rejection Settings Button - moved to bottom-right */}
       {!isReadOnly && (
         <div className="absolute bottom-2 right-2 z-20">
           <Popover>

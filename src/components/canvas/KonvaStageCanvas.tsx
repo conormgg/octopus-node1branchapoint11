@@ -86,6 +86,13 @@ const KonvaStageCanvas: React.FC<KonvaStageCanvasProps> = ({
     onStageClick
   });
 
+  // CRITICAL FIX: Wrap touch start handler to ensure preventDefault at Stage level
+  const handleStageTouchStart = (e: Konva.KonvaEventObject<TouchEvent>) => {
+    // Prevent browser's default touch behavior at the Stage level
+    e.evt.preventDefault();
+    handleTouchStart(e);
+  };
+
   const cursor = useStageCursor({ currentTool, selection });
 
   return (
@@ -97,7 +104,7 @@ const KonvaStageCanvas: React.FC<KonvaStageCanvasProps> = ({
       onMouseMove={handleMouseMove}
       onMouseUp={handleMouseUp}
       onMouseLeave={handleMouseUp}
-      onTouchStart={handleTouchStart}
+      onTouchStart={handleStageTouchStart}
       style={{ cursor }}
     >
       {/* Images layer - rendered first (behind) */}
@@ -116,7 +123,7 @@ const KonvaStageCanvas: React.FC<KonvaStageCanvasProps> = ({
         onUpdateLine={onUpdateLine}
         onUpdateImage={onUpdateImage}
         onTransformEnd={onTransformEnd}
-        stageRef={stageRef} // Pass stageRef for viewport calculations
+        stageRef={stageRef}
       />
     </Stage>
   );
