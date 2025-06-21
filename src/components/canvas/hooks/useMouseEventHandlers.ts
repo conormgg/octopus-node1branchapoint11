@@ -24,6 +24,10 @@ interface UseMouseEventHandlersProps {
   onStageClick?: (e: Konva.KonvaEventObject<MouseEvent | TouchEvent>) => void;
   selection?: {
     setHoveredObjectId?: (id: string | null) => void;
+    isPointInSelectionBounds?: (point: { x: number; y: number }) => boolean;
+    selectionState?: {
+      selectedObjects: any[];
+    };
   };
 }
 
@@ -70,17 +74,32 @@ export const useMouseEventHandlers = ({
           return;
         }
         
-        // Handle selection tool clicks
+        // FIXED: Special handling for select tool to preserve selection behavior
         if (stableCurrentTool === 'select' && selection && !stableIsReadOnly) {
-          // Check if we clicked on a line or image
+          const stage = e.target.getStage();
+          if (!stage) return;
+          
+          const { x, y } = getRelativePointerPosition(stage, e.evt.clientX, e.evt.clientY);
+          
+          // Check if clicking within existing selection bounds
+          const isInSelectionBounds = selection.isPointInSelectionBounds && selection.isPointInSelectionBounds({ x, y });
+          
+          if (isInSelectionBounds && selection.selectionState?.selectedObjects?.length > 0) {
+            // Clicking within selection bounds - allow group dragging without clearing selection
+            return;
+          }
+          
+          // Check if we clicked on a shape
           const clickedShape = e.target;
-          if (clickedShape && clickedShape !== e.target.getStage()) {
+          if (clickedShape && clickedShape !== stage) {
             // Don't handle the click here - let the shape's onClick handler deal with it
             // This allows dragging to work properly
             return;
           }
-          // For empty space clicks with select tool, let handlePointerDown handle it
-          // so that drag-to-select can work
+          
+          // Only proceed with drag-to-select for empty space clicks
+          handlePointerDown(x, y);
+          return;
         } else if (onStageClick && stableCurrentTool !== 'select') {
           // Call the stage click handler for other tools
           onStageClick(e);

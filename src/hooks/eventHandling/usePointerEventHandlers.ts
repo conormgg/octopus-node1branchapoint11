@@ -26,6 +26,7 @@ interface UsePointerEventHandlersProps {
   currentToolRef: React.RefObject<string>;
   logEventHandling: (eventType: string, source: 'pointer' | 'touch' | 'mouse', detail?: Record<string, unknown>) => void;
   supportsPointerEvents: boolean;
+  selection: any; // FIXED: Add selection object
 }
 
 export const usePointerEventHandlers = ({
@@ -41,7 +42,8 @@ export const usePointerEventHandlers = ({
   isReadOnly,
   currentToolRef,
   logEventHandling,
-  supportsPointerEvents
+  supportsPointerEvents,
+  selection // FIXED: Accept selection
 }: UsePointerEventHandlersProps) => {
   /**
    * Pointer events are used when:
@@ -62,7 +64,8 @@ export const usePointerEventHandlers = ({
     handlePointerUp,
     isReadOnly,
     currentToolRef,
-    logEventHandling
+    logEventHandling,
+    selection // FIXED: Pass selection through
   });
 
   // Set up event listeners

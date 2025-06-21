@@ -109,13 +109,18 @@ const KonvaStage: React.FC<KonvaStageProps> = ({
       return false;
     };
 
+    const preventDragStart = (e: Event) => {
+      e.preventDefault();
+      return false;
+    };
+    
     // TABLET-FRIENDLY: Add event listeners to prevent text selection
     container.addEventListener('selectstart', preventSelection);
-    container.addEventListener('dragstart', preventSelection);
+    container.addEventListener('dragstart', preventDragStart);
 
     return () => {
       container.removeEventListener('selectstart', preventSelection);
-      container.removeEventListener('dragstart', preventSelection);
+      container.removeEventListener('dragstart', preventDragStart);
     };
   }, []);
 
@@ -133,7 +138,7 @@ const KonvaStage: React.FC<KonvaStageProps> = ({
     whiteboardId
   });
 
-  // TABLET-FRIENDLY: Set up all event handlers with new tablet-aware system
+  // TABLET-FRIENDLY: Set up all event handlers with new tablet-aware system - FIXED: Pass selection
   useStageEventHandlers({
     containerRef,
     stageRef,
@@ -144,7 +149,8 @@ const KonvaStage: React.FC<KonvaStageProps> = ({
     handlePointerDown,
     handlePointerMove,
     handlePointerUp,
-    isReadOnly
+    isReadOnly,
+    selection // FIXED: Pass selection object through
   });
 
   // TABLET-FRIENDLY: Enhanced touch action for iPad stylus support

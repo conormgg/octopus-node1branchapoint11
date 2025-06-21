@@ -31,6 +31,7 @@ interface UseStageEventHandlersProps {
   handlePointerMove: (x: number, y: number) => void;
   handlePointerUp: () => void;
   isReadOnly: boolean;
+  selection: any; // FIXED: Add selection object
 }
 
 export const useStageEventHandlers = ({
@@ -43,7 +44,8 @@ export const useStageEventHandlers = ({
   handlePointerDown,
   handlePointerMove,
   handlePointerUp,
-  isReadOnly
+  isReadOnly,
+  selection // FIXED: Accept selection
 }: UseStageEventHandlersProps) => {
   // Event debugging utilities
   const { logEventHandling } = useEventDebug(palmRejectionConfig);
@@ -92,6 +94,7 @@ export const useStageEventHandlers = ({
     isReadOnly,
     currentToolRef,
     logEventHandling,
-    supportsPointerEvents
+    supportsPointerEvents,
+    selection // FIXED: Pass selection through
   });
 };
