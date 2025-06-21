@@ -1,5 +1,5 @@
 
-import React, { useRef } from 'react';
+import React, { useRef, useEffect } from 'react';
 import Konva from 'konva';
 import { useWhiteboardState } from '@/hooks/useWhiteboardState';
 import { useNormalizedWhiteboardState } from '@/hooks/performance/useNormalizedWhiteboardState';
@@ -63,6 +63,26 @@ const KonvaStage: React.FC<KonvaStageProps> = ({
 
   const palmRejection = usePalmRejection(palmRejectionConfig);
 
+  // Add text selection prevention at DOM level
+  useEffect(() => {
+    const container = containerRef.current;
+    if (!container) return;
+
+    const preventSelection = (e: Event) => {
+      e.preventDefault();
+      return false;
+    };
+
+    // Add event listeners to prevent text selection
+    container.addEventListener('selectstart', preventSelection);
+    container.addEventListener('dragstart', preventSelection);
+
+    return () => {
+      container.removeEventListener('selectstart', preventSelection);
+      container.removeEventListener('dragstart', preventSelection);
+    };
+  }, []);
+
   // Use focused hooks for specific functionality
   useKonvaPanZoomSync({
     stageRef,
@@ -119,8 +139,8 @@ const KonvaStage: React.FC<KonvaStageProps> = ({
       }}
       tabIndex={0}
       data-whiteboard-id={whiteboardId}
-      onSelectStart={(e) => e.preventDefault()}
-      onDragStart={(e) => e.preventDefault()}
+      onPointerDown={(e) => e.preventDefault()}
+      onMouseDown={(e) => e.preventDefault()}
     >
       <KonvaImageContextMenuHandler
         whiteboardState={whiteboardState}

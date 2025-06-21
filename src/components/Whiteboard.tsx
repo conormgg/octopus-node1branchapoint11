@@ -37,8 +37,17 @@ const Whiteboard: React.FC<WhiteboardProps> = ({ isReadOnly = false }) => {
   useEffect(() => {
     updateDimensions();
     window.addEventListener('resize', updateDimensions);
+    
+    // Add document-level text selection prevention
+    const preventTextSelection = (e: Event) => e.preventDefault();
+    
+    document.addEventListener('selectstart', preventTextSelection);
+    document.addEventListener('dragstart', preventTextSelection);
+    
     return () => {
       window.removeEventListener('resize', updateDimensions);
+      document.removeEventListener('selectstart', preventTextSelection);
+      document.removeEventListener('dragstart', preventTextSelection);
     };
   }, []);
 
@@ -65,8 +74,8 @@ const Whiteboard: React.FC<WhiteboardProps> = ({ isReadOnly = false }) => {
       ref={containerRef} 
       className="relative w-full h-full select-none" 
       style={containerStyles}
-      onSelectStart={(e) => e.preventDefault()}
-      onDragStart={(e) => e.preventDefault()}
+      onPointerDown={(e) => e.preventDefault()}
+      onMouseDown={(e) => e.preventDefault()}
     >
       {/* Palm Rejection Settings Button - moved to bottom-right */}
       {!isReadOnly && (

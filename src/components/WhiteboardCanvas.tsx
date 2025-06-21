@@ -38,8 +38,8 @@ const WhiteboardCanvas: React.FC<WhiteboardCanvasProps> = ({
         MozUserSelect: 'none',
         msUserSelect: 'none'
       }}
-      onSelectStart={(e) => e.preventDefault()}
-      onDragStart={(e) => e.preventDefault()}
+      onPointerDown={(e) => e.preventDefault()}
+      onMouseDown={(e) => e.preventDefault()}
     >
       <KonvaStage
         width={width}
