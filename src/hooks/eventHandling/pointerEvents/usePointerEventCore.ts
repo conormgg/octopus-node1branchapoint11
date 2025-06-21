@@ -149,8 +149,8 @@ export const usePointerEventCore = ({
     if (!pointerPos) return false;
     
     const intersected = stage.getIntersection(pointerPos);
-    // FIXED: Check if we have an intersection and it's not the stage background
-    return intersected !== null && intersected !== stage;
+    // FIXED: Check if we have an intersection (which means we clicked on a shape)
+    return intersected !== null;
   }, [stageRef]);
 
   // Use memoized event handlers for better performance
