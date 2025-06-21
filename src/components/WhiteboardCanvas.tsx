@@ -28,11 +28,19 @@ const WhiteboardCanvas: React.FC<WhiteboardCanvasProps> = ({
   palmRejectionConfig
 }) => {
   return (
-    <div className="relative w-full h-full bg-white rounded-lg overflow-hidden select-none" style={{ 
-      WebkitUserSelect: 'none',
-      WebkitTouchCallout: 'none',
-      touchAction: 'none'
-    }}>
+    <div 
+      className="relative w-full h-full bg-white rounded-lg overflow-hidden select-none" 
+      style={{ 
+        WebkitUserSelect: 'none',
+        WebkitTouchCallout: 'none',
+        touchAction: 'none',
+        userSelect: 'none',
+        MozUserSelect: 'none',
+        msUserSelect: 'none'
+      }}
+      onSelectStart={(e) => e.preventDefault()}
+      onDragStart={(e) => e.preventDefault()}
+    >
       <KonvaStage
         width={width}
         height={height}

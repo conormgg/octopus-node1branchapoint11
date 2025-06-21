@@ -46,12 +46,15 @@ const Whiteboard: React.FC<WhiteboardProps> = ({ isReadOnly = false }) => {
     whiteboardState.setStrokeWidth(width);
   };
 
-  // Enhanced container styles for iPad stylus support
+  // Enhanced container styles for iPad stylus support with comprehensive text selection prevention
   const containerStyles = {
     WebkitUserSelect: 'none' as const,
     WebkitTouchCallout: 'none' as const,
     WebkitTapHighlightColor: 'transparent' as const,
     touchAction: palmRejectionConfig.enabled ? 'none' : 'manipulation',
+    userSelect: 'none' as const,
+    MozUserSelect: 'none' as const,
+    msUserSelect: 'none' as const,
     // iPad-specific optimizations
     WebkitTextSizeAdjust: 'none' as const,
     WebkitFontSmoothing: 'antialiased' as const
@@ -62,6 +65,8 @@ const Whiteboard: React.FC<WhiteboardProps> = ({ isReadOnly = false }) => {
       ref={containerRef} 
       className="relative w-full h-full select-none" 
       style={containerStyles}
+      onSelectStart={(e) => e.preventDefault()}
+      onDragStart={(e) => e.preventDefault()}
     >
       {/* Palm Rejection Settings Button - moved to bottom-right */}
       {!isReadOnly && (

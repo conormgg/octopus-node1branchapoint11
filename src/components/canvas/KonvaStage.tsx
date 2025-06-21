@@ -110,12 +110,17 @@ const KonvaStage: React.FC<KonvaStageProps> = ({
         WebkitTouchCallout: 'none',
         WebkitTapHighlightColor: 'transparent',
         touchAction: getTouchAction(),
+        userSelect: 'none',
+        MozUserSelect: 'none',
+        msUserSelect: 'none',
         // iPad-specific optimizations for stylus input
         WebkitTextSizeAdjust: 'none',
         WebkitFontSmoothing: 'antialiased'
       }}
       tabIndex={0}
       data-whiteboard-id={whiteboardId}
+      onSelectStart={(e) => e.preventDefault()}
+      onDragStart={(e) => e.preventDefault()}
     >
       <KonvaImageContextMenuHandler
         whiteboardState={whiteboardState}

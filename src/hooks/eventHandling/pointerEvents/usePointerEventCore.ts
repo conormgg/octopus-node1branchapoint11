@@ -48,16 +48,32 @@ export const usePointerEventCore = ({
     lastDistance: number;
     lastCenter: { x: number; y: number };
     isPanning: boolean;
+    isDrawing: boolean;
   }>({
     isMultiTouch: false,
     lastDistance: 0,
     lastCenter: { x: 0, y: 0 },
-    isPanning: false
+    isPanning: false,
+    isDrawing: false
   });
 
   // Memoize stable values to prevent unnecessary re-renders
   const stablePalmRejectionEnabled = useMemo(() => palmRejectionConfig.enabled, [palmRejectionConfig.enabled]);
   const stableIsReadOnly = useMemo(() => isReadOnly, [isReadOnly]);
+
+  // Add document-level text selection prevention during drawing
+  const preventTextSelection = useCallback(() => {
+    const preventSelection = (e: Event) => e.preventDefault();
+    const preventDragStart = (e: Event) => e.preventDefault();
+    
+    document.addEventListener('selectstart', preventSelection);
+    document.addEventListener('dragstart', preventDragStart);
+    
+    return () => {
+      document.removeEventListener('selectstart', preventSelection);
+      document.removeEventListener('dragstart', preventDragStart);
+    };
+  }, []);
 
   // Helper function to calculate distance between two pointers
   const calculateDistance = useCallback((pointer1: PointerEvent, pointer2: PointerEvent) => {
@@ -129,6 +145,9 @@ export const usePointerEventCore = ({
         const stage = stageRef.current;
         if (!stage) return;
 
+        // ALWAYS prevent default to stop text selection and other browser behaviors
+        e.preventDefault();
+
         logEventHandling('pointerdown', 'pointer', { 
           pointerId: e.pointerId, 
           pointerType: e.pointerType,
@@ -157,7 +176,6 @@ export const usePointerEventCore = ({
         
         // Handle right-click pan - works for everyone, including read-only users
         if (shouldHandlePanning(e)) {
-          e.preventDefault();
           gestureStateRef.current.isPanning = true;
           panZoom.startPan(e.clientX, e.clientY);
           return;
@@ -165,22 +183,28 @@ export const usePointerEventCore = ({
         
         // Handle drawing/selection input
         if (shouldHandleDrawing(e)) {
-          // Don't prevent default for select tool - let Konva handle dragging
-          if (currentToolRef.current !== 'select') {
-            e.preventDefault();
-          }
+          gestureStateRef.current.isDrawing = true;
+          
+          // Enable document-level text selection prevention during drawing
+          const cleanup = preventTextSelection();
+          
+          // Store cleanup function for later use
+          (gestureStateRef.current as any).textSelectionCleanup = cleanup;
           
           const { x, y } = getRelativePointerPosition(stage, e.clientX, e.clientY);
           handlePointerDown(x, y);
         }
       },
-      deps: [stageRef, logEventHandling, shouldHandlePanning, shouldHandleDrawing, currentToolRef, panZoom, getRelativePointerPosition, handlePointerDown, calculateDistance, calculateCenter]
+      deps: [stageRef, logEventHandling, shouldHandlePanning, shouldHandleDrawing, currentToolRef, panZoom, getRelativePointerPosition, handlePointerDown, calculateDistance, calculateCenter, preventTextSelection]
     },
 
     handlePointerMoveEvent: {
       handler: (e: PointerEvent) => {
         const stage = stageRef.current;
         if (!stage) return;
+
+        // ALWAYS prevent default during pointer move to stop text selection
+        e.preventDefault();
 
         logEventHandling('pointermove', 'pointer', { 
           pointerId: e.pointerId, 
@@ -213,18 +237,12 @@ export const usePointerEventCore = ({
         
         // Handle single-touch pan (right-click or finger pan)
         if (gestureStateRef.current.isPanning || e.buttons === 2) {
-          e.preventDefault();
           panZoom.continuePan(e.clientX, e.clientY);
           return;
         }
         
         // Handle drawing/selection input
         if (!gestureStateRef.current.isMultiTouch && shouldHandleDrawing(e)) {
-          // Don't prevent default for select tool - let Konva handle dragging
-          if (currentToolRef.current !== 'select') {
-            e.preventDefault();
-          }
-          
           const { x, y } = getRelativePointerPosition(stage, e.clientX, e.clientY);
           handlePointerMove(x, y);
         }
@@ -234,6 +252,9 @@ export const usePointerEventCore = ({
 
     handlePointerUpEvent: {
       handler: (e: PointerEvent) => {
+        // ALWAYS prevent default on pointer up to stop text selection
+        e.preventDefault();
+
         logEventHandling('pointerup', 'pointer', { 
           pointerId: e.pointerId, 
           pointerType: e.pointerType,
@@ -254,9 +275,15 @@ export const usePointerEventCore = ({
           gestureStateRef.current.lastCenter = { x: 0, y: 0 };
         }
         
+        // Clean up text selection prevention if we were drawing
+        if (gestureStateRef.current.isDrawing && (gestureStateRef.current as any).textSelectionCleanup) {
+          (gestureStateRef.current as any).textSelectionCleanup();
+          delete (gestureStateRef.current as any).textSelectionCleanup;
+          gestureStateRef.current.isDrawing = false;
+        }
+        
         // Handle right-click pan end or finger pan end
         if (e.button === 2 || gestureStateRef.current.isPanning) {
-          e.preventDefault();
           gestureStateRef.current.isPanning = false;
           panZoom.stopPan();
           palmRejection.onPointerEnd(e.pointerId);
@@ -268,11 +295,6 @@ export const usePointerEventCore = ({
         
         // Handle drawing/selection end (only if not multi-touch)
         if (!wasMultiTouch && shouldHandleDrawing(e)) {
-          // Don't prevent default for select tool - let Konva handle dragging
-          if (currentToolRef.current !== 'select') {
-            e.preventDefault();
-          }
-          
           handlePointerUp();
         }
       },
@@ -281,7 +303,17 @@ export const usePointerEventCore = ({
 
     handlePointerLeaveEvent: {
       handler: (e: PointerEvent) => {
+        // ALWAYS prevent default on pointer leave
+        e.preventDefault();
+
         logEventHandling('pointerleave', 'pointer', { pointerId: e.pointerId, pointerType: e.pointerType });
+        
+        // Clean up text selection prevention if we were drawing
+        if (gestureStateRef.current.isDrawing && (gestureStateRef.current as any).textSelectionCleanup) {
+          (gestureStateRef.current as any).textSelectionCleanup();
+          delete (gestureStateRef.current as any).textSelectionCleanup;
+          gestureStateRef.current.isDrawing = false;
+        }
         
         // Clean up this pointer
         activePointersRef.current.delete(e.pointerId);
