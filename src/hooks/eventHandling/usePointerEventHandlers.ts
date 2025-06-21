@@ -17,6 +17,7 @@ interface UsePointerEventHandlersProps {
     startPan: (x: number, y: number) => void;
     continuePan: (x: number, y: number) => void;
     stopPan: () => void;
+    zoom: (factor: number, centerX?: number, centerY?: number) => void;
   };
   handlePointerDown: (x: number, y: number) => void;
   handlePointerMove: (x: number, y: number) => void;
