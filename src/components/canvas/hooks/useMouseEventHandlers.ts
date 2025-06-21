@@ -50,6 +50,9 @@ export const useMouseEventHandlers = ({
   const handlers = useMemoizedEventHandlers({
     handleMouseDown: {
       handler: (e: Konva.KonvaEventObject<MouseEvent>) => {
+        // Always prevent default to stop text selection and other browser behaviors
+        e.evt.preventDefault();
+
         debugLog('MouseEvents', `mousedown from mouse`, {
           button: e.evt.button,
           buttons: e.evt.buttons,
@@ -97,6 +100,9 @@ export const useMouseEventHandlers = ({
 
     handleMouseMove: {
       handler: (e: Konva.KonvaEventObject<MouseEvent>) => {
+        // Always prevent default during mouse move to stop text selection
+        e.evt.preventDefault();
+
         debugLog('MouseEvents', `mousemove from mouse`, {
           button: e.evt.button,
           buttons: e.evt.buttons,
@@ -106,7 +112,6 @@ export const useMouseEventHandlers = ({
         
         // Handle right-click pan - works for everyone, including read-only users
         if (e.evt.buttons === 2) {
-          e.evt.preventDefault();
           panZoom.continuePan(e.evt.clientX, e.evt.clientY);
           // Clear hover state during pan to prevent jerky behavior
           if (selection?.setHoveredObjectId) {
@@ -129,6 +134,9 @@ export const useMouseEventHandlers = ({
 
     handleMouseUp: {
       handler: (e: Konva.KonvaEventObject<MouseEvent>) => {
+        // Always prevent default on mouse up to stop text selection
+        e.evt.preventDefault();
+
         debugLog('MouseEvents', `mouseup from mouse`, {
           button: e.evt.button,
           currentTool: stableCurrentTool

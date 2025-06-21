@@ -77,7 +77,7 @@ const MaximizedWhiteboardView: React.FC<MaximizedWhiteboardViewProps> = ({
       
       {/* Maximized whiteboard */}
       <div className="fixed inset-0 z-[9999] p-4">
-        <div className="w-full h-full flex flex-col bg-white border-2 border-gray-200 rounded-lg shadow-2xl">
+        <div className="w-full h-full flex flex-col bg-white border-2 border-gray-200 rounded-lg shadow-2xl select-none">
           <TopRightButtons
             isMaximized={true}
             shouldShowEyeButton={shouldShowEyeButton}

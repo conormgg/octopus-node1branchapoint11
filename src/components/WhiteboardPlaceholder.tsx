@@ -112,7 +112,7 @@ const WhiteboardPlaceholder: React.FC<WhiteboardPlaceholderProps> = ({
   return (
     <div 
       ref={containerRef}
-      className="flex flex-col bg-white border-2 border-gray-200 rounded-lg shadow-sm hover:shadow-md transition-all duration-200 relative h-full"
+      className="flex flex-col bg-white border-2 border-gray-200 rounded-lg shadow-sm hover:shadow-md transition-all duration-200 relative h-full select-none"
       style={{ 
         width: initialWidth ? `${initialWidth}px` : '100%',
         height: initialHeight ? `${initialHeight}px` : '100%'

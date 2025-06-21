@@ -27,10 +27,13 @@ export const useTouchEventHandlers = ({
 
     /**
      * Touch events are used when:
-     * - Pointer events are not supported, OR
-     * - Palm rejection is disabled (fallback to simpler touch handling)
+     * - Pointer events are not supported (fallback for older devices)
+     * - This provides compatibility for devices without full pointer event support
+     * 
+     * Note: When palm rejection is enabled and pointer events are supported,
+     * pointer events handle both stylus and finger input, so touch events are not needed
      */
-    const shouldUseTouchEvents = !supportsPointerEvents || !palmRejectionEnabled;
+    const shouldUseTouchEvents = !supportsPointerEvents;
 
     const handleTouchStart = (e: TouchEvent) => {
       logEventHandling('touchstart', 'touch', { touches: e.touches.length });
