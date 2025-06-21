@@ -1,6 +1,6 @@
 
 import { useState, useCallback, useEffect } from 'react';
-import { WhiteboardState, PanZoomState, LineObject } from '@/types/whiteboard';
+import { WhiteboardState, PanZoomState, LineObject, ImageObject } from '@/types/whiteboard';
 import { useHistoryState } from './useHistoryState';
 import { usePanZoom } from './usePanZoom';
 import { useSelectionState } from './useSelectionState';
@@ -144,6 +144,18 @@ export const useWhiteboardState = () => {
     setTimeout(() => addToHistory(), 0);
   }, [addToHistory]);
 
+  // Update image position/attributes - FIXED: Add missing updateImage function
+  const updateImage = useCallback((imageId: string, updates: Partial<ImageObject>) => {
+    setState(prev => ({
+      ...prev,
+      images: prev.images.map(image => 
+        image.id === imageId ? { ...image, ...updates } : image
+      )
+    }));
+    // Add to history after state update
+    setTimeout(() => addToHistory(), 0);
+  }, [addToHistory]);
+
   // Delete selected objects
   const deleteSelectedObjects = useCallback(() => {
     const selectedObjects = selection.selectionState.selectedObjects;
@@ -192,7 +204,7 @@ export const useWhiteboardState = () => {
     panZoom,
     selection,
     updateLine,
-    updateImage: imageOperations.updateImage,
+    updateImage, // FIXED: Now properly exposed
     toggleImageLock: imageOperations.toggleImageLock,
     deleteSelectedObjects
   };
