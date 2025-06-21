@@ -1,3 +1,4 @@
+
 # AI Context Documentation
 
 ## Application Overview
@@ -33,90 +34,54 @@ This is **OctoPi Ink**, a collaborative whiteboard application built with React,
 
 **⚠️ DANGER ZONE: This section describes critical architecture that has caused multiple production issues when modified incorrectly.**
 
-#### 5.1 Centralized Channel Management (NEW ARCHITECTURE)
-The sync system now uses **centralized channel management** where:
-
-- **SyncConnectionManager** creates and manages one Supabase channel per whiteboard
-- **All connections for the same whiteboard share the same channel**
-- **Centralized dispatch** routes incoming payloads to relevant connections
-- **Connection objects accept a shared channel** rather than creating their own
-
-**Critical Implementation Details:**
-```typescript
-// SyncConnectionManager creates channels centrally
-const channelName = `whiteboard-${config.whiteboardId}`;
-let channel = this.channels.get(channelName);
-
-if (!channel) {
-  // Create and subscribe to new Supabase channel
-  channel = supabase.channel(channelName)
-    .on('postgres_changes', {...}, (payload) => 
-      this.handleChannelPayload(payload, config.whiteboardId)
-    )
-    .subscribe();
-  this.channels.set(channelName, channel);
-}
-
-// Connection accepts shared channel
-connection = new Connection(config, handler, channel); // Shared channel passed in
-```
-
-#### 5.2 Sender ID Filtering with Shared Channels
-The filtering logic remains the same but now works with shared channels:
+#### 5.1 Sender ID Filtering and Immutable Configuration
+The sync system uses a **sender-specific connection pooling** strategy where:
 
 - **Each connection maintains an IMMUTABLE sender ID** that NEVER changes after creation
-- **Multiple connections with different sender IDs** share the same Supabase channel
-- **Centralized dispatch** sends the same payload to all connections for a whiteboard
-- **Individual filtering** prevents echo-back by comparing sender IDs
+- **Multiple components with different sender IDs** can share the same Supabase channel
+- **Operation filtering prevents echo-back** by comparing sender IDs
 - **Config overwrites are FORBIDDEN** - they break the filtering logic
 
 **Critical Implementation Details:**
 ```typescript
-// Centralized dispatch to all connections for a whiteboard
-private handleChannelPayload(payload: any, whiteboardId: string): void {
-  this.connections.forEach((connection, connectionId) => {
-    if (connectionId.startsWith(whiteboardId)) {
-      connection.handlePayload(payload); // All connections get same payload
-    }
-  });
-}
+// Connection ID includes sender ID for isolation
+connectionId = `${whiteboardId}-${sessionId}-${senderId}`
 
-// Individual connection filtering (unchanged)
-public handlePayload(payload: any): void {
-  const operation = PayloadConverter.toOperation(payload);
-  this.info.handlers.forEach(handler => {
-    if (operation.sender_id !== this.originalConfig.senderId) {
-      handler(operation); // Only forward if NOT from self
-    }
-  });
+// Original config stored as immutable to prevent overwrites
+this.originalConfig = { ...config }; // NEVER modify this
+
+// Filtering logic uses ORIGINAL sender ID
+if (operation.sender_id !== this.originalConfig.senderId) {
+  handler(operation); // Only forward to handlers if NOT from self
 }
 ```
 
-#### 5.3 Connection Lifecycle with Centralized Management
-1. **First Registration**: Creates new connection and potentially new shared channel
-2. **Subsequent Registrations**: Reuses existing connection and shared channel
-3. **Config Isolation**: Each connection keeps its original sender ID regardless of shared channel
-4. **Grace Period Cleanup**: 30-second delay before closing unused connections and channels
+#### 5.2 Connection Lifecycle and Handler Registration
+1. **First Registration**: Creates new connection with immutable config
+2. **Subsequent Registrations**: Reuses existing connection, adds handler
+3. **Config Isolation**: Each connection keeps its original sender ID regardless of new handlers
+4. **Grace Period Cleanup**: 30-second delay before closing unused connections
 
-#### 5.4 Common Pitfalls and Debugging (Updated)
+#### 5.3 Operation Filtering Logic
+- **Self-Operation Rejection**: Operations are filtered out if sender_id matches the connection's original sender ID
+- **Cross-Component Safety**: Multiple components (Teacher1, Student1) can safely share channels
+- **Debug Logging**: Extensive logging tracks sender ID comparisons and filtering decisions
+
+#### 5.4 Common Pitfalls and Debugging
 **NEVER DO THESE:**
-- ❌ Create channels in Connection constructor (bypasses centralized management)
 - ❌ Update connection config after creation (`updateConfig` method was removed for this reason)
 - ❌ Modify sender ID during connection lifecycle
 - ❌ Share config objects between different components
 - ❌ Assume all handlers on a connection have the same sender ID
 
-**New Debug Patterns for Centralized Architecture:**
+**Debug Patterns:**
 ```typescript
-// Check centralized channel creation
-debugLog('Manager', `Creating and subscribing to new Supabase channel: ${channelName}`);
+// Check for config overwrites
+debugLog('Connection', `Keeping original config for ${connectionId} to prevent sender ID conflicts`);
 
-// Track centralized payload dispatch
-debugLog('Manager', 'Received payload from channel:', payload);
-debugLog('Manager', `Dispatching to connections for whiteboard: ${whiteboardId}`);
-
-// Monitor channel subscription status
-debugLog('Manager', `Channel ${channelName} subscription status: ${status}`);
+// Track operation filtering
+debugLog('Dispatch', `Operation from: ${operation.sender_id}, local: ${this.originalConfig.senderId}`);
+debugLog('Dispatch', `Skipping operation from self (${operation.sender_id})`);
 ```
 
 ### 6. Eye Button System
@@ -145,7 +110,7 @@ debugLog('Manager', `Channel ${channelName} subscription status: ${status}`);
 ## Key Data Flow
 
 1. **User Input** → Event Handlers → Tool Operations → State Updates → Canvas Rendering
-2. **Collaboration** → Supabase Realtime → Centralized Dispatch → Connection Filtering → State Sync → UI Updates
+2. **Collaboration** → Supabase Realtime → Operation Handler → State Sync → UI Updates
 3. **Session Management** → Database Operations → Context Updates → Component Re-renders
 4. **Performance Monitoring** → Operation Wrappers → Metrics Collection → Analysis → Reporting
 5. **Activity Tracking** → Eye Button Logic → Activity Metadata → Persistence → Viewport Centering
@@ -165,8 +130,8 @@ debugLog('Manager', `Channel ${channelName} subscription status: ${status}`);
 10. `src/hooks/shared/useSharedPersistenceIntegration.ts` - Activity persistence
 11. `src/hooks/shared/useSharedHistoryReplay.ts` - Pure history simulation system
 12. `src/hooks/useHistoryState.ts` - History management with sync support
-13. **`src/utils/sync/SyncConnectionManager.ts`** - CRITICAL: Centralized channel management and payload dispatch
-14. **`src/utils/sync/Connection.ts`** - CRITICAL: Shared channel handling and sender ID filtering
+13. **`src/utils/sync/Connection.ts`** - CRITICAL: Immutable sender ID management
+14. **`src/utils/sync/SyncConnectionManager.ts`** - CRITICAL: Connection pooling with sender isolation
 
 ## Eye Button Architecture
 
@@ -214,42 +179,19 @@ The performance monitoring system uses a modular architecture with clear separat
 ## CRITICAL WARNINGS FOR AI MODIFICATIONS
 
 ### ⚠️ DO NOT MODIFY SYNC ARCHITECTURE WITHOUT EXTREME CAUTION
-The sync architecture has been updated to use centralized channel management, which adds complexity. This system has caused multiple production outages when modified incorrectly. Before making ANY changes to sync-related files:
+The sender ID filtering and connection management system is extremely fragile and has caused multiple production outages when modified incorrectly. Before making ANY changes to sync-related files:
 
-1. **Understand the centralized channel management pattern** - SyncConnectionManager creates and manages channels
-2. **Understand the shared channel dispatch pattern** - All connections for a whiteboard share one channel
-3. **Respect sender ID isolation** - Different components must maintain separate sender IDs despite shared channels
-4. **Never bypass centralized management** - Don't create channels in Connection constructor
-5. **Never add updateConfig functionality** - This breaks the filtering logic
-6. **Test with multiple components** - Ensure Teacher1 and Student1 can coexist with shared channels
-7. **Check operation filtering** - Verify operations don't echo back to their senders with centralized dispatch
-8. **Verify channel lifecycle** - Ensure channels are properly cleaned up when no longer needed
+1. **Understand the immutable config pattern** - Each connection stores its original config and NEVER updates it
+2. **Respect sender ID isolation** - Different components must maintain separate sender IDs
+3. **Never add updateConfig functionality** - This breaks the filtering logic
+4. **Test with multiple components** - Ensure Teacher1 and Student1 can coexist
+5. **Check operation filtering** - Verify operations don't echo back to their senders
 
-### Files That Require Expert-Level Understanding (Updated for Centralized Architecture):
-- **`src/utils/sync/SyncConnectionManager.ts`** - CRITICAL: Centralized channel management and payload dispatch
-- **`src/utils/sync/Connection.ts`** - CRITICAL: Shared channel handling and filtering
+### Files That Require Expert-Level Understanding:
+- `src/utils/sync/Connection.ts`
+- `src/utils/sync/SyncConnectionManager.ts`
 - `src/hooks/useSyncState.ts`
 - `src/hooks/useRemoteOperationHandler.ts`
 - `src/hooks/shared/useSharedOperationsCoordinator.ts`
 
-**If you must modify these files, document exactly why the change is necessary and how it preserves both the sender ID filtering logic AND the centralized channel management pattern.**
-
-### Real-time Connection Debugging (Updated)
-The centralized architecture helps resolve many cross-browser/cross-context real-time issues by:
-
-- **Consistent Channel Management**: All contexts use the same channel creation logic
-- **Centralized Debugging**: All payload dispatch happens in one place
-- **Better Error Handling**: Channel subscription errors are handled centrally
-
-**Common debugging steps for real-time issues:**
-```typescript
-// Check if channel is properly created and subscribed
-const channel = this.channels.get(channelName);
-console.log('Channel state:', channel?.state); // Should be 'joined'
-
-// Verify centralized dispatch is working
-debugLog('Manager', 'Received payload from channel:', payload);
-
-// Check connection filtering after dispatch
-debugLog('Dispatch', `Operation from: ${operation.sender_id}, local: ${this.originalConfig.senderId}`);
-```
+**If you must modify these files, document exactly why the change is necessary and how it preserves the sender ID filtering logic.**

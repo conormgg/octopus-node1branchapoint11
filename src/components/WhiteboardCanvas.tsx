@@ -2,12 +2,7 @@
 import React from 'react';
 import { useWhiteboardState } from '@/hooks/useWhiteboardState';
 import KonvaStage from './canvas/KonvaStage';
-// TABLET-FRIENDLY: Import tablet configuration types
-import { TabletEventConfig } from '@/hooks/tablet';
 
-/**
- * TABLET-FRIENDLY: Legacy palm rejection config interface for backward compatibility
- */
 interface PalmRejectionConfig {
   maxContactSize: number;
   minPressure: number;
@@ -25,10 +20,6 @@ interface WhiteboardCanvasProps {
   palmRejectionConfig?: PalmRejectionConfig;
 }
 
-/**
- * TABLET-FRIENDLY: Canvas component optimized for tablet and stylus input
- * @description Provides the main drawing surface with palm rejection and touch optimization
- */
 const WhiteboardCanvas: React.FC<WhiteboardCanvasProps> = ({
   width,
   height,
@@ -37,21 +28,11 @@ const WhiteboardCanvas: React.FC<WhiteboardCanvasProps> = ({
   palmRejectionConfig
 }) => {
   return (
-    <div 
-      className="relative w-full h-full bg-white rounded-lg overflow-hidden select-none" 
-      style={{ 
-        // TABLET-FRIENDLY: Comprehensive text selection prevention
-        WebkitUserSelect: 'none',
-        WebkitTouchCallout: 'none',
-        touchAction: 'none',
-        userSelect: 'none',
-        MozUserSelect: 'none',
-        msUserSelect: 'none'
-      }}
-      // TABLET-FRIENDLY: Prevent default behaviors that interfere with drawing
-      onPointerDown={(e) => e.preventDefault()}
-      onMouseDown={(e) => e.preventDefault()}
-    >
+    <div className="relative w-full h-full bg-white rounded-lg overflow-hidden select-none" style={{ 
+      WebkitUserSelect: 'none',
+      WebkitTouchCallout: 'none',
+      touchAction: 'none'
+    }}>
       <KonvaStage
         width={width}
         height={height}
@@ -61,7 +42,7 @@ const WhiteboardCanvas: React.FC<WhiteboardCanvasProps> = ({
         normalizedState={whiteboardState.normalizedState}
       />
       
-      {/* TABLET-FRIENDLY: Zoom indicator */}
+      {/* Zoom indicator */}
       {whiteboardState.state.panZoomState.scale !== 1 && (
         <div className="absolute bottom-4 right-4 bg-black/70 text-white px-3 py-1 rounded-lg text-sm">
           {Math.round(whiteboardState.state.panZoomState.scale * 100)}%
