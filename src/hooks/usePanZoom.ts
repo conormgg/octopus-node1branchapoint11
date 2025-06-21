@@ -15,7 +15,7 @@ export const usePanZoom = (
   // Pan state management
   const panHandlers = usePanState(panZoomState, setPanZoomState);
   
-  // Touch event handlers (for devices without pointer event support)
+  // Touch event handlers
   const touchHandlers = useTouchHandlers(panHandlers, zoom);
 
   // Wrap the return object in useMemo to stabilize its reference

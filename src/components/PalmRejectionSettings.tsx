@@ -5,22 +5,12 @@ import { Label } from '@/components/ui/label';
 import { Slider } from '@/components/ui/slider';
 import { Switch } from '@/components/ui/switch';
 
-/**
- * TABLET-FRIENDLY: Interface for palm rejection configuration
- * @description Configuration options for palm rejection algorithm sensitivity
- */
 interface PalmRejectionConfig {
-  /** Maximum contact area for valid touch (larger areas assumed to be palm) */
   maxContactSize: number;
-  /** Minimum pressure for valid input (lighter touches may be accidental) */
   minPressure: number;
-  /** Time to ignore touches after palm detection in milliseconds */
   palmTimeoutMs: number;
-  /** Distance threshold for detecting clustered touches (palm + fingers) */
   clusterDistance: number;
-  /** Always prefer stylus over touch input */
   preferStylus: boolean;
-  /** Enable or disable palm rejection algorithm */
   enabled: boolean;
 }
 
@@ -29,15 +19,10 @@ interface PalmRejectionSettingsProps {
   onChange: (config: PalmRejectionConfig) => void;
 }
 
-/**
- * TABLET-FRIENDLY: Settings component for configuring palm rejection
- * @description Provides real-time adjustment of palm rejection sensitivity for optimal stylus experience
- */
 export const PalmRejectionSettings: React.FC<PalmRejectionSettingsProps> = ({
   config,
   onChange
 }) => {
-  // TABLET-FRIENDLY: Update configuration helper
   const updateConfig = (key: keyof PalmRejectionConfig, value: number | boolean) => {
     onChange({ ...config, [key]: value });
   };
@@ -49,7 +34,6 @@ export const PalmRejectionSettings: React.FC<PalmRejectionSettingsProps> = ({
           <CardTitle>Palm Rejection Settings</CardTitle>
         </CardHeader>
         <CardContent className="space-y-6">
-          {/* TABLET-FRIENDLY: Master enable/disable switch */}
           <div className="flex items-center justify-between">
             <Label htmlFor="enabled">Enable Palm Rejection</Label>
             <Switch
@@ -59,10 +43,8 @@ export const PalmRejectionSettings: React.FC<PalmRejectionSettingsProps> = ({
             />
           </div>
 
-          {/* TABLET-FRIENDLY: Configuration options shown only when enabled */}
           {config.enabled && (
             <>
-              {/* TABLET-FRIENDLY: Contact size threshold for palm detection */}
               <div className="space-y-2">
                 <Label>Contact Size Threshold: {config.maxContactSize}px</Label>
                 <Slider
@@ -75,7 +57,6 @@ export const PalmRejectionSettings: React.FC<PalmRejectionSettingsProps> = ({
                 />
               </div>
 
-              {/* TABLET-FRIENDLY: Timeout duration after palm detection */}
               <div className="space-y-2">
                 <Label>Rejection Timeout: {config.palmTimeoutMs}ms</Label>
                 <Slider
@@ -88,7 +69,6 @@ export const PalmRejectionSettings: React.FC<PalmRejectionSettingsProps> = ({
                 />
               </div>
 
-              {/* TABLET-FRIENDLY: Cluster distance for multi-touch palm detection */}
               <div className="space-y-2">
                 <Label>Cluster Distance: {config.clusterDistance}px</Label>
                 <Slider
@@ -101,7 +81,6 @@ export const PalmRejectionSettings: React.FC<PalmRejectionSettingsProps> = ({
                 />
               </div>
 
-              {/* TABLET-FRIENDLY: Stylus preference setting */}
               <div className="flex items-center justify-between">
                 <Label htmlFor="preferStylus">Prefer Stylus Input</Label>
                 <Switch

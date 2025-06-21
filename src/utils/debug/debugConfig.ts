@@ -53,11 +53,6 @@ export interface DebugConfig {
   'sync-direction-manager': boolean;
   'sync-config': boolean;
   'session-students': boolean;
-  
-  // Tablet support subsystems
-  tablet: boolean;
-  tabletOptimizations: boolean;
-  textSelection: boolean;
 }
 
 // Default configuration - most debugging disabled by default
@@ -109,12 +104,7 @@ const DEFAULT_DEBUG_CONFIG: DebugConfig = {
   'sync-direction': false,
   'sync-direction-manager': false,
   'sync-config': false,
-  'session-students': false,
-  
-  // Tablet support subsystems - disabled by default
-  tablet: false,
-  tabletOptimizations: false,
-  textSelection: false
+  'session-students': false
 };
 
 // Environment-based configuration
