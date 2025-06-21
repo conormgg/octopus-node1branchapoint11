@@ -3,7 +3,8 @@ import React, { useRef, useEffect } from 'react';
 import Konva from 'konva';
 import { useWhiteboardState } from '@/hooks/useWhiteboardState';
 import { useNormalizedWhiteboardState } from '@/hooks/performance/useNormalizedWhiteboardState';
-import { usePalmRejection } from '@/hooks/usePalmRejection';
+// TABLET-FRIENDLY: Import new consolidated tablet hooks
+import { useTabletEventHandling, TabletEventConfig } from '@/hooks/tablet';
 import { useStageEventHandlers } from '@/hooks/useStageEventHandlers';
 import { useKonvaKeyboardHandlers } from '@/hooks/canvas/useKonvaKeyboardHandlers';
 import { useKonvaPanZoomSync } from '@/hooks/canvas/useKonvaPanZoomSync';
@@ -11,22 +12,31 @@ import KonvaStageCanvas from './KonvaStageCanvas';
 import KonvaImageContextMenuHandler from './KonvaImageContextMenuHandler';
 import KonvaImageOperationsHandler from './KonvaImageOperationsHandler';
 
+/**
+ * TABLET-FRIENDLY: Legacy palm rejection config interface for backward compatibility
+ */
+interface PalmRejectionConfig {
+  maxContactSize: number;
+  minPressure: number;
+  palmTimeoutMs: number;
+  clusterDistance: number;
+  preferStylus: boolean;
+  enabled: boolean;
+}
+
 interface KonvaStageProps {
   width: number;
   height: number;
   whiteboardState: ReturnType<typeof useWhiteboardState>;
   isReadOnly?: boolean;
-  palmRejectionConfig?: {
-    maxContactSize: number;
-    minPressure: number;
-    palmTimeoutMs: number;
-    clusterDistance: number;
-    preferStylus: boolean;
-    enabled: boolean;
-  };
+  palmRejectionConfig?: PalmRejectionConfig;
   normalizedState?: ReturnType<typeof useNormalizedWhiteboardState>;
 }
 
+/**
+ * TABLET-FRIENDLY: Main Konva stage component with comprehensive tablet support
+ * @description Coordinates canvas rendering with optimized tablet event handling
+ */
 const KonvaStage: React.FC<KonvaStageProps> = ({
   width,
   height,
@@ -56,14 +66,41 @@ const KonvaStage: React.FC<KonvaStageProps> = ({
     updateLine
   } = whiteboardState;
 
-  // Get whiteboard ID for this instance with proper typing
+  // TABLET-FRIENDLY: Get whiteboard ID for this instance with proper typing
   const whiteboardId: string = 'whiteboardId' in whiteboardState && typeof whiteboardState.whiteboardId === 'string' 
     ? whiteboardState.whiteboardId 
     : 'default';
 
-  const palmRejection = usePalmRejection(palmRejectionConfig);
+  // TABLET-FRIENDLY: Convert legacy config to new tablet config format
+  const tabletConfig: Partial<TabletEventConfig> = {
+    palmRejectionEnabled: palmRejectionConfig.enabled,
+    maxContactSize: palmRejectionConfig.maxContactSize,
+    minPressure: palmRejectionConfig.minPressure,
+    palmTimeoutMs: palmRejectionConfig.palmTimeoutMs,
+    clusterDistance: palmRejectionConfig.clusterDistance,
+    preferStylus: palmRejectionConfig.preferStylus,
+    preventTextSelection: true,
+    enableSafariOptimizations: true
+  };
 
-  // Add text selection prevention at DOM level
+  // TABLET-FRIENDLY: Initialize consolidated tablet event handling
+  const {
+    palmRejection,
+    config: finalTabletConfig,
+    eventStrategy
+  } = useTabletEventHandling({
+    containerRef,
+    stageRef,
+    panZoomState: state.panZoomState,
+    config: tabletConfig,
+    panZoom,
+    handlePointerDown,
+    handlePointerMove,
+    handlePointerUp,
+    isReadOnly
+  });
+
+  // TABLET-FRIENDLY: Add text selection prevention at DOM level
   useEffect(() => {
     const container = containerRef.current;
     if (!container) return;
@@ -73,7 +110,7 @@ const KonvaStage: React.FC<KonvaStageProps> = ({
       return false;
     };
 
-    // Add event listeners to prevent text selection
+    // TABLET-FRIENDLY: Add event listeners to prevent text selection
     container.addEventListener('selectstart', preventSelection);
     container.addEventListener('dragstart', preventSelection);
 
@@ -97,7 +134,7 @@ const KonvaStage: React.FC<KonvaStageProps> = ({
     whiteboardId
   });
 
-  // Set up all event handlers
+  // TABLET-FRIENDLY: Set up all event handlers with new tablet-aware system
   useStageEventHandlers({
     containerRef,
     stageRef,
@@ -111,10 +148,10 @@ const KonvaStage: React.FC<KonvaStageProps> = ({
     isReadOnly
   });
 
-  // Enhanced touch action for iPad stylus support
+  // TABLET-FRIENDLY: Enhanced touch action for iPad stylus support
   const getTouchAction = () => {
     // Use 'none' for better stylus support when palm rejection is enabled
-    if (palmRejectionConfig.enabled) {
+    if (finalTabletConfig.palmRejectionEnabled) {
       return 'none';
     }
     // Fall back to manipulation for better compatibility when palm rejection is disabled
@@ -126,6 +163,7 @@ const KonvaStage: React.FC<KonvaStageProps> = ({
       ref={containerRef} 
       className="w-full h-full select-none outline-none" 
       style={{ 
+        // TABLET-FRIENDLY: Comprehensive touch and selection prevention
         WebkitUserSelect: 'none',
         WebkitTouchCallout: 'none',
         WebkitTapHighlightColor: 'transparent',
@@ -133,12 +171,13 @@ const KonvaStage: React.FC<KonvaStageProps> = ({
         userSelect: 'none',
         MozUserSelect: 'none',
         msUserSelect: 'none',
-        // iPad-specific optimizations for stylus input
+        // TABLET-FRIENDLY: iPad-specific optimizations for stylus input
         WebkitTextSizeAdjust: 'none',
         WebkitFontSmoothing: 'antialiased'
       }}
       tabIndex={0}
       data-whiteboard-id={whiteboardId}
+      // TABLET-FRIENDLY: Prevent default behaviors that interfere with drawing
       onPointerDown={(e) => e.preventDefault()}
       onMouseDown={(e) => e.preventDefault()}
     >

@@ -7,24 +7,42 @@ import { useWhiteboardState } from '@/hooks/useWhiteboardState';
 import { Settings } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+// TABLET-FRIENDLY: Import consolidated tablet configuration
+import { TabletEventConfig, DEFAULT_TABLET_CONFIG } from '@/hooks/tablet';
+
+/**
+ * TABLET-FRIENDLY: Interface for palm rejection configuration (legacy compatibility)
+ */
+interface PalmRejectionConfig {
+  maxContactSize: number;
+  minPressure: number;
+  palmTimeoutMs: number;
+  clusterDistance: number;
+  preferStylus: boolean;
+  enabled: boolean;
+}
 
 interface WhiteboardProps {
   isReadOnly?: boolean;
 }
 
+/**
+ * TABLET-FRIENDLY: Main whiteboard component with comprehensive tablet support
+ * @description Provides drawing interface optimized for tablets, stylus devices, and desktop
+ */
 const Whiteboard: React.FC<WhiteboardProps> = ({ isReadOnly = false }) => {
   const [dimensions, setDimensions] = useState({ width: 0, height: 0 });
   const containerRef = React.useRef<HTMLDivElement>(null);
   const whiteboardState = useWhiteboardState();
 
-  // Palm rejection configuration - enable by default for better iPad stylus support
-  const [palmRejectionConfig, setPalmRejectionConfig] = useState({
-    maxContactSize: 40,
-    minPressure: 0.1,
-    palmTimeoutMs: 500,
-    clusterDistance: 100,
-    preferStylus: true,
-    enabled: true // Enable by default for optimal iPad stylus experience
+  // TABLET-FRIENDLY: Palm rejection configuration - enable by default for better iPad stylus support
+  const [palmRejectionConfig, setPalmRejectionConfig] = useState<PalmRejectionConfig>({
+    maxContactSize: DEFAULT_TABLET_CONFIG.maxContactSize,
+    minPressure: DEFAULT_TABLET_CONFIG.minPressure,
+    palmTimeoutMs: DEFAULT_TABLET_CONFIG.palmTimeoutMs,
+    clusterDistance: DEFAULT_TABLET_CONFIG.clusterDistance,
+    preferStylus: DEFAULT_TABLET_CONFIG.preferStylus,
+    enabled: DEFAULT_TABLET_CONFIG.palmRejectionEnabled // Enable by default for optimal iPad stylus experience
   });
 
   const updateDimensions = () => {
@@ -38,7 +56,7 @@ const Whiteboard: React.FC<WhiteboardProps> = ({ isReadOnly = false }) => {
     updateDimensions();
     window.addEventListener('resize', updateDimensions);
     
-    // Add document-level text selection prevention
+    // TABLET-FRIENDLY: Add document-level text selection prevention
     const preventTextSelection = (e: Event) => e.preventDefault();
     
     document.addEventListener('selectstart', preventTextSelection);
@@ -55,7 +73,7 @@ const Whiteboard: React.FC<WhiteboardProps> = ({ isReadOnly = false }) => {
     whiteboardState.setStrokeWidth(width);
   };
 
-  // Enhanced container styles for iPad stylus support with comprehensive text selection prevention
+  // TABLET-FRIENDLY: Enhanced container styles for iPad stylus support with comprehensive text selection prevention
   const containerStyles = {
     WebkitUserSelect: 'none' as const,
     WebkitTouchCallout: 'none' as const,
@@ -64,7 +82,7 @@ const Whiteboard: React.FC<WhiteboardProps> = ({ isReadOnly = false }) => {
     userSelect: 'none' as const,
     MozUserSelect: 'none' as const,
     msUserSelect: 'none' as const,
-    // iPad-specific optimizations
+    // TABLET-FRIENDLY: iPad-specific optimizations
     WebkitTextSizeAdjust: 'none' as const,
     WebkitFontSmoothing: 'antialiased' as const
   };
@@ -74,10 +92,11 @@ const Whiteboard: React.FC<WhiteboardProps> = ({ isReadOnly = false }) => {
       ref={containerRef} 
       className="relative w-full h-full select-none" 
       style={containerStyles}
+      // TABLET-FRIENDLY: Prevent default on pointer interactions
       onPointerDown={(e) => e.preventDefault()}
       onMouseDown={(e) => e.preventDefault()}
     >
-      {/* Palm Rejection Settings Button - moved to bottom-right */}
+      {/* TABLET-FRIENDLY: Palm Rejection Settings Button - moved to bottom-right */}
       {!isReadOnly && (
         <div className="absolute bottom-2 right-2 z-20">
           <Popover>
