@@ -25,11 +25,6 @@ export interface DebugConfig {
   wheelEvents: boolean;
   palmRejection: boolean;
   
-  // Tablet-specific debugging
-  tablet: boolean;
-  tabletOptimizations: boolean;
-  textSelection: boolean;
-  
   // State management
   state: boolean;
   selection: boolean;
@@ -82,11 +77,6 @@ const DEFAULT_DEBUG_CONFIG: DebugConfig = {
   wheelEvents: false,
   palmRejection: false, // Changed from true to false
   
-  // Tablet-specific debugging - disabled by default
-  tablet: false,
-  tabletOptimizations: false,
-  textSelection: false,
-  
   // State management - disabled by default
   state: false,
   selection: false,
@@ -125,9 +115,6 @@ const DEVELOPMENT_OVERRIDES: Partial<DebugConfig> = {
   events: false, // Disable event spam completely
   palmRejection: false, // Disable palm rejection spam
   layerOptimization: true, // Phase 2D.1: Enable layer optimization debugging
-  tablet: false, // Disable tablet debugging spam
-  tabletOptimizations: false, // Disable tablet optimization spam
-  textSelection: false, // Disable text selection spam
 };
 
 // Create the active debug configuration
