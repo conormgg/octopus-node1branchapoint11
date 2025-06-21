@@ -1,5 +1,4 @@
-
-import { useCallback, useMemo } from 'react';
+import { useCallback, useMemo, useRef } from 'react';
 import Konva from 'konva';
 import { usePalmRejection } from '../../usePalmRejection';
 import { useStageCoordinates } from '../../useStageCoordinates';
@@ -17,6 +16,7 @@ interface UsePointerEventCoreProps {
     startPan: (x: number, y: number) => void;
     continuePan: (x: number, y: number) => void;
     stopPan: () => void;
+    zoom: (factor: number, centerX?: number, centerY?: number) => void;
   };
   handlePointerDown: (x: number, y: number) => void;
   handlePointerMove: (x: number, y: number) => void;
@@ -41,19 +41,53 @@ export const usePointerEventCore = ({
 }: UsePointerEventCoreProps) => {
   const { getRelativePointerPosition } = useStageCoordinates(panZoomState);
 
+  // Track active pointers for multi-touch gestures
+  const activePointersRef = useRef<Map<number, PointerEvent>>(new Map());
+  const gestureStateRef = useRef<{
+    isMultiTouch: boolean;
+    lastDistance: number;
+    lastCenter: { x: number; y: number };
+    isPanning: boolean;
+  }>({
+    isMultiTouch: false,
+    lastDistance: 0,
+    lastCenter: { x: 0, y: 0 },
+    isPanning: false
+  });
+
   // Memoize stable values to prevent unnecessary re-renders
   const stablePalmRejectionEnabled = useMemo(() => palmRejectionConfig.enabled, [palmRejectionConfig.enabled]);
   const stableIsReadOnly = useMemo(() => isReadOnly, [isReadOnly]);
 
+  // Helper function to calculate distance between two pointers
+  const calculateDistance = useCallback((pointer1: PointerEvent, pointer2: PointerEvent) => {
+    const dx = pointer1.clientX - pointer2.clientX;
+    const dy = pointer1.clientY - pointer2.clientY;
+    return Math.sqrt(dx * dx + dy * dy);
+  }, []);
+
+  // Helper function to calculate center point between two pointers
+  const calculateCenter = useCallback((pointer1: PointerEvent, pointer2: PointerEvent) => {
+    return {
+      x: (pointer1.clientX + pointer2.clientX) / 2,
+      y: (pointer1.clientY + pointer2.clientY) / 2
+    };
+  }, []);
+
   // Helper function to determine if we should handle drawing for this event
   const shouldHandleDrawing = useCallback((event: PointerEvent) => {
+    // Don't handle drawing during multi-touch gestures
+    if (gestureStateRef.current.isMultiTouch) {
+      return false;
+    }
+
     // Always handle stylus/pen input for drawing tools
     if (event.pointerType === 'pen') {
       const tool = currentToolRef.current;
       return tool === 'pencil' || tool === 'highlighter' || tool === 'eraser' || tool === 'select';
     }
     
-    // For other pointer types, use normal palm rejection logic
+    // For finger touches, only allow drawing if palm rejection allows it
     return !stableIsReadOnly && (!stablePalmRejectionEnabled || palmRejection.shouldProcessPointer(event));
   }, [currentToolRef, stableIsReadOnly, stablePalmRejectionEnabled, palmRejection]);
 
@@ -70,9 +104,23 @@ export const usePointerEventCore = ({
       return tool !== 'pencil' && tool !== 'highlighter' && tool !== 'eraser';
     }
     
-    // For other input types, standard panning logic applies
-    return false; // Let pan/zoom be handled by dedicated touch handlers
-  }, [currentToolRef]);
+    // For finger touches, allow single-touch panning when not drawing
+    if (event.pointerType === 'touch') {
+      // Allow panning for finger touches, but not if we're in a drawing tool and palm rejection would allow drawing
+      const tool = currentToolRef.current;
+      const isDrawingTool = tool === 'pencil' || tool === 'highlighter' || tool === 'eraser';
+      
+      if (isDrawingTool && !stableIsReadOnly) {
+        // If it's a drawing tool and we could draw, don't pan
+        return !(!stablePalmRejectionEnabled || palmRejection.shouldProcessPointer(event));
+      }
+      
+      // Otherwise, allow panning for finger touches
+      return true;
+    }
+    
+    return false;
+  }, [currentToolRef, stableIsReadOnly, stablePalmRejectionEnabled, palmRejection]);
 
   // Use memoized event handlers for better performance
   const handlers = useMemoizedEventHandlers({
@@ -85,12 +133,32 @@ export const usePointerEventCore = ({
           pointerId: e.pointerId, 
           pointerType: e.pointerType,
           pressure: e.pressure,
-          button: e.button
+          button: e.button,
+          activePointers: activePointersRef.current.size
         });
+
+        // Add to active pointers
+        activePointersRef.current.set(e.pointerId, e);
+        
+        // Check if this is now a multi-touch gesture
+        const isMultiTouch = activePointersRef.current.size > 1;
+        gestureStateRef.current.isMultiTouch = isMultiTouch;
+
+        if (isMultiTouch) {
+          // Handle multi-touch pinch-to-zoom setup
+          const pointers = Array.from(activePointersRef.current.values());
+          if (pointers.length === 2) {
+            const [pointer1, pointer2] = pointers;
+            gestureStateRef.current.lastDistance = calculateDistance(pointer1, pointer2);
+            gestureStateRef.current.lastCenter = calculateCenter(pointer1, pointer2);
+          }
+          return;
+        }
         
         // Handle right-click pan - works for everyone, including read-only users
         if (shouldHandlePanning(e)) {
           e.preventDefault();
+          gestureStateRef.current.isPanning = true;
           panZoom.startPan(e.clientX, e.clientY);
           return;
         }
@@ -106,7 +174,7 @@ export const usePointerEventCore = ({
           handlePointerDown(x, y);
         }
       },
-      deps: [stageRef, logEventHandling, shouldHandlePanning, shouldHandleDrawing, currentToolRef, panZoom, getRelativePointerPosition, handlePointerDown]
+      deps: [stageRef, logEventHandling, shouldHandlePanning, shouldHandleDrawing, currentToolRef, panZoom, getRelativePointerPosition, handlePointerDown, calculateDistance, calculateCenter]
     },
 
     handlePointerMoveEvent: {
@@ -118,18 +186,40 @@ export const usePointerEventCore = ({
           pointerId: e.pointerId, 
           pointerType: e.pointerType,
           pressure: e.pressure,
-          buttons: e.buttons
+          buttons: e.buttons,
+          activePointers: activePointersRef.current.size
         });
+
+        // Update active pointer
+        activePointersRef.current.set(e.pointerId, e);
         
-        // Handle right-click pan - works for everyone, including read-only users
-        if (e.buttons === 2) {
+        // Handle multi-touch pinch-to-zoom
+        if (gestureStateRef.current.isMultiTouch && activePointersRef.current.size === 2) {
+          const pointers = Array.from(activePointersRef.current.values());
+          const [pointer1, pointer2] = pointers;
+          
+          const currentDistance = calculateDistance(pointer1, pointer2);
+          const currentCenter = calculateCenter(pointer1, pointer2);
+          
+          if (gestureStateRef.current.lastDistance > 0) {
+            const zoomFactor = currentDistance / gestureStateRef.current.lastDistance;
+            panZoom.zoom(zoomFactor, gestureStateRef.current.lastCenter.x, gestureStateRef.current.lastCenter.y);
+          }
+          
+          gestureStateRef.current.lastDistance = currentDistance;
+          gestureStateRef.current.lastCenter = currentCenter;
+          return;
+        }
+        
+        // Handle single-touch pan (right-click or finger pan)
+        if (gestureStateRef.current.isPanning || e.buttons === 2) {
           e.preventDefault();
           panZoom.continuePan(e.clientX, e.clientY);
           return;
         }
         
         // Handle drawing/selection input
-        if (shouldHandleDrawing(e)) {
+        if (!gestureStateRef.current.isMultiTouch && shouldHandleDrawing(e)) {
           // Don't prevent default for select tool - let Konva handle dragging
           if (currentToolRef.current !== 'select') {
             e.preventDefault();
@@ -139,7 +229,7 @@ export const usePointerEventCore = ({
           handlePointerMove(x, y);
         }
       },
-      deps: [stageRef, logEventHandling, panZoom, shouldHandleDrawing, currentToolRef, getRelativePointerPosition, handlePointerMove]
+      deps: [stageRef, logEventHandling, panZoom, shouldHandleDrawing, currentToolRef, getRelativePointerPosition, handlePointerMove, calculateDistance, calculateCenter]
     },
 
     handlePointerUpEvent: {
@@ -147,12 +237,27 @@ export const usePointerEventCore = ({
         logEventHandling('pointerup', 'pointer', { 
           pointerId: e.pointerId, 
           pointerType: e.pointerType,
-          button: e.button
+          button: e.button,
+          activePointers: activePointersRef.current.size
         });
+
+        // Remove from active pointers
+        activePointersRef.current.delete(e.pointerId);
         
-        // Handle right-click pan end - works for everyone, including read-only users
-        if (e.button === 2) {
+        // Update multi-touch state
+        const wasMultiTouch = gestureStateRef.current.isMultiTouch;
+        gestureStateRef.current.isMultiTouch = activePointersRef.current.size > 1;
+        
+        // If we're ending a multi-touch gesture, reset gesture state
+        if (wasMultiTouch && !gestureStateRef.current.isMultiTouch) {
+          gestureStateRef.current.lastDistance = 0;
+          gestureStateRef.current.lastCenter = { x: 0, y: 0 };
+        }
+        
+        // Handle right-click pan end or finger pan end
+        if (e.button === 2 || gestureStateRef.current.isPanning) {
           e.preventDefault();
+          gestureStateRef.current.isPanning = false;
           panZoom.stopPan();
           palmRejection.onPointerEnd(e.pointerId);
           return;
@@ -161,8 +266,8 @@ export const usePointerEventCore = ({
         // Always clean up pointer tracking
         palmRejection.onPointerEnd(e.pointerId);
         
-        // Handle drawing/selection end
-        if (shouldHandleDrawing(e)) {
+        // Handle drawing/selection end (only if not multi-touch)
+        if (!wasMultiTouch && shouldHandleDrawing(e)) {
           // Don't prevent default for select tool - let Konva handle dragging
           if (currentToolRef.current !== 'select') {
             e.preventDefault();
@@ -178,11 +283,16 @@ export const usePointerEventCore = ({
       handler: (e: PointerEvent) => {
         logEventHandling('pointerleave', 'pointer', { pointerId: e.pointerId, pointerType: e.pointerType });
         
+        // Clean up this pointer
+        activePointersRef.current.delete(e.pointerId);
+        gestureStateRef.current.isMultiTouch = activePointersRef.current.size > 1;
+        gestureStateRef.current.isPanning = false;
+        
         palmRejection.onPointerEnd(e.pointerId);
         panZoom.stopPan(); // Always stop pan on leave
         
-        // Only call handlePointerUp for drawing if not in read-only mode
-        if (!stableIsReadOnly) {
+        // Only call handlePointerUp for drawing if not in read-only mode and not multi-touch
+        if (!stableIsReadOnly && !gestureStateRef.current.isMultiTouch) {
           handlePointerUp();
         }
       },
