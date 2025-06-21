@@ -38,21 +38,16 @@ export const useTabletOptimizations = ({
     // TABLET-FRIENDLY: Store original styles for restoration
     const originalStyles = {
       touchAction: container.style.touchAction,
-      webkitTextSizeAdjust: container.style.webkitTextSizeAdjust,
-      webkitFontSmoothing: container.style.webkitFontSmoothing,
-      webkitOverflowScrolling: container.style.webkitOverflowScrolling
+      webkitTextSizeAdjust: container.style.getPropertyValue('-webkit-text-size-adjust'),
+      webkitFontSmoothing: container.style.getPropertyValue('-webkit-font-smoothing'),
+      webkitOverflowScrolling: container.style.getPropertyValue('-webkit-overflow-scrolling')
     };
 
-    // TABLET-FRIENDLY: Apply optimizations
-    Object.assign(container.style, {
-      // Dynamic touch action based on palm rejection
-      touchAction: palmRejectionEnabled ? 'none' : 'manipulation',
-      // iPad-specific text rendering optimizations
-      webkitTextSizeAdjust: 'none',
-      webkitFontSmoothing: 'antialiased',
-      // Optimize scrolling performance
-      webkitOverflowScrolling: 'touch'
-    });
+    // TABLET-FRIENDLY: Apply optimizations using setProperty for vendor prefixes
+    container.style.touchAction = palmRejectionEnabled ? 'none' : 'manipulation';
+    container.style.setProperty('-webkit-text-size-adjust', 'none');
+    container.style.setProperty('-webkit-font-smoothing', 'antialiased');
+    container.style.setProperty('-webkit-overflow-scrolling', 'touch');
 
     // TABLET-FRIENDLY: Add hardware acceleration hint
     if (container.style.transform === '') {
@@ -75,7 +70,10 @@ export const useTabletOptimizations = ({
     // TABLET-FRIENDLY: Cleanup function
     return () => {
       // Restore original styles
-      Object.assign(container.style, originalStyles);
+      container.style.touchAction = originalStyles.touchAction;
+      container.style.setProperty('-webkit-text-size-adjust', originalStyles.webkitTextSizeAdjust);
+      container.style.setProperty('-webkit-font-smoothing', originalStyles.webkitFontSmoothing);
+      container.style.setProperty('-webkit-overflow-scrolling', originalStyles.webkitOverflowScrolling);
       
       // Remove event listeners
       container.removeEventListener('contextmenu', preventContextMenu);

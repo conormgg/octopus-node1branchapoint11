@@ -48,22 +48,20 @@ export const useTextSelectionPrevention = ({
     // TABLET-FRIENDLY: Apply comprehensive CSS prevention
     const originalStyles = {
       userSelect: container.style.userSelect,
-      webkitUserSelect: container.style.webkitUserSelect,
-      mozUserSelect: container.style.MozUserSelect,
-      msUserSelect: container.style.msUserSelect,
-      webkitTouchCallout: container.style.webkitTouchCallout,
-      webkitTapHighlightColor: container.style.webkitTapHighlightColor
+      webkitUserSelect: container.style.getPropertyValue('-webkit-user-select'),
+      mozUserSelect: container.style.getPropertyValue('-moz-user-select'),
+      msUserSelect: container.style.getPropertyValue('-ms-user-select'),
+      webkitTouchCallout: container.style.getPropertyValue('-webkit-touch-callout'),
+      webkitTapHighlightColor: container.style.getPropertyValue('-webkit-tap-highlight-color')
     };
 
-    // TABLET-FRIENDLY: Apply prevention styles
-    Object.assign(container.style, {
-      userSelect: 'none',
-      webkitUserSelect: 'none',
-      MozUserSelect: 'none',
-      msUserSelect: 'none',
-      webkitTouchCallout: 'none',
-      webkitTapHighlightColor: 'transparent'
-    });
+    // TABLET-FRIENDLY: Apply prevention styles using setProperty for vendor prefixes
+    container.style.userSelect = 'none';
+    container.style.setProperty('-webkit-user-select', 'none');
+    container.style.setProperty('-moz-user-select', 'none');
+    container.style.setProperty('-ms-user-select', 'none');
+    container.style.setProperty('-webkit-touch-callout', 'none');
+    container.style.setProperty('-webkit-tap-highlight-color', 'transparent');
 
     debugLog('TextSelection', 'Text selection prevention applied');
 
@@ -73,7 +71,12 @@ export const useTextSelectionPrevention = ({
       document.removeEventListener('dragstart', preventDragStart);
       
       // Restore original styles
-      Object.assign(container.style, originalStyles);
+      container.style.userSelect = originalStyles.userSelect;
+      container.style.setProperty('-webkit-user-select', originalStyles.webkitUserSelect);
+      container.style.setProperty('-moz-user-select', originalStyles.mozUserSelect);
+      container.style.setProperty('-ms-user-select', originalStyles.msUserSelect);
+      container.style.setProperty('-webkit-touch-callout', originalStyles.webkitTouchCallout);
+      container.style.setProperty('-webkit-tap-highlight-color', originalStyles.webkitTapHighlightColor);
       
       debugLog('TextSelection', 'Text selection prevention cleaned up');
     };
