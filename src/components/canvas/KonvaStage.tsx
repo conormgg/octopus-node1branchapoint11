@@ -1,4 +1,3 @@
-
 import React, { useRef, useEffect } from 'react';
 import Konva from 'konva';
 import { useWhiteboardState } from '@/hooks/useWhiteboardState';
@@ -177,9 +176,10 @@ const KonvaStage: React.FC<KonvaStageProps> = ({
       }}
       tabIndex={0}
       data-whiteboard-id={whiteboardId}
-      // TABLET-FRIENDLY: Prevent default behaviors that interfere with drawing
+      // CRITICAL FIX: Add comprehensive event prevention at container level
       onPointerDown={(e) => e.preventDefault()}
       onMouseDown={(e) => e.preventDefault()}
+      onTouchStart={(e) => e.preventDefault()}
     >
       <KonvaImageContextMenuHandler
         whiteboardState={whiteboardState}
