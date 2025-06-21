@@ -89,8 +89,8 @@ export const useMouseEventHandlers = ({
           onStageClick(e);
         }
         
-        // Only proceed with drawing/selection if not in read-only mode or palm rejection is disabled
-        if (stableIsReadOnly || (stablePalmRejectionEnabled && stableCurrentTool !== 'select')) return;
+        // FIX: Allow selection tool to work even in read-only mode, but block other tools
+        if ((stableIsReadOnly && stableCurrentTool !== 'select') || (stablePalmRejectionEnabled && stableCurrentTool !== 'select')) return;
         
         const stage = e.target.getStage();
         if (!stage) return;
@@ -126,8 +126,8 @@ export const useMouseEventHandlers = ({
           return;
         }
         
-        // Only proceed with drawing/selection if not in read-only mode or palm rejection is disabled
-        if (stableIsReadOnly || (stablePalmRejectionEnabled && stableCurrentTool !== 'select')) return;
+        // FIX: Allow selection tool to work even in read-only mode, but block other tools
+        if ((stableIsReadOnly && stableCurrentTool !== 'select') || (stablePalmRejectionEnabled && stableCurrentTool !== 'select')) return;
         
         const stage = e.target.getStage();
         if (!stage) return;
@@ -157,8 +157,8 @@ export const useMouseEventHandlers = ({
           return;
         }
         
-        // Only proceed with drawing/selection if not in read-only mode or palm rejection is disabled
-        if (stableIsReadOnly || (stablePalmRejectionEnabled && stableCurrentTool !== 'select')) return;
+        // FIX: Allow selection tool to work even in read-only mode, but block other tools
+        if ((stableIsReadOnly && stableCurrentTool !== 'select') || (stablePalmRejectionEnabled && stableCurrentTool !== 'select')) return;
         
         handlePointerUp();
       },
