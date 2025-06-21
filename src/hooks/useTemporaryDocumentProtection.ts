@@ -2,7 +2,7 @@
 import { useCallback, useRef } from 'react';
 import { createDebugLogger } from '@/utils/debug/debugConfig';
 
-const debugLog = createDebugLogger('documentProtection');
+const debugLog = createDebugLogger('textSelection');
 
 /**
  * Hook for temporary document-level text selection protection during drawing
