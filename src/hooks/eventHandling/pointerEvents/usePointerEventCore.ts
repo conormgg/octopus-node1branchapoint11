@@ -1,4 +1,3 @@
-
 import { useCallback, useMemo, useRef } from 'react';
 import Konva from 'konva';
 import { usePalmRejection } from '../../usePalmRejection';
@@ -150,7 +149,8 @@ export const usePointerEventCore = ({
     if (!pointerPos) return false;
     
     const shape = stage.getIntersection(pointerPos);
-    return shape && shape !== stage;
+    // FIXED: Properly check if the intersected object is a shape (not the stage itself)
+    return shape && shape !== stage && shape.getClassName() !== 'Stage';
   }, [stageRef]);
 
   // Use memoized event handlers for better performance
