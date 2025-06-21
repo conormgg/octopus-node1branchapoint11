@@ -37,20 +37,20 @@ export const useTextSelectionPrevention = ({
     // TABLET-FRIENDLY: Apply comprehensive CSS-based text selection prevention
     const originalStyles = {
       userSelect: container.style.userSelect,
-      webkitUserSelect: container.style.webkitUserSelect,
-      mozUserSelect: container.style.mozUserSelect,
-      msUserSelect: container.style.msUserSelect,
-      webkitTouchCallout: container.style.webkitTouchCallout,
-      webkitTapHighlightColor: container.style.webkitTapHighlightColor,
-      webkitTextSizeAdjust: container.style.webkitTextSizeAdjust,
-      webkitFontSmoothing: container.style.webkitFontSmoothing
+      webkitUserSelect: (container.style as any).webkitUserSelect,
+      mozUserSelect: (container.style as any).MozUserSelect,
+      msUserSelect: (container.style as any).msUserSelect,
+      webkitTouchCallout: (container.style as any).webkitTouchCallout,
+      webkitTapHighlightColor: (container.style as any).webkitTapHighlightColor,
+      webkitTextSizeAdjust: (container.style as any).webkitTextSizeAdjust,
+      webkitFontSmoothing: (container.style as any).webkitFontSmoothing
     };
 
     // TABLET-FRIENDLY: Apply text selection prevention styles
     Object.assign(container.style, {
       userSelect: 'none',
       webkitUserSelect: 'none',
-      mozUserSelect: 'none',
+      MozUserSelect: 'none',
       msUserSelect: 'none',
       webkitTouchCallout: 'none',
       webkitTapHighlightColor: 'transparent',
