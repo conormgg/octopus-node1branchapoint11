@@ -132,26 +132,12 @@ export const useWhiteboardState = () => {
   // Pointer handlers
   const pointerHandlers = useWhiteboardPointerHandlers(state, panZoom, selection, drawingCoordination);
 
-  // Update line position with proper state management
+  // Update line position
   const updateLine = useCallback((lineId: string, updates: Partial<LineObject>) => {
-    console.log(`[useWhiteboardState] Updating line ${lineId}:`, updates);
     setState(prev => ({
       ...prev,
       lines: prev.lines.map(line => 
         line.id === lineId ? { ...line, ...updates } : line
-      )
-    }));
-    // Add to history after state update
-    setTimeout(() => addToHistory(), 0);
-  }, [addToHistory]);
-
-  // Update image with proper state management
-  const updateImage = useCallback((imageId: string, updates: any) => {
-    console.log(`[useWhiteboardState] Updating image ${imageId}:`, updates);
-    setState(prev => ({
-      ...prev,
-      images: prev.images.map(image => 
-        image.id === imageId ? { ...image, ...updates } : image
       )
     }));
     // Add to history after state update
@@ -206,7 +192,7 @@ export const useWhiteboardState = () => {
     panZoom,
     selection,
     updateLine,
-    updateImage,
+    updateImage: imageOperations.updateImage,
     toggleImageLock: imageOperations.toggleImageLock,
     deleteSelectedObjects
   };

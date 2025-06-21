@@ -1,11 +1,11 @@
 
 import React from 'react';
-import { LineObject } from '@/types/whiteboard';
+import { Tool, LineObject } from '@/types/whiteboard';
 import LineRenderer from '../LineRenderer';
 
 interface LinesListProps {
   lines: LineObject[];
-  currentTool: string;
+  currentTool: Tool;
   selection?: any;
   onUpdateLine?: (lineId: string, updates: any) => void;
 }
@@ -16,27 +16,39 @@ const LinesList: React.FC<LinesListProps> = ({
   selection,
   onUpdateLine
 }) => {
-  const selectedObjects = selection?.selectionState?.selectedObjects || [];
-  
   return (
     <>
       {lines.map((line) => {
-        const isSelected = selectedObjects.some((obj: any) => obj.id === line.id && obj.type === 'line');
+        if (!line) return null; // Safety check for filtered items
+        
+        const isSelected = selection?.isObjectSelected?.(line.id) || false;
+        const isInGroup = selection?.selectionState?.selectedObjects?.length > 1 && isSelected;
         
         return (
-          <LineRenderer
-            key={line.id}
+          <LineRenderer 
+            key={line.id} 
             line={line}
-            isSelected={isSelected}
+            isSelected={isSelected && !isInGroup} // Hide individual selection when in group
+            isHovered={selection?.hoveredObjectId === line.id}
             currentTool={currentTool}
-            onSelect={() => {
-              if (currentTool === 'select' && selection?.toggleObjectSelection) {
-                selection.toggleObjectSelection({ id: line.id, type: 'line' });
+            onSelect={currentTool === 'select' ? () => {
+              if (selection) {
+                selection.selectObjects([{ id: line.id, type: 'line' }]);
               }
-            }}
-            onDragEnd={(updates) => {
+            } : undefined}
+            onMouseEnter={currentTool === 'select' ? () => {
+              if (selection?.setHoveredObjectId) {
+                selection.setHoveredObjectId(line.id);
+              }
+            } : undefined}
+            onMouseLeave={currentTool === 'select' ? () => {
+              if (selection?.setHoveredObjectId) {
+                selection.setHoveredObjectId(null);
+              }
+            } : undefined}
+            onDragEnd={(newPosition) => {
               if (onUpdateLine) {
-                onUpdateLine(line.id, updates);
+                onUpdateLine(line.id, newPosition);
               }
             }}
           />
