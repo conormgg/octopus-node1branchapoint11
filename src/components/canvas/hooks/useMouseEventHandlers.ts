@@ -50,8 +50,11 @@ export const useMouseEventHandlers = ({
   const handlers = useMemoizedEventHandlers({
     handleMouseDown: {
       handler: (e: Konva.KonvaEventObject<MouseEvent>) => {
-        // Always prevent default to stop text selection and other browser behaviors
-        e.evt.preventDefault();
+        // SURGICAL FIX: Only prevent default for drawing tools
+        const isDrawingTool = stableCurrentTool === 'pencil' || stableCurrentTool === 'highlighter' || stableCurrentTool === 'eraser';
+        if (isDrawingTool) {
+          e.evt.preventDefault();
+        }
 
         debugLog('MouseEvents', `mousedown from mouse`, {
           button: e.evt.button,
@@ -100,8 +103,11 @@ export const useMouseEventHandlers = ({
 
     handleMouseMove: {
       handler: (e: Konva.KonvaEventObject<MouseEvent>) => {
-        // Always prevent default during mouse move to stop text selection
-        e.evt.preventDefault();
+        // SURGICAL FIX: Only prevent default for drawing tools
+        const isDrawingTool = stableCurrentTool === 'pencil' || stableCurrentTool === 'highlighter' || stableCurrentTool === 'eraser';
+        if (isDrawingTool) {
+          e.evt.preventDefault();
+        }
 
         debugLog('MouseEvents', `mousemove from mouse`, {
           button: e.evt.button,
@@ -134,8 +140,11 @@ export const useMouseEventHandlers = ({
 
     handleMouseUp: {
       handler: (e: Konva.KonvaEventObject<MouseEvent>) => {
-        // Always prevent default on mouse up to stop text selection
-        e.evt.preventDefault();
+        // SURGICAL FIX: Only prevent default for drawing tools
+        const isDrawingTool = stableCurrentTool === 'pencil' || stableCurrentTool === 'highlighter' || stableCurrentTool === 'eraser';
+        if (isDrawingTool) {
+          e.evt.preventDefault();
+        }
 
         debugLog('MouseEvents', `mouseup from mouse`, {
           button: e.evt.button,
