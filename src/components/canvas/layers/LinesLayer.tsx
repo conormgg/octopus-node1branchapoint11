@@ -87,7 +87,7 @@ const LinesLayer: React.FC<LinesLayerProps> = ({
         isSelecting={isSelecting}
       />
 
-      {/* Individual lines - hide transformers when part of a group */}
+      {/* Individual lines - pass onUpdateLine for transformations */}
       <LinesList
         lines={linesToRender}
         currentTool={currentTool}
