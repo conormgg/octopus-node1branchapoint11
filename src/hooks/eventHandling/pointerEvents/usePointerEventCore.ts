@@ -148,9 +148,9 @@ export const usePointerEventCore = ({
     const pointerPos = stage.getPointerPosition();
     if (!pointerPos) return false;
     
-    const shape = stage.getIntersection(pointerPos);
-    // FIXED: Properly check if the intersected object is a shape (not the stage itself)
-    return shape && shape !== stage && shape.getClassName() !== 'Stage';
+    const intersected = stage.getIntersection(pointerPos);
+    // FIXED: Check if we have an intersection and it's not the stage background
+    return intersected !== null && intersected !== stage;
   }, [stageRef]);
 
   // Use memoized event handlers for better performance
