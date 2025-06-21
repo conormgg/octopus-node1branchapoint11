@@ -51,6 +51,9 @@ const LinesLayer: React.FC<LinesLayerProps> = ({
 }) => {
   const { cullLines } = useViewportCulling(stageRef);
 
+  console.log('[DEBUG] LinesLayer render - isSelecting:', isSelecting, 'selectionBounds:', selectionBounds);
+  console.log('[DEBUG] LinesLayer selection state:', selection?.selectionState);
+
   // Use normalized state if available, otherwise fall back to array-based approach
   const useNormalized = normalizedState && normalizedState.lineCount > 0;
   

@@ -23,6 +23,7 @@ export const useWhiteboardPointerHandlers = (
   // Handle pointer down
   const handlePointerDown = useCallback((x: number, y: number) => {
     debugLog('PointerHandlers', 'Pointer down', { x, y, tool: stableCurrentTool });
+    console.log('[DEBUG] Pointer down - tool:', stableCurrentTool, 'coordinates:', { x, y });
     
     // Don't start drawing if a pan/zoom gesture is active
     if (panZoom.isGestureActive()) {
@@ -31,17 +32,22 @@ export const useWhiteboardPointerHandlers = (
     }
     
     if (stableCurrentTool === 'pencil' || stableCurrentTool === 'highlighter' || stableCurrentTool === 'eraser') {
+      console.log('[DEBUG] Starting drawing operation');
       drawingCoordination.handleDrawingStart(x, y);
     } else if (stableCurrentTool === 'select') {
+      console.log('[DEBUG] Select tool - processing selection logic');
+      
       // Handle selection logic with priority:
       // 1. Check if clicking within existing selection bounds (for group dragging)
       // 2. Check if clicking on individual objects
       // 3. Start new selection or clear existing selection
       
       const isInSelectionBounds = selection.isPointInSelectionBounds({ x, y });
+      console.log('[DEBUG] Is in selection bounds:', isInSelectionBounds);
       
       if (isInSelectionBounds && stableSelectionState.selectedObjects.length > 0) {
         debugLog('PointerHandlers', 'Clicked within selection bounds');
+        console.log('[DEBUG] Clicked within existing selection bounds - maintaining selection');
         // Clicking within selection bounds - this will allow dragging the entire group
         // The actual dragging logic will be handled by the SelectionGroup component
         // We don't need to change the selection here, just maintain it
@@ -50,9 +56,11 @@ export const useWhiteboardPointerHandlers = (
       
       // Check for individual objects
       const foundObjects = selection.findObjectsAtPoint({ x, y }, stableLines, stableImages);
+      console.log('[DEBUG] Found objects at point:', foundObjects);
       
       if (foundObjects.length > 0) {
         debugLog('PointerHandlers', 'Found objects at point', { count: foundObjects.length });
+        console.log('[DEBUG] Selecting found object:', foundObjects[0]);
         // Select the first found object
         selection.selectObjects([foundObjects[0]]);
         // Update selection bounds for the selected object
@@ -61,11 +69,14 @@ export const useWhiteboardPointerHandlers = (
         }, 0);
       } else {
         debugLog('PointerHandlers', 'Starting drag-to-select');
+        console.log('[DEBUG] No objects found - starting drag-to-select');
+        console.log('[DEBUG] Clearing selection and starting drag-to-select');
         // Clear selection when clicking on empty space
         selection.clearSelection();
         // Start drag-to-select
         selection.setIsSelecting(true);
         selection.setSelectionBounds({ x, y, width: 0, height: 0 });
+        console.log('[DEBUG] Set isSelecting to true and initial bounds:', { x, y, width: 0, height: 0 });
       }
     }
   }, [stableCurrentTool, stableLines, stableImages, stableSelectionState.selectedObjects.length, panZoom, selection, drawingCoordination]);
@@ -78,6 +89,7 @@ export const useWhiteboardPointerHandlers = (
     if (stableCurrentTool === 'pencil' || stableCurrentTool === 'highlighter' || stableCurrentTool === 'eraser') {
       drawingCoordination.handleDrawingContinue(x, y);
     } else if (stableCurrentTool === 'select' && stableSelectionState.isSelecting) {
+      console.log('[DEBUG] Updating drag-to-select rectangle - move to:', { x, y });
       // Update drag-to-select rectangle
       const bounds = stableSelectionState.selectionBounds;
       if (bounds) {
@@ -87,6 +99,7 @@ export const useWhiteboardPointerHandlers = (
           width: Math.abs(x - bounds.x),
           height: Math.abs(y - bounds.y)
         };
+        console.log('[DEBUG] New selection bounds:', newBounds);
         selection.setSelectionBounds(newBounds);
       }
     }
@@ -94,22 +107,30 @@ export const useWhiteboardPointerHandlers = (
 
   // Handle pointer up
   const handlePointerUp = useCallback(() => {
+    console.log('[DEBUG] Pointer up - tool:', stableCurrentTool, 'isSelecting:', stableSelectionState.isSelecting);
+    
     if (stableCurrentTool === 'pencil' || stableCurrentTool === 'highlighter' || stableCurrentTool === 'eraser') {
       drawingCoordination.handleDrawingEnd();
     } else if (stableCurrentTool === 'select' && stableSelectionState.isSelecting) {
+      console.log('[DEBUG] Completing drag-to-select');
       // Complete drag-to-select
       const bounds = stableSelectionState.selectionBounds;
       if (bounds && (bounds.width > 5 || bounds.height > 5)) {
+        console.log('[DEBUG] Selection bounds large enough, finding objects in bounds:', bounds);
         // Find objects within selection bounds
         const objectsInBounds = selection.findObjectsInBounds(bounds, stableLines, stableImages);
+        console.log('[DEBUG] Objects found in bounds:', objectsInBounds);
         selection.selectObjects(objectsInBounds);
         // Update selection bounds for the selected objects
         setTimeout(() => {
           selection.updateSelectionBounds(objectsInBounds, stableLines, stableImages);
         }, 0);
+      } else {
+        console.log('[DEBUG] Selection bounds too small, ignoring');
       }
       
       // End selection
+      console.log('[DEBUG] Ending selection - setting isSelecting to false');
       selection.setIsSelecting(false);
       selection.setSelectionBounds(null);
     }

@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { Rect } from 'react-konva';
 import { SelectionBounds } from '@/types/whiteboard';
@@ -11,9 +12,14 @@ const SelectionRect: React.FC<SelectionRectProps> = ({
   selectionBounds,
   isVisible
 }) => {
+  console.log('[DEBUG] SelectionRect render - isVisible:', isVisible, 'selectionBounds:', selectionBounds);
+
   if (!isVisible || !selectionBounds) {
+    console.log('[DEBUG] SelectionRect not rendering - isVisible:', isVisible, 'selectionBounds:', selectionBounds);
     return null;
   }
+
+  console.log('[DEBUG] SelectionRect rendering with bounds:', selectionBounds);
 
   return (
     <Rect

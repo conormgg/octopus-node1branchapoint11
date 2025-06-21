@@ -1,3 +1,4 @@
+
 import { useState, useCallback, useEffect } from 'react';
 import { SelectionState, SelectedObject, SelectionBounds, LineObject, ImageObject, TransformationData } from '@/types/whiteboard';
 import { useSelectionObjectPooling } from '@/hooks/performance/useSelectionObjectPooling';
@@ -30,6 +31,7 @@ export const useSelectionState = () => {
 
   // Select objects
   const selectObjects = useCallback((objects: SelectedObject[]) => {
+    console.log('[DEBUG] selectObjects called with:', objects);
     setSelectionState(prev => ({
       ...prev,
       selectedObjects: objects
@@ -54,6 +56,7 @@ export const useSelectionState = () => {
 
   // Clear selection
   const clearSelection = useCallback(() => {
+    console.log('[DEBUG] clearSelection called');
     setSelectionState(prev => ({
       ...prev,
       selectedObjects: [],
@@ -64,6 +67,7 @@ export const useSelectionState = () => {
 
   // Set selection bounds (for drag-to-select rectangle)
   const setSelectionBounds = useCallback((bounds: SelectionBounds | null) => {
+    console.log('[DEBUG] setSelectionBounds called with:', bounds);
     setSelectionState(prev => ({
       ...prev,
       selectionBounds: bounds
@@ -72,6 +76,7 @@ export const useSelectionState = () => {
 
   // Set selecting state
   const setIsSelecting = useCallback((isSelecting: boolean) => {
+    console.log('[DEBUG] setIsSelecting called with:', isSelecting);
     setSelectionState(prev => ({
       ...prev,
       isSelecting
