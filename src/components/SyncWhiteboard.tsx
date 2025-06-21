@@ -120,16 +120,12 @@ export const SyncWhiteboard: React.FC<SyncWhiteboardProps> = ({
     whiteboardId
   ]);
 
-  // Enhanced container styles for iPad stylus support
+  // Container styles for proper isolation
   const containerStyles = {
     WebkitUserSelect: 'none' as const,
     WebkitTouchCallout: 'none' as const,
-    WebkitTapHighlightColor: 'transparent' as const,
-    touchAction: 'none' as const, // Critical for iPad stylus support
-    overflow: 'hidden' as const,
-    // iPad-specific optimizations
-    WebkitTextSizeAdjust: 'none' as const,
-    WebkitFontSmoothing: 'antialiased' as const
+    touchAction: 'none' as const,
+    overflow: 'hidden' as const
   };
 
   return (
@@ -149,7 +145,7 @@ export const SyncWhiteboard: React.FC<SyncWhiteboardProps> = ({
           palmTimeoutMs: 500,
           clusterDistance: 100,
           preferStylus: true,
-          enabled: true // Enable palm rejection for better iPad stylus support
+          enabled: false
         }}
       />
       
