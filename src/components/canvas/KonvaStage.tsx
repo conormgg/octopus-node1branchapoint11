@@ -157,6 +157,28 @@ const KonvaStage: React.FC<KonvaStageProps> = ({
     return 'manipulation';
   };
 
+  // SURGICAL FIX: Conditional preventDefault based on tool and target
+  const handleContainerPointerDown = (e: React.PointerEvent) => {
+    const isDrawingTool = state.currentTool === 'pencil' || state.currentTool === 'highlighter' || state.currentTool === 'eraser';
+    if (isDrawingTool) {
+      e.preventDefault();
+    }
+  };
+
+  const handleContainerMouseDown = (e: React.MouseEvent) => {
+    const isDrawingTool = state.currentTool === 'pencil' || state.currentTool === 'highlighter' || state.currentTool === 'eraser';
+    if (isDrawingTool) {
+      e.preventDefault();
+    }
+  };
+
+  const handleContainerTouchStart = (e: React.TouchEvent) => {
+    const isDrawingTool = state.currentTool === 'pencil' || state.currentTool === 'highlighter' || state.currentTool === 'eraser';
+    if (isDrawingTool) {
+      e.preventDefault();
+    }
+  };
+
   return (
     <div 
       ref={containerRef} 
@@ -176,10 +198,10 @@ const KonvaStage: React.FC<KonvaStageProps> = ({
       }}
       tabIndex={0}
       data-whiteboard-id={whiteboardId}
-      // CRITICAL FIX: Add comprehensive event prevention at container level
-      onPointerDown={(e) => e.preventDefault()}
-      onMouseDown={(e) => e.preventDefault()}
-      onTouchStart={(e) => e.preventDefault()}
+      // SURGICAL FIX: Conditional event prevention based on tool
+      onPointerDown={handleContainerPointerDown}
+      onMouseDown={handleContainerMouseDown}
+      onTouchStart={handleContainerTouchStart}
     >
       <KonvaImageContextMenuHandler
         whiteboardState={whiteboardState}

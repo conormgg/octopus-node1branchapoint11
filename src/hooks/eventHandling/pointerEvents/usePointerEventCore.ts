@@ -61,19 +61,28 @@ export const usePointerEventCore = ({
   const stablePalmRejectionEnabled = useMemo(() => palmRejectionConfig.enabled, [palmRejectionConfig.enabled]);
   const stableIsReadOnly = useMemo(() => isReadOnly, [isReadOnly]);
 
-  // Add document-level text selection prevention during drawing
-  const preventTextSelection = useCallback(() => {
-    const preventSelection = (e: Event) => e.preventDefault();
-    const preventDragStart = (e: Event) => e.preventDefault();
-    
-    document.addEventListener('selectstart', preventSelection);
-    document.addEventListener('dragstart', preventDragStart);
-    
-    return () => {
-      document.removeEventListener('selectstart', preventSelection);
-      document.removeEventListener('dragstart', preventDragStart);
-    };
-  }, []);
+  // Enhanced pointer capture for drawing operations
+  const setPointerCaptureForDrawing = useCallback((element: Element, pointerId: number) => {
+    try {
+      if ('setPointerCapture' in element) {
+        (element as any).setPointerCapture(pointerId);
+        logEventHandling('pointer-capture-set', 'pointer', { pointerId });
+      }
+    } catch (error) {
+      logEventHandling('pointer-capture-error', 'pointer', { pointerId, error: error.message });
+    }
+  }, [logEventHandling]);
+
+  const releasePointerCaptureForDrawing = useCallback((element: Element, pointerId: number) => {
+    try {
+      if ('releasePointerCapture' in element) {
+        (element as any).releasePointerCapture(pointerId);
+        logEventHandling('pointer-capture-released', 'pointer', { pointerId });
+      }
+    } catch (error) {
+      logEventHandling('pointer-capture-release-error', 'pointer', { pointerId, error: error.message });
+    }
+  }, [logEventHandling]);
 
   // Helper function to calculate distance between two pointers
   const calculateDistance = useCallback((pointer1: PointerEvent, pointer2: PointerEvent) => {
@@ -145,15 +154,22 @@ export const usePointerEventCore = ({
         const stage = stageRef.current;
         if (!stage) return;
 
-        // ALWAYS prevent default to stop text selection and other browser behaviors
-        e.preventDefault();
+        // SURGICAL APPROACH: Only prevent default for drawing tools
+        const tool = currentToolRef.current;
+        const isDrawingTool = tool === 'pencil' || tool === 'highlighter' || tool === 'eraser';
+        
+        if (isDrawingTool && shouldHandleDrawing(e)) {
+          e.preventDefault();
+        }
 
         logEventHandling('pointerdown', 'pointer', { 
           pointerId: e.pointerId, 
           pointerType: e.pointerType,
           pressure: e.pressure,
           button: e.button,
-          activePointers: activePointersRef.current.size
+          activePointers: activePointersRef.current.size,
+          tool,
+          preventedDefault: isDrawingTool && shouldHandleDrawing(e)
         });
 
         // Add to active pointers
@@ -185,17 +201,17 @@ export const usePointerEventCore = ({
         if (shouldHandleDrawing(e)) {
           gestureStateRef.current.isDrawing = true;
           
-          // Enable document-level text selection prevention during drawing
-          const cleanup = preventTextSelection();
-          
-          // Store cleanup function for later use
-          (gestureStateRef.current as any).textSelectionCleanup = cleanup;
+          // Enhanced pointer capture for drawing
+          const container = stage.container();
+          if (container) {
+            setPointerCaptureForDrawing(container, e.pointerId);
+          }
           
           const { x, y } = getRelativePointerPosition(stage, e.clientX, e.clientY);
           handlePointerDown(x, y);
         }
       },
-      deps: [stageRef, logEventHandling, shouldHandlePanning, shouldHandleDrawing, currentToolRef, panZoom, getRelativePointerPosition, handlePointerDown, calculateDistance, calculateCenter, preventTextSelection]
+      deps: [stageRef, logEventHandling, shouldHandlePanning, shouldHandleDrawing, currentToolRef, panZoom, getRelativePointerPosition, handlePointerDown, calculateDistance, calculateCenter, setPointerCaptureForDrawing]
     },
 
     handlePointerMoveEvent: {
@@ -203,15 +219,18 @@ export const usePointerEventCore = ({
         const stage = stageRef.current;
         if (!stage) return;
 
-        // ALWAYS prevent default during pointer move to stop text selection
-        e.preventDefault();
+        // SURGICAL APPROACH: Only prevent default during active drawing
+        if (gestureStateRef.current.isDrawing && shouldHandleDrawing(e)) {
+          e.preventDefault();
+        }
 
         logEventHandling('pointermove', 'pointer', { 
           pointerId: e.pointerId, 
           pointerType: e.pointerType,
           pressure: e.pressure,
           buttons: e.buttons,
-          activePointers: activePointersRef.current.size
+          activePointers: activePointersRef.current.size,
+          isDrawing: gestureStateRef.current.isDrawing
         });
 
         // Update active pointer
@@ -252,15 +271,29 @@ export const usePointerEventCore = ({
 
     handlePointerUpEvent: {
       handler: (e: PointerEvent) => {
-        // ALWAYS prevent default on pointer up to stop text selection
-        e.preventDefault();
+        const stage = stageRef.current;
+
+        // SURGICAL APPROACH: Only prevent default if we were drawing
+        if (gestureStateRef.current.isDrawing) {
+          e.preventDefault();
+        }
 
         logEventHandling('pointerup', 'pointer', { 
           pointerId: e.pointerId, 
           pointerType: e.pointerType,
           button: e.button,
-          activePointers: activePointersRef.current.size
+          activePointers: activePointersRef.current.size,
+          wasDrawing: gestureStateRef.current.isDrawing
         });
+
+        // Release pointer capture if we were drawing
+        if (gestureStateRef.current.isDrawing && stage) {
+          const container = stage.container();
+          if (container) {
+            releasePointerCaptureForDrawing(container, e.pointerId);
+          }
+          gestureStateRef.current.isDrawing = false;
+        }
 
         // Remove from active pointers
         activePointersRef.current.delete(e.pointerId);
@@ -273,13 +306,6 @@ export const usePointerEventCore = ({
         if (wasMultiTouch && !gestureStateRef.current.isMultiTouch) {
           gestureStateRef.current.lastDistance = 0;
           gestureStateRef.current.lastCenter = { x: 0, y: 0 };
-        }
-        
-        // Clean up text selection prevention if we were drawing
-        if (gestureStateRef.current.isDrawing && (gestureStateRef.current as any).textSelectionCleanup) {
-          (gestureStateRef.current as any).textSelectionCleanup();
-          delete (gestureStateRef.current as any).textSelectionCleanup;
-          gestureStateRef.current.isDrawing = false;
         }
         
         // Handle right-click pan end or finger pan end
@@ -298,20 +324,28 @@ export const usePointerEventCore = ({
           handlePointerUp();
         }
       },
-      deps: [logEventHandling, panZoom, palmRejection, shouldHandleDrawing, currentToolRef, handlePointerUp]
+      deps: [stageRef, logEventHandling, panZoom, palmRejection, shouldHandleDrawing, currentToolRef, handlePointerUp, releasePointerCaptureForDrawing]
     },
 
     handlePointerLeaveEvent: {
       handler: (e: PointerEvent) => {
-        // ALWAYS prevent default on pointer leave
-        e.preventDefault();
+        // Only prevent default if we were actively drawing
+        if (gestureStateRef.current.isDrawing) {
+          e.preventDefault();
+        }
 
-        logEventHandling('pointerleave', 'pointer', { pointerId: e.pointerId, pointerType: e.pointerType });
+        logEventHandling('pointerleave', 'pointer', { 
+          pointerId: e.pointerId, 
+          pointerType: e.pointerType,
+          wasDrawing: gestureStateRef.current.isDrawing 
+        });
         
-        // Clean up text selection prevention if we were drawing
-        if (gestureStateRef.current.isDrawing && (gestureStateRef.current as any).textSelectionCleanup) {
-          (gestureStateRef.current as any).textSelectionCleanup();
-          delete (gestureStateRef.current as any).textSelectionCleanup;
+        // Release pointer capture if we were drawing
+        if (gestureStateRef.current.isDrawing && stageRef.current) {
+          const container = stageRef.current.container();
+          if (container) {
+            releasePointerCaptureForDrawing(container, e.pointerId);
+          }
           gestureStateRef.current.isDrawing = false;
         }
         
@@ -328,7 +362,7 @@ export const usePointerEventCore = ({
           handlePointerUp();
         }
       },
-      deps: [logEventHandling, palmRejection, panZoom, stableIsReadOnly, handlePointerUp]
+      deps: [logEventHandling, palmRejection, panZoom, stableIsReadOnly, handlePointerUp, releasePointerCaptureForDrawing, stageRef]
     },
 
     handleContextMenu: {

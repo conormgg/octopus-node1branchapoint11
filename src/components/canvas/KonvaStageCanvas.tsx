@@ -86,10 +86,14 @@ const KonvaStageCanvas: React.FC<KonvaStageCanvasProps> = ({
     onStageClick
   });
 
-  // CRITICAL FIX: Wrap touch start handler to ensure preventDefault at Stage level
+  // SURGICAL FIX: Only prevent default for drawing tools at Stage level
   const handleStageTouchStart = (e: Konva.KonvaEventObject<TouchEvent>) => {
-    // Prevent browser's default touch behavior at the Stage level
-    e.evt.preventDefault();
+    const shouldPreventDefault = currentTool === 'pencil' || currentTool === 'highlighter' || currentTool === 'eraser';
+    
+    if (shouldPreventDefault) {
+      e.evt.preventDefault();
+    }
+    
     handleTouchStart(e);
   };
 

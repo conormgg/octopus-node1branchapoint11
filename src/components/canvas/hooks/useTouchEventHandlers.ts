@@ -18,14 +18,23 @@ export const useTouchEventHandlers = ({
   onStageClick
 }: UseTouchEventHandlersProps) => {
   const handleTouchStart = useCallback((e: Konva.KonvaEventObject<TouchEvent>) => {
-    // CRITICAL FIX: Prevent browser's default touch behavior to stop text selection
-    e.evt.preventDefault();
+    // SURGICAL FIX: Only prevent default for drawing tools, not selection
+    const shouldPreventDefault = currentTool === 'pencil' || currentTool === 'highlighter' || currentTool === 'eraser';
     
-    debugLog('TouchEvents', 'touchstart from konva with preventDefault', {
-      touches: e.evt.touches.length,
-      currentTool,
-      palmRejectionEnabled: palmRejectionConfig.enabled
-    });
+    if (shouldPreventDefault) {
+      e.evt.preventDefault();
+      debugLog('TouchEvents', 'touchstart with preventDefault for drawing tool', {
+        touches: e.evt.touches.length,
+        currentTool,
+        palmRejectionEnabled: palmRejectionConfig.enabled
+      });
+    } else {
+      debugLog('TouchEvents', 'touchstart without preventDefault for selection tool', {
+        touches: e.evt.touches.length,
+        currentTool,
+        palmRejectionEnabled: palmRejectionConfig.enabled
+      });
+    }
     
     if (onStageClick) onStageClick(e);
   }, [currentTool, palmRejectionConfig.enabled, onStageClick]);
