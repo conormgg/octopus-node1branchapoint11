@@ -35,8 +35,8 @@ export const usePalmRejection = (config: Partial<PalmRejectionConfig> = {}) => {
   const rejectedPointers = useRef<Set<number>>(new Set());
 
   const analyzePointer = useCallback((pointer: PointerData): boolean => {
-    // Always allow pen/stylus input
-    if (pointer.pointerType === 'pen' && finalConfig.preferStylus) {
+    // ALWAYS allow pen/stylus input - this is critical for iPad stylus support
+    if (pointer.pointerType === 'pen') {
       return true;
     }
 
@@ -69,8 +69,8 @@ export const usePalmRejection = (config: Partial<PalmRejectionConfig> = {}) => {
       return false;
     }
 
-    // Check pressure if available
-    if (pointer.pressure > 0 && pointer.pressure < finalConfig.minPressure) {
+    // Check pressure if available (but be lenient for stylus-like input)
+    if (pointer.pressure > 0 && pointer.pressure < finalConfig.minPressure && pointer.pointerType !== 'pen') {
       return false;
     }
 
@@ -88,6 +88,12 @@ export const usePalmRejection = (config: Partial<PalmRejectionConfig> = {}) => {
       x: event.clientX,
       y: event.clientY
     };
+
+    // PRIORITY: Always process stylus/pen input immediately
+    if (pointer.pointerType === 'pen') {
+      activePointers.current.set(pointer.id, pointer);
+      return true;
+    }
 
     // If this pointer was already rejected, continue rejecting it
     if (rejectedPointers.current.has(pointer.id)) {
