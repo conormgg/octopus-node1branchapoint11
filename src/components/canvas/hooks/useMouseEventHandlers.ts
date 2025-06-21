@@ -50,11 +50,8 @@ export const useMouseEventHandlers = ({
   const handlers = useMemoizedEventHandlers({
     handleMouseDown: {
       handler: (e: Konva.KonvaEventObject<MouseEvent>) => {
-        // SURGICAL FIX: Only prevent default for drawing tools
-        const isDrawingTool = stableCurrentTool === 'pencil' || stableCurrentTool === 'highlighter' || stableCurrentTool === 'eraser';
-        if (isDrawingTool) {
-          e.evt.preventDefault();
-        }
+        // Always prevent default to stop text selection and other browser behaviors
+        e.evt.preventDefault();
 
         debugLog('MouseEvents', `mousedown from mouse`, {
           button: e.evt.button,
@@ -89,8 +86,8 @@ export const useMouseEventHandlers = ({
           onStageClick(e);
         }
         
-        // FIX: Allow selection tool to work even in read-only mode, but block other tools
-        if ((stableIsReadOnly && stableCurrentTool !== 'select') || (stablePalmRejectionEnabled && stableCurrentTool !== 'select')) return;
+        // Only proceed with drawing/selection if not in read-only mode or palm rejection is disabled
+        if (stableIsReadOnly || (stablePalmRejectionEnabled && stableCurrentTool !== 'select')) return;
         
         const stage = e.target.getStage();
         if (!stage) return;
@@ -103,11 +100,8 @@ export const useMouseEventHandlers = ({
 
     handleMouseMove: {
       handler: (e: Konva.KonvaEventObject<MouseEvent>) => {
-        // SURGICAL FIX: Only prevent default for drawing tools
-        const isDrawingTool = stableCurrentTool === 'pencil' || stableCurrentTool === 'highlighter' || stableCurrentTool === 'eraser';
-        if (isDrawingTool) {
-          e.evt.preventDefault();
-        }
+        // Always prevent default during mouse move to stop text selection
+        e.evt.preventDefault();
 
         debugLog('MouseEvents', `mousemove from mouse`, {
           button: e.evt.button,
@@ -126,8 +120,8 @@ export const useMouseEventHandlers = ({
           return;
         }
         
-        // FIX: Allow selection tool to work even in read-only mode, but block other tools
-        if ((stableIsReadOnly && stableCurrentTool !== 'select') || (stablePalmRejectionEnabled && stableCurrentTool !== 'select')) return;
+        // Only proceed with drawing/selection if not in read-only mode or palm rejection is disabled
+        if (stableIsReadOnly || (stablePalmRejectionEnabled && stableCurrentTool !== 'select')) return;
         
         const stage = e.target.getStage();
         if (!stage) return;
@@ -140,11 +134,8 @@ export const useMouseEventHandlers = ({
 
     handleMouseUp: {
       handler: (e: Konva.KonvaEventObject<MouseEvent>) => {
-        // SURGICAL FIX: Only prevent default for drawing tools
-        const isDrawingTool = stableCurrentTool === 'pencil' || stableCurrentTool === 'highlighter' || stableCurrentTool === 'eraser';
-        if (isDrawingTool) {
-          e.evt.preventDefault();
-        }
+        // Always prevent default on mouse up to stop text selection
+        e.evt.preventDefault();
 
         debugLog('MouseEvents', `mouseup from mouse`, {
           button: e.evt.button,
@@ -157,8 +148,8 @@ export const useMouseEventHandlers = ({
           return;
         }
         
-        // FIX: Allow selection tool to work even in read-only mode, but block other tools
-        if ((stableIsReadOnly && stableCurrentTool !== 'select') || (stablePalmRejectionEnabled && stableCurrentTool !== 'select')) return;
+        // Only proceed with drawing/selection if not in read-only mode or palm rejection is disabled
+        if (stableIsReadOnly || (stablePalmRejectionEnabled && stableCurrentTool !== 'select')) return;
         
         handlePointerUp();
       },

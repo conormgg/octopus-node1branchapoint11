@@ -86,17 +86,6 @@ const KonvaStageCanvas: React.FC<KonvaStageCanvasProps> = ({
     onStageClick
   });
 
-  // SURGICAL FIX: Only prevent default for drawing tools at Stage level
-  const handleStageTouchStart = (e: Konva.KonvaEventObject<TouchEvent>) => {
-    const shouldPreventDefault = currentTool === 'pencil' || currentTool === 'highlighter' || currentTool === 'eraser';
-    
-    if (shouldPreventDefault) {
-      e.evt.preventDefault();
-    }
-    
-    handleTouchStart(e);
-  };
-
   const cursor = useStageCursor({ currentTool, selection });
 
   return (
@@ -108,7 +97,7 @@ const KonvaStageCanvas: React.FC<KonvaStageCanvasProps> = ({
       onMouseMove={handleMouseMove}
       onMouseUp={handleMouseUp}
       onMouseLeave={handleMouseUp}
-      onTouchStart={handleStageTouchStart}
+      onTouchStart={handleTouchStart}
       style={{ cursor }}
     >
       {/* Images layer - rendered first (behind) */}
@@ -127,7 +116,7 @@ const KonvaStageCanvas: React.FC<KonvaStageCanvasProps> = ({
         onUpdateLine={onUpdateLine}
         onUpdateImage={onUpdateImage}
         onTransformEnd={onTransformEnd}
-        stageRef={stageRef}
+        stageRef={stageRef} // Pass stageRef for viewport calculations
       />
     </Stage>
   );
