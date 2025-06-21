@@ -1,7 +1,7 @@
 
 /**
- * @fileoverview Text selection prevention for tablet drawing interfaces
- * @description TABLET-FRIENDLY: Comprehensive text selection prevention across all browser layers
+ * @fileoverview Text selection prevention for drawing interfaces
+ * @description TABLET-FRIENDLY: Prevents unwanted text selection during tablet/stylus interactions
  */
 
 import { useEffect } from 'react';
@@ -10,105 +10,71 @@ import { createDebugLogger } from '@/utils/debug/debugConfig';
 const debugLog = createDebugLogger('textSelection');
 
 interface UseTextSelectionPreventionProps {
-  /** Container element to apply text selection prevention */
-  containerRef: React.RefObject<HTMLDivElement>;
-  /** Enable or disable text selection prevention */
-  enabled?: boolean;
+  containerRef: React.RefObject<HTMLElement>;
+  enabled: boolean;
 }
 
 /**
- * TABLET-FRIENDLY: Hook for preventing text selection during drawing operations
- * @description Implements multiple layers of text selection prevention for tablet drawing interfaces
- * @param containerRef Reference to the container element
- * @param enabled Whether to enable text selection prevention (default: true)
+ * TABLET-FRIENDLY: Hook to prevent text selection during drawing operations
+ * @description Applies multiple layers of text selection prevention for optimal tablet experience
  */
 export const useTextSelectionPrevention = ({
   containerRef,
-  enabled = true
+  enabled
 }: UseTextSelectionPreventionProps) => {
+  
   useEffect(() => {
-    if (!enabled) return;
+    if (!enabled || !containerRef.current) return;
 
     const container = containerRef.current;
-    if (!container) return;
-
+    
     debugLog('TextSelection', 'Setting up text selection prevention', { enabled });
 
-    // TABLET-FRIENDLY: Apply comprehensive CSS-based text selection prevention
-    const originalStyles = {
-      userSelect: container.style.userSelect,
-      webkitUserSelect: (container.style as any).webkitUserSelect,
-      mozUserSelect: (container.style as any).MozUserSelect,
-      msUserSelect: (container.style as any).msUserSelect,
-      webkitTouchCallout: (container.style as any).webkitTouchCallout,
-      webkitTapHighlightColor: (container.style as any).webkitTapHighlightColor,
-      webkitTextSizeAdjust: (container.style as any).webkitTextSizeAdjust,
-      webkitFontSmoothing: (container.style as any).webkitFontSmoothing
+    // TABLET-FRIENDLY: Document-level event prevention
+    const preventTextSelection = (e: Event) => {
+      e.preventDefault();
+      debugLog('TextSelection', 'Prevented text selection event', { type: e.type });
     };
 
-    // TABLET-FRIENDLY: Apply text selection prevention styles
+    const preventDragStart = (e: Event) => {
+      e.preventDefault();
+      debugLog('TextSelection', 'Prevented drag start event');
+    };
+
+    // TABLET-FRIENDLY: Add document-level listeners
+    document.addEventListener('selectstart', preventTextSelection, { passive: false });
+    document.addEventListener('dragstart', preventDragStart, { passive: false });
+
+    // TABLET-FRIENDLY: Apply comprehensive CSS prevention
+    const originalStyles = {
+      userSelect: container.style.userSelect,
+      webkitUserSelect: container.style.webkitUserSelect,
+      mozUserSelect: container.style.MozUserSelect,
+      msUserSelect: container.style.msUserSelect,
+      webkitTouchCallout: container.style.webkitTouchCallout,
+      webkitTapHighlightColor: container.style.webkitTapHighlightColor
+    };
+
+    // TABLET-FRIENDLY: Apply prevention styles
     Object.assign(container.style, {
       userSelect: 'none',
       webkitUserSelect: 'none',
       MozUserSelect: 'none',
       msUserSelect: 'none',
       webkitTouchCallout: 'none',
-      webkitTapHighlightColor: 'transparent',
-      webkitTextSizeAdjust: 'none', // iPad-specific optimization
-      webkitFontSmoothing: 'antialiased' // Better text rendering on iPad
+      webkitTapHighlightColor: 'transparent'
     });
 
-    // TABLET-FRIENDLY: Document-level event prevention for text selection
-    const preventSelection = (e: Event) => {
-      debugLog('TextSelection', 'Preventing selectstart event');
-      e.preventDefault();
-      return false;
-    };
+    debugLog('TextSelection', 'Text selection prevention applied');
 
-    const preventDragStart = (e: Event) => {
-      debugLog('TextSelection', 'Preventing dragstart event');
-      e.preventDefault();
-      return false;
-    };
-
-    // TABLET-FRIENDLY: Container-level event prevention
-    const preventContainerSelection = (e: Event) => {
-      debugLog('TextSelection', 'Preventing container selection event');
-      e.preventDefault();
-      return false;
-    };
-
-    // TABLET-FRIENDLY: Add event listeners to prevent text selection
-    container.addEventListener('selectstart', preventContainerSelection);
-    container.addEventListener('dragstart', preventContainerSelection);
-    document.addEventListener('selectstart', preventSelection);
-    document.addEventListener('dragstart', preventDragStart);
-
-    // TABLET-FRIENDLY: Add pointer event prevention on the container
-    const preventPointerDefaults = (e: Event) => {
-      // Only prevent default for drawing-related interactions
-      if (e.target === container || container.contains(e.target as Node)) {
-        e.preventDefault();
-      }
-    };
-
-    container.addEventListener('pointerdown', preventPointerDefaults);
-    container.addEventListener('mousedown', preventPointerDefaults);
-
-    debugLog('TextSelection', 'Text selection prevention applied successfully');
-
+    // TABLET-FRIENDLY: Cleanup function
     return () => {
-      // TABLET-FRIENDLY: Restore original styles
-      Object.assign(container.style, originalStyles);
-
-      // TABLET-FRIENDLY: Remove event listeners
-      container.removeEventListener('selectstart', preventContainerSelection);
-      container.removeEventListener('dragstart', preventContainerSelection);
-      container.removeEventListener('pointerdown', preventPointerDefaults);
-      container.removeEventListener('mousedown', preventPointerDefaults);
-      document.removeEventListener('selectstart', preventSelection);
+      document.removeEventListener('selectstart', preventTextSelection);
       document.removeEventListener('dragstart', preventDragStart);
-
+      
+      // Restore original styles
+      Object.assign(container.style, originalStyles);
+      
       debugLog('TextSelection', 'Text selection prevention cleaned up');
     };
   }, [containerRef, enabled]);
