@@ -35,22 +35,23 @@ export const useTextSelectionPrevention = ({
     debugLog('TextSelection', 'Setting up text selection prevention', { enabled });
 
     // TABLET-FRIENDLY: Apply comprehensive CSS-based text selection prevention
+    const containerStyle = container.style as any; // Type assertion for WebKit properties
     const originalStyles = {
-      userSelect: container.style.userSelect,
-      webkitUserSelect: container.style.webkitUserSelect,
-      mozUserSelect: container.style.mozUserSelect,
-      msUserSelect: container.style.msUserSelect,
-      webkitTouchCallout: container.style.webkitTouchCallout,
-      webkitTapHighlightColor: container.style.webkitTapHighlightColor,
-      webkitTextSizeAdjust: container.style.webkitTextSizeAdjust,
-      webkitFontSmoothing: container.style.webkitFontSmoothing
+      userSelect: containerStyle.userSelect,
+      webkitUserSelect: containerStyle.webkitUserSelect,
+      MozUserSelect: containerStyle.MozUserSelect,
+      msUserSelect: containerStyle.msUserSelect,
+      webkitTouchCallout: containerStyle.webkitTouchCallout,
+      webkitTapHighlightColor: containerStyle.webkitTapHighlightColor,
+      webkitTextSizeAdjust: containerStyle.webkitTextSizeAdjust,
+      webkitFontSmoothing: containerStyle.webkitFontSmoothing
     };
 
     // TABLET-FRIENDLY: Apply text selection prevention styles
-    Object.assign(container.style, {
+    Object.assign(containerStyle, {
       userSelect: 'none',
       webkitUserSelect: 'none',
-      mozUserSelect: 'none',
+      MozUserSelect: 'none',
       msUserSelect: 'none',
       webkitTouchCallout: 'none',
       webkitTapHighlightColor: 'transparent',
@@ -99,7 +100,7 @@ export const useTextSelectionPrevention = ({
 
     return () => {
       // TABLET-FRIENDLY: Restore original styles
-      Object.assign(container.style, originalStyles);
+      Object.assign(containerStyle, originalStyles);
 
       // TABLET-FRIENDLY: Remove event listeners
       container.removeEventListener('selectstart', preventContainerSelection);
