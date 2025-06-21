@@ -1,3 +1,4 @@
+
 import React, { useRef, useEffect } from 'react';
 import Konva from 'konva';
 import { useWhiteboardState } from '@/hooks/useWhiteboardState';
@@ -109,18 +110,13 @@ const KonvaStage: React.FC<KonvaStageProps> = ({
       return false;
     };
 
-    const preventDragStart = (e: Event) => {
-      e.preventDefault();
-      return false;
-    };
-    
     // TABLET-FRIENDLY: Add event listeners to prevent text selection
     container.addEventListener('selectstart', preventSelection);
-    container.addEventListener('dragstart', preventDragStart);
+    container.addEventListener('dragstart', preventSelection);
 
     return () => {
       container.removeEventListener('selectstart', preventSelection);
-      container.removeEventListener('dragstart', preventDragStart);
+      container.removeEventListener('dragstart', preventSelection);
     };
   }, []);
 
@@ -138,7 +134,7 @@ const KonvaStage: React.FC<KonvaStageProps> = ({
     whiteboardId
   });
 
-  // TABLET-FRIENDLY: Set up all event handlers with new tablet-aware system - FIXED: Pass selection
+  // TABLET-FRIENDLY: Set up all event handlers with new tablet-aware system
   useStageEventHandlers({
     containerRef,
     stageRef,
@@ -149,8 +145,7 @@ const KonvaStage: React.FC<KonvaStageProps> = ({
     handlePointerDown,
     handlePointerMove,
     handlePointerUp,
-    isReadOnly,
-    selection // FIXED: Pass selection object through
+    isReadOnly
   });
 
   // TABLET-FRIENDLY: Enhanced touch action for iPad stylus support
@@ -182,10 +177,9 @@ const KonvaStage: React.FC<KonvaStageProps> = ({
       }}
       tabIndex={0}
       data-whiteboard-id={whiteboardId}
-      // CRITICAL FIX: Add comprehensive event prevention at container level
+      // TABLET-FRIENDLY: Prevent default behaviors that interfere with drawing
       onPointerDown={(e) => e.preventDefault()}
       onMouseDown={(e) => e.preventDefault()}
-      onTouchStart={(e) => e.preventDefault()}
     >
       <KonvaImageContextMenuHandler
         whiteboardState={whiteboardState}

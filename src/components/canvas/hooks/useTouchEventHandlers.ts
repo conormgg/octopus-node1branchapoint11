@@ -18,10 +18,7 @@ export const useTouchEventHandlers = ({
   onStageClick
 }: UseTouchEventHandlersProps) => {
   const handleTouchStart = useCallback((e: Konva.KonvaEventObject<TouchEvent>) => {
-    // CRITICAL FIX: Prevent browser's default touch behavior to stop text selection
-    e.evt.preventDefault();
-    
-    debugLog('TouchEvents', 'touchstart from konva with preventDefault', {
+    debugLog('TouchEvents', 'touchstart from konva', {
       touches: e.evt.touches.length,
       currentTool,
       palmRejectionEnabled: palmRejectionConfig.enabled

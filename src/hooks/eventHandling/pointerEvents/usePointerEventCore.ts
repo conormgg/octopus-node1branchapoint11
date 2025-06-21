@@ -24,7 +24,6 @@ interface UsePointerEventCoreProps {
   isReadOnly: boolean;
   currentToolRef: React.RefObject<string>;
   logEventHandling: (eventType: string, source: 'pointer' | 'touch' | 'mouse', detail?: Record<string, unknown>) => void;
-  selection: any; // FIXED: Add selection object
 }
 
 export const usePointerEventCore = ({
@@ -38,8 +37,7 @@ export const usePointerEventCore = ({
   handlePointerUp,
   isReadOnly,
   currentToolRef,
-  logEventHandling,
-  selection // FIXED: Accept selection
+  logEventHandling
 }: UsePointerEventCoreProps) => {
   const { getRelativePointerPosition } = useStageCoordinates(panZoomState);
 
@@ -140,19 +138,6 @@ export const usePointerEventCore = ({
     return false;
   }, [currentToolRef, stableIsReadOnly, stablePalmRejectionEnabled, palmRejection]);
 
-  // FIXED: Helper function to check if we clicked on a Konva shape
-  const isClickOnKonvaShape = useCallback((event: PointerEvent) => {
-    const stage = stageRef.current;
-    if (!stage) return false;
-    
-    const pointerPos = stage.getPointerPosition();
-    if (!pointerPos) return false;
-    
-    const intersected = stage.getIntersection(pointerPos);
-    // FIXED: Check if we have an intersection (which means we clicked on a shape)
-    return intersected !== null;
-  }, [stageRef]);
-
   // Use memoized event handlers for better performance
   const handlers = useMemoizedEventHandlers({
     handlePointerDownEvent: {
@@ -196,32 +181,6 @@ export const usePointerEventCore = ({
           return;
         }
         
-        // FIXED: Special handling for select tool to preserve selection behavior
-        if (currentToolRef.current === 'select' && selection) {
-          const { x, y } = getRelativePointerPosition(stage, e.clientX, e.clientY);
-          
-          // Check if clicking within existing selection bounds
-          const isInSelectionBounds = selection.isPointInSelectionBounds && selection.isPointInSelectionBounds({ x, y });
-          
-          if (isInSelectionBounds && selection.selectionState?.selectedObjects?.length > 0) {
-            // Clicking within selection bounds - allow group dragging without clearing selection
-            // Don't call handlePointerDown here as it would interfere with selection logic
-            return;
-          }
-          
-          // Check if we clicked on a Konva shape
-          const clickedOnShape = isClickOnKonvaShape(e);
-          
-          if (!clickedOnShape) {
-            // Only clear selection and start drag-to-select if we clicked on empty space
-            // This prevents clearing selection when clicking on individual objects
-            const { x, y } = getRelativePointerPosition(stage, e.clientX, e.clientY);
-            handlePointerDown(x, y);
-          }
-          
-          return;
-        }
-        
         // Handle drawing/selection input
         if (shouldHandleDrawing(e)) {
           gestureStateRef.current.isDrawing = true;
@@ -236,7 +195,7 @@ export const usePointerEventCore = ({
           handlePointerDown(x, y);
         }
       },
-      deps: [stageRef, logEventHandling, shouldHandlePanning, shouldHandleDrawing, currentToolRef, panZoom, getRelativePointerPosition, handlePointerDown, calculateDistance, calculateCenter, preventTextSelection, selection, isClickOnKonvaShape]
+      deps: [stageRef, logEventHandling, shouldHandlePanning, shouldHandleDrawing, currentToolRef, panZoom, getRelativePointerPosition, handlePointerDown, calculateDistance, calculateCenter, preventTextSelection]
     },
 
     handlePointerMoveEvent: {
