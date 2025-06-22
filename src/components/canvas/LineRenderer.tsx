@@ -39,6 +39,10 @@ const LineRenderer: React.FC<LineRendererProps> = React.memo(({
 
   const handleDragEnd = (e: Konva.KonvaEventObject<DragEvent>) => {
     if (onDragEnd) {
+      console.log(`[Line Movement] Line ${line.id} drag ended at:`, {
+        x: e.target.x(),
+        y: e.target.y()
+      });
       onDragEnd({
         x: e.target.x(),
         y: e.target.y()
@@ -49,13 +53,15 @@ const LineRenderer: React.FC<LineRendererProps> = React.memo(({
   const handleTransformEnd = () => {
     const node = lineRef.current;
     if (node && onTransformEnd) {
-      onTransformEnd({
+      const newAttributes = {
         x: node.x(),
         y: node.y(),
         scaleX: node.scaleX(),
         scaleY: node.scaleY(),
         rotation: node.rotation()
-      });
+      };
+      console.log(`[Line Movement] Line ${line.id} transform ended:`, newAttributes);
+      onTransformEnd(newAttributes);
     }
   };
 
@@ -64,8 +70,8 @@ const LineRenderer: React.FC<LineRendererProps> = React.memo(({
       <Line
         ref={lineRef}
         points={line.points}
-        stroke={line.color}
-        strokeWidth={line.strokeWidth}
+        stroke={isHovered && !isSelected ? 'rgba(0, 123, 255, 0.3)' : line.color}
+        strokeWidth={isHovered && !isSelected ? line.strokeWidth + 2 : line.strokeWidth}
         x={line.x}
         y={line.y}
         scaleX={line.scaleX}
@@ -81,8 +87,6 @@ const LineRenderer: React.FC<LineRendererProps> = React.memo(({
         onMouseLeave={onMouseLeave}
         onDragEnd={handleDragEnd}
         onTransformEnd={handleTransformEnd}
-        stroke={isHovered && !isSelected ? 'rgba(0, 123, 255, 0.3)' : line.color}
-        strokeWidth={isHovered && !isSelected ? line.strokeWidth + 2 : line.strokeWidth}
       />
       {isSelected && currentTool === 'select' && (
         <Transformer
