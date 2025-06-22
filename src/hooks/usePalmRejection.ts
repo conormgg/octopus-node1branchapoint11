@@ -18,6 +18,7 @@ interface PalmRejectionConfig {
   palmTimeoutMs: number;
   clusterDistance: number;
   preferStylus: boolean;
+  enabled: boolean;
 }
 
 const DEFAULT_CONFIG: PalmRejectionConfig = {
@@ -25,7 +26,8 @@ const DEFAULT_CONFIG: PalmRejectionConfig = {
   minPressure: 0.1,   // Minimum pressure for valid input
   palmTimeoutMs: 500, // Time to ignore touches after palm detection
   clusterDistance: 100, // Distance to detect clustered touches
-  preferStylus: true  // Always prefer stylus over touch
+  preferStylus: true,  // Always prefer stylus over touch
+  enabled: false
 };
 
 export const usePalmRejection = (config: Partial<PalmRejectionConfig> = {}) => {

@@ -136,9 +136,7 @@ const RouteDispatcher = () => {
   }
 
   // For all other routes, use full teacher app with authentication
-  return (
-    <TeacherRoutes />
-  );
+  return <TeacherRoutes />;
 };
 
 const App = () => (
