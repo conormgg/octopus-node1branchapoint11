@@ -9,8 +9,8 @@ import { calculateLineBounds } from './useDrawingBounds';
  * @description Handles line updates and object deletion with sync
  */
 
-// Debug flag for line movement - set to true to see line movement logs
-const DEBUG_LINE_MOVEMENT = false;
+// Debug flag for line movement - temporarily enabled to verify the fix
+const DEBUG_LINE_MOVEMENT = true;
 
 export const useSharedObjectOperations = (
   state: any,
@@ -74,6 +74,10 @@ export const useSharedObjectOperations = (
       
       // Send it to the database/sync system
       sendOperation(operation);
+    } else {
+      if (DEBUG_LINE_MOVEMENT) {
+        console.log(`[Line Movement] Not sending operation - sendOperation: ${!!sendOperation}, isApplyingRemoteOperation: ${isApplyingRemoteOperation.current}`);
+      }
     }
     
     // Add to history after state update with activity metadata if generated

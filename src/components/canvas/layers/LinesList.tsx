@@ -48,7 +48,14 @@ const LinesList: React.FC<LinesListProps> = ({
             } : undefined}
             onDragEnd={(newPosition) => {
               if (onUpdateLine) {
+                console.log(`[Line Movement] Individual line ${line.id} moved:`, newPosition);
                 onUpdateLine(line.id, newPosition);
+              }
+            }}
+            onTransformEnd={(newAttributes) => {
+              if (onUpdateLine) {
+                console.log(`[Line Movement] Individual line ${line.id} transformed:`, newAttributes);
+                onUpdateLine(line.id, newAttributes);
               }
             }}
           />
