@@ -91,12 +91,12 @@ export class Connection {
     
     const fullOperation: WhiteboardOperation = {
       ...operation,
-      whiteboard_id: this.originalConfig.whiteboardId,
+      whiteboard_id: this.originalConfig.whiteboardId, // CRITICAL FIX: Use original config whiteboard ID
       timestamp: Date.now(),
       sender_id: this.originalConfig.senderId // Use original config sender ID
     };
     
-    debugLog('Send', `Sending ${fullOperation.operation_type} to database from ${this.originalConfig.senderId}`);
+    debugLog('Send', `Sending ${fullOperation.operation_type} to database from ${this.originalConfig.senderId} for whiteboard ${fullOperation.whiteboard_id}`);
     
     // Send to Supabase
     const dbRecord = PayloadConverter.toDatabaseRecord(

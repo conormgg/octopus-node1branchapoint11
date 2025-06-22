@@ -1,8 +1,9 @@
+
 import { LineObject, ImageObject } from '@/types/whiteboard';
 import { WhiteboardOperation } from '@/types/sync';
 
 export const serializeDrawOperation = (line: LineObject): Omit<WhiteboardOperation, 'id' | 'timestamp' | 'sender_id'> => ({
-  whiteboard_id: '', // Will be set by the calling function
+  whiteboard_id: '', // Will be populated by Connection.sendOperation()
   operation_type: 'draw',
   data: {
     line
@@ -10,7 +11,7 @@ export const serializeDrawOperation = (line: LineObject): Omit<WhiteboardOperati
 });
 
 export const serializeEraseOperation = (erasedLineIds: string[]): Omit<WhiteboardOperation, 'id' | 'timestamp' | 'sender_id'> => ({
-  whiteboard_id: '', // Will be set by the calling function
+  whiteboard_id: '', // Will be populated by Connection.sendOperation()
   operation_type: 'erase',
   data: {
     line_ids: erasedLineIds
@@ -18,7 +19,7 @@ export const serializeEraseOperation = (erasedLineIds: string[]): Omit<Whiteboar
 });
 
 export const serializeAddImageOperation = (image: ImageObject): Omit<WhiteboardOperation, 'id' | 'timestamp' | 'sender_id'> => ({
-  whiteboard_id: '', // Will be set by the calling function
+  whiteboard_id: '', // Will be populated by Connection.sendOperation()
   operation_type: 'add_image',
   data: {
     image
@@ -26,7 +27,7 @@ export const serializeAddImageOperation = (image: ImageObject): Omit<WhiteboardO
 });
 
 export const serializeUpdateImageOperation = (imageId: string, updates: Partial<ImageObject>): Omit<WhiteboardOperation, 'id' | 'timestamp' | 'sender_id'> => ({
-  whiteboard_id: '', // Will be set by the calling function
+  whiteboard_id: '', // Will be populated by Connection.sendOperation()
   operation_type: 'update_image',
   data: {
     image_id: imageId,
@@ -35,7 +36,7 @@ export const serializeUpdateImageOperation = (imageId: string, updates: Partial<
 });
 
 export const serializeDeleteImageOperation = (imageId: string): Omit<WhiteboardOperation, 'id' | 'timestamp' | 'sender_id'> => ({
-  whiteboard_id: '', // Will be set by the calling function
+  whiteboard_id: '', // Will be populated by Connection.sendOperation()
   operation_type: 'delete_image',
   data: {
     image_id: imageId
@@ -43,7 +44,7 @@ export const serializeDeleteImageOperation = (imageId: string): Omit<WhiteboardO
 });
 
 export const serializeUpdateLineOperation = (lineId: string, updates: Partial<LineObject>): Omit<WhiteboardOperation, 'id' | 'timestamp' | 'sender_id'> => ({
-  whiteboard_id: '', // Will be set by the calling function
+  whiteboard_id: '', // Will be populated by Connection.sendOperation()
   operation_type: 'update_line',
   data: {
     line_id: lineId,
@@ -52,7 +53,7 @@ export const serializeUpdateLineOperation = (lineId: string, updates: Partial<Li
 });
 
 export const serializeDeleteObjectsOperation = (lineIds: string[], imageIds: string[]): Omit<WhiteboardOperation, 'id' | 'timestamp' | 'sender_id'> => ({
-  whiteboard_id: '', // Will be set by the calling function
+  whiteboard_id: '', // Will be populated by Connection.sendOperation()
   operation_type: 'delete_objects',
   data: {
     line_ids: lineIds,
@@ -61,13 +62,13 @@ export const serializeDeleteObjectsOperation = (lineIds: string[], imageIds: str
 });
 
 export const serializeUndoOperation = (): Omit<WhiteboardOperation, 'id' | 'timestamp' | 'sender_id'> => ({
-  whiteboard_id: '', // Will be set by the calling function
+  whiteboard_id: '', // Will be populated by Connection.sendOperation()
   operation_type: 'undo',
   data: {}
 });
 
 export const serializeRedoOperation = (): Omit<WhiteboardOperation, 'id' | 'timestamp' | 'sender_id'> => ({
-  whiteboard_id: '', // Will be set by the calling function
+  whiteboard_id: '', // Will be populated by Connection.sendOperation()
   operation_type: 'redo',
   data: {}
 });
