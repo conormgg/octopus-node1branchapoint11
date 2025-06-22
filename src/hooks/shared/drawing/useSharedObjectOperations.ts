@@ -33,11 +33,17 @@ export const useSharedObjectOperations = (
                                    updates.rotation !== undefined;
     
     let activityMetadata: ActivityMetadata | undefined = undefined;
+    let newState: any;
     
     setState((prev: any) => {
       const updatedLines = prev.lines.map((line: LineObject) =>
         line.id === lineId ? { ...line, ...updates } : line
       );
+      
+      newState = {
+        ...prev,
+        lines: updatedLines
+      };
       
       // If this is a transformational update, generate activity metadata
       if (isTransformationalUpdate) {
@@ -56,20 +62,17 @@ export const useSharedObjectOperations = (
         }
       }
       
-      return {
-        ...prev,
-        lines: updatedLines
-      };
+      return newState;
     });
     
-    // Always send the operation to the database for persistence
-    // But only sync to other clients if we're on the teacher's main board
+    // CRITICAL FIX: Send operation immediately with current updates
+    // This ensures we don't send stale state like the previous setTimeout approach
     if (sendOperation && !isApplyingRemoteOperation.current) {
-      // Create the operation
+      // Create the operation with the updates we just applied
       const operation = serializeUpdateLineOperation(lineId, updates);
       
       if (DEBUG_LINE_MOVEMENT) {
-        console.log(`[Line Movement] Sending operation to database:`, operation);
+        console.log(`[Line Movement] Sending operation to database immediately:`, operation);
       }
       
       // Send it to the database/sync system
@@ -81,14 +84,16 @@ export const useSharedObjectOperations = (
     }
     
     // Add to history after state update with activity metadata if generated
+    // Use setTimeout to ensure state has been updated
     setTimeout(() => {
+      // Use the newState we calculated above to ensure consistency
       addToHistory({
-        lines: state.lines,
-        images: state.images,
-        selectionState: state.selectionState
+        lines: newState.lines,
+        images: newState.images,
+        selectionState: newState.selectionState
       }, activityMetadata);
     }, 0);
-  }, [setState, state.lines, state.images, state.selectionState, addToHistory, sendOperation, isApplyingRemoteOperation]);
+  }, [setState, addToHistory, sendOperation, isApplyingRemoteOperation]);
 
   // Delete selected objects
   const deleteSelectedObjects = useCallback((selectedObjects: Array<{ id: string; type: 'line' | 'image' }>) => {
