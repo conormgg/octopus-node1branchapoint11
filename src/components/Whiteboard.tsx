@@ -17,14 +17,14 @@ const Whiteboard: React.FC<WhiteboardProps> = ({ isReadOnly = false }) => {
   const containerRef = React.useRef<HTMLDivElement>(null);
   const whiteboardState = useWhiteboardState();
 
-  // Palm rejection configuration - enable by default for better iPad stylus support
+  // Palm rejection configuration
   const [palmRejectionConfig, setPalmRejectionConfig] = useState({
     maxContactSize: 40,
     minPressure: 0.1,
     palmTimeoutMs: 500,
     clusterDistance: 100,
     preferStylus: true,
-    enabled: true // Enable by default for optimal iPad stylus experience
+    enabled: false
   });
 
   const updateDimensions = () => {
@@ -46,23 +46,12 @@ const Whiteboard: React.FC<WhiteboardProps> = ({ isReadOnly = false }) => {
     whiteboardState.setStrokeWidth(width);
   };
 
-  // Enhanced container styles for iPad stylus support
-  const containerStyles = {
-    WebkitUserSelect: 'none' as const,
-    WebkitTouchCallout: 'none' as const,
-    WebkitTapHighlightColor: 'transparent' as const,
-    touchAction: palmRejectionConfig.enabled ? 'none' : 'manipulation',
-    // iPad-specific optimizations
-    WebkitTextSizeAdjust: 'none' as const,
-    WebkitFontSmoothing: 'antialiased' as const
-  };
-
   return (
-    <div 
-      ref={containerRef} 
-      className="relative w-full h-full select-none" 
-      style={containerStyles}
-    >
+    <div ref={containerRef} className="relative w-full h-full select-none" style={{ 
+      WebkitUserSelect: 'none',
+      WebkitTouchCallout: 'none',
+      touchAction: 'none'
+    }}>
       {/* Palm Rejection Settings Button - moved to bottom-right */}
       {!isReadOnly && (
         <div className="absolute bottom-2 right-2 z-20">

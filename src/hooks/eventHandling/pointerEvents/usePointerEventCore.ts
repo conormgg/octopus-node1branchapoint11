@@ -45,35 +45,6 @@ export const usePointerEventCore = ({
   const stablePalmRejectionEnabled = useMemo(() => palmRejectionConfig.enabled, [palmRejectionConfig.enabled]);
   const stableIsReadOnly = useMemo(() => isReadOnly, [isReadOnly]);
 
-  // Helper function to determine if we should handle drawing for this event
-  const shouldHandleDrawing = useCallback((event: PointerEvent) => {
-    // Always handle stylus/pen input for drawing tools
-    if (event.pointerType === 'pen') {
-      const tool = currentToolRef.current;
-      return tool === 'pencil' || tool === 'highlighter' || tool === 'eraser' || tool === 'select';
-    }
-    
-    // For other pointer types, use normal palm rejection logic
-    return !stableIsReadOnly && (!stablePalmRejectionEnabled || palmRejection.shouldProcessPointer(event));
-  }, [currentToolRef, stableIsReadOnly, stablePalmRejectionEnabled, palmRejection]);
-
-  // Helper function to determine if we should handle panning
-  const shouldHandlePanning = useCallback((event: PointerEvent) => {
-    // Right-click always triggers panning regardless of tool or read-only state
-    if (event.button === 2 || event.buttons === 2) {
-      return true;
-    }
-    
-    // For stylus/pen input, only allow panning if not using a drawing tool
-    if (event.pointerType === 'pen') {
-      const tool = currentToolRef.current;
-      return tool !== 'pencil' && tool !== 'highlighter' && tool !== 'eraser';
-    }
-    
-    // For other input types, standard panning logic applies
-    return false; // Let pan/zoom be handled by dedicated touch handlers
-  }, [currentToolRef]);
-
   // Use memoized event handlers for better performance
   const handlers = useMemoizedEventHandlers({
     handlePointerDownEvent: {
@@ -81,32 +52,32 @@ export const usePointerEventCore = ({
         const stage = stageRef.current;
         if (!stage) return;
 
-        logEventHandling('pointerdown', 'pointer', { 
-          pointerId: e.pointerId, 
-          pointerType: e.pointerType,
-          pressure: e.pressure,
-          button: e.button
-        });
+        logEventHandling('pointerdown', 'pointer', { pointerId: e.pointerId, pointerType: e.pointerType });
+        
+        // Don't prevent default for select tool - let Konva handle dragging
+        if (currentToolRef.current !== 'select') {
+          e.preventDefault();
+        }
         
         // Handle right-click pan - works for everyone, including read-only users
-        if (shouldHandlePanning(e)) {
+        if (e.button === 2) {
           e.preventDefault();
           panZoom.startPan(e.clientX, e.clientY);
           return;
         }
         
-        // Handle drawing/selection input
-        if (shouldHandleDrawing(e)) {
-          // Don't prevent default for select tool - let Konva handle dragging
-          if (currentToolRef.current !== 'select') {
-            e.preventDefault();
-          }
-          
-          const { x, y } = getRelativePointerPosition(stage, e.clientX, e.clientY);
-          handlePointerDown(x, y);
+        // Only proceed with drawing if not in read-only mode
+        if (stableIsReadOnly) return;
+        
+        // Apply palm rejection for drawing interactions
+        if (stablePalmRejectionEnabled && !palmRejection.shouldProcessPointer(e)) {
+          return;
         }
+
+        const { x, y } = getRelativePointerPosition(stage, e.clientX, e.clientY);
+        handlePointerDown(x, y);
       },
-      deps: [stageRef, logEventHandling, shouldHandlePanning, shouldHandleDrawing, currentToolRef, panZoom, getRelativePointerPosition, handlePointerDown]
+      deps: [stageRef, logEventHandling, currentToolRef, panZoom, stableIsReadOnly, stablePalmRejectionEnabled, palmRejection, getRelativePointerPosition, handlePointerDown]
     },
 
     handlePointerMoveEvent: {
@@ -114,12 +85,12 @@ export const usePointerEventCore = ({
         const stage = stageRef.current;
         if (!stage) return;
 
-        logEventHandling('pointermove', 'pointer', { 
-          pointerId: e.pointerId, 
-          pointerType: e.pointerType,
-          pressure: e.pressure,
-          buttons: e.buttons
-        });
+        logEventHandling('pointermove', 'pointer', { pointerId: e.pointerId, pointerType: e.pointerType });
+        
+        // Don't prevent default for select tool - let Konva handle dragging
+        if (currentToolRef.current !== 'select') {
+          e.preventDefault();
+        }
         
         // Handle right-click pan - works for everyone, including read-only users
         if (e.buttons === 2) {
@@ -128,50 +99,42 @@ export const usePointerEventCore = ({
           return;
         }
         
-        // Handle drawing/selection input
-        if (shouldHandleDrawing(e)) {
-          // Don't prevent default for select tool - let Konva handle dragging
-          if (currentToolRef.current !== 'select') {
-            e.preventDefault();
-          }
-          
-          const { x, y } = getRelativePointerPosition(stage, e.clientX, e.clientY);
-          handlePointerMove(x, y);
-        }
+        // Only proceed with drawing if not in read-only mode
+        if (stableIsReadOnly) return;
+        
+        // Apply palm rejection for drawing interactions
+        if (stablePalmRejectionEnabled && !palmRejection.shouldProcessPointer(e)) return;
+
+        const { x, y } = getRelativePointerPosition(stage, e.clientX, e.clientY);
+        handlePointerMove(x, y);
       },
-      deps: [stageRef, logEventHandling, panZoom, shouldHandleDrawing, currentToolRef, getRelativePointerPosition, handlePointerMove]
+      deps: [stageRef, logEventHandling, currentToolRef, panZoom, stableIsReadOnly, stablePalmRejectionEnabled, palmRejection, getRelativePointerPosition, handlePointerMove]
     },
 
     handlePointerUpEvent: {
       handler: (e: PointerEvent) => {
-        logEventHandling('pointerup', 'pointer', { 
-          pointerId: e.pointerId, 
-          pointerType: e.pointerType,
-          button: e.button
-        });
+        logEventHandling('pointerup', 'pointer', { pointerId: e.pointerId, pointerType: e.pointerType });
+        
+        // Don't prevent default for select tool - let Konva handle dragging
+        if (currentToolRef.current !== 'select') {
+          e.preventDefault();
+        }
         
         // Handle right-click pan end - works for everyone, including read-only users
         if (e.button === 2) {
           e.preventDefault();
           panZoom.stopPan();
-          palmRejection.onPointerEnd(e.pointerId);
           return;
         }
         
-        // Always clean up pointer tracking
         palmRejection.onPointerEnd(e.pointerId);
         
-        // Handle drawing/selection end
-        if (shouldHandleDrawing(e)) {
-          // Don't prevent default for select tool - let Konva handle dragging
-          if (currentToolRef.current !== 'select') {
-            e.preventDefault();
-          }
-          
+        // Only call handlePointerUp for drawing if not in read-only mode
+        if (!stableIsReadOnly) {
           handlePointerUp();
         }
       },
-      deps: [logEventHandling, panZoom, palmRejection, shouldHandleDrawing, currentToolRef, handlePointerUp]
+      deps: [logEventHandling, currentToolRef, panZoom, palmRejection, stableIsReadOnly, handlePointerUp]
     },
 
     handlePointerLeaveEvent: {

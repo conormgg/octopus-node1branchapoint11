@@ -1,4 +1,3 @@
-
 import React, { useRef } from 'react';
 import Konva from 'konva';
 import { useWhiteboardState } from '@/hooks/useWhiteboardState';
@@ -91,16 +90,6 @@ const KonvaStage: React.FC<KonvaStageProps> = ({
     isReadOnly
   });
 
-  // Enhanced touch action for iPad stylus support
-  const getTouchAction = () => {
-    // Use 'none' for better stylus support when palm rejection is enabled
-    if (palmRejectionConfig.enabled) {
-      return 'none';
-    }
-    // Fall back to manipulation for better compatibility when palm rejection is disabled
-    return 'manipulation';
-  };
-
   return (
     <div 
       ref={containerRef} 
@@ -108,11 +97,7 @@ const KonvaStage: React.FC<KonvaStageProps> = ({
       style={{ 
         WebkitUserSelect: 'none',
         WebkitTouchCallout: 'none',
-        WebkitTapHighlightColor: 'transparent',
-        touchAction: getTouchAction(),
-        // iPad-specific optimizations for stylus input
-        WebkitTextSizeAdjust: 'none',
-        WebkitFontSmoothing: 'antialiased'
+        touchAction: palmRejectionConfig.enabled ? 'manipulation' : 'auto'
       }}
       tabIndex={0}
       data-whiteboard-id={whiteboardId}
