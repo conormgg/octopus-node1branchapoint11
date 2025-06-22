@@ -253,58 +253,82 @@ UI Button Enable/Disable
 User Click → Viewport Centering
 ```
 
-## Sync Architecture Integration Points
+## Sync Architecture Integration Points (UPDATED)
 
-### 🚨 CRITICAL: Sender ID Management
+### 🚨 CRITICAL: Centralized Channel Management
 
-**Connection Creation Pattern:**
+**Channel Creation Pattern (NEW):**
+```
+SyncConnectionManager (Singleton):
+- Creates one Supabase channel per whiteboard
+- All connections for same whiteboard share this channel
+- Centralized payload dispatch to relevant connections
+- Channel cleanup when no connections remain
+
+Channel Lifecycle:
+First Connection → Create Channel → Subscribe → Store in channels map
+Additional Connections → Reuse Existing Channel → Add Connection
+Last Connection Gone → Grace Period → Cleanup Channel
+```
+
+**Connection Creation Pattern (UPDATED):**
 ```
 Component A (Teacher1):
 - connectionId: 'board-123-session-456-teacher1'
 - originalConfig.senderId: 'teacher1' (IMMUTABLE)
+- Uses shared channel: whiteboard-board-123
 - Receives operations from: student1 ✓, teacher1 ✗ (filtered)
 
 Component B (Student1):
 - connectionId: 'board-123-session-456-student1'
 - originalConfig.senderId: 'student1' (IMMUTABLE)
+- Uses SAME shared channel: whiteboard-board-123
 - Receives operations from: teacher1 ✓, student1 ✗ (filtered)
 ```
 
-**Handler Registration Flow:**
+**Handler Registration Flow (UPDATED):**
 ```
-First Registration → Create Connection → Store Immutable Config
-Second Registration → Reuse Connection → Add Handler → Keep Original Config
-Component Unmount → Remove Handler → Grace Period → Cleanup
+First Registration → Create Connection + Channel → Store Immutable Config
+Second Registration (same whiteboard) → Reuse Channel → Create New Connection → Separate Config
+Component Unmount → Remove Handler → Grace Period → Cleanup Connection + Channel if unused
 ```
 
-### Operation Filtering Integration
+### Operation Filtering Integration (UPDATED)
 
-**Multi-Component Scenario:**
+**Multi-Component Scenario with Shared Channel:**
 ```
-Teacher Component:
+Shared Channel: whiteboard-board-123
+    ↓
+Centralized Dispatch: SyncConnectionManager.handleChannelPayload()
+    ↓
+Teacher Connection:
 useSharedWhiteboardState(syncConfig: { senderId: 'teacher1' })
     ↓
-useSyncState → SyncConnectionManager → Connection (teacher1)
+Connection.handlePayload() → Filter: operation.sender_id !== 'teacher1'
     ↓
-Filters operations: Receives from student1 ✓, blocks teacher1 ✗
+Receives from student1 ✓, blocks teacher1 ✗
 
-Student Component:
+Student Connection:
 useSharedWhiteboardState(syncConfig: { senderId: 'student1' })
     ↓
-useSyncState → SyncConnectionManager → Connection (student1)
+Connection.handlePayload() → Filter: operation.sender_id !== 'student1'
     ↓
-Filters operations: Receives from teacher1 ✓, blocks student1 ✗
+Receives from teacher1 ✓, blocks student1 ✗
 ```
 
-### Debug Integration Points
+### Debug Integration Points (UPDATED)
 
-**Sync Debug Logging:**
+**Centralized Sync Debug Logging:**
 ```
-useSharedWhiteboardState → useSyncState → Connection
-    ↓
-debugLog('Connection', 'Created with senderId: teacher1')
-debugLog('Dispatch', 'Operation from: student1, local: teacher1')
-debugLog('Dispatch', 'Skipping operation from self (teacher1)')
+SyncConnectionManager:
+debugLog('Manager', `Creating and subscribing to new Supabase channel: ${channelName}`)
+debugLog('Manager', 'Received payload from channel:', payload)
+debugLog('Manager', `Dispatching to connections for whiteboard: ${whiteboardId}`)
+
+Connection:
+debugLog('Connection', `Created connection ${connectionId} with senderId: ${config.senderId}`)
+debugLog('Dispatch', `Operation from: ${operation.sender_id}, local: ${this.originalConfig.senderId}`)
+debugLog('Dispatch', `Skipping operation from self (${operation.sender_id})`)
 ```
 
 ## Migration Guide
@@ -324,7 +348,7 @@ const { state, handlePointerDown, handlePointerMove } = whiteboard;
 
 **Key Differences:**
 - `useSharedWhiteboardState` includes full drawing operations
-- Automatic sync integration
+- Automatic sync integration with centralized channel management
 - Built-in activity tracking for eye button
 - Better performance with normalized state
 - Comprehensive event handling
@@ -339,3 +363,34 @@ const { state, handlePointerDown, handlePointerMove } = whiteboard;
 | Local-only whiteboard | `useWhiteboardState` | No sync needed |
 | History replay | `useSharedHistoryReplay` | Pure simulation |
 
+## Real-time Connection Troubleshooting (NEW)
+
+### Centralized Architecture Benefits
+The new centralized channel management helps resolve cross-browser/cross-context issues:
+
+**Improved Reliability:**
+- Consistent channel creation across all browser contexts
+- Centralized error handling and retry logic
+- Better WebSocket connection management
+- Unified debugging and monitoring
+
+**Cross-Context Support:**
+- iPad Safari: Improved WebSocket handling
+- Incognito Mode: Consistent channel behavior
+- Brave Browser: Better ad-blocker compatibility
+- Background Tabs: Reduced throttling impact
+
+### Debug Steps for Real-time Issues
+```
+1. Check Channel Creation:
+   debugLog('Manager', `Creating and subscribing to new Supabase channel: ${channelName}`)
+
+2. Verify Channel Subscription:
+   debugLog('Manager', `Channel ${channelName} subscription status: ${status}`)
+
+3. Monitor Payload Dispatch:
+   debugLog('Manager', 'Received payload from channel:', payload)
+
+4. Confirm Connection Filtering:
+   debugLog('Dispatch', `Operation from: ${operation.sender_id}, local: ${this.originalConfig.senderId}`)
+```
