@@ -56,10 +56,32 @@ export const useSharedObjectOperations = (
         }
       }
       
-      return {
+      const newState = {
         ...prev,
         lines: updatedLines
       };
+      
+      // Use the updated state for history - call addToHistory synchronously with correct state
+      if (activityMetadata) {
+        // Use setTimeout(0) to ensure setState completes, but with the correct state
+        setTimeout(() => {
+          addToHistory({
+            lines: newState.lines,
+            images: newState.images,
+            selectionState: newState.selectionState
+          }, activityMetadata);
+        }, 0);
+      } else {
+        setTimeout(() => {
+          addToHistory({
+            lines: newState.lines,
+            images: newState.images,
+            selectionState: newState.selectionState
+          });
+        }, 0);
+      }
+      
+      return newState;
     });
     
     // Always send the operation to the database for persistence
@@ -75,16 +97,7 @@ export const useSharedObjectOperations = (
       // Send it to the database/sync system
       sendOperation(operation);
     }
-    
-    // Add to history after state update with activity metadata if generated
-    setTimeout(() => {
-      addToHistory({
-        lines: state.lines,
-        images: state.images,
-        selectionState: state.selectionState
-      }, activityMetadata);
-    }, 0);
-  }, [setState, state.lines, state.images, state.selectionState, addToHistory, sendOperation, isApplyingRemoteOperation]);
+  }, [setState, addToHistory, sendOperation, isApplyingRemoteOperation]);
 
   // Delete selected objects
   const deleteSelectedObjects = useCallback((selectedObjects: Array<{ id: string; type: 'line' | 'image' }>) => {
@@ -100,20 +113,24 @@ export const useSharedObjectOperations = (
     console.log(`[DeleteObjects] Deleting ${selectedLineIds.length} lines and ${selectedImageIds.length} images`);
     console.log(`[DeleteObjects] isApplyingRemoteOperation: ${isApplyingRemoteOperation.current}`);
 
-    setState((prev: any) => ({
-      ...prev,
-      lines: prev.lines.filter((line: LineObject) => !selectedLineIds.includes(line.id)),
-      images: prev.images.filter((image: any) => !selectedImageIds.includes(image.id))
-    }));
-
-    // Add to history
-    setTimeout(() => {
-      addToHistory({
-        lines: state.lines,
-        images: state.images,
-        selectionState: state.selectionState
-      });
-    }, 0);
+    setState((prev: any) => {
+      const newState = {
+        ...prev,
+        lines: prev.lines.filter((line: LineObject) => !selectedLineIds.includes(line.id)),
+        images: prev.images.filter((image: any) => !selectedImageIds.includes(image.id))
+      };
+      
+      // Add to history with correct state
+      setTimeout(() => {
+        addToHistory({
+          lines: newState.lines,
+          images: newState.images,
+          selectionState: newState.selectionState
+        });
+      }, 0);
+      
+      return newState;
+    });
 
     // Always send the operation to the database for persistence
     // But only sync to other clients if we're on the teacher's main board
@@ -128,7 +145,7 @@ export const useSharedObjectOperations = (
     } else {
       console.log(`[DeleteObjects] Not sending operation - sendOperation: ${!!sendOperation}, isApplyingRemoteOperation: ${isApplyingRemoteOperation.current}`);
     }
-  }, [setState, state.lines, state.images, state.selectionState, addToHistory, sendOperation, isApplyingRemoteOperation]);
+  }, [setState, addToHistory, sendOperation, isApplyingRemoteOperation]);
 
   return {
     updateLine,
