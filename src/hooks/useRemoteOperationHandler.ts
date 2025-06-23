@@ -1,5 +1,6 @@
+
 import { useCallback } from 'react';
-import { WhiteboardOperation, DrawOperationData, EraseOperationData, AddImageOperationData, UpdateImageOperationData, DeleteImageOperationData } from '@/types/sync';
+import { WhiteboardOperation, DrawOperationData, EraseOperationData, AddImageOperationData, UpdateImageOperationData, DeleteImageOperationData, UpdateLineOperationData, DeleteObjectsOperationData } from '@/types/sync';
 import { createDebugLogger } from '@/utils/debug/debugConfig';
 
 const debugLog = createDebugLogger('operations');
@@ -56,6 +57,27 @@ export const useRemoteOperationHandler = (
           setState(prev => ({
             ...prev,
             lines: prev.lines.filter((line: any) => !eraseData.line_ids.includes(line.id))
+          }));
+          break;
+
+        case 'update_line':
+          const updateLineData = operation.data as UpdateLineOperationData;
+          debugLog('Operation', 'Processing remote line update', updateLineData);
+          setState(prev => ({
+            ...prev,
+            lines: prev.lines.map((line: any) =>
+              line.id === updateLineData.line_id ? { ...line, ...updateLineData.updates } : line
+            )
+          }));
+          break;
+
+        case 'delete_objects':
+          const deleteObjectsData = operation.data as DeleteObjectsOperationData;
+          debugLog('Operation', 'Processing remote object deletion', deleteObjectsData);
+          setState(prev => ({
+            ...prev,
+            lines: prev.lines.filter((line: any) => !deleteObjectsData.line_ids.includes(line.id)),
+            images: prev.images.filter((img: any) => !deleteObjectsData.image_ids.includes(img.id))
           }));
           break;
 
