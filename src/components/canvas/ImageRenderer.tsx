@@ -44,12 +44,10 @@ const ImageRenderer: React.FC<ImageRendererProps> = React.memo(({
   }, [isSelected, currentTool]);
 
   const handleDragEnd = (e: Konva.KonvaEventObject<DragEvent>) => {
-    const newAttrs = {
+    onChange({
       x: e.target.x(),
       y: e.target.y(),
-    };
-    console.log(`[Image Movement] Image ${imageObject.id} moved:`, newAttrs);
-    onChange(newAttrs);
+    });
     onUpdateState();
   };
 
@@ -60,15 +58,13 @@ const ImageRenderer: React.FC<ImageRendererProps> = React.memo(({
       const scaleY = node.scaleY();
       node.scaleX(1);
       node.scaleY(1);
-      const newAttrs = {
+      onChange({
         x: node.x(),
         y: node.y(),
         width: Math.max(5, node.width() * scaleX),
         height: Math.max(node.height() * scaleY),
-        rotation: node.rotation(),
-      };
-      console.log(`[Image Movement] Image ${imageObject.id} transformed:`, newAttrs);
-      onChange(newAttrs);
+        rotation: node.rotation(), // Include rotation in the update
+      });
       onUpdateState();
     }
   };
@@ -83,6 +79,12 @@ const ImageRenderer: React.FC<ImageRendererProps> = React.memo(({
           onContextMenu(imageObject.id, pointerPosition.x, pointerPosition.y);
         }
       }
+    }
+  };
+
+  const handleToggleLock = () => {
+    if (onToggleLock) {
+      onToggleLock(imageObject.id);
     }
   };
 
