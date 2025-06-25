@@ -15,8 +15,8 @@ const SelectionGroupBackground: React.FC<SelectionGroupBackgroundProps> = ({ gro
   return (
     <Rect
       name="group-background"
-      x={0}
-      y={0}
+      x={groupBounds.x}
+      y={groupBounds.y}
       width={groupBounds.width}
       height={groupBounds.height}
       fill="transparent"
