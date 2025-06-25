@@ -1,4 +1,3 @@
-
 import React, { useRef, useEffect, useState } from 'react';
 import { Group, Transformer } from 'react-konva';
 import Konva from 'konva';
@@ -186,8 +185,6 @@ const SelectionGroup: React.FC<SelectionGroupProps> = ({
     <>
       <Group
         ref={groupRef}
-        x={groupBounds?.x || 0}
-        y={groupBounds?.y || 0}
         draggable={true}
         onTransformStart={handleTransformStart}
         onTransformEnd={handleTransformEnd}
@@ -197,30 +194,22 @@ const SelectionGroup: React.FC<SelectionGroupProps> = ({
         {/* Background rectangle for easier selection and dragging */}
         <SelectionGroupBackground groupBounds={groupBounds} />
         
-        {/* Render selected lines in the group - adjust positions relative to group */}
+        {/* Render selected lines in the group */}
         {selectedLines.map((line) => (
           <LineRenderer
             key={`group-line-${line.id}`}
-            line={{
-              ...line,
-              x: line.x - (groupBounds?.x || 0),
-              y: line.y - (groupBounds?.y || 0)
-            }}
+            line={line}
             isSelected={false} // Don't show individual selection in group
             currentTool={currentTool}
             onDragEnd={() => {}} // Group handles dragging
           />
         ))}
         
-        {/* Render selected images in the group - adjust positions relative to group */}
+        {/* Render selected images in the group */}
         {selectedImages.map((image) => (
           <ImageRenderer
             key={`group-image-${image.id}`}
-            imageObject={{
-              ...image,
-              x: image.x - (groupBounds?.x || 0),
-              y: image.y - (groupBounds?.y || 0)
-            }}
+            imageObject={image}
             isSelected={false} // Don't show individual selection in group
             onSelect={() => {}} // Group handles selection
             onChange={() => {}} // Group handles changes
