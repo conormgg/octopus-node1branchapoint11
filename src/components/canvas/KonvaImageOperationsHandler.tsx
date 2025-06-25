@@ -47,7 +47,8 @@ const KonvaImageOperationsHandler: React.FC<KonvaImageOperationsHandlerProps> = 
             isHovered={selection?.hoveredObjectId === image.id}
             onSelect={() => {
               if (selection && state.currentTool === 'select') {
-                selection.selectObjects([{ id: image.id, type: 'image' }]);
+                // Fix: Pass all 3 required arguments to selectObjects
+                selection.selectObjects([{ id: image.id, type: 'image' }], state.lines, state.images);
               }
             }}
             onChange={(newAttrs) => {
