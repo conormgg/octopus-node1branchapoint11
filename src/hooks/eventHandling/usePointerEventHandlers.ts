@@ -43,11 +43,10 @@ export const usePointerEventHandlers = ({
   supportsPointerEvents
 }: UsePointerEventHandlersProps) => {
   /**
-   * Pointer events are used when:
-   * - Palm rejection is enabled AND the device supports pointer events
-   * - This provides the most precise input handling for stylus/touch devices
+   * Always use pointer events when supported for stylus functionality.
+   * Palm rejection filtering is applied conditionally within the event handlers.
    */
-  const shouldUsePointerEvents = palmRejectionConfig.enabled && supportsPointerEvents;
+  const shouldUsePointerEvents = supportsPointerEvents;
 
   // Get all pointer event handlers
   const handlers = usePointerEventCore({
