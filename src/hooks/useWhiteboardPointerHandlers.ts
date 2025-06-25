@@ -33,22 +33,15 @@ export const useWhiteboardPointerHandlers = (
     if (stableCurrentTool === 'pencil' || stableCurrentTool === 'highlighter' || stableCurrentTool === 'eraser') {
       drawingCoordination.handleDrawingStart(x, y);
     } else if (stableCurrentTool === 'select') {
-      // Handle selection logic with priority:
-      // 1. Check if clicking within existing selection bounds (for group dragging)
-      // 2. Check if clicking on individual objects
-      // 3. Start new selection or clear existing selection
-      
-      const isInSelectionBounds = selection.isPointInSelectionBounds({ x, y });
-      
-      if (isInSelectionBounds && stableSelectionState.selectedObjects.length > 0) {
-        debugLog('PointerHandlers', 'Clicked within selection bounds');
-        // Clicking within selection bounds - this will allow dragging the entire group
-        // The actual dragging logic will be handled by the SelectionGroup component
-        // We don't need to change the selection here, just maintain it
+      // Priority 1: Check if clicking inside an existing multi-object selection group.
+      if (stableSelectionState.selectedObjects.length > 1 && selection.isPointInSelectionBounds({ x, y })) {
+        // If so, do nothing here. This allows the draggable <Group> in SelectionGroup.tsx
+        // to handle the drag event, which is the desired behavior for moving the group.
+        debugLog('PointerHandlers', 'Click is within group selection. Deferring to group drag handler.');
         return;
       }
       
-      // Check for individual objects
+      // Priority 2: Check if clicking a single, un-grouped, or new object.
       const foundObjects = selection.findObjectsAtPoint({ x, y }, stableLines, stableImages);
       
       if (foundObjects.length > 0) {
@@ -60,7 +53,8 @@ export const useWhiteboardPointerHandlers = (
           selection.updateSelectionBounds([foundObjects[0]], stableLines, stableImages);
         }, 0);
       } else {
-        debugLog('PointerHandlers', 'Starting drag-to-select');
+        // Priority 3: If we clicked on truly empty space, clear selection and start a new one.
+        debugLog('PointerHandlers', 'Starting drag-to-select on empty space');
         // Clear selection when clicking on empty space
         selection.clearSelection();
         // Start drag-to-select
