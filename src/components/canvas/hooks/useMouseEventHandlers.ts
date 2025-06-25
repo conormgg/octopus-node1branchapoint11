@@ -17,7 +17,7 @@ interface UseMouseEventHandlersProps {
     continuePan: (x: number, y: number) => void;
     stopPan: () => void;
   };
-  handlePointerDown: (x: number, y: number) => void;
+  handlePointerDown: (x: number, y: number, konvaEvent?: Konva.KonvaEventObject<any>) => void;
   handlePointerMove: (x: number, y: number) => void;
   handlePointerUp: () => void;
   isReadOnly: boolean;
@@ -90,7 +90,8 @@ export const useMouseEventHandlers = ({
         if (!stage) return;
 
         const { x, y } = getRelativePointerPosition(stage, e.evt.clientX, e.evt.clientY);
-        handlePointerDown(x, y);
+        // Pass the Konva event to enable transformer handle detection
+        handlePointerDown(x, y, e);
       },
       deps: [panZoom, selection, stableCurrentTool, stableIsReadOnly, onStageClick, stablePalmRejectionEnabled, getRelativePointerPosition, handlePointerDown]
     },

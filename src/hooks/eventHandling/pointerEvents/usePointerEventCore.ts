@@ -18,7 +18,7 @@ interface UsePointerEventCoreProps {
     continuePan: (x: number, y: number) => void;
     stopPan: () => void;
   };
-  handlePointerDown: (x: number, y: number) => void;
+  handlePointerDown: (x: number, y: number, konvaEvent?: any) => void;
   handlePointerMove: (x: number, y: number) => void;
   handlePointerUp: () => void;
   isReadOnly: boolean;
@@ -75,7 +75,8 @@ export const usePointerEventCore = ({
         }
 
         const { x, y } = getRelativePointerPosition(stage, e.clientX, e.clientY);
-        handlePointerDown(x, y);
+        // For pointer events, we don't have direct access to Konva event, so pass null
+        handlePointerDown(x, y, null);
       },
       deps: [stageRef, logEventHandling, currentToolRef, panZoom, stableIsReadOnly, stablePalmRejectionEnabled, palmRejection, getRelativePointerPosition, handlePointerDown]
     },
