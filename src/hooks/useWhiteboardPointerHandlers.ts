@@ -33,24 +33,34 @@ export const useWhiteboardPointerHandlers = (
     if (stableCurrentTool === 'pencil' || stableCurrentTool === 'highlighter' || stableCurrentTool === 'eraser') {
       drawingCoordination.handleDrawingStart(x, y);
     } else if (stableCurrentTool === 'select') {
-      // Priority 1: Check if clicking inside an existing multi-object selection group.
-      if (stableSelectionState.selectedObjects.length > 1 && selection.isPointInSelectionBounds({ x, y })) {
-        // If so, do nothing here. This allows the draggable <Group> in SelectionGroup.tsx
-        // to handle the drag event, which is the desired behavior for moving the group.
-        debugLog('PointerHandlers', 'Click is within group selection. Deferring to group drag handler.');
+      // Handle selection logic with priority:
+      // 1. Check if clicking within existing selection bounds (for group dragging)
+      // 2. Check if clicking on individual objects
+      // 3. Start new selection or clear existing selection
+      
+      const isInSelectionBounds = selection.isPointInSelectionBounds({ x, y });
+      
+      if (isInSelectionBounds && stableSelectionState.selectedObjects.length > 0) {
+        debugLog('PointerHandlers', 'Clicked within selection bounds');
+        // Clicking within selection bounds - this will allow dragging the entire group
+        // The actual dragging logic will be handled by the SelectionGroup component
+        // We don't need to change the selection here, just maintain it
         return;
       }
       
-      // Priority 2: Check if clicking a single, un-grouped, or new object.
+      // Check for individual objects
       const foundObjects = selection.findObjectsAtPoint({ x, y }, stableLines, stableImages);
       
       if (foundObjects.length > 0) {
         debugLog('PointerHandlers', 'Found objects at point', { count: foundObjects.length });
-        // Select the first found object with atomic bounds calculation
-        selection.selectObjects([foundObjects[0]], stableLines, stableImages);
+        // Select the first found object
+        selection.selectObjects([foundObjects[0]]);
+        // Update selection bounds for the selected object
+        setTimeout(() => {
+          selection.updateSelectionBounds([foundObjects[0]], stableLines, stableImages);
+        }, 0);
       } else {
-        // Priority 3: If we clicked on truly empty space, clear selection and start a new one.
-        debugLog('PointerHandlers', 'Starting drag-to-select on empty space');
+        debugLog('PointerHandlers', 'Starting drag-to-select');
         // Clear selection when clicking on empty space
         selection.clearSelection();
         // Start drag-to-select
@@ -92,8 +102,11 @@ export const useWhiteboardPointerHandlers = (
       if (bounds && (bounds.width > 5 || bounds.height > 5)) {
         // Find objects within selection bounds
         const objectsInBounds = selection.findObjectsInBounds(bounds, stableLines, stableImages);
-        // Select objects with atomic bounds calculation - no setTimeout needed
-        selection.selectObjects(objectsInBounds, stableLines, stableImages);
+        selection.selectObjects(objectsInBounds);
+        // Update selection bounds for the selected objects
+        setTimeout(() => {
+          selection.updateSelectionBounds(objectsInBounds, stableLines, stableImages);
+        }, 0);
       }
       
       // End selection

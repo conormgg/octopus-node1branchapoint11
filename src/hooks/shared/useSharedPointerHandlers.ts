@@ -51,8 +51,8 @@ export const useSharedPointerHandlers = (
         const foundObjects = selection.findObjectsAtPoint({ x, y }, stableLines, stableImages);
         
         if (foundObjects.length > 0) {
-          // Select the first found object with atomic bounds calculation
-          selection.selectObjects([foundObjects[0]], stableLines, stableImages);
+          // Select the first found object
+          selection.selectObjects([foundObjects[0]]);
         } else {
           // Clear selection when clicking on empty space
           selection.clearSelection();
@@ -104,8 +104,7 @@ export const useSharedPointerHandlers = (
         if (bounds && (bounds.width > 5 || bounds.height > 5)) {
           // Find objects within selection bounds
           const objectsInBounds = selection.findObjectsInBounds(bounds, stableLines, stableImages);
-          // Select objects with atomic bounds calculation - no setTimeout needed
-          selection.selectObjects(objectsInBounds, stableLines, stableImages);
+          selection.selectObjects(objectsInBounds);
         }
         
         // End selection
