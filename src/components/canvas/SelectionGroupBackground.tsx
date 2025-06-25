@@ -5,9 +5,13 @@ import { GroupBounds } from '@/utils/groupBoundsCalculator';
 
 interface SelectionGroupBackgroundProps {
   groupBounds: GroupBounds | null;
+  isGroupPositioned?: boolean;
 }
 
-const SelectionGroupBackground: React.FC<SelectionGroupBackgroundProps> = ({ groupBounds }) => {
+const SelectionGroupBackground: React.FC<SelectionGroupBackgroundProps> = ({ 
+  groupBounds, 
+  isGroupPositioned = false 
+}) => {
   if (!groupBounds) {
     return null;
   }
@@ -15,13 +19,11 @@ const SelectionGroupBackground: React.FC<SelectionGroupBackgroundProps> = ({ gro
   return (
     <Rect
       name="group-background"
-      x={groupBounds.x}
-      y={groupBounds.y}
+      x={isGroupPositioned ? 0 : groupBounds.x}
+      y={isGroupPositioned ? 0 : groupBounds.y}
       width={groupBounds.width}
       height={groupBounds.height}
-      fill="rgba(255, 0, 0, 0.2)"
-      stroke="red"
-      strokeWidth={2}
+      fill="transparent"
       listening={true}
     />
   );
