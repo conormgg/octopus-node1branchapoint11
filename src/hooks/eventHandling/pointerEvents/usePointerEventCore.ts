@@ -54,11 +54,6 @@ export const usePointerEventCore = ({
 
         logEventHandling('pointerdown', 'pointer', { pointerId: e.pointerId, pointerType: e.pointerType });
         
-        // Don't prevent default for select tool - let Konva handle dragging
-        if (currentToolRef.current !== 'select') {
-          e.preventDefault();
-        }
-        
         // Handle right-click pan - works for everyone, including read-only users
         if (e.button === 2) {
           e.preventDefault();
@@ -77,7 +72,7 @@ export const usePointerEventCore = ({
         const { x, y } = getRelativePointerPosition(stage, e.clientX, e.clientY);
         handlePointerDown(x, y);
       },
-      deps: [stageRef, logEventHandling, currentToolRef, panZoom, stableIsReadOnly, stablePalmRejectionEnabled, palmRejection, getRelativePointerPosition, handlePointerDown]
+      deps: [stageRef, logEventHandling, panZoom, stableIsReadOnly, stablePalmRejectionEnabled, palmRejection, getRelativePointerPosition, handlePointerDown]
     },
 
     handlePointerMoveEvent: {
@@ -86,11 +81,6 @@ export const usePointerEventCore = ({
         if (!stage) return;
 
         logEventHandling('pointermove', 'pointer', { pointerId: e.pointerId, pointerType: e.pointerType });
-        
-        // Don't prevent default for select tool - let Konva handle dragging
-        if (currentToolRef.current !== 'select') {
-          e.preventDefault();
-        }
         
         // Handle right-click pan - works for everyone, including read-only users
         if (e.buttons === 2) {
@@ -108,17 +98,12 @@ export const usePointerEventCore = ({
         const { x, y } = getRelativePointerPosition(stage, e.clientX, e.clientY);
         handlePointerMove(x, y);
       },
-      deps: [stageRef, logEventHandling, currentToolRef, panZoom, stableIsReadOnly, stablePalmRejectionEnabled, palmRejection, getRelativePointerPosition, handlePointerMove]
+      deps: [stageRef, logEventHandling, panZoom, stableIsReadOnly, stablePalmRejectionEnabled, palmRejection, getRelativePointerPosition, handlePointerMove]
     },
 
     handlePointerUpEvent: {
       handler: (e: PointerEvent) => {
         logEventHandling('pointerup', 'pointer', { pointerId: e.pointerId, pointerType: e.pointerType });
-        
-        // Don't prevent default for select tool - let Konva handle dragging
-        if (currentToolRef.current !== 'select') {
-          e.preventDefault();
-        }
         
         // Handle right-click pan end - works for everyone, including read-only users
         if (e.button === 2) {
@@ -135,7 +120,7 @@ export const usePointerEventCore = ({
           handlePointerUp();
         }
       },
-      deps: [logEventHandling, currentToolRef, panZoom, palmRejection, stableIsReadOnly, handlePointerUp]
+      deps: [logEventHandling, panZoom, palmRejection, stableIsReadOnly, handlePointerUp]
     },
 
     handlePointerLeaveEvent: {

@@ -1,3 +1,4 @@
+
 import React, { useRef, useEffect, useState } from 'react';
 import { Group, Transformer } from 'react-konva';
 import Konva from 'konva';
@@ -46,7 +47,7 @@ const SelectionGroup: React.FC<SelectionGroupProps> = ({
   // Only show group if multiple objects are selected
   const shouldShowGroup = selectedObjects.length > 1 && isVisible && currentTool === 'select';
 
-  // Calculate group bounds for the background
+  // Calculate group bounds for positioning
   const groupBounds = shouldShowGroup ? calculateGroupBounds(selectedObjects, selectedLines, selectedImages) : null;
 
   // Set up transformer when group is created
@@ -72,7 +73,7 @@ const SelectionGroup: React.FC<SelectionGroupProps> = ({
   const handleTransformEnd = () => {
     setIsTransforming(false);
     
-    if (!groupRef.current) return;
+    if (!groupRef.current || !groupBounds) return;
 
     const group = groupRef.current;
     const groupTransform = {
@@ -85,7 +86,7 @@ const SelectionGroup: React.FC<SelectionGroupProps> = ({
     
     // For simple translation (dragging), just apply the offset to each object
     if (groupTransform.scaleX === 1 && groupTransform.scaleY === 1 && groupTransform.rotation === 0) {
-      // Simple translation - just move each object by the group offset
+      // Simple translation - move each object by the group offset
       selectedLines.forEach((line) => {
         if (onUpdateLine) {
           onUpdateLine(line.id, {
@@ -126,8 +127,8 @@ const SelectionGroup: React.FC<SelectionGroupProps> = ({
           const line = selectedLines[adjustedIndex];
           if (onUpdateLine) {
             const updatedLine = {
-              x: decomposed.x,
-              y: decomposed.y,
+              x: decomposed.x + groupBounds.x, // Account for group's initial position
+              y: decomposed.y + groupBounds.y,
               scaleX: (line.scaleX || 1) * groupTransform.scaleX,
               scaleY: (line.scaleY || 1) * groupTransform.scaleY,
               rotation: (line.rotation || 0) + groupTransform.rotation
@@ -144,8 +145,8 @@ const SelectionGroup: React.FC<SelectionGroupProps> = ({
             const currentHeight = image.height || 100;
             
             const updatedImage = {
-              x: decomposed.x,
-              y: decomposed.y,
+              x: decomposed.x + groupBounds.x, // Account for group's initial position
+              y: decomposed.y + groupBounds.y,
               width: currentWidth * groupTransform.scaleX,
               height: currentHeight * groupTransform.scaleY,
               rotation: (image.rotation || 0) + groupTransform.rotation
@@ -177,7 +178,7 @@ const SelectionGroup: React.FC<SelectionGroupProps> = ({
     }
   };
 
-  if (!shouldShowGroup) {
+  if (!shouldShowGroup || !groupBounds) {
     return null;
   }
 
@@ -185,6 +186,8 @@ const SelectionGroup: React.FC<SelectionGroupProps> = ({
     <>
       <Group
         ref={groupRef}
+        x={groupBounds.x}
+        y={groupBounds.y}
         draggable={true}
         onTransformStart={handleTransformStart}
         onTransformEnd={handleTransformEnd}
@@ -194,22 +197,30 @@ const SelectionGroup: React.FC<SelectionGroupProps> = ({
         {/* Background rectangle for easier selection and dragging */}
         <SelectionGroupBackground groupBounds={groupBounds} />
         
-        {/* Render selected lines in the group */}
+        {/* Render selected lines in the group with relative positioning */}
         {selectedLines.map((line) => (
           <LineRenderer
             key={`group-line-${line.id}`}
-            line={line}
+            line={{
+              ...line,
+              x: line.x - groupBounds.x, // Make position relative to group
+              y: line.y - groupBounds.y
+            }}
             isSelected={false} // Don't show individual selection in group
             currentTool={currentTool}
             onDragEnd={() => {}} // Group handles dragging
           />
         ))}
         
-        {/* Render selected images in the group */}
+        {/* Render selected images in the group with relative positioning */}
         {selectedImages.map((image) => (
           <ImageRenderer
             key={`group-image-${image.id}`}
-            imageObject={image}
+            imageObject={{
+              ...image,
+              x: image.x - groupBounds.x, // Make position relative to group
+              y: image.y - groupBounds.y
+            }}
             isSelected={false} // Don't show individual selection in group
             onSelect={() => {}} // Group handles selection
             onChange={() => {}} // Group handles changes
