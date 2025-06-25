@@ -69,7 +69,7 @@ export const usePointerEventCore = ({
         // Only proceed with drawing if not in read-only mode
         if (stableIsReadOnly) return;
         
-        // Apply palm rejection ONLY if it's enabled
+        // Apply palm rejection for drawing interactions
         if (stablePalmRejectionEnabled && !palmRejection.shouldProcessPointer(e)) {
           return;
         }
@@ -102,7 +102,7 @@ export const usePointerEventCore = ({
         // Only proceed with drawing if not in read-only mode
         if (stableIsReadOnly) return;
         
-        // Apply palm rejection ONLY if it's enabled
+        // Apply palm rejection for drawing interactions
         if (stablePalmRejectionEnabled && !palmRejection.shouldProcessPointer(e)) return;
 
         const { x, y } = getRelativePointerPosition(stage, e.clientX, e.clientY);
@@ -127,7 +127,6 @@ export const usePointerEventCore = ({
           return;
         }
         
-        // Always clean up palm rejection state
         palmRejection.onPointerEnd(e.pointerId);
         
         // Only call handlePointerUp for drawing if not in read-only mode
@@ -142,7 +141,6 @@ export const usePointerEventCore = ({
       handler: (e: PointerEvent) => {
         logEventHandling('pointerleave', 'pointer', { pointerId: e.pointerId, pointerType: e.pointerType });
         
-        // Always clean up palm rejection state
         palmRejection.onPointerEnd(e.pointerId);
         panZoom.stopPan(); // Always stop pan on leave
         

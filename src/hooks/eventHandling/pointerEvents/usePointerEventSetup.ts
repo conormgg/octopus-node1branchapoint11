@@ -40,7 +40,7 @@ export const usePointerEventSetup = ({
     
     container.addEventListener('contextmenu', handleContextMenu);
 
-    // Always set touch-action to none when using pointer events for better control
+    // Set touch-action based on event system being used
     container.style.touchAction = shouldUsePointerEvents ? 'none' : 'manipulation';
 
     return () => {
