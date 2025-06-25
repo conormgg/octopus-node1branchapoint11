@@ -3,24 +3,6 @@ import { useCallback, useMemo } from 'react';
 import { Tool } from '@/types/whiteboard';
 import { SyncConfig } from '@/types/sync';
 
-/**
- * Helper function to check if a click target is a transformer handle
- */
-const isTransformerHandle = (target: any): boolean => {
-  if (!target) return false;
-  
-  // Check if the target is a transformer or transformer-related element
-  const className = target.getClassName ? target.getClassName() : '';
-  const name = target.name ? target.name() : '';
-  
-  return (
-    className === 'Transformer' ||
-    name.includes('_anchor') ||
-    name.includes('rotater') ||
-    target.parent?.getClassName?.() === 'Transformer'
-  );
-};
-
 export const useSharedPointerHandlers = (
   state: { currentTool: Tool; lines: any[]; images: any[] },
   startDrawing: (x: number, y: number) => void,
@@ -41,7 +23,7 @@ export const useSharedPointerHandlers = (
   const stableSelectionState = useMemo(() => selection?.selectionState, [selection?.selectionState]);
 
   // Handle pointer down - for drawing and selection operations
-  const handlePointerDown = useCallback((x: number, y: number, konvaEvent?: any) => {
+  const handlePointerDown = useCallback((x: number, y: number) => {
     // Don't allow operations in receive-only mode or during pan/zoom gestures
     if (isReceiveOnly || panZoom.isGestureActive()) return;
     
@@ -50,11 +32,6 @@ export const useSharedPointerHandlers = (
     } else if (stableCurrentTool === 'eraser') {
       startErasing(x, y);
     } else if (stableCurrentTool === 'select' && selection) {
-      // Check if clicking on transformer handles - if so, don't interfere with selection
-      if (konvaEvent && isTransformerHandle(konvaEvent.target)) {
-        return;
-      }
-      
       // Handle selection logic with priority and safety checks:
       // 1. Check if clicking within existing selection bounds (for group dragging)
       // 2. Check if clicking on individual objects

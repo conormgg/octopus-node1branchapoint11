@@ -5,24 +5,6 @@ import { createDebugLogger } from '@/utils/debug/debugConfig';
 const debugLog = createDebugLogger('events');
 
 /**
- * Helper function to check if a click target is a transformer handle
- */
-const isTransformerHandle = (target: any): boolean => {
-  if (!target) return false;
-  
-  // Check if the target is a transformer or transformer-related element
-  const className = target.getClassName ? target.getClassName() : '';
-  const name = target.name ? target.name() : '';
-  
-  return (
-    className === 'Transformer' ||
-    name.includes('_anchor') ||
-    name.includes('rotater') ||
-    target.parent?.getClassName?.() === 'Transformer'
-  );
-};
-
-/**
  * @hook useWhiteboardPointerHandlers
  * @description Handles all pointer events and coordinates with appropriate tools
  */
@@ -39,7 +21,7 @@ export const useWhiteboardPointerHandlers = (
   const stableImages = useMemo(() => state.images, [state.images]);
 
   // Handle pointer down
-  const handlePointerDown = useCallback((x: number, y: number, konvaEvent?: any) => {
+  const handlePointerDown = useCallback((x: number, y: number) => {
     debugLog('PointerHandlers', 'Pointer down', { x, y, tool: stableCurrentTool });
     
     // Don't start drawing if a pan/zoom gesture is active
@@ -51,12 +33,6 @@ export const useWhiteboardPointerHandlers = (
     if (stableCurrentTool === 'pencil' || stableCurrentTool === 'highlighter' || stableCurrentTool === 'eraser') {
       drawingCoordination.handleDrawingStart(x, y);
     } else if (stableCurrentTool === 'select') {
-      // Check if clicking on transformer handles - if so, don't interfere with selection
-      if (konvaEvent && isTransformerHandle(konvaEvent.target)) {
-        debugLog('PointerHandlers', 'Clicked on transformer handle - skipping custom selection logic');
-        return;
-      }
-      
       // Handle selection logic with priority:
       // 1. Check if clicking within existing selection bounds (for group dragging)
       // 2. Check if clicking on individual objects
