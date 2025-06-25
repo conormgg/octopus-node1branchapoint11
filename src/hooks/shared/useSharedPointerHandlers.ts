@@ -33,23 +33,28 @@ export const useSharedPointerHandlers = (
       startErasing(x, y);
     } else if (stableCurrentTool === 'select' && selection) {
       // Handle selection logic with priority and safety checks:
-      // Priority 1: Check if clicking within existing multi-object selection bounds
+      // 1. Check if clicking within existing selection bounds (for group dragging)
+      // 2. Check if clicking on individual objects
+      // 3. Start new selection or clear existing selection
+      
       if (selection.isPointInSelectionBounds && selection.findObjectsAtPoint && selection.selectObjects && selection.setIsSelecting && selection.setSelectionBounds && selection.clearSelection) {
+        const isInSelectionBounds = selection.isPointInSelectionBounds({ x, y });
         
-        if (stableSelectionState?.selectedObjects?.length > 1 && selection.isPointInSelectionBounds({ x, y })) {
-          // Clicking within group selection bounds - let Konva handle group drag
-          // Do nothing and allow event to pass through
+        if (isInSelectionBounds && stableSelectionState?.selectedObjects?.length > 0) {
+          // Clicking within selection bounds - this will allow dragging the entire group
+          // The actual dragging logic will be handled by the SelectionGroup component
+          // We don't need to change the selection here, just maintain it
           return;
         }
         
-        // Priority 2: Check for individual objects
+        // Check for individual objects
         const foundObjects = selection.findObjectsAtPoint({ x, y }, stableLines, stableImages);
         
         if (foundObjects.length > 0) {
-          // Select the first found object using atomic update
-          selection.selectObjects([foundObjects[0]], stableLines, stableImages);
+          // Select the first found object
+          selection.selectObjects([foundObjects[0]]);
         } else {
-          // Priority 3: Clear selection when clicking on empty space
+          // Clear selection when clicking on empty space
           selection.clearSelection();
           // Start drag-to-select
           selection.setIsSelecting(true);
@@ -97,9 +102,9 @@ export const useSharedPointerHandlers = (
       if (selection.setIsSelecting && selection.setSelectionBounds && selection.findObjectsInBounds && selection.selectObjects) {
         const bounds = stableSelectionState.selectionBounds;
         if (bounds && (bounds.width > 5 || bounds.height > 5)) {
-          // Find objects within selection bounds and use atomic update
+          // Find objects within selection bounds
           const objectsInBounds = selection.findObjectsInBounds(bounds, stableLines, stableImages);
-          selection.selectObjects(objectsInBounds, stableLines, stableImages);
+          selection.selectObjects(objectsInBounds);
         }
         
         // End selection

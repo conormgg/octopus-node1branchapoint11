@@ -33,23 +33,35 @@ export const useWhiteboardPointerHandlers = (
     if (stableCurrentTool === 'pencil' || stableCurrentTool === 'highlighter' || stableCurrentTool === 'eraser') {
       drawingCoordination.handleDrawingStart(x, y);
     } else if (stableCurrentTool === 'select') {
-      // Priority 1: Check if clicking inside an existing multi-object selection group
-      if (stableSelectionState.selectedObjects.length > 1 && selection.isPointInSelectionBounds({ x, y })) {
-        debugLog('PointerHandlers', 'Click is within group selection. Deferring to group drag handler.');
-        // Do nothing - let Konva handle the group drag
+      // Handle selection logic with priority:
+      // 1. Check if clicking within existing selection bounds (for group dragging)
+      // 2. Check if clicking on individual objects
+      // 3. Start new selection or clear existing selection
+      
+      const isInSelectionBounds = selection.isPointInSelectionBounds({ x, y });
+      
+      if (isInSelectionBounds && stableSelectionState.selectedObjects.length > 0) {
+        debugLog('PointerHandlers', 'Clicked within selection bounds');
+        // Clicking within selection bounds - this will allow dragging the entire group
+        // The actual dragging logic will be handled by the SelectionGroup component
+        // We don't need to change the selection here, just maintain it
         return;
       }
       
-      // Priority 2: Check if clicking on individual objects
+      // Check for individual objects
       const foundObjects = selection.findObjectsAtPoint({ x, y }, stableLines, stableImages);
       
       if (foundObjects.length > 0) {
         debugLog('PointerHandlers', 'Found objects at point', { count: foundObjects.length });
-        // Select the first found object using atomic update
-        selection.selectObjects([foundObjects[0]], stableLines, stableImages);
+        // Select the first found object
+        selection.selectObjects([foundObjects[0]]);
+        // Update selection bounds for the selected object
+        setTimeout(() => {
+          selection.updateSelectionBounds([foundObjects[0]], stableLines, stableImages);
+        }, 0);
       } else {
         debugLog('PointerHandlers', 'Starting drag-to-select');
-        // Priority 3: Clear selection when clicking on empty space
+        // Clear selection when clicking on empty space
         selection.clearSelection();
         // Start drag-to-select
         selection.setIsSelecting(true);
@@ -88,9 +100,13 @@ export const useWhiteboardPointerHandlers = (
       // Complete drag-to-select
       const bounds = stableSelectionState.selectionBounds;
       if (bounds && (bounds.width > 5 || bounds.height > 5)) {
-        // Find objects within selection bounds and use atomic update
+        // Find objects within selection bounds
         const objectsInBounds = selection.findObjectsInBounds(bounds, stableLines, stableImages);
-        selection.selectObjects(objectsInBounds, stableLines, stableImages);
+        selection.selectObjects(objectsInBounds);
+        // Update selection bounds for the selected objects
+        setTimeout(() => {
+          selection.updateSelectionBounds(objectsInBounds, stableLines, stableImages);
+        }, 0);
       }
       
       // End selection

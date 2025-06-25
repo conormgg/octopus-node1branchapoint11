@@ -28,139 +28,15 @@ export const useSelectionState = () => {
     };
   }, [releaseAllObjects]);
 
-  // Calculate bounding box for selected objects using pooled objects
-  const calculateSelectionBounds = useCallback((
-    selectedObjects: SelectedObject[],
-    lines: LineObject[],
-    images: ImageObject[]
-  ): SelectionBounds | null => {
-    if (selectedObjects.length === 0) return null;
-    
-    return withPooledObjects(() => {
-      let minX = Infinity;
-      let minY = Infinity;
-      let maxX = -Infinity;
-      let maxY = -Infinity;
-      
-      // Process selected lines
-      const selectedLines = selectedObjects
-        .filter(obj => obj.type === 'line')
-        .map(obj => lines.find(line => line.id === obj.id))
-        .filter(Boolean) as LineObject[];
-        
-      for (const line of selectedLines) {
-        const points = line.points;
-        
-        for (let i = 0; i < points.length; i += 2) {
-          const transformedPoint = createTempPoint();
-          
-          // Get point in local coordinates
-          const localX = points[i];
-          const localY = points[i + 1];
-          
-          // Apply scaling
-          const scaledX = localX * line.scaleX;
-          const scaledY = localY * line.scaleY;
-          
-          // Apply rotation
-          const rotationRad = (line.rotation || 0) * Math.PI / 180;
-          const cosRotation = Math.cos(rotationRad);
-          const sinRotation = Math.sin(rotationRad);
-          
-          const rotatedX = scaledX * cosRotation - scaledY * sinRotation;
-          const rotatedY = scaledX * sinRotation + scaledY * cosRotation;
-          
-          // Apply translation
-          transformedPoint.x = rotatedX + line.x;
-          transformedPoint.y = rotatedY + line.y;
-          
-          // Update bounds
-          minX = Math.min(minX, transformedPoint.x);
-          minY = Math.min(minY, transformedPoint.y);
-          maxX = Math.max(maxX, transformedPoint.x);
-          maxY = Math.max(maxY, transformedPoint.y);
-        }
-      }
-      
-      // Process selected images
-      const selectedImages = selectedObjects
-        .filter(obj => obj.type === 'image')
-        .map(obj => images.find(img => img.id === obj.id))
-        .filter(Boolean) as ImageObject[];
-        
-      for (const image of selectedImages) {
-        const width = image.width || 100;
-        const height = image.height || 100;
-        
-        // For non-rotated images
-        if (!(image as any).rotation) {
-          minX = Math.min(minX, image.x);
-          minY = Math.min(minY, image.y);
-          maxX = Math.max(maxX, image.x + width);
-          maxY = Math.max(maxY, image.y + height);
-          continue;
-        }
-        
-        // For rotated images, check all corners using pooled objects
-        const corners = [
-          createTempPoint(0, 0),
-          createTempPoint(width, 0),
-          createTempPoint(width, height),
-          createTempPoint(0, height)
-        ];
-        
-        // Apply rotation to corners
-        const rotationRad = ((image as any).rotation || 0) * Math.PI / 180;
-        const cosRotation = Math.cos(rotationRad);
-        const sinRotation = Math.sin(rotationRad);
-        
-        for (const corner of corners) {
-          // Rotate
-          const rotatedX = corner.x * cosRotation - corner.y * sinRotation;
-          const rotatedY = corner.x * sinRotation + corner.y * cosRotation;
-          
-          // Translate
-          const x = rotatedX + image.x;
-          const y = rotatedY + image.y;
-          
-          // Update bounds
-          minX = Math.min(minX, x);
-          minY = Math.min(minY, y);
-          maxX = Math.max(maxX, x);
-          maxY = Math.max(maxY, y);
-        }
-      }
-      
-      // If no objects were found or bounds are invalid
-      if (minX === Infinity || minY === Infinity || maxX === -Infinity || maxY === -Infinity) {
-        return null;
-      }
-      
-      return {
-        x: minX,
-        y: minY,
-        width: maxX - minX,
-        height: maxY - minY
-      };
-    });
-  }, [withPooledObjects, createTempPoint]);
-
-  // Select objects with atomic bounds calculation
-  const selectObjects = useCallback((
-    objects: SelectedObject[], 
-    lines: LineObject[], 
-    images: ImageObject[]
-  ) => {
-    // Calculate the bounds for the new selection immediately
-    const newBounds = calculateSelectionBounds(objects, lines, images);
-
+  // Select objects
+  const selectObjects = useCallback((objects: SelectedObject[]) => {
     setSelectionState(prev => ({
       ...prev,
-      selectedObjects: objects,
-      selectionBounds: newBounds // Set bounds atomically with selection
+      selectedObjects: objects
     }));
-  }, [calculateSelectionBounds]);
+  }, []);
 
+  // Add object to selection
   const addToSelection = useCallback((object: SelectedObject) => {
     setSelectionState(prev => ({
       ...prev,
@@ -168,6 +44,7 @@ export const useSelectionState = () => {
     }));
   }, []);
 
+  // Remove object from selection
   const removeFromSelection = useCallback((objectId: string) => {
     setSelectionState(prev => ({
       ...prev,
@@ -175,6 +52,7 @@ export const useSelectionState = () => {
     }));
   }, []);
 
+  // Clear selection
   const clearSelection = useCallback(() => {
     setSelectionState(prev => ({
       ...prev,
@@ -184,6 +62,7 @@ export const useSelectionState = () => {
     }));
   }, []);
 
+  // Set selection bounds (for drag-to-select rectangle)
   const setSelectionBounds = useCallback((bounds: SelectionBounds | null) => {
     setSelectionState(prev => ({
       ...prev,
@@ -191,6 +70,7 @@ export const useSelectionState = () => {
     }));
   }, []);
 
+  // Set selecting state
   const setIsSelecting = useCallback((isSelecting: boolean) => {
     setSelectionState(prev => ({
       ...prev,
@@ -198,6 +78,7 @@ export const useSelectionState = () => {
     }));
   }, []);
 
+  // Update transformation data for an object
   const updateTransformationData = useCallback((objectId: string, transformation: TransformationData) => {
     setSelectionState(prev => ({
       ...prev,
@@ -208,6 +89,7 @@ export const useSelectionState = () => {
     }));
   }, []);
 
+  // Hit detection for lines with rotation support using pooled objects
   const isPointOnLine = useCallback((point: { x: number; y: number }, line: LineObject, tolerance: number = 10): boolean => {
     const points = line.points;
     if (points.length < 4) return false;
@@ -271,6 +153,7 @@ export const useSelectionState = () => {
     });
   }, [withPooledObjects, createTempPoint]);
 
+  // Hit detection for images with rotation support using pooled objects
   const isPointOnImage = useCallback((point: { x: number; y: number }, image: ImageObject): boolean => {
     const width = image.width || 100;
     const height = image.height || 100;
@@ -308,6 +191,7 @@ export const useSelectionState = () => {
     });
   }, [withPooledObjects, createTempPoint]);
 
+  // Find objects at point
   const findObjectsAtPoint = useCallback((
     point: { x: number; y: number }, 
     lines: LineObject[], 
@@ -332,6 +216,7 @@ export const useSelectionState = () => {
     return foundObjects;
   }, [isPointOnLine, isPointOnImage]);
 
+  // Find objects within selection bounds with transformation support using pooled objects
   const findObjectsInBounds = useCallback((
     bounds: SelectionBounds,
     lines: LineObject[],
@@ -460,23 +345,144 @@ export const useSelectionState = () => {
     });
   }, [withPooledObjects, createTempPoint, isPointOnImage]);
 
+  // Check if object is selected
   const isObjectSelected = useCallback((objectId: string): boolean => {
     return selectionState.selectedObjects.some(obj => obj.id === objectId);
   }, [selectionState.selectedObjects]);
 
+  // Get selected object IDs
   const getSelectedObjectIds = useCallback((): string[] => {
     return selectionState.selectedObjects.map(obj => obj.id);
   }, [selectionState.selectedObjects]);
 
+  // Select all objects
   const selectAll = useCallback((lines: LineObject[], images: ImageObject[]) => {
     const allObjects: SelectedObject[] = [
       ...lines.map(line => ({ id: line.id, type: 'line' as const })),
       ...images.map(image => ({ id: image.id, type: 'image' as const }))
     ];
     
-    selectObjects(allObjects, lines, images);
+    selectObjects(allObjects);
   }, [selectObjects]);
 
+  // Calculate bounding box for selected objects using pooled objects
+  const calculateSelectionBounds = useCallback((
+    selectedObjects: SelectedObject[],
+    lines: LineObject[],
+    images: ImageObject[]
+  ): SelectionBounds | null => {
+    if (selectedObjects.length === 0) return null;
+    
+    return withPooledObjects(() => {
+      let minX = Infinity;
+      let minY = Infinity;
+      let maxX = -Infinity;
+      let maxY = -Infinity;
+      
+      // Process selected lines
+      const selectedLines = selectedObjects
+        .filter(obj => obj.type === 'line')
+        .map(obj => lines.find(line => line.id === obj.id))
+        .filter(Boolean) as LineObject[];
+        
+      for (const line of selectedLines) {
+        const points = line.points;
+        
+        for (let i = 0; i < points.length; i += 2) {
+          const transformedPoint = createTempPoint();
+          
+          // Get point in local coordinates
+          const localX = points[i];
+          const localY = points[i + 1];
+          
+          // Apply scaling
+          const scaledX = localX * line.scaleX;
+          const scaledY = localY * line.scaleY;
+          
+          // Apply rotation
+          const rotationRad = (line.rotation || 0) * Math.PI / 180;
+          const cosRotation = Math.cos(rotationRad);
+          const sinRotation = Math.sin(rotationRad);
+          
+          const rotatedX = scaledX * cosRotation - scaledY * sinRotation;
+          const rotatedY = scaledX * sinRotation + scaledY * cosRotation;
+          
+          // Apply translation
+          transformedPoint.x = rotatedX + line.x;
+          transformedPoint.y = rotatedY + line.y;
+          
+          // Update bounds
+          minX = Math.min(minX, transformedPoint.x);
+          minY = Math.min(minY, transformedPoint.y);
+          maxX = Math.max(maxX, transformedPoint.x);
+          maxY = Math.max(maxY, transformedPoint.y);
+        }
+      }
+      
+      // Process selected images
+      const selectedImages = selectedObjects
+        .filter(obj => obj.type === 'image')
+        .map(obj => images.find(img => img.id === obj.id))
+        .filter(Boolean) as ImageObject[];
+        
+      for (const image of selectedImages) {
+        const width = image.width || 100;
+        const height = image.height || 100;
+        
+        // For non-rotated images
+        if (!(image as any).rotation) {
+          minX = Math.min(minX, image.x);
+          minY = Math.min(minY, image.y);
+          maxX = Math.max(maxX, image.x + width);
+          maxY = Math.max(maxY, image.y + height);
+          continue;
+        }
+        
+        // For rotated images, check all corners using pooled objects
+        const corners = [
+          createTempPoint(0, 0),
+          createTempPoint(width, 0),
+          createTempPoint(width, height),
+          createTempPoint(0, height)
+        ];
+        
+        // Apply rotation to corners
+        const rotationRad = ((image as any).rotation || 0) * Math.PI / 180;
+        const cosRotation = Math.cos(rotationRad);
+        const sinRotation = Math.sin(rotationRad);
+        
+        for (const corner of corners) {
+          // Rotate
+          const rotatedX = corner.x * cosRotation - corner.y * sinRotation;
+          const rotatedY = corner.x * sinRotation + corner.y * cosRotation;
+          
+          // Translate
+          const x = rotatedX + image.x;
+          const y = rotatedY + image.y;
+          
+          // Update bounds
+          minX = Math.min(minX, x);
+          minY = Math.min(minY, y);
+          maxX = Math.max(maxX, x);
+          maxY = Math.max(maxY, y);
+        }
+      }
+      
+      // If no objects were found or bounds are invalid
+      if (minX === Infinity || minY === Infinity || maxX === -Infinity || maxY === -Infinity) {
+        return null;
+      }
+      
+      return {
+        x: minX,
+        y: minY,
+        width: maxX - minX,
+        height: maxY - minY
+      };
+    });
+  }, [withPooledObjects, createTempPoint]);
+
+  // Check if a point is within the current selection bounds
   const isPointInSelectionBounds = useCallback((point: { x: number; y: number }): boolean => {
     if (!selectionState.selectionBounds || selectionState.selectedObjects.length === 0) {
       return false;
@@ -489,22 +495,27 @@ export const useSelectionState = () => {
            point.y <= bounds.y + bounds.height;
   }, [selectionState.selectionBounds, selectionState.selectedObjects]);
 
+  // Update selection state from history (for undo/redo)
   const updateSelectionState = useCallback((newSelectionState: SelectionState) => {
     setSelectionState(newSelectionState);
   }, []);
 
-  // Remove the old updateSelectionBounds function since we now do atomic updates
+  // Auto-update selection bounds when objects are selected (but not during drag-to-select)
   const updateSelectionBounds = useCallback((
     selectedObjects: SelectedObject[],
     lines: LineObject[],
     images: ImageObject[]
   ) => {
-    // This is now handled atomically in selectObjects, but kept for compatibility
     if (selectedObjects.length > 0 && !selectionState.isSelecting) {
       const bounds = calculateSelectionBounds(selectedObjects, lines, images);
       setSelectionState(prev => ({
         ...prev,
         selectionBounds: bounds
+      }));
+    } else if (selectedObjects.length === 0) {
+      setSelectionState(prev => ({
+        ...prev,
+        selectionBounds: null
       }));
     }
   }, [calculateSelectionBounds, selectionState.isSelecting]);
