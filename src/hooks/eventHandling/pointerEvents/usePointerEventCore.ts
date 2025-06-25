@@ -54,6 +54,11 @@ export const usePointerEventCore = ({
 
         logEventHandling('pointerdown', 'pointer', { pointerId: e.pointerId, pointerType: e.pointerType });
         
+        // Stop the event from propagating to other listeners on the DOM tree,
+        // including Konva's stage listeners. This prevents conflicts between
+        // our custom event handling and Konva's internal event system.
+        e.stopPropagation();
+        
         // Don't prevent default for select tool - let Konva handle dragging
         if (currentToolRef.current !== 'select') {
           e.preventDefault();
