@@ -55,11 +55,12 @@ export const useStageEventHandlers = ({
 
   /**
    * Event system selection logic:
-   * - Use pointer events when palm rejection is enabled AND the device supports them
-   * - Fall back to touch events when palm rejection is disabled OR pointer events aren't supported
-   * - This prevents duplicate event handling while ensuring all devices work
+   * - Use pointer events when the device supports them (for stylus support)
+   * - Apply palm rejection filtering conditionally within the event handlers
+   * - Fall back to touch events when pointer events aren't supported
+   * - This ensures stylus works regardless of palm rejection settings
    */
-  const usePointerEvents = supportsPointerEvents && palmRejectionConfig.enabled;
+  const usePointerEvents = supportsPointerEvents;
   const useTouchEvents = !usePointerEvents;
 
   // Wheel event handlers - always active for pan/zoom
@@ -68,7 +69,7 @@ export const useStageEventHandlers = ({
     panZoom
   });
 
-  // Touch event handlers - active when pointer events are not used
+  // Touch event handlers - active when pointer events are not supported
   useTouchEventHandlers({
     containerRef,
     panZoom,
@@ -77,7 +78,7 @@ export const useStageEventHandlers = ({
     palmRejectionEnabled: palmRejectionConfig.enabled
   });
 
-  // Pointer event handlers - active when palm rejection is enabled and supported
+  // Pointer event handlers - active when pointer events are supported
   usePointerEventHandlers({
     containerRef,
     stageRef,
