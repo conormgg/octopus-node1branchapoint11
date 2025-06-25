@@ -1,3 +1,4 @@
+
 import React, { useRef, useEffect } from 'react';
 import { Line, Transformer } from 'react-konva';
 import { LineObject } from '@/types/whiteboard';
@@ -7,6 +8,7 @@ interface LineRendererProps {
   line: LineObject;
   isSelected?: boolean;
   isHovered?: boolean;
+  isInGroup?: boolean; // New prop to indicate if this line is part of a group
   onSelect?: () => void;
   onMouseEnter?: () => void;
   onMouseLeave?: () => void;
@@ -18,6 +20,7 @@ const LineRenderer: React.FC<LineRendererProps> = React.memo(({
   line, 
   isSelected = false, 
   isHovered = false,
+  isInGroup = false, // Default to false
   onSelect,
   onMouseEnter,
   onMouseLeave,
@@ -27,13 +30,17 @@ const LineRenderer: React.FC<LineRendererProps> = React.memo(({
   const lineRef = useRef<Konva.Line>(null);
   const trRef = useRef<Konva.Transformer>(null);
 
+  // Only show individual transformer if selected, not in group, and using select tool
+  const showTransformer = isSelected && !isInGroup && currentTool === 'select';
+
   useEffect(() => {
-    if (isSelected && currentTool === 'select') {
+    if (showTransformer) {
       // Attach transformer to the line
       trRef.current?.nodes([lineRef.current!]);
       trRef.current?.getLayer()?.batchDraw();
     }
-  }, [isSelected, currentTool]);
+  }, [showTransformer]);
+
   // Don't render eraser strokes - they are used for stroke deletion, not visual feedback
   if (line.tool === 'eraser') return null;
 
@@ -99,14 +106,14 @@ const LineRenderer: React.FC<LineRendererProps> = React.memo(({
         scaleY={line.scaleY}
         rotation={line.rotation}
         perfectDrawEnabled={false}
-        listening={onSelect || onMouseEnter || onMouseLeave || (currentTool === 'select' && isSelected) ? true : false}
-        draggable={currentTool === 'select' && isSelected}
+        listening={onSelect || onMouseEnter || onMouseLeave || showTransformer ? true : false}
+        draggable={showTransformer && !isInGroup} // Don't allow individual dragging when in group
         onClick={onSelect}
         onTap={onSelect}
         onMouseEnter={onMouseEnter}
         onMouseLeave={onMouseLeave}
         onDragEnd={(e) => {
-          if (onDragEnd) {
+          if (onDragEnd && !isInGroup) {
             const node = e.target;
             onDragEnd({
               x: node.x(),
@@ -115,7 +122,7 @@ const LineRenderer: React.FC<LineRendererProps> = React.memo(({
           }
         }}
         onTransformEnd={(e) => {
-          if (onDragEnd) {
+          if (onDragEnd && !isInGroup) {
             const node = e.target;
             onDragEnd({
               x: node.x(),
@@ -130,8 +137,8 @@ const LineRenderer: React.FC<LineRendererProps> = React.memo(({
         hitStrokeWidth={line.strokeWidth + 10}
       />
       
-      {/* Transformer for selected lines */}
-      {isSelected && currentTool === 'select' && (
+      {/* Transformer for selected lines - only show if not in group */}
+      {showTransformer && (
         <Transformer
           ref={trRef}
           boundBoxFunc={(oldBox, newBox) => {
@@ -161,6 +168,7 @@ const LineRenderer: React.FC<LineRendererProps> = React.memo(({
     prevProps.line.rotation === nextProps.line.rotation &&
     prevProps.isSelected === nextProps.isSelected &&
     prevProps.isHovered === nextProps.isHovered &&
+    prevProps.isInGroup === nextProps.isInGroup &&
     prevProps.currentTool === nextProps.currentTool
   );
 });

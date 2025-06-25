@@ -45,6 +45,7 @@ const KonvaImageOperationsHandler: React.FC<KonvaImageOperationsHandlerProps> = 
             imageObject={image}
             isSelected={isSelected && !isInGroup}
             isHovered={selection?.hoveredObjectId === image.id}
+            isInGroup={isInGroup} // Pass the isInGroup prop
             onSelect={() => {
               if (selection && state.currentTool === 'select') {
                 selection.selectObjects([{ id: image.id, type: 'image' }]);
