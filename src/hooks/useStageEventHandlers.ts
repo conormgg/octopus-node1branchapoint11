@@ -130,8 +130,8 @@ export const useStageEventHandlers = ({
         tool: currentToolRef.current 
       });
 
-      // Handle right-click pan only for non-stylus input
-      if (e.pointerType !== 'pen' && e.button === 2) {
+      // Always handle right-click pan regardless of tool
+      if (e.button === 2) {
         e.preventDefault();
         panZoom.startPan(e.clientX, e.clientY);
         return;
@@ -166,8 +166,8 @@ export const useStageEventHandlers = ({
         tool: currentToolRef.current 
       });
 
-      // Handle right-click pan only for non-stylus input
-      if (e.pointerType !== 'pen' && e.buttons === 2) {
+      // Always handle right-click pan regardless of tool
+      if (e.buttons === 2) {
         e.preventDefault();
         panZoom.continuePan(e.clientX, e.clientY);
         return;
@@ -199,8 +199,8 @@ export const useStageEventHandlers = ({
         tool: currentToolRef.current 
       });
 
-      // Handle right-click pan end only for non-stylus input
-      if (e.pointerType !== 'pen' && e.button === 2) {
+      // Always handle right-click pan end regardless of tool
+      if (e.button === 2) {
         e.preventDefault();
         panZoom.stopPan();
         return;
