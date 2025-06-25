@@ -19,7 +19,9 @@ const SelectionGroupBackground: React.FC<SelectionGroupBackgroundProps> = ({ gro
       y={groupBounds.y}
       width={groupBounds.width}
       height={groupBounds.height}
-      fill="transparent"
+      fill="rgba(255, 0, 0, 0.2)"
+      stroke="red"
+      strokeWidth={2}
       listening={true}
     />
   );
