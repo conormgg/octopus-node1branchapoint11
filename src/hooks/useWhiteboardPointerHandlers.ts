@@ -46,12 +46,8 @@ export const useWhiteboardPointerHandlers = (
       
       if (foundObjects.length > 0) {
         debugLog('PointerHandlers', 'Found objects at point', { count: foundObjects.length });
-        // Select the first found object
-        selection.selectObjects([foundObjects[0]]);
-        // Update selection bounds for the selected object
-        setTimeout(() => {
-          selection.updateSelectionBounds([foundObjects[0]], stableLines, stableImages);
-        }, 0);
+        // Select the first found object with atomic bounds calculation
+        selection.selectObjects([foundObjects[0]], stableLines, stableImages);
       } else {
         // Priority 3: If we clicked on truly empty space, clear selection and start a new one.
         debugLog('PointerHandlers', 'Starting drag-to-select on empty space');
@@ -96,11 +92,8 @@ export const useWhiteboardPointerHandlers = (
       if (bounds && (bounds.width > 5 || bounds.height > 5)) {
         // Find objects within selection bounds
         const objectsInBounds = selection.findObjectsInBounds(bounds, stableLines, stableImages);
-        selection.selectObjects(objectsInBounds);
-        // Update selection bounds for the selected objects
-        setTimeout(() => {
-          selection.updateSelectionBounds(objectsInBounds, stableLines, stableImages);
-        }, 0);
+        // Select objects with atomic bounds calculation - no setTimeout needed
+        selection.selectObjects(objectsInBounds, stableLines, stableImages);
       }
       
       // End selection
