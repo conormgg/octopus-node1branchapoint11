@@ -116,7 +116,7 @@ export const useStageEventHandlers = ({
     };
   }, [panZoom, palmRejectionConfig.enabled, logEventHandling]);
 
-  // Pointer event handlers - tool-aware implementation with prioritized right-click handling
+  // Pointer event handlers - tool-aware implementation
   useEffect(() => {
     const container = containerRef.current;
     const stage = stageRef.current;
@@ -130,26 +130,26 @@ export const useStageEventHandlers = ({
         tool: currentToolRef.current 
       });
 
-      // PRIORITY 1: Always handle right-click pan regardless of tool or palm rejection
+      // Always handle right-click pan regardless of tool
       if (e.button === 2) {
         e.preventDefault();
         panZoom.startPan(e.clientX, e.clientY);
         return;
       }
       
-      // PRIORITY 2: For select tool, let Konva handle the events natively
+      // For select tool, let Konva handle the events natively
       // This allows selection, dragging, and transformation to work properly
       if (currentToolRef.current === 'select') {
         return;
       }
       
-      // PRIORITY 3: Prevent default for drawing tools to avoid conflicts
+      // Prevent default for drawing tools to avoid conflicts
       e.preventDefault();
       
-      // PRIORITY 4: Only proceed with drawing if not in read-only mode
+      // Only proceed with drawing if not in read-only mode
       if (isReadOnly) return;
       
-      // PRIORITY 5: Apply palm rejection only for drawing operations (not panning or selection)
+      // Apply palm rejection only if it's enabled
       if (palmRejectionConfig.enabled && !palmRejection.shouldProcessPointer(e)) {
         return;
       }
@@ -166,25 +166,25 @@ export const useStageEventHandlers = ({
         tool: currentToolRef.current 
       });
 
-      // PRIORITY 1: Always handle right-click pan regardless of tool or palm rejection
+      // Always handle right-click pan regardless of tool
       if (e.buttons === 2) {
         e.preventDefault();
         panZoom.continuePan(e.clientX, e.clientY);
         return;
       }
       
-      // PRIORITY 2: For select tool, let Konva handle the events natively
+      // For select tool, let Konva handle the events natively
       if (currentToolRef.current === 'select') {
         return;
       }
       
-      // PRIORITY 3: Prevent default for drawing tools to avoid conflicts
+      // Prevent default for drawing tools to avoid conflicts
       e.preventDefault();
       
-      // PRIORITY 4: Only proceed with drawing if not in read-only mode
+      // Only proceed with drawing if not in read-only mode
       if (isReadOnly) return;
       
-      // PRIORITY 5: Apply palm rejection only for drawing operations
+      // Apply palm rejection only if it's enabled
       if (palmRejectionConfig.enabled && !palmRejection.shouldProcessPointer(e)) return;
 
       const { x, y } = getRelativePointerPosition(stage, e.clientX, e.clientY);
@@ -199,25 +199,25 @@ export const useStageEventHandlers = ({
         tool: currentToolRef.current 
       });
 
-      // PRIORITY 1: Always handle right-click pan end regardless of tool
+      // Always handle right-click pan end regardless of tool
       if (e.button === 2) {
         e.preventDefault();
         panZoom.stopPan();
         return;
       }
       
-      // PRIORITY 2: Always clean up palm rejection state (but don't let it interfere with panning)
+      // Always clean up palm rejection state
       palmRejection.onPointerEnd(e.pointerId);
       
-      // PRIORITY 3: For select tool, let Konva handle the events natively
+      // For select tool, let Konva handle the events natively
       if (currentToolRef.current === 'select') {
         return;
       }
       
-      // PRIORITY 4: Prevent default for drawing tools to avoid conflicts
+      // Prevent default for drawing tools to avoid conflicts
       e.preventDefault();
       
-      // PRIORITY 5: Only call handlePointerUp for drawing if not in read-only mode
+      // Only call handlePointerUp for drawing if not in read-only mode
       if (!isReadOnly) {
         handlePointerUp();
       }
@@ -230,7 +230,7 @@ export const useStageEventHandlers = ({
         tool: currentToolRef.current 
       });
 
-      // Always clean up palm rejection state and stop pan on leave
+      // Always clean up palm rejection state
       palmRejection.onPointerEnd(e.pointerId);
       panZoom.stopPan(); // Always stop pan on leave
       
