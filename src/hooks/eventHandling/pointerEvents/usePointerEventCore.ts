@@ -45,6 +45,46 @@ export const usePointerEventCore = ({
   const stablePalmRejectionEnabled = useMemo(() => palmRejectionConfig.enabled, [palmRejectionConfig.enabled]);
   const stableIsReadOnly = useMemo(() => isReadOnly, [isReadOnly]);
 
+  // Helper function to check if we clicked on a Konva transformer element
+  const isKonvaTransformerElement = useCallback((stage: Konva.Stage, clientX: number, clientY: number) => {
+    try {
+      // Get the stage coordinates
+      const { x, y } = getRelativePointerPosition(stage, clientX, clientY);
+      
+      // Use Konva's hit testing to find the shape under the pointer
+      const shape = stage.getIntersection({ x, y });
+      
+      if (!shape) return false;
+      
+      // Check if the shape is a transformer element
+      // Konva transformer anchors have names like "_anchor"
+      const shapeName = shape.name();
+      if (shapeName && shapeName.includes('_anchor')) {
+        return true;
+      }
+      
+      // Check if the shape is a Transformer itself
+      if (shape instanceof Konva.Transformer) {
+        return true;
+      }
+      
+      // Check if the shape's parent is a Transformer
+      let parent = shape.getParent();
+      while (parent) {
+        if (parent instanceof Konva.Transformer) {
+          return true;
+        }
+        parent = parent.getParent();
+      }
+      
+      return false;
+    } catch (error) {
+      // If hit testing fails, proceed with normal logic
+      console.warn('Hit testing failed:', error);
+      return false;
+    }
+  }, [getRelativePointerPosition]);
+
   // Use memoized event handlers for better performance
   const handlers = useMemoizedEventHandlers({
     handlePointerDownEvent: {
@@ -53,6 +93,12 @@ export const usePointerEventCore = ({
         if (!stage) return;
 
         logEventHandling('pointerdown', 'pointer', { pointerId: e.pointerId, pointerType: e.pointerType });
+        
+        // Check if we clicked on a Konva transformer element FIRST
+        if (isKonvaTransformerElement(stage, e.clientX, e.clientY)) {
+          // Let Konva handle transformer interactions - don't prevent default or run custom logic
+          return;
+        }
         
         // Don't prevent default for select tool - let Konva handle dragging
         if (currentToolRef.current !== 'select') {
@@ -77,7 +123,7 @@ export const usePointerEventCore = ({
         const { x, y } = getRelativePointerPosition(stage, e.clientX, e.clientY);
         handlePointerDown(x, y);
       },
-      deps: [stageRef, logEventHandling, currentToolRef, panZoom, stableIsReadOnly, stablePalmRejectionEnabled, palmRejection, getRelativePointerPosition, handlePointerDown]
+      deps: [stageRef, logEventHandling, isKonvaTransformerElement, currentToolRef, panZoom, stableIsReadOnly, stablePalmRejectionEnabled, palmRejection, getRelativePointerPosition, handlePointerDown]
     },
 
     handlePointerMoveEvent: {
