@@ -26,10 +26,11 @@ export const useTouchEventHandlers = ({
     if (!container) return;
 
     /**
-     * Touch events are used ONLY when pointer events are not supported.
-     * This prevents conflicts between pointer and touch event systems.
+     * Touch events are used when:
+     * - Pointer events are not supported, OR
+     * - Palm rejection is disabled (fallback to simpler touch handling)
      */
-    const shouldUseTouchEvents = !supportsPointerEvents;
+    const shouldUseTouchEvents = !supportsPointerEvents || !palmRejectionEnabled;
 
     const handleTouchStart = (e: TouchEvent) => {
       logEventHandling('touchstart', 'touch', { touches: e.touches.length });
@@ -62,5 +63,5 @@ export const useTouchEventHandlers = ({
         container.removeEventListener('touchend', handleTouchEnd);
       }
     };
-  }, [panZoom.handleTouchStart, panZoom.handleTouchMove, panZoom.handleTouchEnd, logEventHandling, supportsPointerEvents]);
+  }, [panZoom.handleTouchStart, panZoom.handleTouchMove, panZoom.handleTouchEnd, logEventHandling, supportsPointerEvents, palmRejectionEnabled]);
 };
