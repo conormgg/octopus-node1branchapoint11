@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import WhiteboardCanvas from './WhiteboardCanvas';
 import MovableToolbar from './MovableToolbar';
@@ -15,7 +14,7 @@ interface WhiteboardProps {
 const Whiteboard: React.FC<WhiteboardProps> = ({ isReadOnly = false }) => {
   const [dimensions, setDimensions] = useState({ width: 0, height: 0 });
   const containerRef = React.useRef<HTMLDivElement>(null);
-  const whiteboardState = useWhiteboardState();
+  const whiteboardState = useWhiteboardState(containerRef); // Pass container ref
 
   // Palm rejection configuration
   const [palmRejectionConfig, setPalmRejectionConfig] = useState({
