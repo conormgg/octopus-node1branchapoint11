@@ -1,4 +1,3 @@
-
 import React, { useRef } from 'react';
 import Konva from 'konva';
 import { useWhiteboardState } from '@/hooks/useWhiteboardState';
@@ -98,7 +97,7 @@ const KonvaStage: React.FC<KonvaStageProps> = ({
       style={{ 
         WebkitUserSelect: 'none',
         WebkitTouchCallout: 'none',
-        touchAction: palmRejectionConfig.enabled ? 'pinch-zoom pan-x pan-y' : 'manipulation'
+        touchAction: palmRejectionConfig.enabled ? 'manipulation' : 'auto'
       }}
       tabIndex={0}
       data-whiteboard-id={whiteboardId}

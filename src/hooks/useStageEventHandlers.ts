@@ -55,6 +55,11 @@ export const useStageEventHandlers = ({
       const newTool = stage.getAttr('currentTool') as string;
       if (newTool && newTool !== currentToolRef.current) {
         currentToolRef.current = newTool;
+        // Update touch-action when tool changes
+        const container = containerRef.current;
+        if (container) {
+          container.style.touchAction = newTool === 'select' ? 'manipulation' : 'none';
+        }
       }
     };
     
@@ -252,6 +257,9 @@ export const useStageEventHandlers = ({
     container.addEventListener('pointercancel', handlePointerUpEvent);
     container.addEventListener('contextmenu', handleContextMenu);
 
+    // Set initial touch-action based on current tool
+    container.style.touchAction = currentToolRef.current === 'select' ? 'manipulation' : 'none';
+
     return () => {
       container.removeEventListener('pointerdown', handlePointerDownEvent);
       container.removeEventListener('pointermove', handlePointerMoveEvent);
@@ -259,6 +267,7 @@ export const useStageEventHandlers = ({
       container.removeEventListener('pointerleave', handlePointerLeaveEvent);
       container.removeEventListener('pointercancel', handlePointerUpEvent);
       container.removeEventListener('contextmenu', handleContextMenu);
+      container.style.touchAction = '';
     };
   }, [
     containerRef,
