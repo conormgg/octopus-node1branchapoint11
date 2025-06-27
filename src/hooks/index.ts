@@ -37,7 +37,7 @@ export { useSyncWhiteboardState } from './useSyncWhiteboardState';
  * Coordinates all input events (pointer, touch, mouse) for the canvas
  * Handles the complex logic of choosing the right event system
  */
-export { useStageEventHandlers } from './useStageEventHandlers';
+export { useStageEventCoordinator } from './eventHandling/useStageEventCoordinator';
 
 /**
  * Advanced palm rejection for stylus input on touch devices
