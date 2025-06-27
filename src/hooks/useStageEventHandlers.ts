@@ -58,7 +58,8 @@ export const useStageEventHandlers = ({
         // Update touch-action when tool changes
         const container = containerRef.current;
         if (container) {
-          container.style.touchAction = newTool === 'select' ? 'manipulation' : 'none';
+          // Use 'manipulation' for select tool, 'pan-x pan-y pinch-zoom' for drawing tools
+          container.style.touchAction = newTool === 'select' ? 'manipulation' : 'pan-x pan-y pinch-zoom';
         }
       }
     };
@@ -85,8 +86,9 @@ export const useStageEventHandlers = ({
 
     const handleTouchStart = (e: TouchEvent) => {
       logEventHandling('touchstart', 'touch', { touches: e.touches.length });
-      // Only prevent default if palm rejection is disabled or we have multiple touches
-      if (!palmRejectionConfig.enabled || e.touches.length > 1) {
+      // Only prevent default for single-touch when palm rejection is disabled
+      // Allow multi-touch events (2+ fingers) to pass through for pinch-zoom
+      if (e.touches.length === 1 && !palmRejectionConfig.enabled) {
         e.preventDefault();
       }
       panZoom.handleTouchStart(e);
@@ -94,14 +96,19 @@ export const useStageEventHandlers = ({
 
     const handleTouchMove = (e: TouchEvent) => {
       logEventHandling('touchmove', 'touch', { touches: e.touches.length });
-      // Always prevent default for touch move to avoid scrolling
-      e.preventDefault();
+      // Only prevent default for single-touch to avoid interfering with pinch-zoom
+      if (e.touches.length === 1) {
+        e.preventDefault();
+      }
       panZoom.handleTouchMove(e);
     };
 
     const handleTouchEnd = (e: TouchEvent) => {
       logEventHandling('touchend', 'touch', { touches: e.touches.length });
-      e.preventDefault();
+      // Only prevent default for single-touch events
+      if (e.touches.length <= 1) {
+        e.preventDefault();
+      }
       panZoom.handleTouchEnd(e);
     };
 
@@ -258,7 +265,7 @@ export const useStageEventHandlers = ({
     container.addEventListener('contextmenu', handleContextMenu);
 
     // Set initial touch-action based on current tool
-    container.style.touchAction = currentToolRef.current === 'select' ? 'manipulation' : 'none';
+    container.style.touchAction = currentToolRef.current === 'select' ? 'manipulation' : 'pan-x pan-y pinch-zoom';
 
     return () => {
       container.removeEventListener('pointerdown', handlePointerDownEvent);
