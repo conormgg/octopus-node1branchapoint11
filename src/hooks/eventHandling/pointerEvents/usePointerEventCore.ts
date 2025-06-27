@@ -45,6 +45,18 @@ export const usePointerEventCore = ({
   const stablePalmRejectionEnabled = useMemo(() => palmRejectionConfig.enabled, [palmRejectionConfig.enabled]);
   const stableIsReadOnly = useMemo(() => isReadOnly, [isReadOnly]);
 
+  // Helper function to determine if palm rejection should be applied
+  const shouldApplyPalmRejection = useCallback((event: PointerEvent): boolean => {
+    // Don't apply palm rejection if it's disabled
+    if (!stablePalmRejectionEnabled) return false;
+    
+    // Don't apply palm rejection for select tool - selection operations are typically deliberate
+    if (currentToolRef.current === 'select') return false;
+    
+    // Apply palm rejection for drawing tools (pencil, highlighter, eraser)
+    return !palmRejection.shouldProcessPointer(event);
+  }, [stablePalmRejectionEnabled, currentToolRef, palmRejection]);
+
   // Use memoized event handlers for better performance
   const handlers = useMemoizedEventHandlers({
     handlePointerDownEvent: {
@@ -69,15 +81,15 @@ export const usePointerEventCore = ({
         // Only proceed with drawing if not in read-only mode
         if (stableIsReadOnly) return;
         
-        // Apply palm rejection ONLY if it's enabled
-        if (stablePalmRejectionEnabled && !palmRejection.shouldProcessPointer(e)) {
+        // Apply palm rejection based on current tool
+        if (shouldApplyPalmRejection(e)) {
           return;
         }
 
         const { x, y } = getRelativePointerPosition(stage, e.clientX, e.clientY);
         handlePointerDown(x, y);
       },
-      deps: [stageRef, logEventHandling, currentToolRef, panZoom, stableIsReadOnly, stablePalmRejectionEnabled, palmRejection, getRelativePointerPosition, handlePointerDown]
+      deps: [stageRef, logEventHandling, currentToolRef, panZoom, stableIsReadOnly, shouldApplyPalmRejection, getRelativePointerPosition, handlePointerDown]
     },
 
     handlePointerMoveEvent: {
@@ -102,13 +114,13 @@ export const usePointerEventCore = ({
         // Only proceed with drawing if not in read-only mode
         if (stableIsReadOnly) return;
         
-        // Apply palm rejection ONLY if it's enabled
-        if (stablePalmRejectionEnabled && !palmRejection.shouldProcessPointer(e)) return;
+        // Apply palm rejection based on current tool
+        if (shouldApplyPalmRejection(e)) return;
 
         const { x, y } = getRelativePointerPosition(stage, e.clientX, e.clientY);
         handlePointerMove(x, y);
       },
-      deps: [stageRef, logEventHandling, currentToolRef, panZoom, stableIsReadOnly, stablePalmRejectionEnabled, palmRejection, getRelativePointerPosition, handlePointerMove]
+      deps: [stageRef, logEventHandling, currentToolRef, panZoom, stableIsReadOnly, shouldApplyPalmRejection, getRelativePointerPosition, handlePointerMove]
     },
 
     handlePointerUpEvent: {
