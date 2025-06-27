@@ -1,10 +1,9 @@
-
 import React, { useRef } from 'react';
 import Konva from 'konva';
 import { useWhiteboardState } from '@/hooks/useWhiteboardState';
 import { useNormalizedWhiteboardState } from '@/hooks/performance/useNormalizedWhiteboardState';
 import { usePalmRejection } from '@/hooks/usePalmRejection';
-import { useStageEventCoordinator } from '@/hooks/eventHandling/useStageEventCoordinator';
+import { useStageEventHandlers } from '@/hooks/useStageEventHandlers';
 import { useKonvaKeyboardHandlers } from '@/hooks/canvas/useKonvaKeyboardHandlers';
 import { useKonvaPanZoomSync } from '@/hooks/canvas/useKonvaPanZoomSync';
 import KonvaStageCanvas from './KonvaStageCanvas';
@@ -77,8 +76,8 @@ const KonvaStage: React.FC<KonvaStageProps> = ({
     whiteboardId
   });
 
-  // Set up all event handlers using the new coordinator
-  useStageEventCoordinator({
+  // Set up all event handlers
+  useStageEventHandlers({
     containerRef,
     stageRef,
     panZoomState: state.panZoomState,
