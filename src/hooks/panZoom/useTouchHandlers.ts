@@ -34,21 +34,17 @@ export const useTouchHandlers = (
   const handleTouchStart = useCallback((e: TouchEvent) => {
     console.log('[PanZoom] Touch start with', e.touches.length, 'touches');
     
-    // CRITICAL CHANGE: Only handle multi-touch gestures (2+ fingers)
-    // Single touch (stylus or finger) is ignored for panning
+    // Only handle multi-touch gestures (2+ fingers)
     if (e.touches.length >= 2) {
       panHandlers.setIsGestureActiveState(true);
-      // Initialize pinch-to-zoom
+      // Initialize both pan and zoom state
       touchStateRef.current.lastDistance = getTouchDistance(e.touches);
       touchStateRef.current.lastCenter = getTouchCenter(e.touches);
       
-      // For 2-finger pan, use the center point
-      if (e.touches.length === 2) {
-        const center = getTouchCenter(e.touches);
-        panHandlers.startPan(center.x, center.y);
-      }
+      // Start pan tracking at the center point
+      const center = getTouchCenter(e.touches);
+      panHandlers.startPan(center.x, center.y);
     }
-    // Single touches are completely ignored - no panning initiated
   }, [getTouchDistance, getTouchCenter, panHandlers]);
 
   const handleTouchMove = useCallback((e: TouchEvent) => {
@@ -56,26 +52,34 @@ export const useTouchHandlers = (
     
     // Only handle multi-touch gestures
     if (e.touches.length >= 2) {
-      // Pinch-to-zoom
       const currentDistance = getTouchDistance(e.touches);
       const currentCenter = getTouchCenter(e.touches);
       
       const { lastDistance, lastCenter } = touchStateRef.current;
       
       if (lastDistance > 0) {
+        // Calculate zoom factor
         const zoomFactor = currentDistance / lastDistance;
-        zoom(zoomFactor, lastCenter.x, lastCenter.y);
+        
+        // Calculate pan delta from center movement
+        const panDeltaX = currentCenter.x - lastCenter.x;
+        const panDeltaY = currentCenter.y - lastCenter.y;
+        
+        // Apply zoom at the current center position
+        zoom(zoomFactor, currentCenter.x, currentCenter.y);
+        
+        // Apply pan delta by updating the last position for continuePan
+        // We need to adjust the pan handlers' internal state to account for the center movement
+        if (Math.abs(panDeltaX) > 1 || Math.abs(panDeltaY) > 1) {
+          // Update the internal pan state to track the new center
+          panHandlers.continuePan(currentCenter.x, currentCenter.y);
+        }
       }
       
-      // Two-finger pan
-      if (e.touches.length === 2) {
-        panHandlers.continuePan(currentCenter.x, currentCenter.y);
-      }
-      
+      // Update state for next iteration
       touchStateRef.current.lastDistance = currentDistance;
       touchStateRef.current.lastCenter = currentCenter;
     }
-    // Single touches are ignored - no panning
   }, [getTouchDistance, getTouchCenter, zoom, panHandlers]);
 
   const handleTouchEnd = useCallback((e: TouchEvent) => {
@@ -91,7 +95,6 @@ export const useTouchHandlers = (
       panHandlers.setIsGestureActiveState(false);
       panHandlers.stopPan();
       touchStateRef.current.lastDistance = 0;
-      // Do NOT start single-touch panning here
     }
     // Continue multi-touch handling if still multiple touches
   }, [panHandlers]);
