@@ -64,8 +64,26 @@ export const useTouchHandlers = (
     // Convert to container-relative coordinates if needed
     if (useContainerCoords && containerRef?.current) {
       const rect = containerRef.current.getBoundingClientRect();
+      const container = containerRef.current;
+      
+      // Get container-relative coordinates
       centerX = centerX - rect.left;
       centerY = centerY - rect.top;
+      
+      // Account for container scaling (important for minimized view)
+      const containerStyle = window.getComputedStyle(container);
+      const transform = containerStyle.transform;
+      
+      if (transform && transform !== 'none') {
+        // Extract scale from transform matrix
+        const matrix = new DOMMatrix(transform);
+        const scaleX = matrix.a;
+        const scaleY = matrix.d;
+        
+        // Adjust coordinates for the container's scale
+        centerX = centerX / scaleX;
+        centerY = centerY / scaleY;
+      }
     }
     
     return { x: centerX, y: centerY };
