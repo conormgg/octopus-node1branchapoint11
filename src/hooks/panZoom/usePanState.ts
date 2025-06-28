@@ -38,15 +38,16 @@ export const usePanState = (
 
     console.log('[PanZoom] Continuing pan with delta:', { deltaX, deltaY });
 
-    setPanZoomState({
-      ...panZoomState,
-      x: panZoomState.x + deltaX,
-      y: panZoomState.y + deltaY
-    });
+    // Use functional state update to avoid stale closure
+    setPanZoomState((prevState: any) => ({
+      ...prevState,
+      x: prevState.x + deltaX,
+      y: prevState.y + deltaY
+    }));
 
     panStateRef.current.lastX = x;
     panStateRef.current.lastY = y;
-  }, [panZoomState, setPanZoomState]);
+  }, [setPanZoomState]);
 
   const stopPan = useCallback(() => {
     console.log('[PanZoom] Stopping pan');
@@ -54,7 +55,6 @@ export const usePanState = (
     setIsGestureActiveState(false);
   }, []);
 
-  // Add the missing isGestureActive method
   const isGestureActive = useCallback(() => {
     return isGestureActiveState;
   }, [isGestureActiveState]);

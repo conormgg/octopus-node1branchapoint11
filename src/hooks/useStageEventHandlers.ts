@@ -78,25 +78,35 @@ export const useStageEventHandlers = ({
     panZoom
   });
 
-  // Touch events for pinch/pan - always works regardless of read-only status
+  // Touch events for pinch/pan - simplified to only handle multi-touch
   useEffect(() => {
     const container = containerRef.current;
     if (!container) return;
 
     const handleTouchStart = (e: TouchEvent) => {
       logEventHandling('touchstart', 'touch', { touches: e.touches.length });
-      // Only prevent default if palm rejection is disabled or we have multiple touches
-      if (!palmRejectionConfig.enabled || e.touches.length > 1) {
+      
+      // Only handle multi-touch gestures for pan/zoom
+      if (e.touches.length >= 2) {
+        e.preventDefault();
+        panZoom.handleTouchStart(e);
+      } else if (!palmRejectionConfig.enabled) {
+        // Prevent default for single touch only if palm rejection is disabled
         e.preventDefault();
       }
-      panZoom.handleTouchStart(e);
     };
 
     const handleTouchMove = (e: TouchEvent) => {
       logEventHandling('touchmove', 'touch', { touches: e.touches.length });
-      // Always prevent default for touch move to avoid scrolling
-      e.preventDefault();
-      panZoom.handleTouchMove(e);
+      
+      // Handle multi-touch gestures
+      if (e.touches.length >= 2) {
+        e.preventDefault();
+        panZoom.handleTouchMove(e);
+      } else {
+        // Always prevent default for single touch move to avoid scrolling
+        e.preventDefault();
+      }
     };
 
     const handleTouchEnd = (e: TouchEvent) => {
@@ -138,7 +148,6 @@ export const useStageEventHandlers = ({
       }
       
       // For select tool, let Konva handle the events natively
-      // This allows selection, dragging, and transformation to work properly
       if (currentToolRef.current === 'select') {
         return;
       }
