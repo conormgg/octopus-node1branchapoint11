@@ -35,20 +35,12 @@ export const useContainerCoordinates = ({
     const touch1 = touches[0];
     const touch2 = touches[1];
     
-    // Calculate center in screen coordinates
-    const screenCenter = {
-      x: (touch1.clientX + touch2.clientX) / 2,
-      y: (touch1.clientY + touch2.clientY) / 2
-    };
+    // Return center in screen coordinates - no container adjustment here
+    const centerX = (touch1.clientX + touch2.clientX) / 2;
+    const centerY = (touch1.clientY + touch2.clientY) / 2;
     
-    // Convert to container-relative coordinates
-    const containerCenter = getContainerRelativeCoordinates(screenCenter.x, screenCenter.y);
-    
-    return {
-      screenCenter,
-      containerCenter
-    };
-  }, [getContainerRelativeCoordinates]);
+    return { x: centerX, y: centerY };
+  }, []);
 
   const getTouchDistance = useCallback((touches: TouchList) => {
     const touch1 = touches[0];

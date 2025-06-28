@@ -1,4 +1,3 @@
-
 import { useEffect, useRef } from 'react';
 import Konva from 'konva';
 import { usePalmRejection } from './usePalmRejection';
@@ -58,7 +57,8 @@ export const useStageEventHandlers = ({
         // Update touch-action when tool changes
         const container = containerRef.current;
         if (container) {
-          container.style.touchAction = newTool === 'select' ? 'manipulation' : 'none';
+          // Set touch-action to 'none' for all tools to prevent conflicts
+          container.style.touchAction = 'none';
         }
       }
     };
@@ -78,42 +78,22 @@ export const useStageEventHandlers = ({
     panZoom
   });
 
-  // Touch events for pinch/pan - always works regardless of read-only status
+  // Touch events for pinch/pan - consolidated to prevent conflicts
   useEffect(() => {
     const container = containerRef.current;
     if (!container) return;
 
     const handleTouchStart = (e: TouchEvent) => {
-      // Add coordinate debugging
-      if (e.touches.length >= 2) {
-        const containerRect = container.getBoundingClientRect();
-        const touch1 = e.touches[0];
-        const touch2 = e.touches[1];
-        console.log('[StageEventHandlers] Touch start debugging:', {
-          containerRect,
-          touch1: { clientX: touch1.clientX, clientY: touch1.clientY },
-          touch2: { clientX: touch2.clientX, clientY: touch2.clientY },
-          containerRelative1: {
-            x: touch1.clientX - containerRect.left,
-            y: touch1.clientY - containerRect.top
-          },
-          containerRelative2: {
-            x: touch2.clientX - containerRect.left,
-            y: touch2.clientY - containerRect.top
-          }
-        });
-      }
-      
       logEventHandling('touchstart', 'touch', { touches: e.touches.length });
-      // Only prevent default if palm rejection is disabled or we have multiple touches
-      if (!palmRejectionConfig.enabled || e.touches.length > 1) {
-        e.preventDefault();
-      }
+      
+      // Always prevent default for touch events to avoid browser zoom/scroll
+      e.preventDefault();
       panZoom.handleTouchStart(e);
     };
 
     const handleTouchMove = (e: TouchEvent) => {
       logEventHandling('touchmove', 'touch', { touches: e.touches.length });
+      
       // Always prevent default for touch move to avoid scrolling
       e.preventDefault();
       panZoom.handleTouchMove(e);
@@ -121,9 +101,14 @@ export const useStageEventHandlers = ({
 
     const handleTouchEnd = (e: TouchEvent) => {
       logEventHandling('touchend', 'touch', { touches: e.touches.length });
+      
+      // Always prevent default
       e.preventDefault();
       panZoom.handleTouchEnd(e);
     };
+
+    // Set touch-action to none to prevent default browser behaviors
+    container.style.touchAction = 'none';
 
     container.addEventListener('touchstart', handleTouchStart, { passive: false });
     container.addEventListener('touchmove', handleTouchMove, { passive: false });
@@ -134,7 +119,7 @@ export const useStageEventHandlers = ({
       container.removeEventListener('touchmove', handleTouchMove);
       container.removeEventListener('touchend', handleTouchEnd);
     };
-  }, [panZoom, palmRejectionConfig.enabled, logEventHandling]);
+  }, [panZoom, logEventHandling]);
 
   // Pointer event handlers - tool-aware implementation
   useEffect(() => {
@@ -277,9 +262,6 @@ export const useStageEventHandlers = ({
     container.addEventListener('pointercancel', handlePointerUpEvent);
     container.addEventListener('contextmenu', handleContextMenu);
 
-    // Set initial touch-action based on current tool
-    container.style.touchAction = currentToolRef.current === 'select' ? 'manipulation' : 'none';
-
     return () => {
       container.removeEventListener('pointerdown', handlePointerDownEvent);
       container.removeEventListener('pointermove', handlePointerMoveEvent);
@@ -287,7 +269,6 @@ export const useStageEventHandlers = ({
       container.removeEventListener('pointerleave', handlePointerLeaveEvent);
       container.removeEventListener('pointercancel', handlePointerUpEvent);
       container.removeEventListener('contextmenu', handleContextMenu);
-      container.style.touchAction = '';
     };
   }, [
     containerRef,

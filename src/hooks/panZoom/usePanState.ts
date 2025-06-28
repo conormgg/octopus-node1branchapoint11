@@ -38,15 +38,16 @@ export const usePanState = (
 
     console.log('[PanZoom] Continuing pan with delta:', { deltaX, deltaY });
 
-    setPanZoomState({
-      ...panZoomState,
-      x: panZoomState.x + deltaX,
-      y: panZoomState.y + deltaY
-    });
+    // Use functional update to avoid stale closure
+    setPanZoomState((currentState: any) => ({
+      ...currentState,
+      x: currentState.x + deltaX,
+      y: currentState.y + deltaY
+    }));
 
     panStateRef.current.lastX = x;
     panStateRef.current.lastY = y;
-  }, [panZoomState, setPanZoomState]);
+  }, [setPanZoomState]);
 
   const stopPan = useCallback(() => {
     console.log('[PanZoom] Stopping pan');
