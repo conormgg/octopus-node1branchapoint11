@@ -167,27 +167,29 @@ const WhiteboardContent: React.FC<WhiteboardContentProps> = ({
     <div 
       className="absolute inset-0 bg-gray-25 overflow-hidden rounded-lg"
       style={{
-        // Account for the maximize button and any padding
-        top: '2px',
-        left: '2px',
-        right: '2px',
-        bottom: '2px'
+        // Remove positioning offsets to prevent coordinate calculation issues
+        top: '0px',
+        left: '0px',
+        right: '0px',
+        bottom: '0px'
       }}
     >
-      <div className="w-full h-full">
+      <div className="w-full h-full p-0.5"> {/* Add small padding instead of positioning offsets */}
         {syncConfig ? (
           <SyncWhiteboard 
             key={`sync-${id}`} // Stable key to prevent remounting
             syncConfig={syncConfig}
-            width={whiteboardWidth}
-            height={whiteboardHeight}
+            width={whiteboardWidth - 4} // Account for padding
+            height={whiteboardHeight - 4} // Account for padding
             portalContainer={portalContainer}
             onSyncStateChange={handleSyncStateChange}
             onLastActivityUpdate={handleLastActivityUpdate}
             onCenterCallbackUpdate={handleCenterCallbackUpdate}
           />
         ) : (
-          <Whiteboard isReadOnly={false} />
+          <div className="w-full h-full">
+            <Whiteboard isReadOnly={false} />
+          </div>
         )}
       </div>
     </div>

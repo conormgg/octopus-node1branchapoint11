@@ -84,6 +84,26 @@ export const useStageEventHandlers = ({
     if (!container) return;
 
     const handleTouchStart = (e: TouchEvent) => {
+      // Add coordinate debugging
+      if (e.touches.length >= 2) {
+        const containerRect = container.getBoundingClientRect();
+        const touch1 = e.touches[0];
+        const touch2 = e.touches[1];
+        console.log('[StageEventHandlers] Touch start debugging:', {
+          containerRect,
+          touch1: { clientX: touch1.clientX, clientY: touch1.clientY },
+          touch2: { clientX: touch2.clientX, clientY: touch2.clientY },
+          containerRelative1: {
+            x: touch1.clientX - containerRect.left,
+            y: touch1.clientY - containerRect.top
+          },
+          containerRelative2: {
+            x: touch2.clientX - containerRect.left,
+            y: touch2.clientY - containerRect.top
+          }
+        });
+      }
+      
       logEventHandling('touchstart', 'touch', { touches: e.touches.length });
       // Only prevent default if palm rejection is disabled or we have multiple touches
       if (!palmRejectionConfig.enabled || e.touches.length > 1) {
