@@ -18,7 +18,7 @@ const debugLog = createDebugLogger('state');
  * @hook useWhiteboardState
  * @description Main hook for managing whiteboard state and operations
  */
-export const useWhiteboardState = () => {
+export const useWhiteboardState = (containerRef?: React.RefObject<HTMLElement>) => {
   debugLog('Hook', 'Initializing useWhiteboardState');
 
   // Tool management
@@ -104,7 +104,7 @@ export const useWhiteboardState = () => {
   }, []);
 
   // Pan/zoom operations
-  const panZoom = usePanZoom(state.panZoomState, setPanZoomState);
+  const panZoom = usePanZoom(state.panZoomState, setPanZoomState, containerRef);
 
   // History operations
   const {

@@ -15,7 +15,7 @@ interface WhiteboardProps {
 const Whiteboard: React.FC<WhiteboardProps> = ({ isReadOnly = false }) => {
   const [dimensions, setDimensions] = useState({ width: 0, height: 0 });
   const containerRef = React.useRef<HTMLDivElement>(null);
-  const whiteboardState = useWhiteboardState();
+  const whiteboardState = useWhiteboardState(containerRef);
 
   // Palm rejection configuration
   const [palmRejectionConfig, setPalmRejectionConfig] = useState({
