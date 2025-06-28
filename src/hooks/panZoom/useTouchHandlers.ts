@@ -68,34 +68,62 @@ export const useTouchHandlers = (
     if (e.touches.length >= 2) {
       panHandlers.setIsGestureActiveState(true);
       
+      // Get container-relative coordinates using getBoundingClientRect()
+      const containerRect = containerRef?.current?.getBoundingClientRect();
+      if (!containerRect) {
+        console.warn('[TouchHandlers] Container rect not available');
+        return;
+      }
+      
       const { containerCenter } = getTouchCenter(e.touches);
       const distance = getTouchDistance(e.touches);
       
+      // Convert to container-relative coordinates (like mouse wheel handler)
+      const relativeCenter = {
+        x: containerCenter.x - containerRect.left,
+        y: containerCenter.y - containerRect.top
+      };
+      
       console.log('[TouchHandlers] Initializing touch gesture:', {
-        center: containerCenter,
+        screenCenter: containerCenter,
+        relativeCenter,
+        containerRect,
         distance,
         currentPanZoom: panZoomState
       });
       
-      // Initialize touch state
+      // Initialize touch state with relative coordinates
       touchStateRef.current = {
         lastDistance: distance,
-        lastCenter: containerCenter,
+        lastCenter: relativeCenter,
         initialPanState: { x: panZoomState.x, y: panZoomState.y }
       };
       
-      // Start pan tracking at the center point
-      panHandlers.startPan(containerCenter.x, containerCenter.y);
+      // Start pan tracking at the relative center point
+      panHandlers.startPan(relativeCenter.x, relativeCenter.y);
     }
-  }, [getTouchCenter, getTouchDistance, panHandlers, panZoomState]);
+  }, [getTouchCenter, getTouchDistance, panHandlers, panZoomState, containerRef]);
 
   const handleTouchMove = useCallback((e: TouchEvent) => {
     console.log('[TouchHandlers] Touch move with', e.touches.length, 'touches');
     
     // Only handle multi-touch gestures
     if (e.touches.length >= 2) {
+      // Get container-relative coordinates using getBoundingClientRect()
+      const containerRect = containerRef?.current?.getBoundingClientRect();
+      if (!containerRect) {
+        console.warn('[TouchHandlers] Container rect not available during move');
+        return;
+      }
+      
       const { containerCenter } = getTouchCenter(e.touches);
       const currentDistance = getTouchDistance(e.touches);
+      
+      // Convert to container-relative coordinates (like mouse wheel handler)
+      const relativeCenter = {
+        x: containerCenter.x - containerRect.left,
+        y: containerCenter.y - containerRect.top
+      };
       
       const { lastDistance, lastCenter } = touchStateRef.current;
       
@@ -105,8 +133,8 @@ export const useTouchHandlers = (
         const zoomThreshold = 0.015; // Reduced threshold for better responsiveness
         
         // Calculate pan delta from center movement
-        const panDeltaX = containerCenter.x - lastCenter.x;
-        const panDeltaY = containerCenter.y - lastCenter.y;
+        const panDeltaX = relativeCenter.x - lastCenter.x;
+        const panDeltaY = relativeCenter.y - lastCenter.y;
         const panThreshold = 1; // Reduced threshold for better panning
         
         // Only update if there's meaningful change
@@ -119,14 +147,15 @@ export const useTouchHandlers = (
             shouldPan,
             zoomFactor: shouldZoom ? zoomFactor : 1,
             panDelta: { x: shouldPan ? panDeltaX : 0, y: shouldPan ? panDeltaY : 0 },
-            center: containerCenter
+            relativeCenter,
+            containerRect
           });
 
           // Apply combined transformation in a single state update
           const newState = combineTransformations(
             shouldZoom ? zoomFactor : 1,
-            containerCenter.x,
-            containerCenter.y,
+            relativeCenter.x,
+            relativeCenter.y,
             shouldPan ? panDeltaX : 0,
             shouldPan ? panDeltaY : 0
           );
@@ -135,11 +164,11 @@ export const useTouchHandlers = (
         }
       }
       
-      // Update state for next iteration
+      // Update state for next iteration with relative coordinates
       touchStateRef.current.lastDistance = currentDistance;
-      touchStateRef.current.lastCenter = containerCenter;
+      touchStateRef.current.lastCenter = relativeCenter;
     }
-  }, [getTouchCenter, getTouchDistance, combineTransformations, setPanZoomState]);
+  }, [getTouchCenter, getTouchDistance, combineTransformations, setPanZoomState, containerRef]);
 
   const handleTouchEnd = useCallback((e: TouchEvent) => {
     console.log('[TouchHandlers] Touch end with', e.touches.length, 'remaining touches');
