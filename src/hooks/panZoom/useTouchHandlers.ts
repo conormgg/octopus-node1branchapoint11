@@ -1,3 +1,4 @@
+
 import { useCallback, useRef } from 'react';
 
 export const useTouchHandlers = (
@@ -34,13 +35,15 @@ export const useTouchHandlers = (
       y: (touch1.clientY + touch2.clientY) / 2
     };
     
-    // Convert to container-relative coordinates
+    // Convert to container-relative coordinates with scroll position
     let canvasCenter = { x: containerCenter.x, y: containerCenter.y };
     if (containerRef?.current) {
       const rect = containerRef.current.getBoundingClientRect();
+      const scrollLeft = containerRef.current.scrollLeft || 0;
+      const scrollTop = containerRef.current.scrollTop || 0;
       canvasCenter = {
-        x: containerCenter.x - rect.left,
-        y: containerCenter.y - rect.top
+        x: containerCenter.x - rect.left + scrollLeft,
+        y: containerCenter.y - rect.top + scrollTop
       };
     }
     
@@ -52,7 +55,10 @@ export const useTouchHandlers = (
     zoomCenterX: number,
     zoomCenterY: number
   ) => {
-    const newScale = Math.max(0.1, Math.min(5, panZoomState.scale * zoomFactor));
+    // Apply smoothing factor (0.3 = 30% of change per frame for responsive feel)
+    const smoothFactor = 0.3;
+    const targetScale = Math.max(0.1, Math.min(5, panZoomState.scale * zoomFactor));
+    const newScale = panZoomState.scale + (targetScale - panZoomState.scale) * smoothFactor;
     
     // Calculate the world position of the zoom center before scaling
     const worldX = (zoomCenterX - panZoomState.x) / panZoomState.scale;
