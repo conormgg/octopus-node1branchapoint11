@@ -20,11 +20,46 @@ export const useTouchHandlers = (
     initialPanState: { x: 0, y: 0 }
   });
 
-  // Use the coordinate calculation hook
+  // Use the proper coordinate calculation hook
   const { getTouchCenter, getTouchDistance } = useContainerCoordinates({ 
     containerRef,
-    includeScrollPosition: false
+    includeScrollPosition: true
   });
+
+  const combineTransformations = useCallback((
+    zoomFactor: number,
+    zoomCenterX: number,
+    zoomCenterY: number,
+    panDeltaX: number,
+    panDeltaY: number
+  ) => {
+    console.log('[TouchHandlers] Combining transformations:', {
+      zoomFactor,
+      zoomCenter: { x: zoomCenterX, y: zoomCenterY },
+      panDelta: { x: panDeltaX, y: panDeltaY },
+      currentState: panZoomState
+    });
+
+    const newScale = Math.max(0.1, Math.min(5, panZoomState.scale * zoomFactor));
+    
+    // Calculate zoom transformation with proper center point
+    const worldX = (zoomCenterX - panZoomState.x) / panZoomState.scale;
+    const worldY = (zoomCenterY - panZoomState.y) / panZoomState.scale;
+    
+    const zoomNewX = zoomCenterX - (worldX * newScale);
+    const zoomNewY = zoomCenterY - (worldY * newScale);
+    
+    // Combine zoom transformation with pan delta
+    const finalX = zoomNewX + panDeltaX;
+    const finalY = zoomNewY + panDeltaY;
+    
+    return {
+      ...panZoomState,
+      scale: newScale,
+      x: finalX,
+      y: finalY
+    };
+  }, [panZoomState]);
 
   const handleTouchStart = useCallback((e: TouchEvent) => {
     console.log('[TouchHandlers] Touch start with', e.touches.length, 'touches');
@@ -33,101 +68,78 @@ export const useTouchHandlers = (
     if (e.touches.length >= 2) {
       panHandlers.setIsGestureActiveState(true);
       
-      // Get container rect for coordinate conversion
-      const containerRect = containerRef?.current?.getBoundingClientRect();
-      if (!containerRect) {
-        console.warn('[TouchHandlers] Container rect not available');
-        return;
-      }
-      
-      const screenCenter = getTouchCenter(e.touches);
+      const { containerCenter } = getTouchCenter(e.touches);
       const distance = getTouchDistance(e.touches);
       
-      // Convert to container-relative coordinates (same as mouse wheel handler)
-      const relativeCenter = {
-        x: screenCenter.x - containerRect.left,
-        y: screenCenter.y - containerRect.top
-      };
-      
       console.log('[TouchHandlers] Initializing touch gesture:', {
-        screenCenter,
-        relativeCenter,
-        containerRect: { left: containerRect.left, top: containerRect.top },
-        distance
+        center: containerCenter,
+        distance,
+        currentPanZoom: panZoomState
       });
       
-      // Initialize touch state with relative coordinates
+      // Initialize touch state
       touchStateRef.current = {
         lastDistance: distance,
-        lastCenter: relativeCenter,
+        lastCenter: containerCenter,
         initialPanState: { x: panZoomState.x, y: panZoomState.y }
       };
       
-      // Start pan tracking at the relative center point
-      panHandlers.startPan(relativeCenter.x, relativeCenter.y);
+      // Start pan tracking at the center point
+      panHandlers.startPan(containerCenter.x, containerCenter.y);
     }
-  }, [getTouchCenter, getTouchDistance, panHandlers, panZoomState, containerRef]);
+  }, [getTouchCenter, getTouchDistance, panHandlers, panZoomState]);
 
   const handleTouchMove = useCallback((e: TouchEvent) => {
     console.log('[TouchHandlers] Touch move with', e.touches.length, 'touches');
     
     // Only handle multi-touch gestures
     if (e.touches.length >= 2) {
-      // Get container rect for coordinate conversion
-      const containerRect = containerRef?.current?.getBoundingClientRect();
-      if (!containerRect) {
-        console.warn('[TouchHandlers] Container rect not available during move');
-        return;
-      }
-      
-      const screenCenter = getTouchCenter(e.touches);
+      const { containerCenter } = getTouchCenter(e.touches);
       const currentDistance = getTouchDistance(e.touches);
-      
-      // Convert to container-relative coordinates (same as mouse wheel handler)
-      const relativeCenter = {
-        x: screenCenter.x - containerRect.left,
-        y: screenCenter.y - containerRect.top
-      };
       
       const { lastDistance, lastCenter } = touchStateRef.current;
       
       if (lastDistance > 0) {
         // Calculate zoom factor with threshold to prevent micro-movements
         const zoomFactor = currentDistance / lastDistance;
-        const zoomThreshold = 0.02;
+        const zoomThreshold = 0.015; // Reduced threshold for better responsiveness
         
         // Calculate pan delta from center movement
-        const panDeltaX = relativeCenter.x - lastCenter.x;
-        const panDeltaY = relativeCenter.y - lastCenter.y;
-        const panThreshold = 2;
+        const panDeltaX = containerCenter.x - lastCenter.x;
+        const panDeltaY = containerCenter.y - lastCenter.y;
+        const panThreshold = 1; // Reduced threshold for better panning
         
-        // Handle zoom using the same logic as mouse wheel
+        // Only update if there's meaningful change
         const shouldZoom = Math.abs(zoomFactor - 1) > zoomThreshold;
-        if (shouldZoom) {
-          console.log('[TouchHandlers] Applying zoom:', {
-            zoomFactor,
-            center: relativeCenter
-          });
-          // Use the same zoom function as mouse wheel
-          zoom(zoomFactor, relativeCenter.x, relativeCenter.y);
-        }
-        
-        // Handle pan separately if center moved significantly
         const shouldPan = Math.abs(panDeltaX) > panThreshold || Math.abs(panDeltaY) > panThreshold;
-        if (shouldPan) {
-          console.log('[TouchHandlers] Applying pan:', {
-            panDelta: { x: panDeltaX, y: panDeltaY }
+        
+        if (shouldZoom || shouldPan) {
+          console.log('[TouchHandlers] Applying transformation:', {
+            shouldZoom,
+            shouldPan,
+            zoomFactor: shouldZoom ? zoomFactor : 1,
+            panDelta: { x: shouldPan ? panDeltaX : 0, y: shouldPan ? panDeltaY : 0 },
+            center: containerCenter
           });
-          // Apply pan using the pan handlers
-          panHandlers.continuePan(relativeCenter.x, relativeCenter.y);
+
+          // Apply combined transformation in a single state update
+          const newState = combineTransformations(
+            shouldZoom ? zoomFactor : 1,
+            containerCenter.x,
+            containerCenter.y,
+            shouldPan ? panDeltaX : 0,
+            shouldPan ? panDeltaY : 0
+          );
+          
+          setPanZoomState(newState);
         }
       }
       
-      // Update state for next iteration with relative coordinates
+      // Update state for next iteration
       touchStateRef.current.lastDistance = currentDistance;
-      touchStateRef.current.lastCenter = relativeCenter;
+      touchStateRef.current.lastCenter = containerCenter;
     }
-  }, [getTouchCenter, getTouchDistance, zoom, panHandlers, containerRef]);
+  }, [getTouchCenter, getTouchDistance, combineTransformations, setPanZoomState]);
 
   const handleTouchEnd = useCallback((e: TouchEvent) => {
     console.log('[TouchHandlers] Touch end with', e.touches.length, 'remaining touches');
