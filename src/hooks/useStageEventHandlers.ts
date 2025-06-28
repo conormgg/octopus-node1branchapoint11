@@ -58,8 +58,7 @@ export const useStageEventHandlers = ({
         // Update touch-action when tool changes
         const container = containerRef.current;
         if (container) {
-          // Allow pinch-zoom and pan gestures while preventing other touch behaviors
-          container.style.touchAction = newTool === 'select' ? 'manipulation' : 'pan-x pan-y pinch-zoom';
+          container.style.touchAction = newTool === 'select' ? 'manipulation' : 'none';
         }
       }
     };
@@ -79,35 +78,25 @@ export const useStageEventHandlers = ({
     panZoom
   });
 
-  // Touch events for pinch/pan - simplified to only handle multi-touch
+  // Touch events for pinch/pan - always works regardless of read-only status
   useEffect(() => {
     const container = containerRef.current;
     if (!container) return;
 
     const handleTouchStart = (e: TouchEvent) => {
       logEventHandling('touchstart', 'touch', { touches: e.touches.length });
-      
-      // Only handle multi-touch gestures for pan/zoom
-      if (e.touches.length >= 2) {
-        e.preventDefault();
-        panZoom.handleTouchStart(e);
-      } else if (!palmRejectionConfig.enabled) {
-        // Prevent default for single touch only if palm rejection is disabled
+      // Only prevent default if palm rejection is disabled or we have multiple touches
+      if (!palmRejectionConfig.enabled || e.touches.length > 1) {
         e.preventDefault();
       }
+      panZoom.handleTouchStart(e);
     };
 
     const handleTouchMove = (e: TouchEvent) => {
       logEventHandling('touchmove', 'touch', { touches: e.touches.length });
-      
-      // Handle multi-touch gestures
-      if (e.touches.length >= 2) {
-        e.preventDefault();
-        panZoom.handleTouchMove(e);
-      } else {
-        // Always prevent default for single touch move to avoid scrolling
-        e.preventDefault();
-      }
+      // Always prevent default for touch move to avoid scrolling
+      e.preventDefault();
+      panZoom.handleTouchMove(e);
     };
 
     const handleTouchEnd = (e: TouchEvent) => {
@@ -149,6 +138,7 @@ export const useStageEventHandlers = ({
       }
       
       // For select tool, let Konva handle the events natively
+      // This allows selection, dragging, and transformation to work properly
       if (currentToolRef.current === 'select') {
         return;
       }
@@ -268,7 +258,7 @@ export const useStageEventHandlers = ({
     container.addEventListener('contextmenu', handleContextMenu);
 
     // Set initial touch-action based on current tool
-    container.style.touchAction = currentToolRef.current === 'select' ? 'manipulation' : 'pan-x pan-y pinch-zoom';
+    container.style.touchAction = currentToolRef.current === 'select' ? 'manipulation' : 'none';
 
     return () => {
       container.removeEventListener('pointerdown', handlePointerDownEvent);
