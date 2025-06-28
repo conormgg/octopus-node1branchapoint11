@@ -15,8 +15,7 @@ interface WhiteboardProps {
 const Whiteboard: React.FC<WhiteboardProps> = ({ isReadOnly = false }) => {
   const [dimensions, setDimensions] = useState({ width: 0, height: 0 });
   const containerRef = React.useRef<HTMLDivElement>(null);
-  const canvasContainerRef = React.useRef<HTMLDivElement>(null); // New ref for actual canvas container
-  const whiteboardState = useWhiteboardState(canvasContainerRef); // Use canvas container ref
+  const whiteboardState = useWhiteboardState(containerRef);
 
   // Palm rejection configuration
   const [palmRejectionConfig, setPalmRejectionConfig] = useState({
@@ -29,10 +28,9 @@ const Whiteboard: React.FC<WhiteboardProps> = ({ isReadOnly = false }) => {
   });
 
   const updateDimensions = () => {
-    if (canvasContainerRef.current) {
-      const { width, height } = canvasContainerRef.current.getBoundingClientRect();
+    if (containerRef.current) {
+      const { width, height } = containerRef.current.getBoundingClientRect();
       setDimensions({ width, height });
-      console.log('[Whiteboard] Updated dimensions:', { width, height });
     }
   };
 
@@ -73,24 +71,13 @@ const Whiteboard: React.FC<WhiteboardProps> = ({ isReadOnly = false }) => {
         </div>
       )}
 
-      {/* Canvas container with proper ref for coordinate calculations */}
-      <div 
-        ref={canvasContainerRef} 
-        className="w-full h-full"
-        style={{
-          position: 'relative',
-          touchAction: palmRejectionConfig.enabled ? 'manipulation' : 'none'
-        }}
-      >
-        <WhiteboardCanvas
-          width={dimensions.width}
-          height={dimensions.height}
-          whiteboardState={whiteboardState}
-          isReadOnly={isReadOnly}
-          palmRejectionConfig={palmRejectionConfig}
-        />
-      </div>
-      
+      <WhiteboardCanvas
+        width={dimensions.width}
+        height={dimensions.height}
+        whiteboardState={whiteboardState}
+        isReadOnly={isReadOnly}
+        palmRejectionConfig={palmRejectionConfig}
+      />
       <MovableToolbar
         currentTool={whiteboardState.state.currentTool}
         currentStrokeWidth={whiteboardState.state.currentStrokeWidth}
