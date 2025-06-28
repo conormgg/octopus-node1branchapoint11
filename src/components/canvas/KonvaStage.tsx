@@ -1,4 +1,3 @@
-
 import React, { useRef } from 'react';
 import Konva from 'konva';
 import { useWhiteboardState } from '@/hooks/useWhiteboardState';
@@ -25,7 +24,6 @@ interface KonvaStageProps {
     enabled: boolean;
   };
   normalizedState?: ReturnType<typeof useNormalizedWhiteboardState>;
-  containerRef?: React.RefObject<HTMLDivElement>;
 }
 
 const KonvaStage: React.FC<KonvaStageProps> = ({
@@ -41,15 +39,11 @@ const KonvaStage: React.FC<KonvaStageProps> = ({
     preferStylus: true,
     enabled: true
   },
-  normalizedState,
-  containerRef
+  normalizedState
 }) => {
   const stageRef = useRef<Konva.Stage>(null);
   const layerRef = useRef<Konva.Layer>(null);
-  const localContainerRef = useRef<HTMLDivElement>(null);
-
-  // Use the passed containerRef or fall back to local one
-  const effectiveContainerRef = containerRef || localContainerRef;
+  const containerRef = useRef<HTMLDivElement>(null);
 
   const {
     state,
@@ -76,15 +70,15 @@ const KonvaStage: React.FC<KonvaStageProps> = ({
   });
 
   useKonvaKeyboardHandlers({
-    containerRef: effectiveContainerRef,
+    containerRef,
     whiteboardState,
     isReadOnly,
     whiteboardId
   });
 
-  // Set up all event handlers with container reference for proper coordinate handling
+  // Set up all event handlers
   useStageEventHandlers({
-    containerRef: effectiveContainerRef,
+    containerRef,
     stageRef,
     panZoomState: state.panZoomState,
     palmRejection,
@@ -98,7 +92,7 @@ const KonvaStage: React.FC<KonvaStageProps> = ({
 
   return (
     <div 
-      ref={effectiveContainerRef} 
+      ref={containerRef} 
       className="w-full h-full select-none outline-none" 
       style={{ 
         WebkitUserSelect: 'none',

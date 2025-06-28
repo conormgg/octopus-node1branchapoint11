@@ -1,3 +1,4 @@
+
 import { useState, useCallback, useEffect } from 'react';
 import { WhiteboardState, PanZoomState, LineObject } from '@/types/whiteboard';
 import { useHistoryState } from './useHistoryState';
@@ -17,7 +18,7 @@ const debugLog = createDebugLogger('state');
  * @hook useWhiteboardState
  * @description Main hook for managing whiteboard state and operations
  */
-export const useWhiteboardState = (containerRef?: React.RefObject<HTMLElement>) => {
+export const useWhiteboardState = () => {
   debugLog('Hook', 'Initializing useWhiteboardState');
 
   // Tool management
@@ -102,8 +103,8 @@ export const useWhiteboardState = (containerRef?: React.RefObject<HTMLElement>) 
     }));
   }, []);
 
-  // Pan/zoom operations with container reference for proper coordinate handling
-  const panZoom = usePanZoom(state.panZoomState, setPanZoomState, containerRef);
+  // Pan/zoom operations
+  const panZoom = usePanZoom(state.panZoomState, setPanZoomState);
 
   // History operations
   const {
