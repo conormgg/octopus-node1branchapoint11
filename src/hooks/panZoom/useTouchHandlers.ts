@@ -18,33 +18,6 @@ export const useTouchHandlers = (
     lastCanvasCenter: { x: 0, y: 0 }
   });
 
-  const combineTransformations = useCallback((
-    zoomFactor: number,
-    zoomCenterX: number,
-    zoomCenterY: number,
-    panDeltaX: number,
-    panDeltaY: number
-  ) => {
-    const newScale = Math.max(0.1, Math.min(5, panZoomState.scale * zoomFactor));
-    
-    // Calculate zoom transformation
-    const worldX = (zoomCenterX - panZoomState.x) / panZoomState.scale;
-    const worldY = (zoomCenterY - panZoomState.y) / panZoomState.scale;
-    
-    const zoomNewX = zoomCenterX - (worldX * newScale);
-    const zoomNewY = zoomCenterY - (worldY * newScale);
-    
-    // Combine zoom transformation with pan delta
-    const finalX = zoomNewX + panDeltaX;
-    const finalY = zoomNewY + panDeltaY;
-    
-    return {
-      ...panZoomState,
-      scale: newScale,
-      x: finalX,
-      y: finalY
-    };
-  }, [panZoomState]);
 
   const getTouchDistance = useCallback((touches: TouchList) => {
     const touch1 = touches[0];
@@ -111,16 +84,19 @@ export const useTouchHandlers = (
         const shouldPan = Math.abs(panDeltaX) > panThreshold || Math.abs(panDeltaY) > panThreshold;
         
         if (shouldZoom || shouldPan) {
-          // Apply combined transformation in a single state update
-          const newState = combineTransformations(
-            shouldZoom ? zoomFactor : 1,
-            currentCenter.x,
-            currentCenter.y,
-            shouldPan ? panDeltaX : 0,
-            shouldPan ? panDeltaY : 0
-          );
+          // Use the same zoom function as mouse wheel for consistent behavior
+          if (shouldZoom) {
+            zoom(zoomFactor, currentCenter.x, currentCenter.y);
+          }
           
-          setPanZoomState(newState);
+          // Apply pan separately if needed
+          if (shouldPan) {
+            setPanZoomState((prevState: any) => ({
+              ...prevState,
+              x: prevState.x + panDeltaX,
+              y: prevState.y + panDeltaY
+            }));
+          }
         }
       }
       
@@ -129,7 +105,7 @@ export const useTouchHandlers = (
       touchStateRef.current.lastCenter = getTouchCenter(e.touches);
       touchStateRef.current.lastCanvasCenter = currentCenter;
     }
-  }, [getTouchDistance, getTouchCenter, combineTransformations, setPanZoomState]);
+  }, [getTouchDistance, getTouchCenter, zoom, setPanZoomState]);
 
   const handleTouchEnd = useCallback((e: TouchEvent) => {
     // Reset gesture state when no touches remain
