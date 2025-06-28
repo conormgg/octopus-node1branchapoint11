@@ -82,7 +82,7 @@ const KonvaStage: React.FC<KonvaStageProps> = ({
     whiteboardId
   });
 
-  // Set up all event handlers
+  // Set up all event handlers with container reference for proper coordinate handling
   useStageEventHandlers({
     containerRef: effectiveContainerRef,
     stageRef,
