@@ -58,7 +58,8 @@ export const useStageEventHandlers = ({
         // Update touch-action when tool changes
         const container = containerRef.current;
         if (container) {
-          container.style.touchAction = newTool === 'select' ? 'manipulation' : 'none';
+          // Allow pinch-zoom and pan gestures while preventing other touch behaviors
+          container.style.touchAction = newTool === 'select' ? 'manipulation' : 'pan-x pan-y pinch-zoom';
         }
       }
     };
@@ -267,7 +268,7 @@ export const useStageEventHandlers = ({
     container.addEventListener('contextmenu', handleContextMenu);
 
     // Set initial touch-action based on current tool
-    container.style.touchAction = currentToolRef.current === 'select' ? 'manipulation' : 'none';
+    container.style.touchAction = currentToolRef.current === 'select' ? 'manipulation' : 'pan-x pan-y pinch-zoom';
 
     return () => {
       container.removeEventListener('pointerdown', handlePointerDownEvent);
