@@ -11,8 +11,17 @@ export const useTouchHandlers = (
   setPanZoomState: (state: any) => void,
   containerRef?: React.RefObject<HTMLElement>
 ) => {
+  // Wrapper around zoom function to capture actual focal point
+  const zoomWithTracking = useCallback((factor: number, centerX?: number, centerY?: number) => {
+    // Track the actual focal point being used
+    if (SHOW_ZOOM_CENTER_DEBUG && centerX !== undefined && centerY !== undefined) {
+      setActualZoomFocalPoint({ x: centerX, y: centerY });
+    }
+    return zoom(factor, centerX, centerY);
+  }, [zoom]);
   // Debug state for center point visualization
   const [debugCenterPoint, setDebugCenterPoint] = useState<{ x: number; y: number } | null>(null);
+  const [actualZoomFocalPoint, setActualZoomFocalPoint] = useState<{ x: number; y: number } | null>(null);
   // Track touch state for pinch-to-zoom
   const touchStateRef = useRef<{
     lastDistance: number;
@@ -163,6 +172,7 @@ export const useTouchHandlers = (
       // Clear debug center point
       if (SHOW_ZOOM_CENTER_DEBUG) {
         setDebugCenterPoint(null);
+        setActualZoomFocalPoint(null);
       }
     } else if (e.touches.length === 1) {
       // When going from multi-touch to single touch, stop gesture
@@ -172,6 +182,7 @@ export const useTouchHandlers = (
       // Clear debug center point
       if (SHOW_ZOOM_CENTER_DEBUG) {
         setDebugCenterPoint(null);
+        setActualZoomFocalPoint(null);
       }
       // Do NOT start single-touch panning here
     }
@@ -182,6 +193,7 @@ export const useTouchHandlers = (
     handleTouchStart,
     handleTouchMove,
     handleTouchEnd,
-    debugCenterPoint: SHOW_ZOOM_CENTER_DEBUG ? debugCenterPoint : null
+    debugCenterPoint: SHOW_ZOOM_CENTER_DEBUG ? debugCenterPoint : null,
+    actualZoomFocalPoint: SHOW_ZOOM_CENTER_DEBUG ? actualZoomFocalPoint : null
   };
 };

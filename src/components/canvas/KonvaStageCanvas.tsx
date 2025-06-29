@@ -27,6 +27,7 @@ interface KonvaStageCanvasProps {
     continuePan: (x: number, y: number) => void;
     stopPan: () => void;
     debugCenterPoint?: { x: number; y: number } | null;
+    actualZoomFocalPoint?: { x: number; y: number } | null;
   };
   handlePointerDown: (x: number, y: number) => void;
   handlePointerMove: (x: number, y: number) => void;
@@ -121,39 +122,79 @@ const KonvaStageCanvas: React.FC<KonvaStageCanvasProps> = ({
       />
       
       {/* Debug layer - rendered on top for troubleshooting */}
-      {panZoom.debugCenterPoint && (
+      {(panZoom.debugCenterPoint || panZoom.actualZoomFocalPoint) && (
         <Layer>
-          {/* Red crosshair to show zoom center point */}
-          <Circle
-            x={panZoom.debugCenterPoint.x}
-            y={panZoom.debugCenterPoint.y}
-            radius={8}
-            stroke="red"
-            strokeWidth={3}
-            fill="rgba(255, 0, 0, 0.3)"
-          />
-          {/* Horizontal line */}
-          <Line
-            points={[
-              panZoom.debugCenterPoint.x - 15,
-              panZoom.debugCenterPoint.y,
-              panZoom.debugCenterPoint.x + 15,
-              panZoom.debugCenterPoint.y
-            ]}
-            stroke="red"
-            strokeWidth={2}
-          />
-          {/* Vertical line */}
-          <Line
-            points={[
-              panZoom.debugCenterPoint.x,
-              panZoom.debugCenterPoint.y - 15,
-              panZoom.debugCenterPoint.x,
-              panZoom.debugCenterPoint.y + 15
-            ]}
-            stroke="red"
-            strokeWidth={2}
-          />
+          {/* Red crosshair to show calculated touch center point */}
+          {panZoom.debugCenterPoint && (
+            <>
+              <Circle
+                x={panZoom.debugCenterPoint.x}
+                y={panZoom.debugCenterPoint.y}
+                radius={8}
+                stroke="red"
+                strokeWidth={3}
+                fill="rgba(255, 0, 0, 0.3)"
+              />
+              {/* Horizontal line */}
+              <Line
+                points={[
+                  panZoom.debugCenterPoint.x - 15,
+                  panZoom.debugCenterPoint.y,
+                  panZoom.debugCenterPoint.x + 15,
+                  panZoom.debugCenterPoint.y
+                ]}
+                stroke="red"
+                strokeWidth={2}
+              />
+              {/* Vertical line */}
+              <Line
+                points={[
+                  panZoom.debugCenterPoint.x,
+                  panZoom.debugCenterPoint.y - 15,
+                  panZoom.debugCenterPoint.x,
+                  panZoom.debugCenterPoint.y + 15
+                ]}
+                stroke="red"
+                strokeWidth={2}
+              />
+            </>
+          )}
+          
+          {/* Blue crosshair to show actual zoom focal point */}
+          {panZoom.actualZoomFocalPoint && (
+            <>
+              <Circle
+                x={panZoom.actualZoomFocalPoint.x}
+                y={panZoom.actualZoomFocalPoint.y}
+                radius={10}
+                stroke="blue"
+                strokeWidth={3}
+                fill="rgba(0, 0, 255, 0.3)"
+              />
+              {/* Horizontal line */}
+              <Line
+                points={[
+                  panZoom.actualZoomFocalPoint.x - 20,
+                  panZoom.actualZoomFocalPoint.y,
+                  panZoom.actualZoomFocalPoint.x + 20,
+                  panZoom.actualZoomFocalPoint.y
+                ]}
+                stroke="blue"
+                strokeWidth={3}
+              />
+              {/* Vertical line */}
+              <Line
+                points={[
+                  panZoom.actualZoomFocalPoint.x,
+                  panZoom.actualZoomFocalPoint.y - 20,
+                  panZoom.actualZoomFocalPoint.x,
+                  panZoom.actualZoomFocalPoint.y + 20
+                ]}
+                stroke="blue"
+                strokeWidth={3}
+              />
+            </>
+          )}
         </Layer>
       )}
     </Stage>
