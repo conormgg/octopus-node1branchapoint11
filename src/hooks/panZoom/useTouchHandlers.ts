@@ -1,5 +1,8 @@
 
-import { useCallback, useRef } from 'react';
+import { useCallback, useRef, useState } from 'react';
+
+// Debug flag to show zoom center visualization
+const SHOW_ZOOM_CENTER_DEBUG = true;
 
 export const useTouchHandlers = (
   panHandlers: any,
@@ -8,6 +11,8 @@ export const useTouchHandlers = (
   setPanZoomState: (state: any) => void,
   containerRef?: React.RefObject<HTMLElement>
 ) => {
+  // Debug state for center point visualization
+  const [debugCenterPoint, setDebugCenterPoint] = useState<{ x: number; y: number } | null>(null);
   // Track touch state for pinch-to-zoom
   const touchStateRef = useRef<{
     lastDistance: number;
@@ -133,6 +138,11 @@ export const useTouchHandlers = (
           
           setPanZoomState(newState);
         }
+        
+        // Update debug center point if enabled
+        if (SHOW_ZOOM_CENTER_DEBUG) {
+          setDebugCenterPoint(currentCenter);
+        }
       }
       
       // Update state for next iteration
@@ -150,11 +160,19 @@ export const useTouchHandlers = (
       panHandlers.setIsGestureActiveState(false);
       panHandlers.stopPan();
       touchStateRef.current.lastDistance = 0;
+      // Clear debug center point
+      if (SHOW_ZOOM_CENTER_DEBUG) {
+        setDebugCenterPoint(null);
+      }
     } else if (e.touches.length === 1) {
       // When going from multi-touch to single touch, stop gesture
       panHandlers.setIsGestureActiveState(false);
       panHandlers.stopPan();
       touchStateRef.current.lastDistance = 0;
+      // Clear debug center point
+      if (SHOW_ZOOM_CENTER_DEBUG) {
+        setDebugCenterPoint(null);
+      }
       // Do NOT start single-touch panning here
     }
     // Continue multi-touch handling if still multiple touches
@@ -163,6 +181,7 @@ export const useTouchHandlers = (
   return {
     handleTouchStart,
     handleTouchMove,
-    handleTouchEnd
+    handleTouchEnd,
+    debugCenterPoint: SHOW_ZOOM_CENTER_DEBUG ? debugCenterPoint : null
   };
 };

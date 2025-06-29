@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { Stage } from 'react-konva';
+import { Stage, Layer, Circle, Line } from 'react-konva';
 import Konva from 'konva';
 import { PanZoomState, Tool, SelectionBounds } from '@/types/whiteboard';
 import { useNormalizedWhiteboardState } from '@/hooks/performance/useNormalizedWhiteboardState';
@@ -26,6 +26,7 @@ interface KonvaStageCanvasProps {
     startPan: (x: number, y: number) => void;
     continuePan: (x: number, y: number) => void;
     stopPan: () => void;
+    debugCenterPoint?: { x: number; y: number } | null;
   };
   handlePointerDown: (x: number, y: number) => void;
   handlePointerMove: (x: number, y: number) => void;
@@ -118,6 +119,43 @@ const KonvaStageCanvas: React.FC<KonvaStageCanvasProps> = ({
         onTransformEnd={onTransformEnd}
         stageRef={stageRef} // Pass stageRef for viewport calculations
       />
+      
+      {/* Debug layer - rendered on top for troubleshooting */}
+      {panZoom.debugCenterPoint && (
+        <Layer>
+          {/* Red crosshair to show zoom center point */}
+          <Circle
+            x={panZoom.debugCenterPoint.x}
+            y={panZoom.debugCenterPoint.y}
+            radius={8}
+            stroke="red"
+            strokeWidth={3}
+            fill="rgba(255, 0, 0, 0.3)"
+          />
+          {/* Horizontal line */}
+          <Line
+            points={[
+              panZoom.debugCenterPoint.x - 15,
+              panZoom.debugCenterPoint.y,
+              panZoom.debugCenterPoint.x + 15,
+              panZoom.debugCenterPoint.y
+            ]}
+            stroke="red"
+            strokeWidth={2}
+          />
+          {/* Vertical line */}
+          <Line
+            points={[
+              panZoom.debugCenterPoint.x,
+              panZoom.debugCenterPoint.y - 15,
+              panZoom.debugCenterPoint.x,
+              panZoom.debugCenterPoint.y + 15
+            ]}
+            stroke="red"
+            strokeWidth={2}
+          />
+        </Layer>
+      )}
     </Stage>
   );
 };

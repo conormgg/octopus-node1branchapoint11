@@ -36,7 +36,8 @@ export const usePanZoom = (
     handleTouchMove: touchHandlers.handleTouchMove,
     handleTouchEnd: touchHandlers.handleTouchEnd,
     isGestureActive: panHandlers.isGestureActive,
-    centerOnBounds
+    centerOnBounds,
+    debugCenterPoint: touchHandlers.debugCenterPoint
   }), [
     panHandlers.startPan,
     panHandlers.continuePan,
@@ -47,6 +48,7 @@ export const usePanZoom = (
     touchHandlers.handleTouchMove,
     touchHandlers.handleTouchEnd,
     panHandlers.isGestureActive,
-    centerOnBounds
+    centerOnBounds,
+    touchHandlers.debugCenterPoint
   ]);
 };
