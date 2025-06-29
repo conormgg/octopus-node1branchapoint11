@@ -129,23 +129,14 @@ export const useTouchHandlers = (
         const shouldZoom = Math.abs(zoomFactor - 1) > zoomThreshold;
         const shouldPan = Math.abs(panDeltaX) > panThreshold || Math.abs(panDeltaY) > panThreshold;
         
-        if (shouldZoom || shouldPan) {
-          // Apply combined transformation in a single state update
-          const newState = combineTransformations(
-            shouldZoom ? zoomFactor : 1,
-            currentCenter.x,
-            currentCenter.y,
-            shouldPan ? panDeltaX : 0,
-            shouldPan ? panDeltaY : 0
-          );
-          
-          console.log('[PanZoom] Applying combined transformation:', {
-            zoomFactor: shouldZoom ? zoomFactor : 1,
-            panDelta: { x: shouldPan ? panDeltaX : 0, y: shouldPan ? panDeltaY : 0 },
-            center: currentCenter
-          });
-          
-          setPanZoomState(newState);
+        if (shouldZoom) {
+          // Use the zoomWithTracking function to update zoom state and track focal point
+          zoomWithTracking(zoomFactor, currentCenter.x, currentCenter.y);
+        }
+        
+        if (shouldPan) {
+          // Apply pan transformation
+          panHandlers.continuePan(currentCenter.x, currentCenter.y);
         }
         
         // Update debug center point if enabled
@@ -159,7 +150,7 @@ export const useTouchHandlers = (
       touchStateRef.current.lastCenter = getTouchCenter(e.touches);
       touchStateRef.current.lastCanvasCenter = currentCenter;
     }
-  }, [getTouchDistance, getTouchCenter, combineTransformations, setPanZoomState]);
+  }, [getTouchDistance, getTouchCenter, zoomWithTracking, panHandlers.continuePan]);
 
   const handleTouchEnd = useCallback((e: TouchEvent) => {
     console.log('[PanZoom] Touch end with', e.touches.length, 'remaining touches');
