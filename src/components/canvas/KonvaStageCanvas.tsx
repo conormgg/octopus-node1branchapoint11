@@ -73,19 +73,46 @@ const KonvaStageCanvas: React.FC<KonvaStageCanvasProps> = ({
   const transformCrosshairCoordinates = (point: { x: number; y: number }) => {
     // Get the stage element to determine the actual rendered size
     const stage = stageRef.current;
-    if (!stage) return point;
+    if (!stage) {
+      console.log('[DEBUG] No stage ref available');
+      return point;
+    }
     
     const stageContainer = stage.container();
-    if (!stageContainer) return point;
+    if (!stageContainer) {
+      console.log('[DEBUG] No stage container available');
+      return point;
+    }
     
     const containerRect = stageContainer.getBoundingClientRect();
     
     // Check if we're in minimized view (container is smaller than canvas)
     const isMinimizedView = containerRect.width < width || containerRect.height < height;
     
+    // DEBUG: Log all the coordinate information
+    console.log('[DEBUG] Crosshair coordinate transformation:', {
+      originalPoint: point,
+      containerRect: {
+        width: containerRect.width,
+        height: containerRect.height,
+        left: containerRect.left,
+        top: containerRect.top
+      },
+      canvasSize: { width, height },
+      isMinimizedView,
+      panZoomState
+    });
+    
+    // Add visual debug border to the stage container
+    if (stageContainer && stageContainer.style) {
+      stageContainer.style.border = '3px solid yellow';
+      stageContainer.style.boxSizing = 'border-box';
+    }
+    
     if (isMinimizedView) {
       // For minimized view: keep coordinates as-is (container coordinates)
       // The crosshairs should appear exactly where the user touches within the small container
+      console.log('[DEBUG] Using minimized view mode - keeping coordinates as-is:', point);
       return point;
     } else {
       // For maximized view: apply world coordinate transformation
@@ -94,10 +121,13 @@ const KonvaStageCanvas: React.FC<KonvaStageCanvasProps> = ({
       const worldX = (point.x - panZoomState.x) / panZoomState.scale;
       const worldY = (point.y - panZoomState.y) / panZoomState.scale;
       
-      return {
-        x: worldX,
-        y: worldY
-      };
+      const transformedPoint = { x: worldX, y: worldY };
+      console.log('[DEBUG] Using maximized view mode - applying world transformation:', {
+        original: point,
+        transformed: transformedPoint
+      });
+      
+      return transformedPoint;
     }
   };
 
