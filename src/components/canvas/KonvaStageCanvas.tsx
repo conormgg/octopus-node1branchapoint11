@@ -110,10 +110,16 @@ const KonvaStageCanvas: React.FC<KonvaStageCanvasProps> = ({
     }
     
     if (isMinimizedView) {
-      // For minimized view: keep coordinates as-is (container coordinates)
-      // The crosshairs should appear exactly where the user touches within the small container
-      console.log('[DEBUG] Using minimized view mode - keeping coordinates as-is:', point);
-      return point;
+      // For minimized view: scale container coordinates to logical canvas coordinates
+      const scaledX = (point.x / containerRect.width) * width;
+      const scaledY = (point.y / containerRect.height) * height;
+      console.log('[DEBUG] Using minimized view mode - scaling coordinates:', {
+        original: point,
+        containerRect: { width: containerRect.width, height: containerRect.height },
+        canvasSize: { width, height },
+        scaled: { x: scaledX, y: scaledY }
+      });
+      return { x: scaledX, y: scaledY };
     } else {
       // For maximized view: apply world coordinate transformation
       // Convert canvas coordinates to world coordinates using the same logic as the zoom function
