@@ -1,3 +1,4 @@
+
 import { useCallback } from 'react';
 import { PanZoomState } from '@/types/whiteboard';
 
@@ -6,7 +7,7 @@ export const usePanZoomCore = (
   setPanZoomState: (state: PanZoomState) => void
 ) => {
   const zoom = useCallback((factor: number, centerX?: number, centerY?: number) => {
-    console.log('[PanZoom] Zooming with factor:', factor, 'center:', { centerX, centerY });
+    console.log('[PanZoomCore] Zooming with factor:', factor, 'center:', { centerX, centerY });
     
     const newScale = Math.max(0.1, Math.min(5, panZoomState.scale * factor));
     
@@ -24,6 +25,15 @@ export const usePanZoomCore = (
     const newX = zoomCenterX - (worldX * newScale);
     const newY = zoomCenterY - (worldY * newScale);
 
+    console.log('[PanZoomCore] Zoom calculation:', {
+      oldScale: panZoomState.scale,
+      newScale,
+      zoomCenter: { x: zoomCenterX, y: zoomCenterY },
+      worldPos: { x: worldX, y: worldY },
+      oldPan: { x: panZoomState.x, y: panZoomState.y },
+      newPan: { x: newX, y: newY }
+    });
+
     const newState: PanZoomState = {
       ...panZoomState,
       scale: newScale,
@@ -34,13 +44,15 @@ export const usePanZoomCore = (
   }, [setPanZoomState, panZoomState]);
 
   const handleWheel = useCallback((e: WheelEvent) => {
-    console.log('[PanZoom] Wheel event:', { deltaY: e.deltaY });
+    console.log('[PanZoomCore] Wheel event:', { deltaY: e.deltaY });
     e.preventDefault();
     
     const zoomFactor = e.deltaY > 0 ? 0.9 : 1.1;
     const rect = (e.target as HTMLElement).getBoundingClientRect();
     const centerX = e.clientX - rect.left;
     const centerY = e.clientY - rect.top;
+    
+    console.log('[PanZoomCore] Wheel zoom center:', { centerX, centerY });
     
     zoom(zoomFactor, centerX, centerY);
   }, [zoom]);
@@ -53,7 +65,7 @@ export const usePanZoomCore = (
     viewportWidth: number,
     viewportHeight: number
   ) => {
-    console.log('[PanZoom] Centering on bounds:', bounds);
+    console.log('[PanZoomCore] Centering on bounds:', bounds);
     
     // Calculate the center point of the bounds
     const boundsCenter = {
@@ -74,7 +86,7 @@ export const usePanZoomCore = (
     const newPanX = viewportCenter.x - (boundsCenter.x * scale);
     const newPanY = viewportCenter.y - (boundsCenter.y * scale);
     
-    console.log('[PanZoom] Calculated new position:', { 
+    console.log('[PanZoomCore] Calculated new position:', { 
       newPanX, 
       newPanY, 
       scale,

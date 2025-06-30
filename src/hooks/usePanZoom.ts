@@ -16,13 +16,13 @@ export const usePanZoom = (
   // Pan state management
   const panHandlers = usePanState(panZoomState, setPanZoomState);
   
-  // Touch event handlers with container reference for proper coordinates
+  // Touch event handlers with the correct container reference for coordinate calculations
   const touchHandlers = useTouchHandlers(
     panHandlers, 
     zoom, 
     panZoomState, 
     setPanZoomState, 
-    containerRef
+    containerRef // This should be the outermost container that defines the coordinate space
   );
 
   // Wrap the return object in useMemo to stabilize its reference

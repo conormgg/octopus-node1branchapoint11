@@ -19,47 +19,19 @@ export const useTouchHandlers = (
     }
     return zoom(factor, centerX, centerY);
   }, [zoom]);
+
   // Debug state for center point visualization
   const [debugCenterPoint, setDebugCenterPoint] = useState<{ x: number; y: number } | null>(null);
   const [actualZoomFocalPoint, setActualZoomFocalPoint] = useState<{ x: number; y: number } | null>(null);
+
   // Track touch state for pinch-to-zoom
   const touchStateRef = useRef<{
     lastDistance: number;
     lastCenter: { x: number; y: number };
-    lastCanvasCenter: { x: number; y: number };
   }>({
     lastDistance: 0,
-    lastCenter: { x: 0, y: 0 },
-    lastCanvasCenter: { x: 0, y: 0 }
+    lastCenter: { x: 0, y: 0 }
   });
-
-  const combineTransformations = useCallback((
-    zoomFactor: number,
-    zoomCenterX: number,
-    zoomCenterY: number,
-    panDeltaX: number,
-    panDeltaY: number
-  ) => {
-    const newScale = Math.max(0.1, Math.min(5, panZoomState.scale * zoomFactor));
-    
-    // Calculate zoom transformation
-    const worldX = (zoomCenterX - panZoomState.x) / panZoomState.scale;
-    const worldY = (zoomCenterY - panZoomState.y) / panZoomState.scale;
-    
-    const zoomNewX = zoomCenterX - (worldX * newScale);
-    const zoomNewY = zoomCenterY - (worldY * newScale);
-    
-    // Combine zoom transformation with pan delta
-    const finalX = zoomNewX + panDeltaX;
-    const finalY = zoomNewY + panDeltaY;
-    
-    return {
-      ...panZoomState,
-      scale: newScale,
-      x: finalX,
-      y: finalY
-    };
-  }, [panZoomState]);
 
   const getTouchDistance = useCallback((touches: TouchList) => {
     const touch1 = touches[0];
@@ -69,51 +41,54 @@ export const useTouchHandlers = (
     return Math.sqrt(dx * dx + dy * dy);
   }, []);
 
-  const getTouchCenter = useCallback((touches: TouchList, useContainerCoords = false) => {
+  // Use the same coordinate calculation approach as mouse wheel events
+  const getTouchCenter = useCallback((touches: TouchList) => {
     const touch1 = touches[0];
     const touch2 = touches[1];
-    let centerX = (touch1.clientX + touch2.clientX) / 2;
-    let centerY = (touch1.clientY + touch2.clientY) / 2;
+    const centerX = (touch1.clientX + touch2.clientX) / 2;
+    const centerY = (touch1.clientY + touch2.clientY) / 2;
     
-    // Convert to container-relative coordinates if needed
-    if (useContainerCoords && containerRef?.current) {
+    // Convert to container-relative coordinates using the same logic as wheel events
+    if (containerRef?.current) {
       const rect = containerRef.current.getBoundingClientRect();
-      centerX = centerX - rect.left;
-      centerY = centerY - rect.top;
+      return {
+        x: centerX - rect.left,
+        y: centerY - rect.top
+      };
     }
     
     return { x: centerX, y: centerY };
   }, [containerRef]);
 
   const handleTouchStart = useCallback((e: TouchEvent) => {
-    console.log('[PanZoom] Touch start with', e.touches.length, 'touches');
+    console.log('[TouchHandlers] Touch start with', e.touches.length, 'touches');
     
     // Only handle multi-touch gestures (2+ fingers)
     if (e.touches.length >= 2) {
       panHandlers.setIsGestureActiveState(true);
       
-      // Use container-relative coordinates for proper zoom centering
-      const center = getTouchCenter(e.touches, true);
+      const center = getTouchCenter(e.touches);
       
-      // Initialize both pan and zoom state
+      // Initialize touch state
       touchStateRef.current.lastDistance = getTouchDistance(e.touches);
-      touchStateRef.current.lastCenter = getTouchCenter(e.touches);
-      touchStateRef.current.lastCanvasCenter = center;
+      touchStateRef.current.lastCenter = center;
       
       // Start pan tracking at the center point
       panHandlers.startPan(center.x, center.y);
+      
+      console.log('[TouchHandlers] Touch start center:', center);
     }
   }, [getTouchDistance, getTouchCenter, panHandlers]);
 
   const handleTouchMove = useCallback((e: TouchEvent) => {
-    console.log('[PanZoom] Touch move with', e.touches.length, 'touches');
+    console.log('[TouchHandlers] Touch move with', e.touches.length, 'touches');
     
     // Only handle multi-touch gestures
     if (e.touches.length >= 2) {
       const currentDistance = getTouchDistance(e.touches);
-      const currentCenter = getTouchCenter(e.touches, true);
+      const currentCenter = getTouchCenter(e.touches);
       
-      const { lastDistance, lastCanvasCenter } = touchStateRef.current;
+      const { lastDistance, lastCenter } = touchStateRef.current;
       
       if (lastDistance > 0) {
         // Calculate zoom factor with threshold to prevent micro-movements
@@ -121,8 +96,8 @@ export const useTouchHandlers = (
         const zoomThreshold = 0.02; // Only zoom if change is significant
         
         // Calculate pan delta from center movement
-        const panDeltaX = currentCenter.x - lastCanvasCenter.x;
-        const panDeltaY = currentCenter.y - lastCanvasCenter.y;
+        const panDeltaX = currentCenter.x - lastCenter.x;
+        const panDeltaY = currentCenter.y - lastCenter.y;
         const panThreshold = 2; // Minimum movement in pixels
         
         // Only update if there's meaningful change
@@ -130,7 +105,8 @@ export const useTouchHandlers = (
         const shouldPan = Math.abs(panDeltaX) > panThreshold || Math.abs(panDeltaY) > panThreshold;
         
         if (shouldZoom) {
-          // Use the zoomWithTracking function to update zoom state and track focal point
+          console.log('[TouchHandlers] Zooming with factor:', zoomFactor, 'at center:', currentCenter);
+          // Use the same coordinate system as mouse wheel events
           zoomWithTracking(zoomFactor, currentCenter.x, currentCenter.y);
         }
         
@@ -147,13 +123,12 @@ export const useTouchHandlers = (
       
       // Update state for next iteration
       touchStateRef.current.lastDistance = currentDistance;
-      touchStateRef.current.lastCenter = getTouchCenter(e.touches);
-      touchStateRef.current.lastCanvasCenter = currentCenter;
+      touchStateRef.current.lastCenter = currentCenter;
     }
-  }, [getTouchDistance, getTouchCenter, zoomWithTracking, panHandlers.continuePan]);
+  }, [getTouchDistance, getTouchCenter, zoomWithTracking, panHandlers]);
 
   const handleTouchEnd = useCallback((e: TouchEvent) => {
-    console.log('[PanZoom] Touch end with', e.touches.length, 'remaining touches');
+    console.log('[TouchHandlers] Touch end with', e.touches.length, 'remaining touches');
     
     // Reset gesture state when no touches remain
     if (e.touches.length === 0) {
@@ -175,9 +150,7 @@ export const useTouchHandlers = (
         setDebugCenterPoint(null);
         setActualZoomFocalPoint(null);
       }
-      // Do NOT start single-touch panning here
     }
-    // Continue multi-touch handling if still multiple touches
   }, [panHandlers]);
 
   return {
