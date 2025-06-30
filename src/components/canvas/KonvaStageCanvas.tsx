@@ -29,6 +29,7 @@ interface KonvaStageCanvasProps {
     debugCenterPoint?: { x: number; y: number } | null;
     actualZoomFocalPoint?: { x: number; y: number } | null;
   };
+  containerDimensions?: { width: number; height: number };
   handlePointerDown: (x: number, y: number) => void;
   handlePointerMove: (x: number, y: number) => void;
   handlePointerUp: () => void;
@@ -55,6 +56,7 @@ const KonvaStageCanvas: React.FC<KonvaStageCanvasProps> = ({
   panZoomState,
   palmRejectionConfig,
   panZoom,
+  containerDimensions,
   handlePointerDown,
   handlePointerMove,
   handlePointerUp,
@@ -69,6 +71,23 @@ const KonvaStageCanvas: React.FC<KonvaStageCanvasProps> = ({
   onTransformEnd,
   normalizedState
 }) => {
+  // Transform container coordinates to canvas coordinates
+  const transformCoordinates = (point: { x: number; y: number }) => {
+    if (!containerDimensions) return point;
+    
+    // Calculate scale factors
+    const scaleX = width / containerDimensions.width;
+    const scaleY = height / containerDimensions.height;
+    
+    return {
+      x: point.x * scaleX,
+      y: point.y * scaleY
+    };
+  };
+
+  // Transform crosshair coordinates
+  const transformedDebugCenter = panZoom.debugCenterPoint ? transformCoordinates(panZoom.debugCenterPoint) : null;
+  const transformedActualZoomFocal = panZoom.actualZoomFocalPoint ? transformCoordinates(panZoom.actualZoomFocalPoint) : null;
   const { handleMouseDown, handleMouseMove, handleMouseUp } = useMouseEventHandlers({
     currentTool,
     panZoomState,
@@ -122,14 +141,14 @@ const KonvaStageCanvas: React.FC<KonvaStageCanvasProps> = ({
       />
       
       {/* Debug layer - rendered on top for troubleshooting */}
-      {(panZoom.debugCenterPoint || panZoom.actualZoomFocalPoint) && (
+      {(transformedDebugCenter || transformedActualZoomFocal) && (
         <Layer>
           {/* Red crosshair to show calculated touch center point */}
-          {panZoom.debugCenterPoint && (
+          {transformedDebugCenter && (
             <>
               <Circle
-                x={panZoom.debugCenterPoint.x}
-                y={panZoom.debugCenterPoint.y}
+                x={transformedDebugCenter.x}
+                y={transformedDebugCenter.y}
                 radius={8}
                 stroke="red"
                 strokeWidth={3}
@@ -138,10 +157,10 @@ const KonvaStageCanvas: React.FC<KonvaStageCanvasProps> = ({
               {/* Horizontal line */}
               <Line
                 points={[
-                  panZoom.debugCenterPoint.x - 15,
-                  panZoom.debugCenterPoint.y,
-                  panZoom.debugCenterPoint.x + 15,
-                  panZoom.debugCenterPoint.y
+                  transformedDebugCenter.x - 15,
+                  transformedDebugCenter.y,
+                  transformedDebugCenter.x + 15,
+                  transformedDebugCenter.y
                 ]}
                 stroke="red"
                 strokeWidth={2}
@@ -149,10 +168,10 @@ const KonvaStageCanvas: React.FC<KonvaStageCanvasProps> = ({
               {/* Vertical line */}
               <Line
                 points={[
-                  panZoom.debugCenterPoint.x,
-                  panZoom.debugCenterPoint.y - 15,
-                  panZoom.debugCenterPoint.x,
-                  panZoom.debugCenterPoint.y + 15
+                  transformedDebugCenter.x,
+                  transformedDebugCenter.y - 15,
+                  transformedDebugCenter.x,
+                  transformedDebugCenter.y + 15
                 ]}
                 stroke="red"
                 strokeWidth={2}
@@ -161,11 +180,11 @@ const KonvaStageCanvas: React.FC<KonvaStageCanvasProps> = ({
           )}
           
           {/* Blue crosshair to show actual zoom focal point */}
-          {panZoom.actualZoomFocalPoint && (
+          {transformedActualZoomFocal && (
             <>
               <Circle
-                x={panZoom.actualZoomFocalPoint.x}
-                y={panZoom.actualZoomFocalPoint.y}
+                x={transformedActualZoomFocal.x}
+                y={transformedActualZoomFocal.y}
                 radius={10}
                 stroke="blue"
                 strokeWidth={3}
@@ -174,10 +193,10 @@ const KonvaStageCanvas: React.FC<KonvaStageCanvasProps> = ({
               {/* Horizontal line */}
               <Line
                 points={[
-                  panZoom.actualZoomFocalPoint.x - 20,
-                  panZoom.actualZoomFocalPoint.y,
-                  panZoom.actualZoomFocalPoint.x + 20,
-                  panZoom.actualZoomFocalPoint.y
+                  transformedActualZoomFocal.x - 20,
+                  transformedActualZoomFocal.y,
+                  transformedActualZoomFocal.x + 20,
+                  transformedActualZoomFocal.y
                 ]}
                 stroke="blue"
                 strokeWidth={3}
@@ -185,10 +204,10 @@ const KonvaStageCanvas: React.FC<KonvaStageCanvasProps> = ({
               {/* Vertical line */}
               <Line
                 points={[
-                  panZoom.actualZoomFocalPoint.x,
-                  panZoom.actualZoomFocalPoint.y - 20,
-                  panZoom.actualZoomFocalPoint.x,
-                  panZoom.actualZoomFocalPoint.y + 20
+                  transformedActualZoomFocal.x,
+                  transformedActualZoomFocal.y - 20,
+                  transformedActualZoomFocal.x,
+                  transformedActualZoomFocal.y + 20
                 ]}
                 stroke="blue"
                 strokeWidth={3}
