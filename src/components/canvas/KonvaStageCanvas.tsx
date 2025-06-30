@@ -72,10 +72,30 @@ const KonvaStageCanvas: React.FC<KonvaStageCanvasProps> = ({
   // Transform container coordinates to world coordinates
   // This converts from screen/container space to the coordinate space that Konva uses
   const transformToWorldCoordinates = (point: { x: number; y: number }) => {
-    // Convert container coordinates to world coordinates using the same logic as the zoom function
-    // World position = (screen position - pan offset) / current scale
-    const worldX = (point.x - panZoomState.x) / panZoomState.scale;
-    const worldY = (point.y - panZoomState.y) / panZoomState.scale;
+    // First, we need to account for the fact that in minimized view, the container
+    // might be smaller than the canvas, so we need to scale the coordinates
+    // to match the canvas coordinate system
+    
+    // Get the stage element to determine the actual rendered size
+    const stage = stageRef.current;
+    if (!stage) return point;
+    
+    const stageContainer = stage.container();
+    if (!stageContainer) return point;
+    
+    const containerRect = stageContainer.getBoundingClientRect();
+    
+    // Scale coordinates from container space to canvas space
+    const scaleX = width / containerRect.width;
+    const scaleY = height / containerRect.height;
+    
+    const canvasX = point.x * scaleX;
+    const canvasY = point.y * scaleY;
+    
+    // Now convert canvas coordinates to world coordinates using the same logic as the zoom function
+    // World position = (canvas position - pan offset) / current scale
+    const worldX = (canvasX - panZoomState.x) / panZoomState.scale;
+    const worldY = (canvasY - panZoomState.y) / panZoomState.scale;
     
     return {
       x: worldX,
