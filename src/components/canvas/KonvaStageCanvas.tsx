@@ -69,13 +69,8 @@ const KonvaStageCanvas: React.FC<KonvaStageCanvasProps> = ({
   onTransformEnd,
   normalizedState
 }) => {
-  // Transform container coordinates to world coordinates
-  // This converts from screen/container space to the coordinate space that Konva uses
-  const transformToWorldCoordinates = (point: { x: number; y: number }) => {
-    // First, we need to account for the fact that in minimized view, the container
-    // might be smaller than the canvas, so we need to scale the coordinates
-    // to match the canvas coordinate system
-    
+  // Transform container coordinates appropriately based on view type
+  const transformCrosshairCoordinates = (point: { x: number; y: number }) => {
     // Get the stage element to determine the actual rendered size
     const stage = stageRef.current;
     if (!stage) return point;
@@ -85,27 +80,30 @@ const KonvaStageCanvas: React.FC<KonvaStageCanvasProps> = ({
     
     const containerRect = stageContainer.getBoundingClientRect();
     
-    // Scale coordinates from container space to canvas space
-    const scaleX = width / containerRect.width;
-    const scaleY = height / containerRect.height;
+    // Check if we're in minimized view (container is smaller than canvas)
+    const isMinimizedView = containerRect.width < width || containerRect.height < height;
     
-    const canvasX = point.x * scaleX;
-    const canvasY = point.y * scaleY;
-    
-    // Now convert canvas coordinates to world coordinates using the same logic as the zoom function
-    // World position = (canvas position - pan offset) / current scale
-    const worldX = (canvasX - panZoomState.x) / panZoomState.scale;
-    const worldY = (canvasY - panZoomState.y) / panZoomState.scale;
-    
-    return {
-      x: worldX,
-      y: worldY
-    };
+    if (isMinimizedView) {
+      // For minimized view: keep coordinates as-is (container coordinates)
+      // The crosshairs should appear exactly where the user touches within the small container
+      return point;
+    } else {
+      // For maximized view: apply world coordinate transformation
+      // Convert canvas coordinates to world coordinates using the same logic as the zoom function
+      // World position = (canvas position - pan offset) / current scale
+      const worldX = (point.x - panZoomState.x) / panZoomState.scale;
+      const worldY = (point.y - panZoomState.y) / panZoomState.scale;
+      
+      return {
+        x: worldX,
+        y: worldY
+      };
+    }
   };
 
-  // Transform crosshair coordinates to world space
-  const transformedDebugCenter = panZoom.debugCenterPoint ? transformToWorldCoordinates(panZoom.debugCenterPoint) : null;
-  const transformedActualZoomFocal = panZoom.actualZoomFocalPoint ? transformToWorldCoordinates(panZoom.actualZoomFocalPoint) : null;
+  // Transform crosshair coordinates appropriately based on view type
+  const transformedDebugCenter = panZoom.debugCenterPoint ? transformCrosshairCoordinates(panZoom.debugCenterPoint) : null;
+  const transformedActualZoomFocal = panZoom.actualZoomFocalPoint ? transformCrosshairCoordinates(panZoom.actualZoomFocalPoint) : null;
   const { handleMouseDown, handleMouseMove, handleMouseUp } = useMouseEventHandlers({
     currentTool,
     panZoomState,
