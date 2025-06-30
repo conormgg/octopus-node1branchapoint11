@@ -29,7 +29,6 @@ interface KonvaStageCanvasProps {
     debugCenterPoint?: { x: number; y: number } | null;
     actualZoomFocalPoint?: { x: number; y: number } | null;
   };
-  containerDimensions?: { width: number; height: number };
   handlePointerDown: (x: number, y: number) => void;
   handlePointerMove: (x: number, y: number) => void;
   handlePointerUp: () => void;
@@ -56,7 +55,6 @@ const KonvaStageCanvas: React.FC<KonvaStageCanvasProps> = ({
   panZoomState,
   palmRejectionConfig,
   panZoom,
-  containerDimensions,
   handlePointerDown,
   handlePointerMove,
   handlePointerUp,
@@ -71,23 +69,23 @@ const KonvaStageCanvas: React.FC<KonvaStageCanvasProps> = ({
   onTransformEnd,
   normalizedState
 }) => {
-  // Transform container coordinates to canvas coordinates
-  const transformCoordinates = (point: { x: number; y: number }) => {
-    if (!containerDimensions) return point;
-    
-    // Calculate scale factors
-    const scaleX = width / containerDimensions.width;
-    const scaleY = height / containerDimensions.height;
+  // Transform container coordinates to world coordinates
+  // This converts from screen/container space to the coordinate space that Konva uses
+  const transformToWorldCoordinates = (point: { x: number; y: number }) => {
+    // Convert container coordinates to world coordinates using the same logic as the zoom function
+    // World position = (screen position - pan offset) / current scale
+    const worldX = (point.x - panZoomState.x) / panZoomState.scale;
+    const worldY = (point.y - panZoomState.y) / panZoomState.scale;
     
     return {
-      x: point.x * scaleX,
-      y: point.y * scaleY
+      x: worldX,
+      y: worldY
     };
   };
 
-  // Transform crosshair coordinates
-  const transformedDebugCenter = panZoom.debugCenterPoint ? transformCoordinates(panZoom.debugCenterPoint) : null;
-  const transformedActualZoomFocal = panZoom.actualZoomFocalPoint ? transformCoordinates(panZoom.actualZoomFocalPoint) : null;
+  // Transform crosshair coordinates to world space
+  const transformedDebugCenter = panZoom.debugCenterPoint ? transformToWorldCoordinates(panZoom.debugCenterPoint) : null;
+  const transformedActualZoomFocal = panZoom.actualZoomFocalPoint ? transformToWorldCoordinates(panZoom.actualZoomFocalPoint) : null;
   const { handleMouseDown, handleMouseMove, handleMouseUp } = useMouseEventHandlers({
     currentTool,
     panZoomState,

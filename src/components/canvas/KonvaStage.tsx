@@ -117,10 +117,6 @@ const KonvaStage: React.FC<KonvaStageProps> = ({
           panZoomState={state.panZoomState}
           palmRejectionConfig={palmRejectionConfig}
           panZoom={panZoom}
-          containerDimensions={containerRef.current ? {
-            width: containerRef.current.getBoundingClientRect().width,
-            height: containerRef.current.getBoundingClientRect().height
-          } : undefined}
           handlePointerDown={handlePointerDown}
           handlePointerMove={handlePointerMove}
           handlePointerUp={handlePointerUp}
