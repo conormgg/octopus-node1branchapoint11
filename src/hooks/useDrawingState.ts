@@ -13,6 +13,8 @@ import { LineObject, Tool } from '@/types/whiteboard';
 import { createDebugLogger } from '@/utils/debug/debugConfig';
 import { toast } from './use-toast';
 
+import { coordinateBuffer, maybeShowConsolidatedToast } from './coordinateDebugBuffer';
+
 const debugLog = createDebugLogger('drawing');
 
 /**
@@ -74,11 +76,13 @@ export const useDrawingState = (
       strokeWidth: state.currentStrokeWidth
     });
 
-    // Show a toast with the world coordinates
-    toast({
-      title: 'Draw Coordinate',
-      description: `World: (${x.toFixed(2)}, ${y.toFixed(2)})`
-    });
+    // Store in buffer for consolidated toast
+    if (!coordinateBuffer.drawA) {
+      coordinateBuffer.drawA = { x, y };
+    } else if (!coordinateBuffer.drawB) {
+      coordinateBuffer.drawB = { x, y };
+    }
+    maybeShowConsolidatedToast();
 
     const newLine: LineObject = {
       id: `line_${Date.now()}_${lineIdRef.current++}`,
