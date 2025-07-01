@@ -142,9 +142,10 @@ const KonvaStageCanvas: React.FC<KonvaStageCanvasProps> = ({
   const transformedDebugCenter = panZoom.debugCenterPoint ? transformCrosshairCoordinates(panZoom.debugCenterPoint) : null;
   const transformedActualZoomFocal = panZoom.actualZoomFocalPoint ? transformCrosshairCoordinates(panZoom.actualZoomFocalPoint) : null;
 
-  // Transform finger points for debug rendering
+  // Debug finger points are already in the correct coordinate space (same as drawing)
+  // No need to transform them since they use getRelativePointerPosition
   const transformedDebugFingerPoints = Array.isArray(panZoom.debugFingerPoints)
-    ? panZoom.debugFingerPoints.map(transformCrosshairCoordinates)
+    ? panZoom.debugFingerPoints
     : [];
 
   // Check if crosshairs are within visible bounds for minimized view

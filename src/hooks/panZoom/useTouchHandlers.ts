@@ -10,7 +10,8 @@ export const useTouchHandlers = (
   panZoomState: any,
   setPanZoomState: (state: any) => void,
   containerRef?: React.RefObject<HTMLElement>,
-  stageRef?: React.RefObject<any> // Accept Konva.Stage ref for correct coordinate mapping
+  stageRef?: React.RefObject<any>, // Accept Konva.Stage ref for correct coordinate mapping
+  getRelativePointerPosition?: (stage: any, clientX: number, clientY: number) => { x: number; y: number }
 ) => {
   // Wrapper around zoom function to capture actual focal point
   const zoomWithTracking = useCallback((factor: number, centerX?: number, centerY?: number) => {
@@ -91,25 +92,33 @@ export const useTouchHandlers = (
       const currentDistance = getTouchDistance(e.touches);
       const currentCenter = getTouchCenter(e.touches);
 
-      // Get both finger positions in container-relative coordinates
+      // Get both finger positions using the same transformation as drawing logic
       let fingerPoints: { x: number; y: number }[] = [];
-      // Use the same container as the drawing logic (Konva Stage container)
-      let rect: DOMRect | null = null;
-      if (stageRef?.current && typeof stageRef.current.container === 'function') {
-        rect = stageRef.current.container().getBoundingClientRect();
-      } else if (containerRef?.current) {
-        rect = containerRef.current.getBoundingClientRect();
-      }
-      if (rect) {
+      if (getRelativePointerPosition && stageRef?.current) {
+        // Use the exact same coordinate transformation as drawing
         fingerPoints = [
-          { x: e.touches[0].clientX - rect.left, y: e.touches[0].clientY - rect.top },
-          { x: e.touches[1].clientX - rect.left, y: e.touches[1].clientY - rect.top }
+          getRelativePointerPosition(stageRef.current, e.touches[0].clientX, e.touches[0].clientY),
+          getRelativePointerPosition(stageRef.current, e.touches[1].clientX, e.touches[1].clientY)
         ];
       } else {
-        fingerPoints = [
-          { x: e.touches[0].clientX, y: e.touches[0].clientY },
-          { x: e.touches[1].clientX, y: e.touches[1].clientY }
-        ];
+        // Fallback to container-relative coordinates
+        let rect: DOMRect | null = null;
+        if (stageRef?.current && typeof stageRef.current.container === 'function') {
+          rect = stageRef.current.container().getBoundingClientRect();
+        } else if (containerRef?.current) {
+          rect = containerRef.current.getBoundingClientRect();
+        }
+        if (rect) {
+          fingerPoints = [
+            { x: e.touches[0].clientX - rect.left, y: e.touches[0].clientY - rect.top },
+            { x: e.touches[1].clientX - rect.left, y: e.touches[1].clientY - rect.top }
+          ];
+        } else {
+          fingerPoints = [
+            { x: e.touches[0].clientX, y: e.touches[0].clientY },
+            { x: e.touches[1].clientX, y: e.touches[1].clientY }
+          ];
+        }
       }
 
       const { lastDistance, lastCenter } = touchStateRef.current;

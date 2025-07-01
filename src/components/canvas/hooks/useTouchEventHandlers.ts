@@ -13,21 +13,24 @@ interface UseTouchEventHandlersProps {
 }
 
 import { useTouchHandlers } from '@/hooks/panZoom/useTouchHandlers';
+import { useStageCoordinates } from '@/hooks/useStageCoordinates';
 
 export const useTouchEventHandlers = (
   props: UseTouchEventHandlersProps,
   containerRef?: React.RefObject<HTMLElement>,
   stageRef?: React.RefObject<any>
 ) => {
-  // You may need to pass additional pan/zoom state and handlers here as needed for your app
-  // For now, just forward the stageRef to useTouchHandlers for debug finger points
-  // (You may need to adapt this to your actual pan/zoom integration)
+  // Get the same coordinate transformation function used by drawing logic
+  const { getRelativePointerPosition } = useStageCoordinates({} as any); // Pass empty panZoomState for now
+  
+  // Forward the getRelativePointerPosition function to useTouchHandlers for debug finger points
   return useTouchHandlers(
     {}, // panHandlers (stub for now)
     () => {}, // zoom (stub for now)
     {}, // panZoomState (stub for now)
     () => {}, // setPanZoomState (stub for now)
     containerRef,
-    stageRef
+    stageRef,
+    getRelativePointerPosition
   );
 };
