@@ -32,8 +32,9 @@ export const useWhiteboardPointerHandlers = (
 
     if (stableCurrentTool === 'pencil' || stableCurrentTool === 'highlighter' || stableCurrentTool === 'eraser') {
       // Compute all four coordinate systems if event is provided
-      let coords = { screen: { x, y }, viewport: { x, y }, world: { x, y }, local: { x: 0, y: 0 } };
+      let coords = { screen: { x, y }, viewport: { x, y }, world: { x, y }, local: { x: 0, y: 0 }, _event: undefined as any };
       if (event) {
+        coords._event = event;
         if ('clientX' in event && 'clientY' in event) {
           // PointerEvent
           coords.screen = { x: event.clientX, y: event.clientY };
@@ -51,6 +52,9 @@ export const useWhiteboardPointerHandlers = (
         }
         coords.world = { x, y };
         coords.local = { x: 0, y: 0 };
+        // Log the full event for debug
+        // eslint-disable-next-line no-console
+        console.log('[DEBUG] Draw event:', event, 'coords:', coords);
       }
       drawingCoordination.handleDrawingStart(x, y, coords);
     } else if (stableCurrentTool === 'select') {
