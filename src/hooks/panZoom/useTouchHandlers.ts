@@ -88,7 +88,7 @@ export const useTouchHandlers = (
   }, [getTouchDistance, getTouchCenter, panHandlers]);
 
   const handleTouchMove = useCallback((e: TouchEvent) => {
-    console.log('[TouchHandlers] Touch move with', e.touches.length, 'touches');
+    console.log('[TouchHandlers] [DEBUG] handleTouchMove called', e.touches.length, 'touches', e);
     
     // Only handle multi-touch gestures
     if (e.touches.length >= 2) {
