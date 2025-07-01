@@ -28,6 +28,7 @@ interface KonvaStageCanvasProps {
     stopPan: () => void;
     debugCenterPoint?: { x: number; y: number } | null;
     actualZoomFocalPoint?: { x: number; y: number } | null;
+    debugFingerPoints?: { x: number; y: number }[] | null;
   };
   handlePointerDown: (x: number, y: number) => void;
   handlePointerMove: (x: number, y: number) => void;
@@ -141,6 +142,11 @@ const KonvaStageCanvas: React.FC<KonvaStageCanvasProps> = ({
   const transformedDebugCenter = panZoom.debugCenterPoint ? transformCrosshairCoordinates(panZoom.debugCenterPoint) : null;
   const transformedActualZoomFocal = panZoom.actualZoomFocalPoint ? transformCrosshairCoordinates(panZoom.actualZoomFocalPoint) : null;
 
+  // Transform finger points for debug rendering
+  const transformedDebugFingerPoints = Array.isArray(panZoom.debugFingerPoints)
+    ? panZoom.debugFingerPoints.map(transformCrosshairCoordinates)
+    : [];
+
   // Check if crosshairs are within visible bounds for minimized view
   const isPointWithinBounds = (point: { x: number; y: number }) => {
     const stage = stageRef.current;
@@ -218,8 +224,20 @@ const KonvaStageCanvas: React.FC<KonvaStageCanvasProps> = ({
       />
       
       {/* Debug layer - rendered on top for troubleshooting */}
-      {(visibleDebugCenter || visibleActualZoomFocal) && (
+      {(visibleDebugCenter || visibleActualZoomFocal || transformedDebugFingerPoints.length > 0) && (
         <Layer>
+          {/* Dots for each finger (green) */}
+          {transformedDebugFingerPoints.map((pt, idx) => (
+            <Circle
+              key={`debug-finger-${idx}`}
+              x={pt.x}
+              y={pt.y}
+              radius={10}
+              stroke="green"
+              strokeWidth={3}
+              fill="rgba(0, 255, 0, 0.3)"
+            />
+          ))}
           {/* Red crosshair to show calculated touch center point */}
           {visibleDebugCenter && (
             <>

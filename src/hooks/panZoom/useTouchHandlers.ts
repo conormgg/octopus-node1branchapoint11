@@ -23,6 +23,8 @@ export const useTouchHandlers = (
   // Debug state for center point visualization
   const [debugCenterPoint, setDebugCenterPoint] = useState<{ x: number; y: number } | null>(null);
   const [actualZoomFocalPoint, setActualZoomFocalPoint] = useState<{ x: number; y: number } | null>(null);
+  // Debug state for finger positions (for troubleshooting)
+  const [debugFingerPoints, setDebugFingerPoints] = useState<{ x: number; y: number }[] | null>(null);
 
   // Track touch state for pinch-to-zoom
   const touchStateRef = useRef<{
@@ -87,40 +89,61 @@ export const useTouchHandlers = (
     if (e.touches.length >= 2) {
       const currentDistance = getTouchDistance(e.touches);
       const currentCenter = getTouchCenter(e.touches);
-      
+
+      // Get both finger positions in container-relative coordinates
+      let fingerPoints: { x: number; y: number }[] = [];
+      if (containerRef?.current) {
+        const rect = containerRef.current.getBoundingClientRect();
+        fingerPoints = [
+          { x: e.touches[0].clientX - rect.left, y: e.touches[0].clientY - rect.top },
+          { x: e.touches[1].clientX - rect.left, y: e.touches[1].clientY - rect.top }
+        ];
+      } else {
+        fingerPoints = [
+          { x: e.touches[0].clientX, y: e.touches[0].clientY },
+          { x: e.touches[1].clientX, y: e.touches[1].clientY }
+        ];
+      }
+
       const { lastDistance, lastCenter } = touchStateRef.current;
-      
+
       if (lastDistance > 0) {
         // Calculate zoom factor with threshold to prevent micro-movements
         const zoomFactor = currentDistance / lastDistance;
         const zoomThreshold = 0.02; // Only zoom if change is significant
-        
+
         // Calculate pan delta from center movement
         const panDeltaX = currentCenter.x - lastCenter.x;
         const panDeltaY = currentCenter.y - lastCenter.y;
         const panThreshold = 2; // Minimum movement in pixels
-        
+
         // Only update if there's meaningful change
         const shouldZoom = Math.abs(zoomFactor - 1) > zoomThreshold;
         const shouldPan = Math.abs(panDeltaX) > panThreshold || Math.abs(panDeltaY) > panThreshold;
-        
+
         if (shouldZoom) {
           console.log('[TouchHandlers] Zooming with factor:', zoomFactor, 'at center:', currentCenter);
           // Use the same coordinate system as mouse wheel events
           zoomWithTracking(zoomFactor, currentCenter.x, currentCenter.y);
         }
-        
+
         if (shouldPan) {
           // Apply pan transformation
           panHandlers.continuePan(currentCenter.x, currentCenter.y);
         }
-        
-        // Update debug center point if enabled
+
+        // Update debug center point and finger points if enabled
         if (SHOW_ZOOM_CENTER_DEBUG) {
           setDebugCenterPoint(currentCenter);
+          setDebugFingerPoints(fingerPoints);
+        }
+      } else {
+        // Still update finger points for initial two-finger placement
+        if (SHOW_ZOOM_CENTER_DEBUG) {
+          setDebugFingerPoints(fingerPoints);
         }
       }
-      
+
       // Update state for next iteration
       touchStateRef.current.lastDistance = currentDistance;
       touchStateRef.current.lastCenter = currentCenter;
@@ -135,20 +158,22 @@ export const useTouchHandlers = (
       panHandlers.setIsGestureActiveState(false);
       panHandlers.stopPan();
       touchStateRef.current.lastDistance = 0;
-      // Clear debug center point
+      // Clear debug center point and finger points
       if (SHOW_ZOOM_CENTER_DEBUG) {
         setDebugCenterPoint(null);
         setActualZoomFocalPoint(null);
+        setDebugFingerPoints(null);
       }
     } else if (e.touches.length === 1) {
       // When going from multi-touch to single touch, stop gesture
       panHandlers.setIsGestureActiveState(false);
       panHandlers.stopPan();
       touchStateRef.current.lastDistance = 0;
-      // Clear debug center point
+      // Clear debug center point and finger points
       if (SHOW_ZOOM_CENTER_DEBUG) {
         setDebugCenterPoint(null);
         setActualZoomFocalPoint(null);
+        setDebugFingerPoints(null);
       }
     }
   }, [panHandlers]);
@@ -158,6 +183,7 @@ export const useTouchHandlers = (
     handleTouchMove,
     handleTouchEnd,
     debugCenterPoint: SHOW_ZOOM_CENTER_DEBUG ? debugCenterPoint : null,
-    actualZoomFocalPoint: SHOW_ZOOM_CENTER_DEBUG ? actualZoomFocalPoint : null
+    actualZoomFocalPoint: SHOW_ZOOM_CENTER_DEBUG ? actualZoomFocalPoint : null,
+    debugFingerPoints: SHOW_ZOOM_CENTER_DEBUG ? debugFingerPoints : null
   };
 };
