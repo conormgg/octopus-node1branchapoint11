@@ -69,102 +69,6 @@ const KonvaStageCanvas: React.FC<KonvaStageCanvasProps> = ({
   onTransformEnd,
   normalizedState
 }) => {
-  // Transform container coordinates appropriately based on view type
-  const transformCrosshairCoordinates = (point: { x: number; y: number }) => {
-    // Get the stage element to determine the actual rendered size
-    const stage = stageRef.current;
-    if (!stage) {
-      console.log('[DEBUG] No stage ref available');
-      return point;
-    }
-    
-    const stageContainer = stage.container();
-    if (!stageContainer) {
-      console.log('[DEBUG] No stage container available');
-      return point;
-    }
-    
-    const containerRect = stageContainer.getBoundingClientRect();
-    
-    // Check if we're in minimized view (container is smaller than canvas)
-    const isMinimizedView = containerRect.width < width || containerRect.height < height;
-    
-    // DEBUG: Log all the coordinate information
-    console.log('[DEBUG] Crosshair coordinate transformation:', {
-      originalPoint: point,
-      containerRect: {
-        width: containerRect.width,
-        height: containerRect.height,
-        left: containerRect.left,
-        top: containerRect.top
-      },
-      canvasSize: { width, height },
-      isMinimizedView,
-      panZoomState
-    });
-    
-    // Add visual debug border to the stage container
-    if (stageContainer && stageContainer.style) {
-      stageContainer.style.border = '3px solid yellow';
-      stageContainer.style.boxSizing = 'border-box';
-    }
-    
-    if (isMinimizedView) {
-      // For minimized view: scale container coordinates to logical canvas coordinates
-      const scaledX = (point.x / containerRect.width) * width;
-      const scaledY = (point.y / containerRect.height) * height;
-      console.log('[DEBUG] Using minimized view mode - scaling coordinates:', {
-        original: point,
-        containerRect: { width: containerRect.width, height: containerRect.height },
-        canvasSize: { width, height },
-        scaled: { x: scaledX, y: scaledY }
-      });
-      return { x: scaledX, y: scaledY };
-    } else {
-      // For maximized view: apply world coordinate transformation
-      // Convert canvas coordinates to world coordinates using the same logic as the zoom function
-      // World position = (canvas position - pan offset) / current scale
-      const worldX = (point.x - panZoomState.x) / panZoomState.scale;
-      const worldY = (point.y - panZoomState.y) / panZoomState.scale;
-      
-      const transformedPoint = { x: worldX, y: worldY };
-      console.log('[DEBUG] Using maximized view mode - applying world transformation:', {
-        original: point,
-        transformed: transformedPoint
-      });
-      
-      return transformedPoint;
-    }
-  };
-
-  // Transform crosshair coordinates appropriately based on view type
-  const transformedDebugCenter = panZoom.debugCenterPoint ? transformCrosshairCoordinates(panZoom.debugCenterPoint) : null;
-  const transformedActualZoomFocal = panZoom.actualZoomFocalPoint ? transformCrosshairCoordinates(panZoom.actualZoomFocalPoint) : null;
-
-  // Check if crosshairs are within visible bounds for minimized view
-  const isPointWithinBounds = (point: { x: number; y: number }) => {
-    const stage = stageRef.current;
-    if (!stage) return true;
-    
-    const stageContainer = stage.container();
-    if (!stageContainer) return true;
-    
-    const containerRect = stageContainer.getBoundingClientRect();
-    const isMinimizedView = containerRect.width < width || containerRect.height < height;
-    
-    if (isMinimizedView) {
-      // For minimized view, check if point is within the visible container bounds
-      return point.x >= 0 && point.x <= containerRect.width && 
-             point.y >= 0 && point.y <= containerRect.height;
-    }
-    
-    // For maximized view, allow all points
-    return true;
-  };
-
-  // Only show crosshairs if they're within visible bounds
-  const visibleDebugCenter = transformedDebugCenter && isPointWithinBounds(transformedDebugCenter) ? transformedDebugCenter : null;
-  const visibleActualZoomFocal = transformedActualZoomFocal && isPointWithinBounds(transformedActualZoomFocal) ? transformedActualZoomFocal : null;
   const { handleMouseDown, handleMouseMove, handleMouseUp } = useMouseEventHandlers({
     currentTool,
     panZoomState,
@@ -214,18 +118,18 @@ const KonvaStageCanvas: React.FC<KonvaStageCanvasProps> = ({
         onUpdateLine={onUpdateLine}
         onUpdateImage={onUpdateImage}
         onTransformEnd={onTransformEnd}
-        stageRef={stageRef} // Pass stageRef for viewport calculations
+        stageRef={stageRef}
       />
       
       {/* Debug layer - rendered on top for troubleshooting */}
-      {(visibleDebugCenter || visibleActualZoomFocal) && (
+      {(panZoom.debugCenterPoint || panZoom.actualZoomFocalPoint) && (
         <Layer>
           {/* Red crosshair to show calculated touch center point */}
-          {visibleDebugCenter && (
+          {panZoom.debugCenterPoint && (
             <>
               <Circle
-                x={visibleDebugCenter.x}
-                y={visibleDebugCenter.y}
+                x={panZoom.debugCenterPoint.x}
+                y={panZoom.debugCenterPoint.y}
                 radius={8}
                 stroke="red"
                 strokeWidth={3}
@@ -234,10 +138,10 @@ const KonvaStageCanvas: React.FC<KonvaStageCanvasProps> = ({
               {/* Horizontal line */}
               <Line
                 points={[
-                  visibleDebugCenter.x - 15,
-                  visibleDebugCenter.y,
-                  visibleDebugCenter.x + 15,
-                  visibleDebugCenter.y
+                  panZoom.debugCenterPoint.x - 15,
+                  panZoom.debugCenterPoint.y,
+                  panZoom.debugCenterPoint.x + 15,
+                  panZoom.debugCenterPoint.y
                 ]}
                 stroke="red"
                 strokeWidth={2}
@@ -245,10 +149,10 @@ const KonvaStageCanvas: React.FC<KonvaStageCanvasProps> = ({
               {/* Vertical line */}
               <Line
                 points={[
-                  visibleDebugCenter.x,
-                  visibleDebugCenter.y - 15,
-                  visibleDebugCenter.x,
-                  visibleDebugCenter.y + 15
+                  panZoom.debugCenterPoint.x,
+                  panZoom.debugCenterPoint.y - 15,
+                  panZoom.debugCenterPoint.x,
+                  panZoom.debugCenterPoint.y + 15
                 ]}
                 stroke="red"
                 strokeWidth={2}
@@ -257,11 +161,11 @@ const KonvaStageCanvas: React.FC<KonvaStageCanvasProps> = ({
           )}
           
           {/* Blue crosshair to show actual zoom focal point */}
-          {visibleActualZoomFocal && (
+          {panZoom.actualZoomFocalPoint && (
             <>
               <Circle
-                x={visibleActualZoomFocal.x}
-                y={visibleActualZoomFocal.y}
+                x={panZoom.actualZoomFocalPoint.x}
+                y={panZoom.actualZoomFocalPoint.y}
                 radius={10}
                 stroke="blue"
                 strokeWidth={3}
@@ -270,10 +174,10 @@ const KonvaStageCanvas: React.FC<KonvaStageCanvasProps> = ({
               {/* Horizontal line */}
               <Line
                 points={[
-                  visibleActualZoomFocal.x - 20,
-                  visibleActualZoomFocal.y,
-                  visibleActualZoomFocal.x + 20,
-                  visibleActualZoomFocal.y
+                  panZoom.actualZoomFocalPoint.x - 20,
+                  panZoom.actualZoomFocalPoint.y,
+                  panZoom.actualZoomFocalPoint.x + 20,
+                  panZoom.actualZoomFocalPoint.y
                 ]}
                 stroke="blue"
                 strokeWidth={3}
@@ -281,10 +185,10 @@ const KonvaStageCanvas: React.FC<KonvaStageCanvasProps> = ({
               {/* Vertical line */}
               <Line
                 points={[
-                  visibleActualZoomFocal.x,
-                  visibleActualZoomFocal.y - 20,
-                  visibleActualZoomFocal.x,
-                  visibleActualZoomFocal.y + 20
+                  panZoom.actualZoomFocalPoint.x,
+                  panZoom.actualZoomFocalPoint.y - 20,
+                  panZoom.actualZoomFocalPoint.x,
+                  panZoom.actualZoomFocalPoint.y + 20
                 ]}
                 stroke="blue"
                 strokeWidth={3}
