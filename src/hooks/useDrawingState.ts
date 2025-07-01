@@ -63,7 +63,7 @@ export const useDrawingState = (
    * @ai-context Creates a new LineObject with current tool settings and
    * adds it to the lines array. Sets isDrawing flag to true.
    */
-  const startDrawing = useCallback((x: number, y: number) => {
+  const startDrawing = useCallback((x: number, y: number, coords?: any) => {
     if (state.currentTool !== 'pencil' && state.currentTool !== 'highlighter') {
       debugLog('Start', 'Invalid tool for drawing', state.currentTool);
       return;
@@ -73,14 +73,15 @@ export const useDrawingState = (
       tool: state.currentTool,
       position: { x, y },
       color: state.currentColor,
-      strokeWidth: state.currentStrokeWidth
+      strokeWidth: state.currentStrokeWidth,
+      coords
     });
 
     // Store in buffer for consolidated toast
     if (!coordinateBuffer.drawA) {
-      coordinateBuffer.drawA = { x, y };
+      coordinateBuffer.drawA = coords || { world: { x, y }, screen: { x, y }, viewport: { x, y }, local: { x: 0, y: 0 } };
     } else if (!coordinateBuffer.drawB) {
-      coordinateBuffer.drawB = { x, y };
+      coordinateBuffer.drawB = coords || { world: { x, y }, screen: { x, y }, viewport: { x, y }, local: { x: 0, y: 0 } };
     }
     maybeShowConsolidatedToast();
 

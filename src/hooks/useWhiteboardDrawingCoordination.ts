@@ -43,12 +43,12 @@ export const useWhiteboardDrawingCoordination = (
   const { startErasing, continueErasing, stopErasing } = eraserOperations;
 
   // Coordinate drawing start based on tool
-  const handleDrawingStart = useCallback((x: number, y: number) => {
-    debugLog('DrawingCoordination', 'Drawing start requested', { x, y, tool: stableCurrentTool });
-    
+  const handleDrawingStart = useCallback((x: number, y: number, coords?: any) => {
+    debugLog('DrawingCoordination', 'Drawing start requested', { x, y, tool: stableCurrentTool, coords });
+
     if (stableCurrentTool === 'pencil' || stableCurrentTool === 'highlighter') {
       debugLog('DrawingCoordination', 'Starting drawing operation');
-      startDrawing(x, y);
+      startDrawing(x, y, coords);
     } else if (stableCurrentTool === 'eraser') {
       debugLog('DrawingCoordination', 'Starting eraser operation');
       startErasing(x, y);

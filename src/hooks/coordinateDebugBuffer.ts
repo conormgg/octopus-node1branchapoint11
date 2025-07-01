@@ -1,20 +1,30 @@
 import { toast } from './use-toast';
 
 export let coordinateBuffer: {
-  drawA?: { x: number; y: number };
-  drawB?: { x: number; y: number };
-  pinch?: [{ x: number; y: number }, { x: number; y: number }];
+  drawA?: any;
+  drawB?: any;
+  pinch?: [any, any];
 } = {};
+
+function formatCoord(label: string, coord: any) {
+  return (
+    `${label}:\n` +
+    `  Screen: (${coord.screen?.x?.toFixed(2)}, ${coord.screen?.y?.toFixed(2)})\n` +
+    `  Viewport: (${coord.viewport?.x?.toFixed(2)}, ${coord.viewport?.y?.toFixed(2)})\n` +
+    `  World: (${coord.world?.x?.toFixed(2)}, ${coord.world?.y?.toFixed(2)})\n` +
+    `  Local: (${coord.local?.x?.toFixed(2)}, ${coord.local?.y?.toFixed(2)})`
+  );
+}
 
 export function maybeShowConsolidatedToast() {
   if (coordinateBuffer.drawA && coordinateBuffer.drawB && coordinateBuffer.pinch) {
     toast({
       title: 'Coordinate Comparison',
       description:
-        `Draw A: (${coordinateBuffer.drawA.x.toFixed(2)}, ${coordinateBuffer.drawA.y.toFixed(2)})\n` +
-        `Draw B: (${coordinateBuffer.drawB.x.toFixed(2)}, ${coordinateBuffer.drawB.y.toFixed(2)})\n` +
-        `Pinch A: (${coordinateBuffer.pinch[0].x.toFixed(2)}, ${coordinateBuffer.pinch[0].y.toFixed(2)})\n` +
-        `Pinch B: (${coordinateBuffer.pinch[1].x.toFixed(2)}, ${coordinateBuffer.pinch[1].y.toFixed(2)})`
+        formatCoord('Draw A', coordinateBuffer.drawA) + '\n\n' +
+        formatCoord('Draw B', coordinateBuffer.drawB) + '\n\n' +
+        formatCoord('Pinch A', coordinateBuffer.pinch[0]) + '\n\n' +
+        formatCoord('Pinch B', coordinateBuffer.pinch[1])
     });
     coordinateBuffer = {};
   }
