@@ -15,7 +15,8 @@ interface WhiteboardProps {
 const Whiteboard: React.FC<WhiteboardProps> = ({ isReadOnly = false }) => {
   const [dimensions, setDimensions] = useState({ width: 0, height: 0 });
   const containerRef = React.useRef<HTMLDivElement>(null);
-  const whiteboardState = useWhiteboardState(containerRef);
+  const stageRef = React.useRef<any>(null);
+  const whiteboardState = useWhiteboardState(containerRef, stageRef);
 
   // Palm rejection configuration
   const [palmRejectionConfig, setPalmRejectionConfig] = useState({
@@ -77,6 +78,7 @@ const Whiteboard: React.FC<WhiteboardProps> = ({ isReadOnly = false }) => {
         whiteboardState={whiteboardState}
         isReadOnly={isReadOnly}
         palmRejectionConfig={palmRejectionConfig}
+        stageRef={stageRef}
       />
       <MovableToolbar
         currentTool={whiteboardState.state.currentTool}

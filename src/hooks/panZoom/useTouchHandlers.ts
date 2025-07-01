@@ -27,6 +27,8 @@ export const useTouchHandlers = (
   const [actualZoomFocalPoint, setActualZoomFocalPoint] = useState<{ x: number; y: number } | null>(null);
   // Debug state for finger positions (for troubleshooting)
   const [debugFingerPoints, setDebugFingerPoints] = useState<{ x: number; y: number }[] | null>(null);
+  // Debug state for captured drawing coordinates (simulates what drawing would produce)
+  const [debugDrawingCoordinates, setDebugDrawingCoordinates] = useState<{ x: number; y: number }[] | null>(null);
 
   // Track touch state for pinch-to-zoom
   const touchStateRef = useRef<{
@@ -152,11 +154,15 @@ export const useTouchHandlers = (
         if (SHOW_ZOOM_CENTER_DEBUG) {
           setDebugCenterPoint(currentCenter);
           setDebugFingerPoints(fingerPoints);
+          // Also capture what the drawing coordinates would be
+          setDebugDrawingCoordinates(fingerPoints);
         }
       } else {
         // Still update finger points for initial two-finger placement
         if (SHOW_ZOOM_CENTER_DEBUG) {
           setDebugFingerPoints(fingerPoints);
+          // Also capture what the drawing coordinates would be
+          setDebugDrawingCoordinates(fingerPoints);
         }
       }
 
@@ -191,6 +197,7 @@ export const useTouchHandlers = (
     handleTouchEnd,
     debugCenterPoint: SHOW_ZOOM_CENTER_DEBUG ? debugCenterPoint : null,
     actualZoomFocalPoint: SHOW_ZOOM_CENTER_DEBUG ? actualZoomFocalPoint : null,
-    debugFingerPoints: SHOW_ZOOM_CENTER_DEBUG ? debugFingerPoints : null
+    debugFingerPoints: SHOW_ZOOM_CENTER_DEBUG ? debugFingerPoints : null,
+    debugDrawingCoordinates: SHOW_ZOOM_CENTER_DEBUG ? debugDrawingCoordinates : null
   };
 };

@@ -29,6 +29,7 @@ interface KonvaStageCanvasProps {
     debugCenterPoint?: { x: number; y: number } | null;
     actualZoomFocalPoint?: { x: number; y: number } | null;
     debugFingerPoints?: { x: number; y: number }[] | null;
+    debugDrawingCoordinates?: { x: number; y: number }[] | null;
   };
   handlePointerDown: (x: number, y: number) => void;
   handlePointerMove: (x: number, y: number) => void;
@@ -142,10 +143,9 @@ const KonvaStageCanvas: React.FC<KonvaStageCanvasProps> = ({
   const transformedDebugCenter = panZoom.debugCenterPoint ? transformCrosshairCoordinates(panZoom.debugCenterPoint) : null;
   const transformedActualZoomFocal = panZoom.actualZoomFocalPoint ? transformCrosshairCoordinates(panZoom.actualZoomFocalPoint) : null;
 
-  // Debug finger points are already in the correct coordinate space (same as drawing)
-  // No need to transform them since they use getRelativePointerPosition
-  const transformedDebugFingerPoints = Array.isArray(panZoom.debugFingerPoints)
-    ? panZoom.debugFingerPoints
+  // Use the debug drawing coordinates which simulate actual drawing coordinates
+  const transformedDebugFingerPoints = Array.isArray(panZoom.debugDrawingCoordinates)
+    ? panZoom.debugDrawingCoordinates
     : [];
 
   // Check if crosshairs are within visible bounds for minimized view
@@ -238,10 +238,10 @@ const KonvaStageCanvas: React.FC<KonvaStageCanvasProps> = ({
       {/* Debug layer - rendered on top for troubleshooting */}
       {(visibleDebugCenter || visibleActualZoomFocal || transformedDebugFingerPoints.length > 0) && (
         <Layer>
-          {/* Dots for each finger (green) */}
+          {/* Dots for each finger (green) - using simulated drawing coordinates */}
           {transformedDebugFingerPoints.map((pt, idx) => (
             <Circle
-              key={`debug-finger-${idx}`}
+              key={`debug-drawing-${idx}`}
               x={pt.x}
               y={pt.y}
               radius={10}

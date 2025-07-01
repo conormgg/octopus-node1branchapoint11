@@ -24,6 +24,7 @@ interface KonvaStageProps {
     enabled: boolean;
   };
   normalizedState?: ReturnType<typeof useNormalizedWhiteboardState>;
+  stageRef?: React.RefObject<any>;
 }
 
 const KonvaStage: React.FC<KonvaStageProps> = ({
@@ -39,9 +40,11 @@ const KonvaStage: React.FC<KonvaStageProps> = ({
     preferStylus: true,
     enabled: true
   },
-  normalizedState
+  normalizedState,
+  stageRef: externalStageRef
 }) => {
-  const stageRef = useRef<Konva.Stage>(null);
+  const internalStageRef = useRef<Konva.Stage>(null);
+  const stageRef = externalStageRef || internalStageRef;
   const layerRef = useRef<Konva.Layer>(null);
   const containerRef = useRef<HTMLDivElement>(null);
 

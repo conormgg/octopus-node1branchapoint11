@@ -8,7 +8,9 @@ import { useTouchHandlers } from './panZoom/useTouchHandlers';
 export const usePanZoom = (
   panZoomState: PanZoomState,
   setPanZoomState: (state: PanZoomState) => void,
-  containerRef?: React.RefObject<HTMLElement>
+  containerRef?: React.RefObject<HTMLElement>,
+  stageRef?: React.RefObject<any>,
+  getRelativePointerPosition?: (stage: any, clientX: number, clientY: number) => { x: number; y: number }
 ) => {
   // Core zoom and centering functionality
   const { zoom, handleWheel, centerOnBounds } = usePanZoomCore(panZoomState, setPanZoomState);
@@ -22,7 +24,9 @@ export const usePanZoom = (
     zoom, 
     panZoomState, 
     setPanZoomState, 
-    containerRef // This should be the outermost container that defines the coordinate space
+    containerRef, // This should be the outermost container that defines the coordinate space
+    stageRef, // Pass stage ref for correct coordinate mapping
+    getRelativePointerPosition // Pass the coordinate transformation function
   );
 
   // Wrap the return object in useMemo to stabilize its reference
@@ -39,7 +43,8 @@ export const usePanZoom = (
     centerOnBounds,
     debugCenterPoint: touchHandlers.debugCenterPoint,
     actualZoomFocalPoint: touchHandlers.actualZoomFocalPoint,
-    debugFingerPoints: touchHandlers.debugFingerPoints
+    debugFingerPoints: touchHandlers.debugFingerPoints,
+    debugDrawingCoordinates: touchHandlers.debugDrawingCoordinates
   }), [
     panHandlers.startPan,
     panHandlers.continuePan,
@@ -53,6 +58,7 @@ export const usePanZoom = (
     centerOnBounds,
     touchHandlers.debugCenterPoint,
     touchHandlers.actualZoomFocalPoint,
-    touchHandlers.debugFingerPoints
+    touchHandlers.debugFingerPoints,
+    touchHandlers.debugDrawingCoordinates
   ]);
 };
