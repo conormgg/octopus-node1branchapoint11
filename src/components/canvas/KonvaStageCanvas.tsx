@@ -184,11 +184,21 @@ const KonvaStageCanvas: React.FC<KonvaStageCanvasProps> = ({
     selection
   });
 
-  const { handleTouchStart } = useTouchEventHandlers({
-    currentTool,
-    palmRejectionConfig,
-    onStageClick
-  });
+  const { handleTouchStart: rawHandleTouchStart } = useTouchEventHandlers(
+    {
+      currentTool,
+      palmRejectionConfig,
+      onStageClick
+    },
+    undefined,
+    stageRef
+  );
+  // Wrap to extract native event for compatibility with Konva
+  const handleTouchStart = (evt: any) => {
+    if (rawHandleTouchStart) {
+      rawHandleTouchStart(evt.evt || evt);
+    }
+  };
 
   const cursor = useStageCursor({ currentTool, selection });
 

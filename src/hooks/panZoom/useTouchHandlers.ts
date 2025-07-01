@@ -9,7 +9,8 @@ export const useTouchHandlers = (
   zoom: (factor: number, centerX?: number, centerY?: number) => void,
   panZoomState: any,
   setPanZoomState: (state: any) => void,
-  containerRef?: React.RefObject<HTMLElement>
+  containerRef?: React.RefObject<HTMLElement>,
+  stageRef?: React.RefObject<any> // Accept Konva.Stage ref for correct coordinate mapping
 ) => {
   // Wrapper around zoom function to capture actual focal point
   const zoomWithTracking = useCallback((factor: number, centerX?: number, centerY?: number) => {
@@ -92,8 +93,14 @@ export const useTouchHandlers = (
 
       // Get both finger positions in container-relative coordinates
       let fingerPoints: { x: number; y: number }[] = [];
-      if (containerRef?.current) {
-        const rect = containerRef.current.getBoundingClientRect();
+      // Use the same container as the drawing logic (Konva Stage container)
+      let rect: DOMRect | null = null;
+      if (stageRef?.current && typeof stageRef.current.container === 'function') {
+        rect = stageRef.current.container().getBoundingClientRect();
+      } else if (containerRef?.current) {
+        rect = containerRef.current.getBoundingClientRect();
+      }
+      if (rect) {
         fingerPoints = [
           { x: e.touches[0].clientX - rect.left, y: e.touches[0].clientY - rect.top },
           { x: e.touches[1].clientX - rect.left, y: e.touches[1].clientY - rect.top }

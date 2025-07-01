@@ -12,22 +12,22 @@ interface UseTouchEventHandlersProps {
   onStageClick?: (e: Konva.KonvaEventObject<MouseEvent | TouchEvent>) => void;
 }
 
-export const useTouchEventHandlers = ({
-  currentTool,
-  palmRejectionConfig,
-  onStageClick
-}: UseTouchEventHandlersProps) => {
-  const handleTouchStart = useCallback((e: Konva.KonvaEventObject<TouchEvent>) => {
-    debugLog('TouchEvents', 'touchstart from konva', {
-      touches: e.evt.touches.length,
-      currentTool,
-      palmRejectionEnabled: palmRejectionConfig.enabled
-    });
-    
-    if (onStageClick) onStageClick(e);
-  }, [currentTool, palmRejectionConfig.enabled, onStageClick]);
+import { useTouchHandlers } from '@/hooks/panZoom/useTouchHandlers';
 
-  return {
-    handleTouchStart
-  };
+export const useTouchEventHandlers = (
+  props: UseTouchEventHandlersProps,
+  containerRef?: React.RefObject<HTMLElement>,
+  stageRef?: React.RefObject<any>
+) => {
+  // You may need to pass additional pan/zoom state and handlers here as needed for your app
+  // For now, just forward the stageRef to useTouchHandlers for debug finger points
+  // (You may need to adapt this to your actual pan/zoom integration)
+  return useTouchHandlers(
+    {}, // panHandlers (stub for now)
+    () => {}, // zoom (stub for now)
+    {}, // panZoomState (stub for now)
+    () => {}, // setPanZoomState (stub for now)
+    containerRef,
+    stageRef
+  );
 };
