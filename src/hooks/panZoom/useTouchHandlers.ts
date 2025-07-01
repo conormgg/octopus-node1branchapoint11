@@ -11,7 +11,8 @@ export const useTouchHandlers = (
   setPanZoomState: (state: any) => void,
   containerRef?: React.RefObject<HTMLElement>,
   stageRef?: React.RefObject<any>, // Accept Konva.Stage ref for correct coordinate mapping
-  getRelativePointerPosition?: (stage: any, clientX: number, clientY: number) => { x: number; y: number }
+  getRelativePointerPosition?: (stage: any, clientX: number, clientY: number) => { x: number; y: number },
+  logDebugCoordinates?: (payload: any) => void // Optional debug logger
 ) => {
   // Wrapper around zoom function to capture actual focal point
   const zoomWithTracking = useCallback((factor: number, centerX?: number, centerY?: number) => {
@@ -94,6 +95,40 @@ export const useTouchHandlers = (
       const currentDistance = getTouchDistance(e.touches);
       const currentCenter = getTouchCenter(e.touches);
 
+      // Collect all four coordinate systems for each finger
+      let debugCoords: any[] = [];
+      let rect: DOMRect | null = null;
+      if (stageRef?.current && typeof stageRef.current.container === 'function') {
+        rect = stageRef.current.container().getBoundingClientRect();
+      } else if (containerRef?.current) {
+        rect = containerRef.current.getBoundingClientRect();
+      }
+      for (let i = 0; i < 2; i++) {
+        const touch = e.touches[i];
+        // Screen (client) coordinates
+        const screen = { x: touch.clientX, y: touch.clientY };
+        // Viewport (container) coordinates
+        const viewport = rect
+          ? { x: touch.clientX - rect.left, y: touch.clientY - rect.top }
+          : { x: touch.clientX, y: touch.clientY };
+        // World coordinates (drawing/canvas space)
+        let world = viewport;
+        if (getRelativePointerPosition && stageRef?.current) {
+          world = getRelativePointerPosition(stageRef.current, touch.clientX, touch.clientY);
+        }
+        // Local coordinates (for a shape, not available here, so set to null)
+        const local = null;
+        debugCoords.push({ screen, viewport, world, local });
+      }
+      // Optionally send debug coordinates to teacher view
+      if (typeof logDebugCoordinates === 'function') {
+        logDebugCoordinates({
+          type: 'pinch',
+          touches: debugCoords,
+          timestamp: Date.now()
+        });
+      }
+
       // Get both finger positions using the same transformation as drawing logic
       let fingerPoints: { x: number; y: number }[] = [];
       if (getRelativePointerPosition && stageRef?.current) {
@@ -102,25 +137,16 @@ export const useTouchHandlers = (
           getRelativePointerPosition(stageRef.current, e.touches[0].clientX, e.touches[0].clientY),
           getRelativePointerPosition(stageRef.current, e.touches[1].clientX, e.touches[1].clientY)
         ];
+      } else if (rect) {
+        fingerPoints = [
+          { x: e.touches[0].clientX - rect.left, y: e.touches[0].clientY - rect.top },
+          { x: e.touches[1].clientX - rect.left, y: e.touches[1].clientY - rect.top }
+        ];
       } else {
-        // Fallback to container-relative coordinates
-        let rect: DOMRect | null = null;
-        if (stageRef?.current && typeof stageRef.current.container === 'function') {
-          rect = stageRef.current.container().getBoundingClientRect();
-        } else if (containerRef?.current) {
-          rect = containerRef.current.getBoundingClientRect();
-        }
-        if (rect) {
-          fingerPoints = [
-            { x: e.touches[0].clientX - rect.left, y: e.touches[0].clientY - rect.top },
-            { x: e.touches[1].clientX - rect.left, y: e.touches[1].clientY - rect.top }
-          ];
-        } else {
-          fingerPoints = [
-            { x: e.touches[0].clientX, y: e.touches[0].clientY },
-            { x: e.touches[1].clientX, y: e.touches[1].clientY }
-          ];
-        }
+        fingerPoints = [
+          { x: e.touches[0].clientX, y: e.touches[0].clientY },
+          { x: e.touches[1].clientX, y: e.touches[1].clientY }
+        ];
       }
 
       const { lastDistance, lastCenter } = touchStateRef.current;

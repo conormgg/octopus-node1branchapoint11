@@ -16,7 +16,25 @@ const Whiteboard: React.FC<WhiteboardProps> = ({ isReadOnly = false }) => {
   const [dimensions, setDimensions] = useState({ width: 0, height: 0 });
   const containerRef = React.useRef<HTMLDivElement>(null);
   const stageRef = React.useRef<any>(null);
-  const whiteboardState = useWhiteboardState(containerRef, stageRef);
+
+  // Debug logger for coordinates (can be replaced with sendOperation for cross-device)
+  const logDebugCoordinates = (payload: any) => {
+    if (payload && payload.touches) {
+      console.groupCollapsed(`[DebugCoordinates] ${payload.type} @ ${new Date(payload.timestamp).toLocaleTimeString()}`);
+      payload.touches.forEach((coord: any, i: number) => {
+        console.log(`Touch ${i + 1}:`);
+        console.table({
+          Screen: coord.screen,
+          Viewport: coord.viewport,
+          World: coord.world,
+          Local: coord.local
+        });
+      });
+      console.groupEnd();
+    }
+  };
+
+  const whiteboardState = useWhiteboardState(containerRef, stageRef, logDebugCoordinates);
 
   // Palm rejection configuration
   const [palmRejectionConfig, setPalmRejectionConfig] = useState({

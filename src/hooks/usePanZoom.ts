@@ -10,7 +10,8 @@ export const usePanZoom = (
   setPanZoomState: (state: PanZoomState) => void,
   containerRef?: React.RefObject<HTMLElement>,
   stageRef?: React.RefObject<any>,
-  getRelativePointerPosition?: (stage: any, clientX: number, clientY: number) => { x: number; y: number }
+  getRelativePointerPosition?: (stage: any, clientX: number, clientY: number) => { x: number; y: number },
+  logDebugCoordinates?: (payload: any) => void
 ) => {
   // Core zoom and centering functionality
   const { zoom, handleWheel, centerOnBounds } = usePanZoomCore(panZoomState, setPanZoomState);
@@ -26,7 +27,8 @@ export const usePanZoom = (
     setPanZoomState, 
     containerRef, // This should be the outermost container that defines the coordinate space
     stageRef, // Pass stage ref for correct coordinate mapping
-    getRelativePointerPosition // Pass the coordinate transformation function
+    getRelativePointerPosition, // Pass the coordinate transformation function
+    logDebugCoordinates // Pass debug logger
   );
 
   // Wrap the return object in useMemo to stabilize its reference

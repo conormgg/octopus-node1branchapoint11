@@ -19,7 +19,11 @@ const debugLog = createDebugLogger('state');
  * @hook useWhiteboardState
  * @description Main hook for managing whiteboard state and operations
  */
-export const useWhiteboardState = (containerRef?: React.RefObject<HTMLElement>, stageRef?: React.RefObject<any>) => {
+export const useWhiteboardState = (
+  containerRef?: React.RefObject<HTMLElement>,
+  stageRef?: React.RefObject<any>,
+  logDebugCoordinates?: (payload: any) => void
+) => {
   debugLog('Hook', 'Initializing useWhiteboardState');
 
   // Tool management
@@ -108,7 +112,14 @@ export const useWhiteboardState = (containerRef?: React.RefObject<HTMLElement>, 
   const { getRelativePointerPosition } = useStageCoordinates(state.panZoomState);
 
   // Pan/zoom operations
-  const panZoom = usePanZoom(state.panZoomState, setPanZoomState, containerRef, stageRef, getRelativePointerPosition);
+  const panZoom = usePanZoom(
+    state.panZoomState,
+    setPanZoomState,
+    containerRef,
+    stageRef,
+    getRelativePointerPosition,
+    logDebugCoordinates
+  );
 
   // History operations
   const {
