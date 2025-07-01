@@ -18,10 +18,12 @@ import { useStageCoordinates } from '@/hooks/useStageCoordinates';
 export const useTouchEventHandlers = (
   props: UseTouchEventHandlersProps,
   containerRef?: React.RefObject<HTMLElement>,
-  stageRef?: React.RefObject<any>
+  stageRef?: React.RefObject<any>,
+  panZoomState?: any
 ) => {
   // Get the same coordinate transformation function used by drawing logic
-  const { getRelativePointerPosition } = useStageCoordinates({} as any); // Pass empty panZoomState for now
+  // Use the actual panZoomState to ensure correct coordinate transformation
+  const { getRelativePointerPosition } = useStageCoordinates(panZoomState || {});
   
   // Forward the getRelativePointerPosition function to useTouchHandlers for debug finger points
   return useTouchHandlers(

@@ -192,7 +192,8 @@ const KonvaStageCanvas: React.FC<KonvaStageCanvasProps> = ({
       onStageClick
     },
     undefined,
-    stageRef
+    stageRef,
+    panZoomState
   );
   // Wrap to extract native event for compatibility with Konva
   const handleTouchStart = (evt: any) => {
