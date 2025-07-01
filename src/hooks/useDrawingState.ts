@@ -11,6 +11,7 @@
 import { useCallback, useRef } from 'react';
 import { LineObject, Tool } from '@/types/whiteboard';
 import { createDebugLogger } from '@/utils/debug/debugConfig';
+import { toast } from './use-toast';
 
 const debugLog = createDebugLogger('drawing');
 
@@ -71,6 +72,12 @@ export const useDrawingState = (
       position: { x, y },
       color: state.currentColor,
       strokeWidth: state.currentStrokeWidth
+    });
+
+    // Show a toast with the world coordinates
+    toast({
+      title: 'Draw Coordinate',
+      description: `World: (${x.toFixed(2)}, ${y.toFixed(2)})`
     });
 
     const newLine: LineObject = {

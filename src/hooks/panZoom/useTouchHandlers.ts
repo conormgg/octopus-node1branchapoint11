@@ -1,5 +1,6 @@
 
 import { useCallback, useRef, useState } from 'react';
+import { toast } from '../use-toast';
 
 // Debug flag to show zoom center visualization
 const SHOW_ZOOM_CENTER_DEBUG = true;
@@ -128,6 +129,11 @@ export const useTouchHandlers = (
           timestamp: Date.now()
         });
       }
+      // Show a toast with both world coordinates
+      toast({
+        title: 'Pinch Coordinates',
+        description: `World A: (${debugCoords[0].world.x.toFixed(2)}, ${debugCoords[0].world.y.toFixed(2)})\nWorld B: (${debugCoords[1].world.x.toFixed(2)}, ${debugCoords[1].world.y.toFixed(2)})`
+      });
 
       // Get both finger positions using the same transformation as drawing logic
       let fingerPoints: { x: number; y: number }[] = [];
