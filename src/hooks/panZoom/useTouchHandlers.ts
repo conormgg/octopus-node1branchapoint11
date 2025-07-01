@@ -132,10 +132,7 @@ export const useTouchHandlers = (
       }
       // Store in buffer for consolidated toast
       if (!coordinateBuffer.pinch) {
-        coordinateBuffer.pinch = [
-          { x: debugCoords[0].world.x, y: debugCoords[0].world.y },
-          { x: debugCoords[1].world.x, y: debugCoords[1].world.y }
-        ];
+        coordinateBuffer.pinch = [debugCoords[0], debugCoords[1]];
       }
       maybeShowConsolidatedToast();
 
