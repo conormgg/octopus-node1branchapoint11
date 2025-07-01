@@ -158,23 +158,14 @@ export const useTouchHandlers = (
       panHandlers.setIsGestureActiveState(false);
       panHandlers.stopPan();
       touchStateRef.current.lastDistance = 0;
-      // Clear debug center point and finger points
-      if (SHOW_ZOOM_CENTER_DEBUG) {
-        setDebugCenterPoint(null);
-        setActualZoomFocalPoint(null);
-        setDebugFingerPoints(null);
-      }
+      // Do NOT clear debug state, so the last dots/crosshair remain for screenshotting
+      // (If you want to clear, you can add a manual button or timeout later)
     } else if (e.touches.length === 1) {
       // When going from multi-touch to single touch, stop gesture
       panHandlers.setIsGestureActiveState(false);
       panHandlers.stopPan();
       touchStateRef.current.lastDistance = 0;
-      // Clear debug center point and finger points
-      if (SHOW_ZOOM_CENTER_DEBUG) {
-        setDebugCenterPoint(null);
-        setActualZoomFocalPoint(null);
-        setDebugFingerPoints(null);
-      }
+      // Do NOT clear debug state, so the last dots/crosshair remain for screenshotting
     }
   }, [panHandlers]);
 
