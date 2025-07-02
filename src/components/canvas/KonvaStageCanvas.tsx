@@ -243,22 +243,21 @@ const KonvaStageCanvas: React.FC<KonvaStageCanvasProps> = ({
         <Layer>
           {/* Dots for each finger (green) - using simulated drawing coordinates */}
           {transformedDebugFingerPoints.map((pt, idx) => {
-            // Convert main board coordinates back to minimized board space
-            let displayX = pt.x;
-            let displayY = pt.y;
-            
-            // Get the board rect/scale from coordinate buffer
-            const coordData = coordinateBuffer.pinch?.[idx] || coordinateBuffer.drawA;
-            if (coordData?.boardRect && coordData?.boardScale) {
-              displayX = (displayX - coordData.boardRect.left) / coordData.boardScale;
-              displayY = (displayY - coordData.boardRect.top) / coordData.boardScale;
-            }
+            // Only render dots within the current viewport of the minimized board
+            // The visible area is from (panZoomState.x, panZoomState.y) to (panZoomState.x + width, panZoomState.y + height)
+            const inViewport =
+              pt.x >= panZoomState.x &&
+              pt.x <= panZoomState.x + width &&
+              pt.y >= panZoomState.y &&
+              pt.y <= panZoomState.y + height;
+
+            if (!inViewport) return null;
 
             return (
               <Circle
                 key={`debug-drawing-${idx}`}
-                x={displayX}
-                y={displayY}
+                x={pt.x - panZoomState.x}
+                y={pt.y - panZoomState.y}
                 radius={10}
                 stroke="green"
                 strokeWidth={3}
