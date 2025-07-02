@@ -50,16 +50,16 @@ export const useTouchHandlers = (
     return Math.sqrt(dx * dx + dy * dy);
   }, []);
 
-  // Use the same coordinate calculation approach as mouse wheel events
+  // Use the same coordinate calculation approach as drawing system
   const getTouchCenter = useCallback((touches: TouchList) => {
     const touch1 = touches[0];
     const touch2 = touches[1];
     const centerX = (touch1.clientX + touch2.clientX) / 2;
     const centerY = (touch1.clientY + touch2.clientY) / 2;
     
-    // Convert to container-relative coordinates using the same logic as wheel events
-    if (containerRef?.current) {
-      const rect = containerRef.current.getBoundingClientRect();
+    // Use stage container for consistency with drawing system
+    if (stageRef?.current && typeof stageRef.current.container === 'function') {
+      const rect = stageRef.current.container().getBoundingClientRect();
       return {
         x: centerX - rect.left,
         y: centerY - rect.top
@@ -67,7 +67,7 @@ export const useTouchHandlers = (
     }
     
     return { x: centerX, y: centerY };
-  }, [containerRef]);
+  }, [stageRef]);
 
   const handleTouchStart = useCallback((e: TouchEvent) => {
     console.log('[TouchHandlers] Touch start with', e.touches.length, 'touches');
@@ -102,8 +102,6 @@ export const useTouchHandlers = (
       let rect: DOMRect | null = null;
       if (stageRef?.current && typeof stageRef.current.container === 'function') {
         rect = stageRef.current.container().getBoundingClientRect();
-      } else if (containerRef?.current) {
-        rect = containerRef.current.getBoundingClientRect();
       }
       for (let i = 0; i < 2; i++) {
         const touch = e.touches[i];
@@ -145,15 +143,15 @@ export const useTouchHandlers = (
           getRelativePointerPosition(stageRef.current, e.touches[1].clientX, e.touches[1].clientY)
         ];
       } else if (rect) {
+        // Use stage container coordinates (same as drawing system)
         fingerPoints = [
           { x: e.touches[0].clientX - rect.left, y: e.touches[0].clientY - rect.top },
           { x: e.touches[1].clientX - rect.left, y: e.touches[1].clientY - rect.top }
         ];
       } else {
-        fingerPoints = [
-          { x: e.touches[0].clientX, y: e.touches[0].clientY },
-          { x: e.touches[1].clientX, y: e.touches[1].clientY }
-        ];
+        // If no stage available, skip debug rendering to avoid coordinate mismatch
+        console.warn('[TouchHandlers] No stage container available, skipping debug finger points');
+        fingerPoints = [];
       }
 
       const { lastDistance, lastCenter } = touchStateRef.current;
@@ -191,8 +189,8 @@ export const useTouchHandlers = (
           setDebugDrawingCoordinates(fingerPoints);
         }
       } else {
-        // Still update finger points for initial two-finger placement
-        if (SHOW_ZOOM_CENTER_DEBUG) {
+        // Still update finger points for initial two-finger placement (only if we have valid coordinates)
+        if (SHOW_ZOOM_CENTER_DEBUG && fingerPoints.length > 0) {
           setDebugFingerPoints(fingerPoints);
           // Also capture what the drawing coordinates would be
           setDebugDrawingCoordinates(fingerPoints);
