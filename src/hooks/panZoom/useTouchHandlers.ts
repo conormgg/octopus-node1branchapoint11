@@ -2,6 +2,7 @@
 import { useCallback, useRef, useState } from 'react';
 import { toast } from '../use-toast';
 import { coordinateBuffer, maybeShowConsolidatedToast } from '../coordinateDebugBuffer';
+import { useStageContext } from '@/contexts/StageContext';
 
 // Debug flag to show zoom center visualization
 const SHOW_ZOOM_CENTER_DEBUG = true;
@@ -16,6 +17,7 @@ export const useTouchHandlers = (
   getRelativePointerPosition?: (stage: any, clientX: number, clientY: number) => { x: number; y: number },
   logDebugCoordinates?: (payload: any) => void // Optional debug logger
 ) => {
+  const { mainStageContainerRef } = useStageContext();
   // Wrapper around zoom function to capture actual focal point
   const zoomWithTracking = useCallback((factor: number, centerX?: number, centerY?: number) => {
     // Track the actual focal point being used
@@ -50,24 +52,26 @@ export const useTouchHandlers = (
     return Math.sqrt(dx * dx + dy * dy);
   }, []);
 
-  // Use the same coordinate calculation approach as drawing system
+  // Use the centralized main stage container for all coordinate calculations
   const getTouchCenter = useCallback((touches: TouchList) => {
     const touch1 = touches[0];
     const touch2 = touches[1];
     const centerX = (touch1.clientX + touch2.clientX) / 2;
     const centerY = (touch1.clientY + touch2.clientY) / 2;
     
-    // Use stage container for consistency with drawing system
-    if (stageRef?.current && typeof stageRef.current.container === 'function') {
-      const rect = stageRef.current.container().getBoundingClientRect();
+    // ALWAYS use the main stage container for consistent coordinate calculations
+    if (mainStageContainerRef?.current) {
+      const rect = mainStageContainerRef.current.getBoundingClientRect();
       return {
         x: centerX - rect.left,
         y: centerY - rect.top
       };
     }
     
+    // Fallback if main stage not available
+    console.warn('[useTouchHandlers] Main stage container not available for getTouchCenter');
     return { x: centerX, y: centerY };
-  }, [stageRef]);
+  }, [mainStageContainerRef]);
 
   const handleTouchStart = useCallback((e: TouchEvent) => {
     console.log('[TouchHandlers] Touch start with', e.touches.length, 'touches');
@@ -100,8 +104,9 @@ export const useTouchHandlers = (
       // Collect all four coordinate systems for each finger
       let debugCoords: any[] = [];
       let rect: DOMRect | null = null;
-      if (stageRef?.current && typeof stageRef.current.container === 'function') {
-        rect = stageRef.current.container().getBoundingClientRect();
+      // Use the main stage container for consistent coordinate calculations
+      if (mainStageContainerRef?.current) {
+        rect = mainStageContainerRef.current.getBoundingClientRect();
       }
       for (let i = 0; i < 2; i++) {
         const touch = e.touches[i];
