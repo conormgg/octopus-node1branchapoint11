@@ -8,7 +8,6 @@ import CreateSessionForm from './CreateSessionForm';
 import TeacherView from '../TeacherView';
 import { LogOut, Plus, History } from 'lucide-react';
 import Logo from '@/components/ui/Logo';
-import { StageContextProvider } from '@/contexts/StageContext';
 
 const TeacherDashboard: React.FC = () => {
   const { user, signOut } = useAuth();
@@ -31,14 +30,12 @@ const TeacherDashboard: React.FC = () => {
 
   if (activeSession) {
     return (
-      <StageContextProvider>
-        <TeacherView
-          activeSession={activeSession}
-          onEndSession={handleEndSession}
-          onSignOut={signOut}
-          showUrlModal={showUrlModal}
-        />
-      </StageContextProvider>
+      <TeacherView
+        activeSession={activeSession}
+        onEndSession={handleEndSession}
+        onSignOut={signOut}
+        showUrlModal={showUrlModal}
+      />
     );
   }
 

@@ -2,7 +2,6 @@
 import { useCallback, useRef, useState } from 'react';
 import { toast } from '../use-toast';
 import { coordinateBuffer, maybeShowConsolidatedToast } from '../coordinateDebugBuffer';
-import { useStageContext } from '@/contexts/StageContext';
 
 // Debug flag to show zoom center visualization
 const SHOW_ZOOM_CENTER_DEBUG = true;
@@ -17,7 +16,6 @@ export const useTouchHandlers = (
   getRelativePointerPosition?: (stage: any, clientX: number, clientY: number) => { x: number; y: number },
   logDebugCoordinates?: (payload: any) => void // Optional debug logger
 ) => {
-  const { mainStageContainerRef } = useStageContext();
   // Wrapper around zoom function to capture actual focal point
   const zoomWithTracking = useCallback((factor: number, centerX?: number, centerY?: number) => {
     // Track the actual focal point being used
@@ -52,26 +50,24 @@ export const useTouchHandlers = (
     return Math.sqrt(dx * dx + dy * dy);
   }, []);
 
-  // Use the centralized main stage container for all coordinate calculations
+  // Use the same coordinate calculation approach as mouse wheel events
   const getTouchCenter = useCallback((touches: TouchList) => {
     const touch1 = touches[0];
     const touch2 = touches[1];
     const centerX = (touch1.clientX + touch2.clientX) / 2;
     const centerY = (touch1.clientY + touch2.clientY) / 2;
     
-    // ALWAYS use the main stage container for consistent coordinate calculations
-    if (mainStageContainerRef?.current) {
-      const rect = mainStageContainerRef.current.getBoundingClientRect();
+    // Convert to container-relative coordinates using the same logic as wheel events
+    if (containerRef?.current) {
+      const rect = containerRef.current.getBoundingClientRect();
       return {
         x: centerX - rect.left,
         y: centerY - rect.top
       };
     }
     
-    // Fallback if main stage not available
-    console.warn('[useTouchHandlers] Main stage container not available for getTouchCenter');
     return { x: centerX, y: centerY };
-  }, [mainStageContainerRef]);
+  }, [containerRef]);
 
   const handleTouchStart = useCallback((e: TouchEvent) => {
     console.log('[TouchHandlers] Touch start with', e.touches.length, 'touches');
@@ -104,9 +100,10 @@ export const useTouchHandlers = (
       // Collect all four coordinate systems for each finger
       let debugCoords: any[] = [];
       let rect: DOMRect | null = null;
-      // Use the main stage container for consistent coordinate calculations
-      if (mainStageContainerRef?.current) {
-        rect = mainStageContainerRef.current.getBoundingClientRect();
+      if (stageRef?.current && typeof stageRef.current.container === 'function') {
+        rect = stageRef.current.container().getBoundingClientRect();
+      } else if (containerRef?.current) {
+        rect = containerRef.current.getBoundingClientRect();
       }
       for (let i = 0; i < 2; i++) {
         const touch = e.touches[i];
@@ -148,15 +145,15 @@ export const useTouchHandlers = (
           getRelativePointerPosition(stageRef.current, e.touches[1].clientX, e.touches[1].clientY)
         ];
       } else if (rect) {
-        // Use stage container coordinates (same as drawing system)
         fingerPoints = [
           { x: e.touches[0].clientX - rect.left, y: e.touches[0].clientY - rect.top },
           { x: e.touches[1].clientX - rect.left, y: e.touches[1].clientY - rect.top }
         ];
       } else {
-        // If no stage available, skip debug rendering to avoid coordinate mismatch
-        console.warn('[TouchHandlers] No stage container available, skipping debug finger points');
-        fingerPoints = [];
+        fingerPoints = [
+          { x: e.touches[0].clientX, y: e.touches[0].clientY },
+          { x: e.touches[1].clientX, y: e.touches[1].clientY }
+        ];
       }
 
       const { lastDistance, lastCenter } = touchStateRef.current;
@@ -194,8 +191,8 @@ export const useTouchHandlers = (
           setDebugDrawingCoordinates(fingerPoints);
         }
       } else {
-        // Still update finger points for initial two-finger placement (only if we have valid coordinates)
-        if (SHOW_ZOOM_CENTER_DEBUG && fingerPoints.length > 0) {
+        // Still update finger points for initial two-finger placement
+        if (SHOW_ZOOM_CENTER_DEBUG) {
           setDebugFingerPoints(fingerPoints);
           // Also capture what the drawing coordinates would be
           setDebugDrawingCoordinates(fingerPoints);
