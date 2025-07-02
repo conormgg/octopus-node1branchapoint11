@@ -1,9 +1,18 @@
 import { toast } from './use-toast';
 
+export type CoordinateEntry = {
+  screen: { x: number; y: number };
+  viewport: { x: number; y: number };
+  world: { x: number; y: number };
+  local: { x: number; y: number } | null;
+  boardRect?: DOMRect; // Added container rect
+  boardScale?: number; // Added container scale
+};
+
 export let coordinateBuffer: {
-  drawA?: any;
-  drawB?: any;
-  pinch?: [any, any];
+  drawA?: CoordinateEntry;
+  drawB?: CoordinateEntry;
+  pinch?: [CoordinateEntry, CoordinateEntry];
 } = {};
 
 function formatCoords(label: string, coord: any) {

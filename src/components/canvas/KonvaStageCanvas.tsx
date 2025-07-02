@@ -3,6 +3,7 @@ import React from 'react';
 import { Stage, Layer, Circle, Line } from 'react-konva';
 import Konva from 'konva';
 import { PanZoomState, Tool, SelectionBounds } from '@/types/whiteboard';
+import { coordinateBuffer } from '@/hooks/coordinateDebugBuffer';
 import { useNormalizedWhiteboardState } from '@/hooks/performance/useNormalizedWhiteboardState';
 import { useMouseEventHandlers } from './hooks/useMouseEventHandlers';
 import { useTouchEventHandlers } from './hooks/useTouchEventHandlers';
@@ -239,17 +240,30 @@ const KonvaStageCanvas: React.FC<KonvaStageCanvasProps> = ({
       {(visibleDebugCenter || visibleActualZoomFocal || transformedDebugFingerPoints.length > 0) && (
         <Layer>
           {/* Dots for each finger (green) - using simulated drawing coordinates */}
-          {transformedDebugFingerPoints.map((pt, idx) => (
-            <Circle
-              key={`debug-drawing-${idx}`}
-              x={pt.x}
-              y={pt.y}
-              radius={10}
-              stroke="green"
-              strokeWidth={3}
-              fill="rgba(0, 255, 0, 0.3)"
-            />
-          ))}
+          {transformedDebugFingerPoints.map((pt, idx) => {
+            // Convert main board coordinates back to minimized board space
+            let displayX = pt.x;
+            let displayY = pt.y;
+            
+            // Get the board rect/scale from coordinate buffer
+            const coordData = coordinateBuffer.pinch?.[idx] || coordinateBuffer.drawA;
+            if (coordData?.boardRect && coordData?.boardScale) {
+              displayX = (displayX - coordData.boardRect.left) / coordData.boardScale;
+              displayY = (displayY - coordData.boardRect.top) / coordData.boardScale;
+            }
+
+            return (
+              <Circle
+                key={`debug-drawing-${idx}`}
+                x={displayX}
+                y={displayY}
+                radius={10}
+                stroke="green"
+                strokeWidth={3}
+                fill="rgba(0, 255, 0, 0.3)"
+              />
+            );
+          })}
           {/* Red crosshair to show calculated touch center point */}
           {visibleDebugCenter && (
             <>
