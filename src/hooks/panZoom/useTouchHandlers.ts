@@ -100,11 +100,21 @@ export const useTouchHandlers = (
       // Collect all four coordinate systems for each finger
       let debugCoords: any[] = [];
       let rect: DOMRect | null = null;
-      if (stageRef?.current && typeof stageRef.current.container === 'function') {
-        rect = stageRef.current.container().getBoundingClientRect();
-      } else if (containerRef?.current) {
-        rect = containerRef.current.getBoundingClientRect();
-      }
+      
+      // Only check container for first touch (both fingers must be in same container)
+      const firstTouch = e.touches[0];
+      const studentBoards = Array.from(document.getElementsByClassName('student-board-container'));
+      const touchContainer = studentBoards.find(board => {
+        const boardRect = board.getBoundingClientRect();
+        return firstTouch.clientX >= boardRect.left && 
+               firstTouch.clientX <= boardRect.right &&
+               firstTouch.clientY >= boardRect.top && 
+               firstTouch.clientY <= boardRect.bottom;
+      });
+
+      // Use the student board's rect if found, else main container
+      rect = touchContainer?.getBoundingClientRect() || 
+            (containerRef?.current?.getBoundingClientRect() ?? null);
       for (let i = 0; i < 2; i++) {
         const touch = e.touches[i];
         // Screen (client) coordinates
