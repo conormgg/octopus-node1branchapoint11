@@ -114,7 +114,11 @@ export const useTouchHandlers = (
           ? { x: touch.clientX - rect.left, y: touch.clientY - rect.top }
           : { x: touch.clientX, y: touch.clientY };
         // World coordinates (drawing/canvas space)
-        let world = viewport;
+          // Use raw viewport coordinates directly as world coordinates
+          let world = { 
+            x: viewport.x + (rect?.left || 0),
+            y: viewport.y + (rect?.top || 0)
+          };
         if (getRelativePointerPosition && stageRef?.current) {
           world = getRelativePointerPosition(stageRef.current, touch.clientX, touch.clientY);
         }

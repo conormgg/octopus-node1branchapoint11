@@ -114,8 +114,10 @@ const KonvaStageCanvas: React.FC<KonvaStageCanvasProps> = ({
     
     if (isMinimizedView) {
       // For minimized view: scale container coordinates to logical canvas coordinates
-      const scaledX = (point.x / containerRect.width) * width;
-      const scaledY = (point.y / containerRect.height) * height;
+      // Direct 1:1 mapping to world coordinates (no viewport scaling)
+      // Direct 1:1 coordinate mapping (viewport to world)
+      const scaledX = point.x;
+      const scaledY = point.y;
       console.log('[DEBUG] Using minimized view mode - scaling coordinates:', {
         original: point,
         containerRect: { width: containerRect.width, height: containerRect.height },
