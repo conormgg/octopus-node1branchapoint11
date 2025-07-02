@@ -123,11 +123,8 @@ export const useTouchHandlers = (
         const viewport = rect
           ? { x: touch.clientX - rect.left, y: touch.clientY - rect.top }
           : { x: touch.clientX, y: touch.clientY };
-        // World coordinates (drawing/canvas space)
-        let world = viewport;
-        if (getRelativePointerPosition && stageRef?.current) {
-          world = getRelativePointerPosition(stageRef.current, touch.clientX, touch.clientY);
-        }
+        // World coordinates (use local container space for minimized boards)
+        let world = viewport; // Already relative to the container
         // Local coordinates (for a shape, not available here, so set to null)
         const local = null;
         debugCoords.push({ screen, viewport, world, local });
