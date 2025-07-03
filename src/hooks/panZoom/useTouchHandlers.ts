@@ -140,12 +140,18 @@ export const useTouchHandlers = (
       }
       maybeShowConsolidatedToast();
 
-      // Get both finger positions - for debug dots we want raw viewport coordinates
+      // Get both finger positions using the same coordinate transformation as world coordinates
+      // This ensures debug dots appear exactly where the coordinate calculation shows they should be
       let fingerPoints: { x: number; y: number }[] = [];
       
-      // Always use raw viewport coordinates for debug visualization
-      // This ensures debug dots appear exactly where fingers touch the screen
-      if (rect) {
+      if (getRelativePointerPosition && stageRef?.current) {
+        // Use the same coordinate transformation as the world coordinates
+        fingerPoints = [
+          getRelativePointerPosition(stageRef.current, e.touches[0].clientX, e.touches[0].clientY),
+          getRelativePointerPosition(stageRef.current, e.touches[1].clientX, e.touches[1].clientY)
+        ];
+      } else if (rect) {
+        // Fallback to raw viewport coordinates
         fingerPoints = [
           { x: e.touches[0].clientX - rect.left, y: e.touches[0].clientY - rect.top },
           { x: e.touches[1].clientX - rect.left, y: e.touches[1].clientY - rect.top }
