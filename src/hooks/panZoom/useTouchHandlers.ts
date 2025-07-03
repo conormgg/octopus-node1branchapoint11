@@ -140,15 +140,12 @@ export const useTouchHandlers = (
       }
       maybeShowConsolidatedToast();
 
-      // Get both finger positions using the same transformation as drawing logic
+      // Get both finger positions - for debug dots we want raw viewport coordinates
       let fingerPoints: { x: number; y: number }[] = [];
-      if (getRelativePointerPosition && stageRef?.current) {
-        // Use the exact same coordinate transformation as drawing
-        fingerPoints = [
-          getRelativePointerPosition(stageRef.current, e.touches[0].clientX, e.touches[0].clientY),
-          getRelativePointerPosition(stageRef.current, e.touches[1].clientX, e.touches[1].clientY)
-        ];
-      } else if (rect) {
+      
+      // Always use raw viewport coordinates for debug visualization
+      // This ensures debug dots appear exactly where fingers touch the screen
+      if (rect) {
         fingerPoints = [
           { x: e.touches[0].clientX - rect.left, y: e.touches[0].clientY - rect.top },
           { x: e.touches[1].clientX - rect.left, y: e.touches[1].clientY - rect.top }

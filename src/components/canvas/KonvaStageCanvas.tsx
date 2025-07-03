@@ -241,30 +241,26 @@ const KonvaStageCanvas: React.FC<KonvaStageCanvasProps> = ({
       {/* Debug layer - rendered on top for troubleshooting */}
       {(visibleDebugCenter || visibleActualZoomFocal || transformedDebugFingerPoints.length > 0) && (
         <Layer>
-          {/* Dots for each finger (green) - using simulated drawing coordinates */}
-          {transformedDebugFingerPoints.map((pt, idx) => {
-            // Only render dots within the current viewport of the minimized board
-            // The visible area is from (panZoomState.x, panZoomState.y) to (panZoomState.x + width, panZoomState.y + height)
-            const inViewport =
-              pt.x >= panZoomState.x &&
-              pt.x <= panZoomState.x + width &&
-              pt.y >= panZoomState.y &&
-              pt.y <= panZoomState.y + height;
+           {/* Dots for each finger (green) - using raw viewport coordinates */}
+           {transformedDebugFingerPoints.map((pt, idx) => {
+             // For minimized view, dots use raw viewport coordinates (no world transformation)
+             // Only render dots within the visible container bounds
+             const inViewport = pt.x >= 0 && pt.x <= width && pt.y >= 0 && pt.y <= height;
 
-            if (!inViewport) return null;
+             if (!inViewport) return null;
 
-            return (
-              <Circle
-                key={`debug-drawing-${idx}`}
-                x={pt.x - panZoomState.x}
-                y={pt.y - panZoomState.y}
-                radius={10}
-                stroke="green"
-                strokeWidth={3}
-                fill="rgba(0, 255, 0, 0.3)"
-              />
-            );
-          })}
+             return (
+               <Circle
+                 key={`debug-drawing-${idx}`}
+                 x={pt.x}
+                 y={pt.y}
+                 radius={10}
+                 stroke="green"
+                 strokeWidth={3}
+                 fill="rgba(0, 255, 0, 0.3)"
+               />
+             );
+           })}
           {/* Red crosshair to show calculated touch center point */}
           {visibleDebugCenter && (
             <>
