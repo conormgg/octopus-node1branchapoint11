@@ -138,6 +138,12 @@ export const useTouchHandlers = (
       if (!coordinateBuffer.pinch) {
         coordinateBuffer.pinch = [debugCoords[0], debugCoords[1]];
       }
+      
+      // Store container dimensions for consolidated toast
+      if (rect) {
+        coordinateBuffer.containerRect = rect;
+      }
+      
       maybeShowConsolidatedToast();
 
       // Get both finger positions using the same coordinate transformation as world coordinates
@@ -154,30 +160,9 @@ export const useTouchHandlers = (
           { x: point2.x + 600, y: point2.y }  // Temporary offset of +600 on x
         ];
         
-        // Show toast with stage offset information
+        // Container rect will be used in the consolidated coordinate toast
         const stageContainer = stageRef.current.container();
         const containerRect = stageContainer?.getBoundingClientRect();
-        
-        console.log('[TouchHandlers] Showing stage offset toast:', containerRect);
-        
-        toast({
-          title: "Stage Offset Debug",
-          description: `Left: ${containerRect?.left || 0}, Top: ${containerRect?.top || 0}, Width: ${containerRect?.width || 0}, Height: ${containerRect?.height || 0}`,
-          duration: 3000
-        });
-        
-        if (logDebugCoordinates) {
-          logDebugCoordinates({
-            type: 'stage_offset_toast',
-            stageOffset: {
-              left: containerRect?.left || 0,
-              top: containerRect?.top || 0,
-              width: containerRect?.width || 0,
-              height: containerRect?.height || 0
-            },
-            timestamp: Date.now()
-          });
-        }
       } else if (rect) {
         // Fallback to raw viewport coordinates
         fingerPoints = [
