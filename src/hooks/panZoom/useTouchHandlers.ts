@@ -157,6 +157,9 @@ export const useTouchHandlers = (
         // Show toast with stage offset information
         const stageContainer = stageRef.current.container();
         const containerRect = stageContainer?.getBoundingClientRect();
+        
+        console.log('[TouchHandlers] Showing stage offset toast:', containerRect);
+        
         toast({
           title: "Stage Offset Debug",
           description: `Left: ${containerRect?.left || 0}, Top: ${containerRect?.top || 0}, Width: ${containerRect?.width || 0}, Height: ${containerRect?.height || 0}`,
