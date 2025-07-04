@@ -9,7 +9,6 @@ import { useWhiteboardDrawingCoordination } from './useWhiteboardDrawingCoordina
 import { useWhiteboardImageOperations } from './useWhiteboardImageOperations';
 import { useWhiteboardPointerHandlers } from './useWhiteboardPointerHandlers';
 import { useNormalizedWhiteboardState } from './performance/useNormalizedWhiteboardState';
-import { useStageCoordinates } from './useStageCoordinates';
 import { createDebugLogger } from '@/utils/debug/debugConfig';
 
 const USE_NORMALIZED_STATE = true; // Feature flag for gradual rollout
@@ -19,11 +18,7 @@ const debugLog = createDebugLogger('state');
  * @hook useWhiteboardState
  * @description Main hook for managing whiteboard state and operations
  */
-export const useWhiteboardState = (
-  containerRef?: React.RefObject<HTMLElement>,
-  stageRef?: React.RefObject<any>,
-  logDebugCoordinates?: (payload: any) => void
-) => {
+export const useWhiteboardState = () => {
   debugLog('Hook', 'Initializing useWhiteboardState');
 
   // Tool management
@@ -108,18 +103,8 @@ export const useWhiteboardState = (
     }));
   }, []);
 
-  // Stage coordinates for touch handling
-  const { getRelativePointerPosition } = useStageCoordinates(state.panZoomState);
-
   // Pan/zoom operations
-  const panZoom = usePanZoom(
-    state.panZoomState,
-    setPanZoomState,
-    containerRef,
-    stageRef,
-    getRelativePointerPosition,
-    logDebugCoordinates
-  );
+  const panZoom = usePanZoom(state.panZoomState, setPanZoomState);
 
   // History operations
   const {

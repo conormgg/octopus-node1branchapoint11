@@ -7,11 +7,7 @@ import { useTouchHandlers } from './panZoom/useTouchHandlers';
 
 export const usePanZoom = (
   panZoomState: PanZoomState,
-  setPanZoomState: (state: PanZoomState) => void,
-  containerRef?: React.RefObject<HTMLElement>,
-  stageRef?: React.RefObject<any>,
-  getRelativePointerPosition?: (stage: any, clientX: number, clientY: number) => { x: number; y: number },
-  logDebugCoordinates?: (payload: any) => void
+  setPanZoomState: (state: PanZoomState) => void
 ) => {
   // Core zoom and centering functionality
   const { zoom, handleWheel, centerOnBounds } = usePanZoomCore(panZoomState, setPanZoomState);
@@ -19,17 +15,8 @@ export const usePanZoom = (
   // Pan state management
   const panHandlers = usePanState(panZoomState, setPanZoomState);
   
-  // Touch event handlers with the correct container reference for coordinate calculations
-  const touchHandlers = useTouchHandlers(
-    panHandlers, 
-    zoom, 
-    panZoomState, 
-    setPanZoomState, 
-    containerRef, // This should be the outermost container that defines the coordinate space
-    stageRef, // Pass stage ref for correct coordinate mapping
-    getRelativePointerPosition, // Pass the coordinate transformation function
-    logDebugCoordinates // Pass debug logger
-  );
+  // Touch event handlers
+  const touchHandlers = useTouchHandlers(panHandlers, zoom);
 
   // Wrap the return object in useMemo to stabilize its reference
   return useMemo(() => ({
@@ -42,11 +29,7 @@ export const usePanZoom = (
     handleTouchMove: touchHandlers.handleTouchMove,
     handleTouchEnd: touchHandlers.handleTouchEnd,
     isGestureActive: panHandlers.isGestureActive,
-    centerOnBounds,
-    debugCenterPoint: touchHandlers.debugCenterPoint,
-    actualZoomFocalPoint: touchHandlers.actualZoomFocalPoint,
-    debugFingerPoints: touchHandlers.debugFingerPoints,
-    debugDrawingCoordinates: touchHandlers.debugDrawingCoordinates
+    centerOnBounds
   }), [
     panHandlers.startPan,
     panHandlers.continuePan,
@@ -57,10 +40,6 @@ export const usePanZoom = (
     touchHandlers.handleTouchMove,
     touchHandlers.handleTouchEnd,
     panHandlers.isGestureActive,
-    centerOnBounds,
-    touchHandlers.debugCenterPoint,
-    touchHandlers.actualZoomFocalPoint,
-    touchHandlers.debugFingerPoints,
-    touchHandlers.debugDrawingCoordinates
+    centerOnBounds
   ]);
 };

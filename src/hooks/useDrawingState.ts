@@ -11,9 +11,6 @@
 import { useCallback, useRef } from 'react';
 import { LineObject, Tool } from '@/types/whiteboard';
 import { createDebugLogger } from '@/utils/debug/debugConfig';
-import { toast } from './use-toast';
-
-import { coordinateBuffer, maybeShowConsolidatedToast } from './coordinateDebugBuffer';
 
 const debugLog = createDebugLogger('drawing');
 
@@ -63,7 +60,7 @@ export const useDrawingState = (
    * @ai-context Creates a new LineObject with current tool settings and
    * adds it to the lines array. Sets isDrawing flag to true.
    */
-  const startDrawing = useCallback((x: number, y: number, coords?: any) => {
+  const startDrawing = useCallback((x: number, y: number) => {
     if (state.currentTool !== 'pencil' && state.currentTool !== 'highlighter') {
       debugLog('Start', 'Invalid tool for drawing', state.currentTool);
       return;
@@ -73,17 +70,8 @@ export const useDrawingState = (
       tool: state.currentTool,
       position: { x, y },
       color: state.currentColor,
-      strokeWidth: state.currentStrokeWidth,
-      coords
+      strokeWidth: state.currentStrokeWidth
     });
-
-    // Store in buffer for consolidated toast
-    if (!coordinateBuffer.drawA) {
-      coordinateBuffer.drawA = coords || { world: { x, y }, screen: { x, y }, viewport: { x, y }, local: { x: 0, y: 0 } };
-    } else if (!coordinateBuffer.drawB) {
-      coordinateBuffer.drawB = coords || { world: { x, y }, screen: { x, y }, viewport: { x, y }, local: { x: 0, y: 0 } };
-    }
-    maybeShowConsolidatedToast();
 
     const newLine: LineObject = {
       id: `line_${Date.now()}_${lineIdRef.current++}`,

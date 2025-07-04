@@ -21,50 +21,25 @@ export const useWhiteboardPointerHandlers = (
   const stableImages = useMemo(() => state.images, [state.images]);
 
   // Handle pointer down
-  const handlePointerDown = useCallback((x: number, y: number, event?: PointerEvent | TouchEvent) => {
+  const handlePointerDown = useCallback((x: number, y: number) => {
     debugLog('PointerHandlers', 'Pointer down', { x, y, tool: stableCurrentTool });
-
+    
     // Don't start drawing if a pan/zoom gesture is active
     if (panZoom.isGestureActive()) {
       debugLog('PointerHandlers', 'Ignoring pointer down - gesture active');
       return;
     }
-
+    
     if (stableCurrentTool === 'pencil' || stableCurrentTool === 'highlighter' || stableCurrentTool === 'eraser') {
-      // Compute all four coordinate systems if event is provided
-      let coords = { screen: { x, y }, viewport: { x, y }, world: { x, y }, local: { x: 0, y: 0 }, _event: undefined as any };
-      if (event) {
-        coords._event = event;
-        if ('clientX' in event && 'clientY' in event) {
-          // PointerEvent
-          coords.screen = { x: event.clientX, y: event.clientY };
-          if (event.target && 'getBoundingClientRect' in event.target) {
-            const rect = (event.target as HTMLElement).getBoundingClientRect();
-            coords.viewport = { x: event.clientX - rect.left, y: event.clientY - rect.top };
-          }
-        } else if ('touches' in event && event.touches.length > 0) {
-          // TouchEvent
-          coords.screen = { x: event.touches[0].clientX, y: event.touches[0].clientY };
-          if (event.target && 'getBoundingClientRect' in event.target) {
-            const rect = (event.target as HTMLElement).getBoundingClientRect();
-            coords.viewport = { x: event.touches[0].clientX - rect.left, y: event.touches[0].clientY - rect.top };
-          }
-        }
-        coords.world = { x, y };
-        coords.local = { x: 0, y: 0 };
-        // Log the full event for debug
-        // eslint-disable-next-line no-console
-        console.log('[DEBUG] Draw event:', event, 'coords:', coords);
-      }
-      drawingCoordination.handleDrawingStart(x, y, coords);
+      drawingCoordination.handleDrawingStart(x, y);
     } else if (stableCurrentTool === 'select') {
       // Handle selection logic with priority:
       // 1. Check if clicking within existing selection bounds (for group dragging)
       // 2. Check if clicking on individual objects
       // 3. Start new selection or clear existing selection
-
+      
       const isInSelectionBounds = selection.isPointInSelectionBounds({ x, y });
-
+      
       if (isInSelectionBounds && stableSelectionState.selectedObjects.length > 0) {
         debugLog('PointerHandlers', 'Clicked within selection bounds');
         // Clicking within selection bounds - this will allow dragging the entire group
@@ -72,10 +47,10 @@ export const useWhiteboardPointerHandlers = (
         // We don't need to change the selection here, just maintain it
         return;
       }
-
+      
       // Check for individual objects
       const foundObjects = selection.findObjectsAtPoint({ x, y }, stableLines, stableImages);
-
+      
       if (foundObjects.length > 0) {
         debugLog('PointerHandlers', 'Found objects at point', { count: foundObjects.length });
         // Select the first found object
