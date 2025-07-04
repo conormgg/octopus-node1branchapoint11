@@ -48,9 +48,14 @@ export const useTouchEventHandlers = (
   
   // Forward the correct coordinate transformation function to useTouchHandlers
   return useTouchHandlers(
-    {}, // panHandlers (stub for now)
+    {
+      setIsGestureActiveState: () => {},
+      startPan: () => {},
+      continuePan: () => {},
+      stopPan: () => {}
+    }, // panHandlers with proper structure
     () => {}, // zoom (stub for now)
-    {}, // panZoomState (stub for now)
+    panZoomState || { x: 0, y: 0, scale: 1 }, // panZoomState
     () => {}, // setPanZoomState (stub for now)
     containerRef,
     stageRef,

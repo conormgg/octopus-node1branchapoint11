@@ -28,15 +28,20 @@ function formatContainerInfo(rect: DOMRect) {
 }
 
 export function maybeShowConsolidatedToast() {
-  if (coordinateBuffer.drawA && coordinateBuffer.drawB && coordinateBuffer.pinch && coordinateBuffer.containerRect) {
+  // Show toast if we have pinch data and container info, even without draw data
+  if (coordinateBuffer.pinch && coordinateBuffer.containerRect) {
+    let description = formatContainerInfo(coordinateBuffer.containerRect) + '\n\n' +
+      formatCoords('Pinch A', coordinateBuffer.pinch[0]) + '\n\n' +
+      formatCoords('Pinch B', coordinateBuffer.pinch[1]);
+    
+    if (coordinateBuffer.drawA && coordinateBuffer.drawB) {
+      description += '\n\n' + formatCoords('Draw A', coordinateBuffer.drawA) + '\n\n' +
+        formatCoords('Draw B', coordinateBuffer.drawB);
+    }
+    
     toast({
       title: 'Coordinate & Container Info',
-      description:
-        formatContainerInfo(coordinateBuffer.containerRect) + '\n\n' +
-        formatCoords('Draw A', coordinateBuffer.drawA) + '\n\n' +
-        formatCoords('Draw B', coordinateBuffer.drawB) + '\n\n' +
-        formatCoords('Pinch A', coordinateBuffer.pinch[0]) + '\n\n' +
-        formatCoords('Pinch B', coordinateBuffer.pinch[1])
+      description
     });
     coordinateBuffer = {};
   }

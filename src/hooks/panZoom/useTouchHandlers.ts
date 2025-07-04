@@ -71,6 +71,7 @@ export const useTouchHandlers = (
 
   const handleTouchStart = useCallback((e: TouchEvent) => {
     console.log('[TouchHandlers] Touch start with', e.touches.length, 'touches');
+    console.log('[TouchHandlers] DEBUG: handleTouchStart called - toast should show soon');
     
     // Only handle multi-touch gestures (2+ fingers)
     if (e.touches.length >= 2) {
@@ -91,6 +92,7 @@ export const useTouchHandlers = (
 
   const handleTouchMove = useCallback((e: TouchEvent) => {
     console.log('[TouchHandlers] [DEBUG] handleTouchMove called', e.touches.length, 'touches', e);
+    console.log('[TouchHandlers] DEBUG: About to process touch move and show toasts');
     
     // Only handle multi-touch gestures
     if (e.touches.length >= 2) {
@@ -145,6 +147,14 @@ export const useTouchHandlers = (
       }
       
       maybeShowConsolidatedToast();
+      
+      // Also show immediate stage offset toast
+      if (rect) {
+        toast({
+          title: 'Stage Offset Info',
+          description: `Stage Container:\nLeft: ${rect.left.toFixed(2)}px\nTop: ${rect.top.toFixed(2)}px\nWidth: ${rect.width.toFixed(2)}px\nHeight: ${rect.height.toFixed(2)}px`
+        });
+      }
 
       // Get both finger positions using the same coordinate transformation as world coordinates
       // This ensures debug dots appear exactly where the coordinate calculation shows they should be
