@@ -60,15 +60,32 @@ export const useTouchHandlers = (
       const currentDistance = getTouchDistance(e.touches);
       const currentCenter = getTouchCenter(e.touches);
       
-      const { lastDistance, lastCenter } = touchStateRef.current;
+      const { lastDistance } = touchStateRef.current;
       
       if (lastDistance > 0) {
         const zoomFactor = currentDistance / lastDistance;
-        zoom(zoomFactor, lastCenter.x, lastCenter.y);
+        
+        // Get the container element to calculate proper viewport coordinates
+        const target = e.target as HTMLElement;
+        const container = target.closest('[data-whiteboard-id]') || target;
+        const rect = container.getBoundingClientRect();
+        
+        // Convert touch center to viewport coordinates
+        const viewportCenterX = currentCenter.x - rect.left;
+        const viewportCenterY = currentCenter.y - rect.top;
+        
+        console.log('[PanZoom] Pinch zoom:', {
+          factor: zoomFactor,
+          center: { x: viewportCenterX, y: viewportCenterY },
+          containerRect: { left: rect.left, top: rect.top }
+        });
+        
+        // Zoom centered on the pinch point
+        zoom(zoomFactor, viewportCenterX, viewportCenterY);
       }
       
-      // Two-finger pan
-      if (e.touches.length === 2) {
+      // Two-finger pan (only if not zooming significantly)
+      if (e.touches.length === 2 && Math.abs(currentDistance - lastDistance) < 10) {
         panHandlers.continuePan(currentCenter.x, currentCenter.y);
       }
       

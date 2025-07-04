@@ -85,8 +85,8 @@ export const useStageEventHandlers = ({
 
     const handleTouchStart = (e: TouchEvent) => {
       logEventHandling('touchstart', 'touch', { touches: e.touches.length });
-      // Only prevent default if palm rejection is disabled or we have multiple touches
-      if (!palmRejectionConfig.enabled || e.touches.length > 1) {
+      // Always prevent default for multi-touch to ensure pinch-to-zoom works
+      if (e.touches.length >= 2) {
         e.preventDefault();
       }
       panZoom.handleTouchStart(e);
@@ -94,14 +94,19 @@ export const useStageEventHandlers = ({
 
     const handleTouchMove = (e: TouchEvent) => {
       logEventHandling('touchmove', 'touch', { touches: e.touches.length });
-      // Always prevent default for touch move to avoid scrolling
-      e.preventDefault();
+      // Always prevent default for multi-touch gestures
+      if (e.touches.length >= 2) {
+        e.preventDefault();
+      }
       panZoom.handleTouchMove(e);
     };
 
     const handleTouchEnd = (e: TouchEvent) => {
       logEventHandling('touchend', 'touch', { touches: e.touches.length });
-      e.preventDefault();
+      // Only prevent default for multi-touch end events
+      if (e.touches.length >= 1 || (e.changedTouches && e.changedTouches.length >= 1)) {
+        e.preventDefault();
+      }
       panZoom.handleTouchEnd(e);
     };
 
