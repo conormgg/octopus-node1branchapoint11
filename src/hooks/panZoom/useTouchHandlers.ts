@@ -146,10 +146,35 @@ export const useTouchHandlers = (
       
       if (getRelativePointerPosition && stageRef?.current) {
         // Use the same coordinate transformation as the world coordinates
+        const point1 = getRelativePointerPosition(stageRef.current, e.touches[0].clientX, e.touches[0].clientY);
+        const point2 = getRelativePointerPosition(stageRef.current, e.touches[1].clientX, e.touches[1].clientY);
+        
         fingerPoints = [
-          getRelativePointerPosition(stageRef.current, e.touches[0].clientX, e.touches[0].clientY),
-          getRelativePointerPosition(stageRef.current, e.touches[1].clientX, e.touches[1].clientY)
+          { x: point1.x + 300, y: point1.y }, // Temporary offset of 300 on x
+          { x: point2.x + 300, y: point2.y }  // Temporary offset of 300 on x
         ];
+        
+        // Show toast with stage offset information
+        const stageContainer = stageRef.current.container();
+        const containerRect = stageContainer?.getBoundingClientRect();
+        toast({
+          title: "Stage Offset Debug",
+          description: `Left: ${containerRect?.left || 0}, Top: ${containerRect?.top || 0}, Width: ${containerRect?.width || 0}, Height: ${containerRect?.height || 0}`,
+          duration: 3000
+        });
+        
+        if (logDebugCoordinates) {
+          logDebugCoordinates({
+            type: 'stage_offset_toast',
+            stageOffset: {
+              left: containerRect?.left || 0,
+              top: containerRect?.top || 0,
+              width: containerRect?.width || 0,
+              height: containerRect?.height || 0
+            },
+            timestamp: Date.now()
+          });
+        }
       } else if (rect) {
         // Fallback to raw viewport coordinates
         fingerPoints = [
