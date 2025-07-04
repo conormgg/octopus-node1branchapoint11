@@ -150,8 +150,8 @@ export const useTouchHandlers = (
         const point2 = getRelativePointerPosition(stageRef.current, e.touches[1].clientX, e.touches[1].clientY);
         
         fingerPoints = [
-          { x: point1.x - 600, y: point1.y }, // Temporary offset of -600 on x
-          { x: point2.x - 600, y: point2.y }  // Temporary offset of -600 on x
+          { x: point1.x + 600, y: point1.y }, // Temporary offset of +600 on x
+          { x: point2.x + 600, y: point2.y }  // Temporary offset of +600 on x
         ];
         
         // Show toast with stage offset information
