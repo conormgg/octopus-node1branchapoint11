@@ -22,7 +22,7 @@ export const useSessionChecker = ({
 }: UseSessionCheckerProps) => {
   const { fetchSessionData } = useSessionStatusChecker();
 
-  const IDLE_TIMEOUT_MS = 10 * 60 * 1000; // 10 minutes of idle time
+  const IDLE_TIMEOUT_MS = 40 * 60 * 1000; // 40 minutes of idle time
   const SESSION_BUFFER_MS = 10 * 60 * 1000; // 10 minutes buffer after session duration
 
   const checkSessionExpiration = useCallback(async () => {
