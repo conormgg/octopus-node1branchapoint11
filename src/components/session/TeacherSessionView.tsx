@@ -43,6 +43,7 @@ interface TeacherSessionViewProps {
   onOrientationChange: (orientation: GridOrientation) => void;
   onToggleSplitView: () => void;
   onCloseSplitView: () => void;
+  onToggleDualBrowser?: () => void;
   onCloseDualBrowser?: () => void;
   onToggleControlsCollapse: () => void;
   onPreviousPage: () => void;
@@ -81,6 +82,7 @@ const TeacherSessionView: React.FC<TeacherSessionViewProps> = ({
   onOrientationChange,
   onToggleSplitView,
   onCloseSplitView,
+  onToggleDualBrowser,
   onCloseDualBrowser,
   onToggleControlsCollapse,
   onPreviousPage,
@@ -127,12 +129,14 @@ const TeacherSessionView: React.FC<TeacherSessionViewProps> = ({
         selectedLayoutId={selectedLayoutId}
         gridOrientation={gridOrientation}
         isSplitViewActive={isSplitViewActive}
+        isDualBrowserActive={isDualBrowserActive}
         isControlsCollapsed={isControlsCollapsed}
         activeSession={activeSession}
         sessionStudents={sessionStudents}
         onLayoutChange={onLayoutChange}
         onOrientationChange={onOrientationChange}
         onToggleSplitView={onToggleSplitView}
+        onToggleDualBrowser={onToggleDualBrowser}
         onToggleControlsCollapse={onToggleControlsCollapse}
         onEndSession={onEndSession}
         onSignOut={onSignOut}

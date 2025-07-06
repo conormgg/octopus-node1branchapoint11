@@ -121,6 +121,7 @@ const TeacherView: React.FC<TeacherViewProps> = ({
         onOrientationChange={handleOrientationChange}
         onToggleSplitView={handleToggleSplitView}
         onCloseSplitView={handleCloseSplitView}
+        onToggleDualBrowser={handleToggleDualBrowser}
         onCloseDualBrowser={handleCloseDualBrowser}
         onToggleControlsCollapse={handleToggleControlsCollapse}
         onPreviousPage={handlePreviousPage}

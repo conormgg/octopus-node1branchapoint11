@@ -124,6 +124,22 @@ export const useDualBrowserManager = ({ onStudentWindowReady, onClose }: DualBro
       const handleBlur = () => {
         console.log('[DualBrowserManager] Student window lost focus');
       };
+
+      // Add popup blocker detection
+      const checkWindow = () => {
+        if (newWindow.closed) {
+          console.log('[DualBrowserManager] Window was closed or blocked');
+          onClose();
+        }
+      };
+
+      // Check if window was blocked (popup blocker)
+      setTimeout(() => {
+        if (newWindow.closed || !newWindow.window) {
+          console.error('[DualBrowserManager] Popup blocked or window failed to open');
+          onClose();
+        }
+      }, 100);
       
       newWindow.addEventListener('beforeunload', handleBeforeUnload);
       newWindow.addEventListener('focus', handleFocus);
@@ -137,6 +153,9 @@ export const useDualBrowserManager = ({ onStudentWindowReady, onClose }: DualBro
       };
     } else {
       console.error('[DualBrowserManager] Failed to open student window - popup might be blocked');
+      // Show user-friendly error message
+      alert('Unable to open student boards window. Please check if popup blocker is enabled and allow popups for this site.');
+      onClose();
     }
 
     return () => {

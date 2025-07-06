@@ -1,6 +1,6 @@
 
 import React, { useState } from 'react';
-import { GraduationCap, ChevronUp, ChevronDown, Columns2, Rows2, Settings, Copy, Check, ExternalLink, LogOut, X, UserMinus, Monitor, UserPlus } from 'lucide-react';
+import { GraduationCap, ChevronUp, ChevronDown, Columns2, Rows2, Settings, Copy, Check, ExternalLink, LogOut, X, UserMinus, Monitor, UserPlus, MonitorSpeaker } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
@@ -30,6 +30,8 @@ interface TeacherHeaderProps {
   onOrientationChange: (orientation: GridOrientation) => void;
   onToggleSplitView?: () => void;
   isSplitViewActive?: boolean;
+  onToggleDualBrowser?: () => void;
+  isDualBrowserActive?: boolean;
   isCollapsed?: boolean;
   onToggleCollapse?: () => void;
   activeSession?: Session | null;
@@ -51,6 +53,8 @@ const TeacherHeader: React.FC<TeacherHeaderProps> = ({
   onOrientationChange,
   onToggleSplitView,
   isSplitViewActive = false,
+  onToggleDualBrowser,
+  isDualBrowserActive = false,
   isCollapsed = false,
   onToggleCollapse,
   activeSession,
@@ -179,18 +183,40 @@ const TeacherHeader: React.FC<TeacherHeaderProps> = ({
                 </div>
               )}
               
-              {/* Split View Button */}
-              {onToggleSplitView && (
-                <Button
-                  variant={isSplitViewActive ? "default" : "outline"}
-                  size="sm"
-                  onClick={onToggleSplitView}
-                  className="flex items-center space-x-2"
-                >
-                  <Monitor className="w-4 h-4" />
-                  <span>{isSplitViewActive ? 'Close Split View' : 'Split View'}</span>
-                </Button>
-              )}
+              {/* Split View Buttons */}
+              <div className="flex items-center space-x-2">
+                {onToggleSplitView && (
+                  <Button
+                    variant={isSplitViewActive ? "default" : "outline"}
+                    size="sm"
+                    onClick={onToggleSplitView}
+                    className="flex items-center space-x-2"
+                    disabled={isDualBrowserActive}
+                  >
+                    <Monitor className="w-4 h-4" />
+                    <span>{isSplitViewActive ? 'Close Split' : 'Split View'}</span>
+                  </Button>
+                )}
+                
+                {onToggleDualBrowser && (
+                  <Button
+                    variant={isDualBrowserActive ? "default" : "outline"}
+                    size="sm"
+                    onClick={onToggleDualBrowser}
+                    className="flex items-center space-x-2 relative"
+                    disabled={isSplitViewActive}
+                    title={isDualBrowserActive ? 'Close dual browser view' : 'Open student boards in separate window (ideal for dual monitors)'}
+                  >
+                    <div className="relative">
+                      <MonitorSpeaker className="w-4 h-4" />
+                      <span className="absolute -top-1 -right-1 w-2 h-2 bg-blue-500 text-white text-xs rounded-full flex items-center justify-center text-[8px] font-bold">
+                        2
+                      </span>
+                    </div>
+                    <span>{isDualBrowserActive ? 'Close Dual' : 'Split View 2'}</span>
+                  </Button>
+                )}
+              </div>
 
               {/* Session Options Dropdown */}
               {activeSession && (
