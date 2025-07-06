@@ -31,6 +31,7 @@ interface TeacherSessionViewProps {
   currentPage: number;
   selectedLayoutId: string;
   isSplitViewActive: boolean;
+  isDualBrowserActive?: boolean;
   gridOrientation: GridOrientation;
   isControlsCollapsed: boolean;
   availableLayouts: any[];
@@ -42,6 +43,7 @@ interface TeacherSessionViewProps {
   onOrientationChange: (orientation: GridOrientation) => void;
   onToggleSplitView: () => void;
   onCloseSplitView: () => void;
+  onCloseDualBrowser?: () => void;
   onToggleControlsCollapse: () => void;
   onPreviousPage: () => void;
   onNextPage: () => void;
@@ -67,6 +69,7 @@ const TeacherSessionView: React.FC<TeacherSessionViewProps> = ({
   currentPage,
   selectedLayoutId,
   isSplitViewActive,
+  isDualBrowserActive,
   gridOrientation,
   isControlsCollapsed,
   availableLayouts,
@@ -78,6 +81,7 @@ const TeacherSessionView: React.FC<TeacherSessionViewProps> = ({
   onOrientationChange,
   onToggleSplitView,
   onCloseSplitView,
+  onCloseDualBrowser,
   onToggleControlsCollapse,
   onPreviousPage,
   onNextPage,
@@ -138,6 +142,7 @@ const TeacherSessionView: React.FC<TeacherSessionViewProps> = ({
 
       <TeacherSessionMainContent
         activeSession={activeSession}
+        sessionStudents={sessionStudents}
         studentCount={totalStudentCount}
         activeStudentCount={activeStudentCount}
         currentLayout={currentLayout}
@@ -151,6 +156,7 @@ const TeacherSessionView: React.FC<TeacherSessionViewProps> = ({
         maximizedBoard={maximizedBoard}
         isControlsCollapsed={isControlsCollapsed}
         isSplitViewActive={isSplitViewActive}
+        isDualBrowserActive={isDualBrowserActive}
         onMaximize={onMaximize}
         onMinimize={onMinimize}
         onPreviousPage={onPreviousPage}
@@ -158,6 +164,11 @@ const TeacherSessionView: React.FC<TeacherSessionViewProps> = ({
         onLayoutChange={onLayoutChange}
         onOrientationChange={onOrientationChange}
         onCloseSplitView={onCloseSplitView}
+        onCloseDualBrowser={onCloseDualBrowser}
+        onEndSession={onEndSession}
+        onSignOut={onSignOut}
+        onAddIndividualStudent={onAddIndividualStudent}
+        onRemoveIndividualStudent={onRemoveIndividualStudent}
         teacherSenderId={teacherSenderId}
         onToggleSyncDirection={onToggleSyncDirection}
         getSyncDirection={getSyncDirection}
