@@ -16,6 +16,7 @@ import StudentSessionView from "@/components/session/StudentSessionView";
 import Index from "./pages/Index";
 import LogoReplacer from "./pages/LogoReplacer";
 import NotFound from "./pages/NotFound";
+import StudentMonitor from "./pages/StudentMonitor";
 import { Loader2 } from "lucide-react";
 import { useCallback } from "react";
 
@@ -24,6 +25,11 @@ const queryClient = new QueryClient();
 // Helper function to check if current route is a student route
 const isStudentRoute = (pathname: string) => {
   return pathname.startsWith('/session/');
+};
+
+// Helper function to check if current route is a monitor route
+const isMonitorRoute = (pathname: string) => {
+  return pathname.startsWith('/monitor/');
 };
 
 // Student-only routes without any authentication
@@ -126,13 +132,28 @@ const TeacherRoutes = () => {
   );
 };
 
-// Route dispatcher that decides between student and teacher flows
+// Monitor routes - standalone monitor pages
+const MonitorRoutes = () => {
+  return (
+    <Routes>
+      <Route path="/monitor/:sessionId" element={<StudentMonitor />} />
+      <Route path="*" element={<NotFound />} />
+    </Routes>
+  );
+};
+
+// Route dispatcher that decides between student, monitor, and teacher flows
 const RouteDispatcher = () => {
   const location = useLocation();
 
   // For student routes, use minimal student-only app
   if (isStudentRoute(location.pathname)) {
     return <StudentRoutes />;
+  }
+
+  // For monitor routes, use standalone monitor app
+  if (isMonitorRoute(location.pathname)) {
+    return <MonitorRoutes />;
   }
 
   // For all other routes, use full teacher app with authentication
