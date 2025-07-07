@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { GraduationCap, ChevronUp, ChevronDown, Columns2, Rows2, Settings, Copy, Check, ExternalLink, LogOut, X, UserMinus, Monitor, UserPlus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
@@ -64,6 +64,8 @@ const TeacherHeader: React.FC<TeacherHeaderProps> = ({
   const [copied, setCopied] = useState(false);
   const [showAddStudentDialog, setShowAddStudentDialog] = useState(false);
   const [showRemoveStudentDialog, setShowRemoveStudentDialog] = useState(false);
+  const [isSplitView2Active, setIsSplitView2Active] = useState(false);
+  const [monitorWindow, setMonitorWindow] = useState<Window | null>(null);
   const { toast } = useToast();
 
   const shouldShowHeader = !isCollapsed || isHovered;
@@ -105,6 +107,93 @@ const TeacherHeader: React.FC<TeacherHeaderProps> = ({
   const handleRemoveStudent = async (participantId: number) => {
     if (onRemoveIndividualStudent) {
       await onRemoveIndividualStudent(participantId);
+    }
+  };
+
+  const openSplitView2 = () => {
+    if (!activeSession) {
+      toast({
+        title: "No Active Session",
+        description: "Please start a session first.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    try {
+      const monitorUrl = `${window.location.origin}/monitor/${activeSession.id}`;
+      const newWindow = window.open(
+        monitorUrl, 
+        'student-monitor', 
+        'width=1400,height=900,scrollbars=yes,resizable=yes,location=yes,menubar=no,toolbar=no'
+      );
+
+      if (!newWindow) {
+        toast({
+          title: "Popup Blocked",
+          description: "Please allow popups for this site and try again.",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      setMonitorWindow(newWindow);
+      setIsSplitView2Active(true);
+
+      toast({
+        title: "Student Monitor Opened",
+        description: "Monitor window opened successfully. Student boards will display there.",
+      });
+
+      // Close Split View 1 if it's active (mutually exclusive)
+      if (isSplitViewActive && onToggleSplitView) {
+        onToggleSplitView();
+      }
+
+    } catch (error) {
+      toast({
+        title: "Failed to Open Monitor",
+        description: "Could not open the student monitor window.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const closeSplitView2 = () => {
+    if (monitorWindow && !monitorWindow.closed) {
+      monitorWindow.close();
+    }
+    setMonitorWindow(null);
+    setIsSplitView2Active(false);
+    toast({
+      title: "Monitor Closed",
+      description: "Student monitor window has been closed.",
+    });
+  };
+
+  // Monitor window state
+  useEffect(() => {
+    if (!monitorWindow) return;
+
+    const checkWindow = () => {
+      if (monitorWindow.closed) {
+        setIsSplitView2Active(false);
+        setMonitorWindow(null);
+      }
+    };
+
+    const interval = setInterval(checkWindow, 1000);
+    return () => clearInterval(interval);
+  }, [monitorWindow]);
+
+  // Handle Split View 1 toggle with mutual exclusivity
+  const handleSplitView1Toggle = () => {
+    if (onToggleSplitView) {
+      // Close Split View 2 if it's active (mutually exclusive)
+      if (isSplitView2Active) {
+        closeSplitView2();
+      }
+      onToggleSplitView();
     }
   };
 
@@ -179,17 +268,33 @@ const TeacherHeader: React.FC<TeacherHeaderProps> = ({
                 </div>
               )}
               
-              {/* Split View Button */}
+              {/* Split View Buttons */}
               {onToggleSplitView && (
-                <Button
-                  variant={isSplitViewActive ? "default" : "outline"}
-                  size="sm"
-                  onClick={onToggleSplitView}
-                  className="flex items-center space-x-2"
-                >
-                  <Monitor className="w-4 h-4" />
-                  <span>{isSplitViewActive ? 'Close Split View' : 'Split View'}</span>
-                </Button>
+                <div className="flex items-center space-x-2">
+                  <Button
+                    variant={isSplitViewActive ? "default" : "outline"}
+                    size="sm"
+                    onClick={handleSplitView1Toggle}
+                    disabled={isSplitView2Active}
+                    className="flex items-center space-x-2"
+                    title="Split view with teacher board and students in same window"
+                  >
+                    <Monitor className="w-4 h-4" />
+                    <span>Split View</span>
+                  </Button>
+                  
+                  <Button
+                    variant={isSplitView2Active ? "default" : "outline"}
+                    size="sm"
+                    onClick={isSplitView2Active ? closeSplitView2 : openSplitView2}
+                    disabled={!activeSession || isSplitViewActive}
+                    className="flex items-center space-x-2"
+                    title="Open student boards in separate window (ideal for dual monitors)"
+                  >
+                    <ExternalLink className="w-4 h-4" />
+                    <span>{isSplitView2Active ? 'Close Monitor' : 'Split View 2'}</span>
+                  </Button>
+                </div>
               )}
 
               {/* Session Options Dropdown */}
