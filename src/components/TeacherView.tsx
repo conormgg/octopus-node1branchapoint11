@@ -46,6 +46,7 @@ const TeacherView: React.FC<TeacherViewProps> = ({
     currentPage,
     selectedLayoutId,
     isSplitViewActive,
+    isSplitView2Active,
     gridOrientation,
     isControlsCollapsed,
     availableLayouts,
@@ -60,6 +61,7 @@ const TeacherView: React.FC<TeacherViewProps> = ({
     handleToggleControlsCollapse,
     handlePreviousPage,
     handleNextPage,
+    handleSplitView2StateChange,
   } = useTeacherViewState(totalStudentCount); // Use total count for layout calculations
 
   useEffect(() => {
@@ -106,6 +108,7 @@ const TeacherView: React.FC<TeacherViewProps> = ({
         currentPage={currentPage}
         selectedLayoutId={selectedLayoutId}
         isSplitViewActive={isSplitViewActive}
+        isSplitView2Active={isSplitView2Active}
         gridOrientation={gridOrientation}
         isControlsCollapsed={isControlsCollapsed}
         availableLayouts={availableLayouts}
@@ -129,6 +132,7 @@ const TeacherView: React.FC<TeacherViewProps> = ({
         onToggleSyncDirection={toggleSyncDirection}
         getSyncDirection={getSyncDirection}
         isParticipantUpdating={isParticipantUpdating}
+        onSplitView2StateChange={handleSplitView2StateChange}
       />
     </>
   );

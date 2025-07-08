@@ -26,6 +26,7 @@ interface TeacherSessionResizablePanelsProps {
   gridOrientation: GridOrientation;
   maximizedBoard: string | null;
   isControlsCollapsed: boolean;
+  isSplitView2Active?: boolean;
   teacherSenderId?: string;
   onMaximize: (boardId: string) => void;
   onMinimize: () => void;
@@ -49,6 +50,7 @@ const TeacherSessionResizablePanels: React.FC<TeacherSessionResizablePanelsProps
   gridOrientation,
   maximizedBoard,
   isControlsCollapsed,
+  isSplitView2Active = false,
   teacherSenderId,
   onMaximize,
   onMinimize,
@@ -58,6 +60,22 @@ const TeacherSessionResizablePanels: React.FC<TeacherSessionResizablePanelsProps
   getSyncDirection,
   isParticipantUpdating,
 }) => {
+  // If Split View 2 is active, only show teacher board
+  if (isSplitView2Active) {
+    return (
+      <div className="h-full relative">
+        <TeacherMainBoard 
+          onMaximize={onMaximize}
+          onMinimize={onMinimize}
+          maximizedBoard={maximizedBoard}
+          isHeaderCollapsed={isControlsCollapsed}
+          sessionId={activeSession.id}
+          senderId={teacherSenderId || activeSession.teacher_id}
+        />
+      </div>
+    );
+  }
+
   return (
     <ResizablePanelGroup direction="horizontal" className="rounded-lg overflow-hidden">
       {/* Left Pane - Teacher's Main Board */}

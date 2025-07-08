@@ -10,6 +10,7 @@ interface TeacherSessionViewHeaderProps {
   selectedLayoutId: string;
   gridOrientation: 'columns-first' | 'rows-first';
   isSplitViewActive: boolean;
+  isSplitView2Active?: boolean;
   isControlsCollapsed: boolean;
   activeSession: {
     id: string;
@@ -28,6 +29,7 @@ interface TeacherSessionViewHeaderProps {
   onSignOut: () => void;
   onAddIndividualStudent?: (name: string, email: string) => Promise<void>;
   onRemoveIndividualStudent?: (participantId: number) => Promise<void>;
+  onSplitView2StateChange?: (isActive: boolean) => void;
 }
 
 const TeacherSessionViewHeader: React.FC<TeacherSessionViewHeaderProps> = ({
@@ -37,6 +39,7 @@ const TeacherSessionViewHeader: React.FC<TeacherSessionViewHeaderProps> = ({
   selectedLayoutId,
   gridOrientation,
   isSplitViewActive,
+  isSplitView2Active = false,
   isControlsCollapsed,
   activeSession,
   sessionStudents,
@@ -48,6 +51,7 @@ const TeacherSessionViewHeader: React.FC<TeacherSessionViewHeaderProps> = ({
   onSignOut,
   onAddIndividualStudent,
   onRemoveIndividualStudent,
+  onSplitView2StateChange,
 }) => {
   return (
     <>
@@ -76,6 +80,7 @@ const TeacherSessionViewHeader: React.FC<TeacherSessionViewHeaderProps> = ({
         onSignOut={onSignOut}
         onAddIndividualStudent={onAddIndividualStudent}
         onRemoveIndividualStudent={onRemoveIndividualStudent}
+        onSplitView2StateChange={onSplitView2StateChange}
       />
     </>
   );

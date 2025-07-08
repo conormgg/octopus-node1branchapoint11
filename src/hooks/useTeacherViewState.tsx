@@ -8,6 +8,7 @@ export const useTeacherViewState = (studentCount: number) => {
   const [currentPage, setCurrentPage] = useState(0);
   const [selectedLayoutId, setSelectedLayoutId] = useState<string>('2x2');
   const [isSplitViewActive, setIsSplitViewActive] = useState(false);
+  const [isSplitView2Active, setIsSplitView2Active] = useState(false);
   const [gridOrientation, setGridOrientation] = useState<GridOrientation>('columns-first');
   const [isControlsCollapsed, setIsControlsCollapsed] = useState(false);
 
@@ -80,11 +81,16 @@ export const useTeacherViewState = (studentCount: number) => {
     setCurrentPage(prev => Math.min(totalPages - 1, prev + 1));
   }, [totalPages]);
 
+  const handleSplitView2StateChange = useCallback((isActive: boolean) => {
+    setIsSplitView2Active(isActive);
+  }, []);
+
   return {
     maximizedBoard,
     currentPage,
     selectedLayoutId,
     isSplitViewActive,
+    isSplitView2Active,
     gridOrientation,
     isControlsCollapsed,
     availableLayouts,
@@ -99,5 +105,6 @@ export const useTeacherViewState = (studentCount: number) => {
     handleToggleControlsCollapse,
     handlePreviousPage,
     handleNextPage,
+    handleSplitView2StateChange,
   };
 };

@@ -31,6 +31,7 @@ interface TeacherSessionViewProps {
   currentPage: number;
   selectedLayoutId: string;
   isSplitViewActive: boolean;
+  isSplitView2Active?: boolean;
   gridOrientation: GridOrientation;
   isControlsCollapsed: boolean;
   availableLayouts: any[];
@@ -55,6 +56,8 @@ interface TeacherSessionViewProps {
   onToggleSyncDirection?: (participantId: number) => Promise<boolean>;
   getSyncDirection?: (participantId: number) => SyncDirection;
   isParticipantUpdating?: (participantId: number) => boolean;
+  // Split View 2 callback
+  onSplitView2StateChange?: (isActive: boolean) => void;
 }
 
 const TeacherSessionView: React.FC<TeacherSessionViewProps> = ({
@@ -67,6 +70,7 @@ const TeacherSessionView: React.FC<TeacherSessionViewProps> = ({
   currentPage,
   selectedLayoutId,
   isSplitViewActive,
+  isSplitView2Active = false,
   gridOrientation,
   isControlsCollapsed,
   availableLayouts,
@@ -89,6 +93,7 @@ const TeacherSessionView: React.FC<TeacherSessionViewProps> = ({
   onToggleSyncDirection,
   getSyncDirection,
   isParticipantUpdating,
+  onSplitView2StateChange,
 }) => {
   // Memoize expensive computations to prevent unnecessary re-renders
   const allStudentBoards = useMemo(() => 
@@ -123,6 +128,7 @@ const TeacherSessionView: React.FC<TeacherSessionViewProps> = ({
         selectedLayoutId={selectedLayoutId}
         gridOrientation={gridOrientation}
         isSplitViewActive={isSplitViewActive}
+        isSplitView2Active={isSplitView2Active}
         isControlsCollapsed={isControlsCollapsed}
         activeSession={activeSession}
         sessionStudents={sessionStudents}
@@ -134,6 +140,7 @@ const TeacherSessionView: React.FC<TeacherSessionViewProps> = ({
         onSignOut={onSignOut}
         onAddIndividualStudent={onAddIndividualStudent}
         onRemoveIndividualStudent={onRemoveIndividualStudent}
+        onSplitView2StateChange={onSplitView2StateChange}
       />
 
       <TeacherSessionMainContent
@@ -162,6 +169,7 @@ const TeacherSessionView: React.FC<TeacherSessionViewProps> = ({
         onToggleSyncDirection={onToggleSyncDirection}
         getSyncDirection={getSyncDirection}
         isParticipantUpdating={isParticipantUpdating}
+        isSplitView2Active={isSplitView2Active}
       />
     </div>
   );

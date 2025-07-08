@@ -39,6 +39,8 @@ interface TeacherHeaderProps {
   sessionStudents?: SessionParticipant[];
   onAddIndividualStudent?: (name: string, email: string) => Promise<void>;
   onRemoveIndividualStudent?: (participantId: number) => Promise<void>;
+  // Split View 2 props
+  onSplitView2StateChange?: (isActive: boolean) => void;
 }
 
 const TeacherHeader: React.FC<TeacherHeaderProps> = ({
@@ -59,6 +61,7 @@ const TeacherHeader: React.FC<TeacherHeaderProps> = ({
   sessionStudents = [],
   onAddIndividualStudent,
   onRemoveIndividualStudent,
+  onSplitView2StateChange,
 }) => {
   const [isHovered, setIsHovered] = useState(false);
   const [copied, setCopied] = useState(false);
@@ -140,6 +143,9 @@ const TeacherHeader: React.FC<TeacherHeaderProps> = ({
       setMonitorWindow(newWindow);
       setIsSplitView2Active(true);
 
+      // Notify parent component about state change
+      onSplitView2StateChange?.(true);
+
       toast({
         title: "Student Monitor Opened",
         description: "Monitor window opened successfully. Student boards will display there.",
@@ -165,6 +171,10 @@ const TeacherHeader: React.FC<TeacherHeaderProps> = ({
     }
     setMonitorWindow(null);
     setIsSplitView2Active(false);
+    
+    // Notify parent component about state change
+    onSplitView2StateChange?.(false);
+    
     toast({
       title: "Monitor Closed",
       description: "Student monitor window has been closed.",
@@ -179,6 +189,8 @@ const TeacherHeader: React.FC<TeacherHeaderProps> = ({
       if (monitorWindow.closed) {
         setIsSplitView2Active(false);
         setMonitorWindow(null);
+        // Notify parent component about state change
+        onSplitView2StateChange?.(false);
       }
     };
 

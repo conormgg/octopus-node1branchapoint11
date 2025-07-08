@@ -28,6 +28,7 @@ interface TeacherSessionMainContentProps {
   maximizedBoard: string | null;
   isControlsCollapsed: boolean;
   isSplitViewActive: boolean;
+  isSplitView2Active?: boolean;
   teacherSenderId?: string;
   onMaximize: (boardId: string) => void;
   onMinimize: () => void;
@@ -57,6 +58,7 @@ const TeacherSessionMainContent: React.FC<TeacherSessionMainContentProps> = ({
   maximizedBoard,
   isControlsCollapsed,
   isSplitViewActive,
+  isSplitView2Active = false,
   teacherSenderId,
   onMaximize,
   onMinimize,
@@ -111,6 +113,7 @@ const TeacherSessionMainContent: React.FC<TeacherSessionMainContentProps> = ({
           gridOrientation={gridOrientation}
           maximizedBoard={maximizedBoard}
           isControlsCollapsed={isControlsCollapsed}
+          isSplitView2Active={isSplitView2Active}
           teacherSenderId={teacherSenderId}
           onMaximize={onMaximize}
           onMinimize={onMinimize}
