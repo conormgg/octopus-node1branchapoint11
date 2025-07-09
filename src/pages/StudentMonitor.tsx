@@ -8,8 +8,9 @@ import { useTeacherViewState } from '@/hooks/useTeacherViewState';
 import StudentBoardsGrid from '@/components/StudentBoardsGrid';
 import { generateStudentBoardsFromParticipants, generateGridSlotsWithStatus } from '@/utils/studentBoardGenerator';
 import { Session } from '@/types/session';
-import { SessionParticipant } from '@/types/student';
+import { SessionParticipant, SyncDirection } from '@/types/student';
 import { useToast } from '@/hooks/use-toast';
+import { updateParticipantSyncDirection } from '@/utils/syncDirection';
 
 const StudentMonitor: React.FC = () => {
   const { sessionId } = useParams<{ sessionId: string }>();
@@ -19,6 +20,10 @@ const StudentMonitor: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isHeaderCollapsed, setIsHeaderCollapsed] = useState(false);
+  
+  // Sync direction management state
+  const [participantSyncDirections, setParticipantSyncDirections] = useState<Record<number, SyncDirection>>({});
+  const [updatingParticipants, setUpdatingParticipants] = useState<Set<number>>(new Set());
 
   // Fetch session data
   useEffect(() => {
@@ -93,6 +98,15 @@ const StudentMonitor: React.FC = () => {
     totalStudentCount,
   } = useSessionStudents(session);
 
+  // Initialize sync directions when students change
+  useEffect(() => {
+    const initialDirections: Record<number, SyncDirection> = {};
+    sessionStudents.forEach(student => {
+      initialDirections[student.id] = student.sync_direction || 'student_active';
+    });
+    setParticipantSyncDirections(initialDirections);
+  }, [sessionStudents]);
+
   const {
     maximizedBoard,
     currentPage,
@@ -129,6 +143,70 @@ const StudentMonitor: React.FC = () => {
   const handleCloseMonitor = useCallback(() => {
     window.close();
   }, []);
+
+  // Sync direction management functions
+  const handleToggleSyncDirection = useCallback(async (participantId: number): Promise<boolean> => {
+    const currentDirection = participantSyncDirections[participantId] || 'student_active';
+    const newDirection: SyncDirection = currentDirection === 'student_active' ? 'teacher_active' : 'student_active';
+    
+    // Optimistic update
+    setParticipantSyncDirections(prev => ({
+      ...prev,
+      [participantId]: newDirection
+    }));
+    
+    setUpdatingParticipants(prev => new Set(prev).add(participantId));
+    
+    try {
+      const result = await updateParticipantSyncDirection(participantId, newDirection);
+      
+      if (!result.success) {
+        // Revert optimistic update on failure
+        setParticipantSyncDirections(prev => ({
+          ...prev,
+          [participantId]: currentDirection
+        }));
+        
+        toast({
+          title: "Sync Direction Update Failed",
+          description: result.error || "Failed to update sync direction. Please try again.",
+          variant: "destructive",
+        });
+        
+        return false;
+      }
+      
+      return true;
+    } catch (error) {
+      // Revert optimistic update on error
+      setParticipantSyncDirections(prev => ({
+        ...prev,
+        [participantId]: currentDirection
+      }));
+      
+      toast({
+        title: "Sync Direction Update Failed",
+        description: "Network error. Please try again.",
+        variant: "destructive",
+      });
+      
+      return false;
+    } finally {
+      setUpdatingParticipants(prev => {
+        const newSet = new Set(prev);
+        newSet.delete(participantId);
+        return newSet;
+      });
+    }
+  }, [participantSyncDirections, toast]);
+
+  const getSyncDirection = useCallback((participantId: number): SyncDirection => {
+    return participantSyncDirections[participantId] || 'student_active';
+  }, [participantSyncDirections]);
+
+  const isParticipantUpdating = useCallback((participantId: number): boolean => {
+    return updatingParticipants.has(participantId);
+  }, [updatingParticipants]);
 
   if (loading) {
     return (
@@ -246,6 +324,10 @@ const StudentMonitor: React.FC = () => {
           sessionId={sessionId}
           senderId="teacher-monitor"
           isTeacher={true}
+          // Sync direction props
+          onToggleSyncDirection={handleToggleSyncDirection}
+          getSyncDirection={getSyncDirection}
+          isParticipantUpdating={isParticipantUpdating}
         />
       </div>
     </div>
