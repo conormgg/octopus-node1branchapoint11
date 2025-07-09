@@ -4,8 +4,10 @@ import ReactDOM from 'react-dom';
 import TopRightButtons from './TopRightButtons';
 import SessionStatus from './SessionStatus';
 import WhiteboardContent from './WhiteboardContent';
+import SyncDirectionToggle from '../SyncDirectionToggle';
 import { SyncConfig } from '@/types/sync';
 import { ActivityMetadata } from '@/types/whiteboard';
+import { SessionParticipant, SyncDirection } from '@/types/student';
 
 interface MaximizedWhiteboardViewProps {
   id: string;
@@ -25,6 +27,13 @@ interface MaximizedWhiteboardViewProps {
   syncState?: { isConnected: boolean; isReceiveOnly: boolean } | null;
   onLastActivityUpdate?: (activity: ActivityMetadata | null) => void;
   onCenterCallbackUpdate?: (callback: (bounds: any) => void) => void;
+  // Sync direction toggle props
+  participant?: SessionParticipant | null;
+  currentSyncDirection?: SyncDirection;
+  onToggleSyncDirection?: (participantId: number) => Promise<boolean>;
+  isParticipantUpdating?: boolean;
+  isTeacher?: boolean;
+  studentName?: string;
 }
 
 const MaximizedWhiteboardView: React.FC<MaximizedWhiteboardViewProps> = ({
@@ -44,7 +53,13 @@ const MaximizedWhiteboardView: React.FC<MaximizedWhiteboardViewProps> = ({
   hasLastActivity = false,
   syncState,
   onLastActivityUpdate,
-  onCenterCallbackUpdate
+  onCenterCallbackUpdate,
+  participant,
+  currentSyncDirection,
+  onToggleSyncDirection,
+  isParticipantUpdating,
+  isTeacher,
+  studentName
 }) => {
   const [localSyncState, setLocalSyncState] = useState(syncState);
 
@@ -94,6 +109,19 @@ const MaximizedWhiteboardView: React.FC<MaximizedWhiteboardViewProps> = ({
             sessionEndReason={sessionEndReason}
             isRedirecting={isRedirecting}
           />
+          
+          {/* Sync Direction Toggle for maximized view */}
+          {isTeacher && participant && onToggleSyncDirection && studentName && (
+            <div className="absolute bottom-4 left-4 z-10">
+              <SyncDirectionToggle
+                participantId={participant.id}
+                currentDirection={currentSyncDirection || 'student_active'}
+                isUpdating={isParticipantUpdating || false}
+                onToggle={onToggleSyncDirection}
+                studentName={studentName}
+              />
+            </div>
+          )}
           
           <WhiteboardContent
             whiteboardWidth={whiteboardWidth}

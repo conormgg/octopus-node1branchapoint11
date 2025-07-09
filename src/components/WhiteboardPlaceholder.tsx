@@ -25,7 +25,11 @@ interface WhiteboardPlaceholderProps {
   portalContainer?: Element | null;
   participant?: SessionParticipant | null;
   currentUserRole?: 'teacher' | 'student';
-  currentSyncDirection?: SyncDirection; // NEW: Override sync direction for optimistic updates
+  currentSyncDirection?: SyncDirection;
+  // Sync direction toggle props for maximized view
+  onToggleSyncDirection?: (participantId: number) => Promise<boolean>;
+  isParticipantUpdating?: boolean;
+  studentName?: string;
 }
 
 const WhiteboardPlaceholder: React.FC<WhiteboardPlaceholderProps> = ({
@@ -41,7 +45,10 @@ const WhiteboardPlaceholder: React.FC<WhiteboardPlaceholderProps> = ({
   portalContainer,
   participant,
   currentUserRole,
-  currentSyncDirection // NEW: Accept override sync direction
+  currentSyncDirection,
+  onToggleSyncDirection,
+  isParticipantUpdating,
+  studentName
 }) => {
   const [syncState, setSyncState] = useState<{ isConnected: boolean; isReceiveOnly: boolean } | null>(null);
   
@@ -104,6 +111,13 @@ const WhiteboardPlaceholder: React.FC<WhiteboardPlaceholderProps> = ({
         syncState={syncState}
         onLastActivityUpdate={handleLastActivityUpdate}
         onCenterCallbackUpdate={handleCenterCallbackUpdate}
+        // Pass sync direction toggle props
+        participant={participant}
+        currentSyncDirection={currentSyncDirection}
+        onToggleSyncDirection={onToggleSyncDirection}
+        isParticipantUpdating={isParticipantUpdating}
+        isTeacher={isTeacher}
+        studentName={studentName}
       />
     );
   }

@@ -136,7 +136,12 @@ const StudentBoardCard: React.FC<StudentBoardCardProps> = ({
         portalContainer={portalContainer}
         participant={boardInfo.participant}
         currentUserRole="teacher"
-        currentSyncDirection={currentSyncDirection} // NEW: Pass optimistic sync direction
+        currentSyncDirection={currentSyncDirection}
+        // Pass sync direction toggle props for maximized view
+        onToggleSyncDirection={onToggleSyncDirection}
+        isParticipantUpdating={isParticipantUpdating}
+        isTeacher={isTeacher}
+        studentName={boardInfo.studentName}
       />
     </div>
   );
