@@ -134,11 +134,32 @@ const TeacherRoutes = () => {
 
 // Monitor routes - standalone monitor pages
 const MonitorRoutes = () => {
+  const navigate = useNavigate();
+  const location = useLocation();
+  
+  // Extract session ID from the monitor route
+  const getSessionId = () => {
+    const pathParts = location.pathname.split('/');
+    return pathParts[2] || null; // /monitor/:sessionId
+  };
+
+  const sessionId = getSessionId();
+
+  const handleMonitorSessionExpired = useCallback(() => {
+    console.log('Monitor session expired, closing window');
+    window.close();
+  }, []);
+
   return (
-    <Routes>
-      <Route path="/monitor/:sessionId" element={<StudentMonitor />} />
-      <Route path="*" element={<NotFound />} />
-    </Routes>
+    <SessionExpirationProvider 
+      sessionId={sessionId}
+      onSessionExpired={handleMonitorSessionExpired}
+    >
+      <Routes>
+        <Route path="/monitor/:sessionId" element={<StudentMonitor />} />
+        <Route path="*" element={<NotFound />} />
+      </Routes>
+    </SessionExpirationProvider>
   );
 };
 
