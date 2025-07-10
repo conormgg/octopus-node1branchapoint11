@@ -142,9 +142,9 @@ export const useStageEventHandlers = ({
         return;
       }
       
-      // For select tool, let Konva handle the events natively
-      // This allows selection, dragging, and transformation to work properly
-      if (currentToolRef.current === 'select') {
+      // For select tool with stylus, still use our custom handlers for drag-to-select
+      // For select tool with mouse/touch, let Konva handle the events for object manipulation
+      if (currentToolRef.current === 'select' && e.pointerType !== 'pen') {
         return;
       }
       
@@ -178,8 +178,9 @@ export const useStageEventHandlers = ({
         return;
       }
       
-      // For select tool, let Konva handle the events natively
-      if (currentToolRef.current === 'select') {
+      // For select tool with stylus, still use our custom handlers for drag-to-select
+      // For select tool with mouse/touch, let Konva handle the events for object manipulation
+      if (currentToolRef.current === 'select' && e.pointerType !== 'pen') {
         return;
       }
       
@@ -214,8 +215,9 @@ export const useStageEventHandlers = ({
       // Always clean up palm rejection state
       palmRejection.onPointerEnd(e.pointerId);
       
-      // For select tool, let Konva handle the events natively
-      if (currentToolRef.current === 'select') {
+      // For select tool with stylus, still use our custom handlers for drag-to-select
+      // For select tool with mouse/touch, let Konva handle the events for object manipulation
+      if (currentToolRef.current === 'select' && e.pointerType !== 'pen') {
         return;
       }
       
@@ -239,8 +241,9 @@ export const useStageEventHandlers = ({
       palmRejection.onPointerEnd(e.pointerId);
       panZoom.stopPan(); // Always stop pan on leave
       
-      // For select tool, let Konva handle the events natively
-      if (currentToolRef.current === 'select') {
+      // For select tool with stylus, still use our custom handlers for drag-to-select
+      // For select tool with mouse/touch, let Konva handle the events for object manipulation
+      if (currentToolRef.current === 'select' && e.pointerType !== 'pen') {
         return;
       }
       
