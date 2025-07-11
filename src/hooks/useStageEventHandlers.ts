@@ -128,12 +128,15 @@ export const useStageEventHandlers = ({
     if (!container || !stage) return;
 
     const handlePointerDownEvent = (e: PointerEvent) => {
-      logEventHandling('pointerdown', 'pointer', { 
+      const eventInfo = { 
         pointerId: e.pointerId, 
         pointerType: e.pointerType,
         button: e.button,
         tool: currentToolRef.current 
-      });
+      };
+      
+      logEventHandling('pointerdown', 'pointer', eventInfo);
+      console.log('STYLUS DEBUG - PointerDown:', eventInfo);
 
       // Always handle right-click pan regardless of tool, but not for stylus
       if (e.pointerType !== 'pen' && e.button === 2) {
