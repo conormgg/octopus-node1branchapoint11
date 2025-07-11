@@ -56,7 +56,7 @@ export const usePointerEventCore = ({
         
         // Always prevent default for drawing tools to avoid scrolling/selection
         // For select tool, only prevent default for stylus to enable proper drag-to-select
-        if (currentToolRef.current !== 'select' || e.pointerType === 'pen') {
+        if (currentToolRef.current !== 'select' || e.pointerType !== 'pen') {
           e.preventDefault();
         }
         
@@ -90,7 +90,7 @@ export const usePointerEventCore = ({
         
         // Always prevent default for drawing tools to avoid scrolling/selection
         // For select tool, only prevent default for stylus to enable proper drag-to-select
-        if (currentToolRef.current !== 'select' || e.pointerType === 'pen') {
+        if (currentToolRef.current !== 'select' || e.pointerType !== 'pen') {
           e.preventDefault();
         }
         
@@ -119,7 +119,7 @@ export const usePointerEventCore = ({
         
         // Always prevent default for drawing tools to avoid scrolling/selection
         // For select tool, only prevent default for stylus to enable proper drag-to-select
-        if (currentToolRef.current !== 'select' || e.pointerType === 'pen') {
+        if (currentToolRef.current !== 'select' || e.pointerType !== 'pen') {
           e.preventDefault();
         }
         
