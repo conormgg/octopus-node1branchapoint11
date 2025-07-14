@@ -2,9 +2,6 @@
 import React from 'react';
 import { Stage } from 'react-konva';
 import Konva from 'konva';
-
-// Enable hit detection during drag operations for touch/stylus selection
-Konva.hitOnDragEnabled = true;
 import { PanZoomState, Tool, SelectionBounds } from '@/types/whiteboard';
 import { useNormalizedWhiteboardState } from '@/hooks/performance/useNormalizedWhiteboardState';
 import { useMouseEventHandlers } from './hooks/useMouseEventHandlers';

@@ -9,7 +9,6 @@ import { useKonvaPanZoomSync } from '@/hooks/canvas/useKonvaPanZoomSync';
 import KonvaStageCanvas from './KonvaStageCanvas';
 import KonvaImageContextMenuHandler from './KonvaImageContextMenuHandler';
 import KonvaImageOperationsHandler from './KonvaImageOperationsHandler';
-import SelectionMenu from './SelectionMenu';
 
 interface KonvaStageProps {
   width: number;
@@ -98,7 +97,7 @@ const KonvaStage: React.FC<KonvaStageProps> = ({
       style={{ 
         WebkitUserSelect: 'none',
         WebkitTouchCallout: 'none',
-        touchAction: palmRejectionConfig.enabled ? 'manipulation' : 'none' // Better stylus support
+        touchAction: palmRejectionConfig.enabled ? 'manipulation' : 'auto'
       }}
       tabIndex={0}
       data-whiteboard-id={whiteboardId}
@@ -151,18 +150,6 @@ const KonvaStage: React.FC<KonvaStageProps> = ({
           }
         />
       </KonvaImageContextMenuHandler>
-      
-      {/* Selection Menu - floating menu for selected objects */}
-      <SelectionMenu
-        selectionBounds={whiteboardState.selection?.selectionState?.selectionBounds || null}
-        selectedCount={whiteboardState.selection?.selectionState?.selectedObjects?.length || 0}
-        onDelete={whiteboardState.deleteSelectedObjects}
-        isVisible={
-          (whiteboardState.selection?.selectionState?.selectedObjects?.length || 0) > 0 &&
-          !whiteboardState.selection?.selectionState?.isSelecting &&
-          !isReadOnly
-        }
-      />
     </div>
   );
 };

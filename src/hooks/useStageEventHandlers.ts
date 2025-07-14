@@ -128,15 +128,12 @@ export const useStageEventHandlers = ({
     if (!container || !stage) return;
 
     const handlePointerDownEvent = (e: PointerEvent) => {
-      const eventInfo = { 
+      logEventHandling('pointerdown', 'pointer', { 
         pointerId: e.pointerId, 
         pointerType: e.pointerType,
         button: e.button,
         tool: currentToolRef.current 
-      };
-      
-      logEventHandling('pointerdown', 'pointer', eventInfo);
-      console.log('STYLUS DEBUG - PointerDown:', eventInfo);
+      });
 
       // Always handle right-click pan regardless of tool, but not for stylus
       if (e.pointerType !== 'pen' && e.button === 2) {
@@ -145,8 +142,11 @@ export const useStageEventHandlers = ({
         return;
       }
       
-      // Use custom handlers for select tool to enable drag-to-select functionality
-      // This allows selection rectangle to appear for all pointer types (stylus, touch, mouse)
+      // For select tool, let Konva handle the events natively
+      // This allows selection, dragging, and transformation to work properly
+      if (currentToolRef.current === 'select') {
+        return;
+      }
       
       // Prevent default for drawing tools to avoid conflicts
       e.preventDefault();
@@ -178,8 +178,10 @@ export const useStageEventHandlers = ({
         return;
       }
       
-      // Use custom handlers for select tool to enable drag-to-select functionality
-      // This allows selection rectangle to appear for all pointer types (stylus, touch, mouse)
+      // For select tool, let Konva handle the events natively
+      if (currentToolRef.current === 'select') {
+        return;
+      }
       
       // Prevent default for drawing tools to avoid conflicts
       e.preventDefault();
@@ -212,8 +214,10 @@ export const useStageEventHandlers = ({
       // Always clean up palm rejection state
       palmRejection.onPointerEnd(e.pointerId);
       
-      // Use custom handlers for select tool to enable drag-to-select functionality
-      // This allows selection rectangle to appear for all pointer types (stylus, touch, mouse)
+      // For select tool, let Konva handle the events natively
+      if (currentToolRef.current === 'select') {
+        return;
+      }
       
       // Prevent default for drawing tools to avoid conflicts
       e.preventDefault();
@@ -235,8 +239,10 @@ export const useStageEventHandlers = ({
       palmRejection.onPointerEnd(e.pointerId);
       panZoom.stopPan(); // Always stop pan on leave
       
-      // Use custom handlers for select tool to enable drag-to-select functionality
-      // This allows selection rectangle to appear for all pointer types (stylus, touch, mouse)
+      // For select tool, let Konva handle the events natively
+      if (currentToolRef.current === 'select') {
+        return;
+      }
       
       // Only call handlePointerUp for drawing if not in read-only mode
       if (!isReadOnly) {

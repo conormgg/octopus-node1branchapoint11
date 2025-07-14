@@ -54,9 +54,8 @@ export const usePointerEventCore = ({
 
         logEventHandling('pointerdown', 'pointer', { pointerId: e.pointerId, pointerType: e.pointerType });
         
-        // Always prevent default for drawing tools to avoid scrolling/selection
-        // For select tool, only prevent default for stylus to enable proper drag-to-select
-        if (currentToolRef.current !== 'select' || e.pointerType !== 'pen') {
+        // Don't prevent default for select tool - let Konva handle dragging
+        if (currentToolRef.current !== 'select') {
           e.preventDefault();
         }
         
@@ -88,9 +87,8 @@ export const usePointerEventCore = ({
 
         logEventHandling('pointermove', 'pointer', { pointerId: e.pointerId, pointerType: e.pointerType });
         
-        // Always prevent default for drawing tools to avoid scrolling/selection
-        // For select tool, only prevent default for stylus to enable proper drag-to-select
-        if (currentToolRef.current !== 'select' || e.pointerType !== 'pen') {
+        // Don't prevent default for select tool - let Konva handle dragging
+        if (currentToolRef.current !== 'select') {
           e.preventDefault();
         }
         
@@ -117,9 +115,8 @@ export const usePointerEventCore = ({
       handler: (e: PointerEvent) => {
         logEventHandling('pointerup', 'pointer', { pointerId: e.pointerId, pointerType: e.pointerType });
         
-        // Always prevent default for drawing tools to avoid scrolling/selection
-        // For select tool, only prevent default for stylus to enable proper drag-to-select
-        if (currentToolRef.current !== 'select' || e.pointerType !== 'pen') {
+        // Don't prevent default for select tool - let Konva handle dragging
+        if (currentToolRef.current !== 'select') {
           e.preventDefault();
         }
         

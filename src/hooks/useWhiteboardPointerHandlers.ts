@@ -23,7 +23,6 @@ export const useWhiteboardPointerHandlers = (
   // Handle pointer down
   const handlePointerDown = useCallback((x: number, y: number) => {
     debugLog('PointerHandlers', 'Pointer down', { x, y, tool: stableCurrentTool });
-    console.log('STYLUS DEBUG - WhiteboardPointerHandlers handlePointerDown called:', { x, y, tool: stableCurrentTool });
     
     // Don't start drawing if a pan/zoom gesture is active
     if (panZoom.isGestureActive()) {
@@ -62,16 +61,11 @@ export const useWhiteboardPointerHandlers = (
         }, 0);
       } else {
         debugLog('PointerHandlers', 'Starting drag-to-select');
-        console.log('STYLUS DEBUG - Starting drag-to-select:', { x, y });
         // Clear selection when clicking on empty space
         selection.clearSelection();
         // Start drag-to-select
         selection.setIsSelecting(true);
         selection.setSelectionBounds({ x, y, width: 0, height: 0 });
-        console.log('STYLUS DEBUG - Selection state after setIsSelecting(true):', { 
-          isSelecting: true, 
-          selectionBounds: { x, y, width: 0, height: 0 } 
-        });
       }
     }
   }, [stableCurrentTool, stableLines, stableImages, stableSelectionState.selectedObjects.length, panZoom, selection, drawingCoordination]);
