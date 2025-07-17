@@ -13,13 +13,13 @@ App
     │   └── TeacherSessionView
     │       ├── TeacherSessionViewHeader
     │       │   └── TeacherHeader (with Session Options dropdown)
-    │       └── TeacherSessionMainContent
-    │           ├── TeacherSessionSplitView (split view mode)
-    │           │   ├── StudentBoardsWindow (portal-based window)
-    │           │   └── TeacherMainBoard
-    │           └── TeacherSessionResizablePanels (normal mode)
-    │               ├── TeacherMainBoard  
-    │               └── StudentBoardsGrid
+│       └── TeacherSessionMainContent
+│           ├── TeacherSessionSplitView (Split View 2 - portal mode)
+│           │   ├── StudentBoardsWindow (portal-based window)
+│           │   └── TeacherMainBoard
+│           └── TeacherSessionResizablePanels (normal/Split View mode)
+│               ├── TeacherMainBoard  
+│               └── StudentBoardsGrid (resizable when Split View active)
     └── StudentView (for students)
         └── StudentSessionView
 ```
@@ -32,7 +32,7 @@ TeacherSessionView
 │   ├── Individual Student Addition (via Session Options)
 │   ├── Individual Student Removal (via Session Options)
 │   └── Real-time Participant Updates
-├── Split View Window System
+├── Split View 2 (Portal Window System)
 │   ├── StudentBoardsWindow (portal-based)
 │   │   ├── WindowContentRenderer
 │   │   │   ├── WindowContentHeader
@@ -41,9 +41,12 @@ TeacherSessionView
 │   │   │       └── StudentBoardsGrid
 │   │   └── Window State Management (useWindowContentState)
 │   └── Teacher Main Board (remains in main window)
-└── Normal Resizable Panels Mode
+├── Split View (Original Resizable Panels)
+│   ├── TeacherMainBoard (left panel)
+│   └── StudentBoardsGrid (right panel - resizable)
+└── Normal Mode
     ├── TeacherMainBoard
-    └── StudentBoardsGrid
+    └── StudentBoardsGrid (non-resizable)
 ```
 
 ## Canvas Component Structure
@@ -101,7 +104,8 @@ TeacherHeader
 └── Layout & View Controls
     ├── Layout Selector
     ├── Grid Orientation Toggle
-    └── Split View Toggle
+    ├── Split View Toggle (resizable panels)
+    └── Split View 2 Toggle (portal window)
 ```
 
 ## Eye Button Integration
@@ -183,7 +187,7 @@ useEyeButtonLogic
 ## Window System Architecture
 
 ```
-Split View Mode:
+Split View 2 (Portal Mode):
 ├── Main Browser Window
 │   ├── TeacherHeader (with all controls)
 │   └── Teacher's Whiteboard Only
@@ -191,11 +195,35 @@ Split View Mode:
     ├── WindowContentHeader (layout controls only)
     └── Student Boards Grid
 
-Normal Mode:
-└── Resizable Panels
+Split View (Original):
+└── Single Window with Resizable Panels
     ├── Teacher's Whiteboard (left panel)
-    └── Student Boards Grid (right panel)
+    └── Student Boards Grid (right panel - resizable)
+
+Normal Mode:
+└── Single Window
+    ├── Teacher's Whiteboard
+    └── Student Boards Grid (non-resizable)
 ```
+
+### Mode Selection Guidelines
+
+**Use Split View 2 when:**
+- Working with dual monitor setups
+- Need maximum screen real estate for each view
+- Want independent window management
+- Teaching with projector + personal monitor
+
+**Use Split View when:**
+- Working on single monitor
+- Need quick panel resizing
+- Prefer integrated interface
+- Want lower system overhead
+
+**Use Normal Mode when:**
+- Simple teaching scenarios
+- Limited screen space
+- No need for simultaneous viewing
 
 ## State Flow
 

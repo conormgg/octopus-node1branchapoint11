@@ -312,3 +312,52 @@ debugLog('Manager', `Keeping original config for ${connectionId} to prevent send
 // Monitor connection reuse
 debugLog('Manager', `Reusing existing connection for ${connectionId}`);
 ```
+
+## Split View System State Flow
+
+### Split View Mode Management
+
+```
+Mode Selection:
+Normal Mode ↔ Split View (Resizable Panels) ↔ Split View 2 (Portal Window)
+    ↓
+Mutual Exclusivity Enforcement:
+- Split View active → Split View 2 disabled
+- Split View 2 active → Split View disabled  
+- Normal mode → Both split modes disabled
+    ↓
+State Transition:
+Previous mode cleanup → New mode initialization → UI update
+```
+
+### Split View 2 Cross-Window State Flow
+
+```
+Main Window State Changes:
+Student data updates → Layout calculations → Cross-window state propagation
+    ↓
+Portal Window State Reception:
+State validation → Portal UI updates → Synchronized display
+    ↓
+Portal Window User Interactions:
+User actions (maximize, navigate, layout change) → Main window state updates
+    ↓
+Bidirectional Synchronization:
+Consistent state maintained across both windows
+```
+
+### Window Lifecycle Management
+
+```
+Split View 2 Activation:
+Toggle button → Portal container creation → Window state initialization
+    ↓
+Portal Rendering:
+React.createPortal → Content rendering → Event handler setup
+    ↓
+Cross-Window Communication:
+Shared state updates → Real-time synchronization → Consistent UI
+    ↓
+Split View 2 Deactivation:
+Portal cleanup → Container removal → State normalization
+```

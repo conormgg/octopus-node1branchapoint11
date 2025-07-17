@@ -1,13 +1,26 @@
 
-# Window System Documentation
+# Window System Documentation (Split View 2)
 
 ## Overview
 
-The window system provides a split-view interface where teachers can monitor student boards in a separate window while maintaining their main whiteboard in the original browser window.
+The window system provides **Split View 2**, a portal-based interface where teachers can monitor student boards in a completely separate window while maintaining their main whiteboard in the original browser window. This is distinct from the original Split View mode which uses resizable panels within a single window.
+
+## Split View Modes Comparison
+
+| Feature | Split View (Original) | Split View 2 (Portal-based) |
+|---------|----------------------|----------------------------|
+| Window Management | Single window with resizable panels | Two separate windows |
+| Screen Usage | Optimal for single monitor | Ideal for dual monitor setups |
+| Header Controls | Full header in both panels | Simplified header in student window |
+| State Management | Shared window state | Cross-window state synchronization |
+| Performance | Lower overhead | Portal rendering overhead |
+| User Experience | Integrated interface | Independent window management |
+
+**Note**: Split View and Split View 2 are mutually exclusive - only one can be active at a time.
 
 ## Architecture
 
-### Split View Components
+### Split View 2 Components
 
 **StudentBoardsWindow**
 - Creates a portal-based separate window
@@ -177,10 +190,11 @@ useEffect(() => {
 
 ### TeacherSessionView Integration
 
-**Split View Toggle**:
-- Seamless transition between modes
-- State preservation during switches
-- Consistent data flow patterns
+**Split View Mode Toggles**:
+- Seamless transition between normal, Split View, and Split View 2 modes
+- Mutually exclusive activation (only one split mode can be active)
+- State preservation during mode switches
+- Consistent data flow patterns across all modes
 
 **Layout Calculations**:
 - Same layout engine for both modes
