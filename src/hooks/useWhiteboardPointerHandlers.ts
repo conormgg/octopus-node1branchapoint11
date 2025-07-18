@@ -27,7 +27,7 @@ export const useWhiteboardPointerHandlers = (
     stageRef || { current: null },
     state.panZoomState,
     drawingCoordination,
-    selection,
+    selection, // Pass the full selection object with pointer handlers
     panZoom
   );
 
@@ -72,11 +72,33 @@ export const useWhiteboardPointerHandlers = (
     simplifiedHandlers.handlePointerUp(stableCurrentTool);
   }, [stableCurrentTool, simplifiedHandlers]);
 
+  // Attach whiteboard handlers to the Konva handlers for access in stage event handlers
+  const enhancedHandlePointerDown = handlePointerDown as any;
+  enhancedHandlePointerDown.__whiteboardHandlers = {
+    handleDirectPointerDown,
+    handleDirectPointerMove,
+    handleDirectPointerUp
+  };
+
+  const enhancedHandlePointerMove = handlePointerMove as any;
+  enhancedHandlePointerMove.__whiteboardHandlers = {
+    handleDirectPointerDown,
+    handleDirectPointerMove,
+    handleDirectPointerUp
+  };
+
+  const enhancedHandlePointerUp = handlePointerUp as any;
+  enhancedHandlePointerUp.__whiteboardHandlers = {
+    handleDirectPointerDown,
+    handleDirectPointerMove,
+    handleDirectPointerUp
+  };
+
   return {
-    // Konva-compatible handlers
-    handlePointerDown,
-    handlePointerMove,
-    handlePointerUp,
+    // Konva-compatible handlers with attached direct handlers
+    handlePointerDown: enhancedHandlePointerDown,
+    handlePointerMove: enhancedHandlePointerMove,
+    handlePointerUp: enhancedHandlePointerUp,
     // Direct coordinate handlers
     handleDirectPointerDown,
     handleDirectPointerMove,

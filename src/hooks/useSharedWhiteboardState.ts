@@ -133,6 +133,18 @@ export const useSharedWhiteboardState = (syncConfig?: SyncConfig, whiteboardId?:
     handlePointerUp();
   }, [handlePointerUp]);
 
+  // Create enhanced selection object with pointer handlers for direct use
+  const enhancedSelection = useCallback(() => {
+    if (!selection) return null;
+    
+    return {
+      ...selection,
+      handlePointerDown,
+      handlePointerMove,
+      handlePointerUp
+    };
+  }, [selection, handlePointerDown, handlePointerMove, handlePointerUp]);
+
   return {
     state,
     // Expose normalized state for components that can use it
@@ -160,7 +172,7 @@ export const useSharedWhiteboardState = (syncConfig?: SyncConfig, whiteboardId?:
     updateImage: operations.updateImage,
     toggleImageLock: operations.toggleImageLock,
     deleteSelectedObjects,
-    selection,
+    selection: enhancedSelection(),
     isReadOnly,
     whiteboardId, // Expose whiteboard ID for component identification
     setStageRef // Expose stage ref setter

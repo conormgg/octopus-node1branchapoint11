@@ -39,10 +39,13 @@ export const useSimplifiedPointerHandlers = (
       console.log('[SimplifiedPointer] Starting drawing operation');
       drawingCoordination.handleDrawingStart(x, y);
     } else if (currentTool === 'select') {
-      console.log('[SimplifiedPointer] Handling selection');
-      // Handle selection logic here if needed
+      console.log('[SimplifiedPointer] Handling selection start');
+      // Call the shared pointer handlers for selection
+      if (selection && selection.handlePointerDown) {
+        selection.handlePointerDown(x, y);
+      }
     }
-  }, [stageRef, getRelativePointerPosition, panZoom, drawingCoordination]);
+  }, [stageRef, getRelativePointerPosition, panZoom, drawingCoordination, selection]);
 
   // Handle pointer move with coordinate conversion
   const handlePointerMove = useCallback((clientX: number, clientY: number, currentTool: string) => {
@@ -56,8 +59,13 @@ export const useSimplifiedPointerHandlers = (
     
     if (currentTool === 'pencil' || currentTool === 'highlighter' || currentTool === 'eraser') {
       drawingCoordination.handleDrawingContinue(x, y);
+    } else if (currentTool === 'select') {
+      // Call the shared pointer handlers for selection
+      if (selection && selection.handlePointerMove) {
+        selection.handlePointerMove(x, y);
+      }
     }
-  }, [stageRef, getRelativePointerPosition, panZoom, drawingCoordination]);
+  }, [stageRef, getRelativePointerPosition, panZoom, drawingCoordination, selection]);
 
   // Handle pointer up
   const handlePointerUp = useCallback((currentTool: string) => {
@@ -66,8 +74,14 @@ export const useSimplifiedPointerHandlers = (
     if (currentTool === 'pencil' || currentTool === 'highlighter' || currentTool === 'eraser') {
       console.log('[SimplifiedPointer] Ending drawing operation');
       drawingCoordination.handleDrawingEnd();
+    } else if (currentTool === 'select') {
+      console.log('[SimplifiedPointer] Handling selection end');
+      // Call the shared pointer handlers for selection
+      if (selection && selection.handlePointerUp) {
+        selection.handlePointerUp();
+      }
     }
-  }, [drawingCoordination]);
+  }, [drawingCoordination, selection]);
 
   return {
     handlePointerDown,
