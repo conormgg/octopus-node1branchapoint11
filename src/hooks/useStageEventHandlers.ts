@@ -142,16 +142,9 @@ export const useStageEventHandlers = ({
         return;
       }
       
-      // CRITICAL FIX: Always prevent default for select tool to ensure our handlers work
-      // instead of delegating to Konva's native event system
+      // For select tool, let Konva handle the events natively
+      // This allows selection, dragging, and transformation to work properly
       if (currentToolRef.current === 'select') {
-        e.preventDefault();
-        
-        // Only proceed if not in read-only mode
-        if (!isReadOnly) {
-          const { x, y } = getRelativePointerPosition(stage, e.clientX, e.clientY);
-          handlePointerDown(x, y);
-        }
         return;
       }
       
@@ -185,15 +178,8 @@ export const useStageEventHandlers = ({
         return;
       }
       
-      // CRITICAL FIX: Always prevent default for select tool and handle move events
+      // For select tool, let Konva handle the events natively
       if (currentToolRef.current === 'select') {
-        e.preventDefault();
-        
-        // Only proceed if not in read-only mode
-        if (!isReadOnly) {
-          const { x, y } = getRelativePointerPosition(stage, e.clientX, e.clientY);
-          handlePointerMove(x, y);
-        }
         return;
       }
       
@@ -228,14 +214,8 @@ export const useStageEventHandlers = ({
       // Always clean up palm rejection state
       palmRejection.onPointerEnd(e.pointerId);
       
-      // CRITICAL FIX: Always prevent default for select tool and handle up events
+      // For select tool, let Konva handle the events natively
       if (currentToolRef.current === 'select') {
-        e.preventDefault();
-        
-        // Only call handlePointerUp if not in read-only mode
-        if (!isReadOnly) {
-          handlePointerUp();
-        }
         return;
       }
       
@@ -259,12 +239,8 @@ export const useStageEventHandlers = ({
       palmRejection.onPointerEnd(e.pointerId);
       panZoom.stopPan(); // Always stop pan on leave
       
-      // CRITICAL FIX: Always handle pointer leave for select tool
+      // For select tool, let Konva handle the events natively
       if (currentToolRef.current === 'select') {
-        // Only call handlePointerUp if not in read-only mode
-        if (!isReadOnly) {
-          handlePointerUp();
-        }
         return;
       }
       
