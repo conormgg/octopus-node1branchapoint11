@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useEffect } from 'react';
 import { Stage } from 'react-konva';
 import Konva from 'konva';
 import { PanZoomState, Tool, SelectionBounds } from '@/types/whiteboard';
@@ -67,6 +67,11 @@ const KonvaStageCanvas: React.FC<KonvaStageCanvasProps> = ({
   onTransformEnd,
   normalizedState
 }) => {
+  // Enable hit detection during drag operations - critical for selection rectangle
+  useEffect(() => {
+    Konva.hitOnDragEnabled = true;
+  }, []);
+
   const { handleMouseDown, handleMouseMove, handleMouseUp } = useMouseEventHandlers({
     currentTool,
     panZoomState,
@@ -116,7 +121,7 @@ const KonvaStageCanvas: React.FC<KonvaStageCanvasProps> = ({
         onUpdateLine={onUpdateLine}
         onUpdateImage={onUpdateImage}
         onTransformEnd={onTransformEnd}
-        stageRef={stageRef} // Pass stageRef for viewport calculations
+        stageRef={stageRef}
       />
     </Stage>
   );
