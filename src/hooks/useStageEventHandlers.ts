@@ -202,7 +202,8 @@ export const useStageEventHandlers = ({
           target: stage,
           currentTarget: stage,
           cancelBubble: false,
-          type: e.type as any
+          type: e.type as any,
+          pointerId: e.pointerId
         } as Konva.KonvaEventObject<PointerEvent>;
         handlePointerDown(konvaEvent);
       }
@@ -247,7 +248,8 @@ export const useStageEventHandlers = ({
           target: stage,
           currentTarget: stage,
           cancelBubble: false,
-          type: e.type as any
+          type: e.type as any,
+          pointerId: e.pointerId
         } as Konva.KonvaEventObject<PointerEvent>;
         handlePointerMove(konvaEvent);
       }
@@ -300,7 +302,8 @@ export const useStageEventHandlers = ({
             target: stage,
             currentTarget: stage,
             cancelBubble: false,
-            type: e.type as any
+            type: e.type as any,
+            pointerId: e.pointerId
           } as Konva.KonvaEventObject<PointerEvent>;
           handlePointerUp(konvaEvent);
         }
@@ -333,7 +336,8 @@ export const useStageEventHandlers = ({
             target: stage,
             currentTarget: stage,
             cancelBubble: false,
-            type: e.type as any
+            type: e.type as any,
+            pointerId: e.pointerId
           } as Konva.KonvaEventObject<PointerEvent>;
           handlePointerUp(konvaEvent);
         }

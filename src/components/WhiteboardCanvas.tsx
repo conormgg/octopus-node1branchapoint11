@@ -18,6 +18,7 @@ interface WhiteboardCanvasProps {
   whiteboardState: ReturnType<typeof useWhiteboardState>;
   isReadOnly?: boolean;
   palmRejectionConfig?: PalmRejectionConfig;
+  setStageRef?: (ref: any) => void;
 }
 
 const WhiteboardCanvas: React.FC<WhiteboardCanvasProps> = ({
@@ -25,7 +26,8 @@ const WhiteboardCanvas: React.FC<WhiteboardCanvasProps> = ({
   height,
   whiteboardState,
   isReadOnly = false,
-  palmRejectionConfig
+  palmRejectionConfig,
+  setStageRef
 }) => {
   return (
     <div className="relative w-full h-full bg-white rounded-lg overflow-hidden select-none" style={{ 

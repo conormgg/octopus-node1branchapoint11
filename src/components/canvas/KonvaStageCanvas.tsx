@@ -25,9 +25,9 @@ interface KonvaStageCanvasProps {
     continuePan: (x: number, y: number) => void;
     stopPan: () => void;
   };
-  handlePointerDown: (x: number, y: number) => void;
-  handlePointerMove: (x: number, y: number) => void;
-  handlePointerUp: () => void;
+  handlePointerDown: (e: Konva.KonvaEventObject<PointerEvent>) => void;
+  handlePointerMove: (e: Konva.KonvaEventObject<PointerEvent>) => void;
+  handlePointerUp: (e: Konva.KonvaEventObject<PointerEvent>) => void;
   isReadOnly: boolean;
   onStageClick?: (e: Konva.KonvaEventObject<MouseEvent | TouchEvent>) => void;
   extraContent?: React.ReactNode;
