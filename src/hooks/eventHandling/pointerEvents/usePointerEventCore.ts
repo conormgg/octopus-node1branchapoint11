@@ -1,10 +1,10 @@
-
 import { useCallback, useMemo } from 'react';
 import Konva from 'konva';
 import { usePalmRejection } from '../../usePalmRejection';
 import { useStageCoordinates } from '../../useStageCoordinates';
 import { PanZoomState } from '@/types/whiteboard';
 import { useMemoizedEventHandlers } from '@/hooks/performance/useMemoizedEventHandlers';
+import { useTouchToSelectionBridge } from '../useTouchToSelectionBridge';
 
 interface UsePointerEventCoreProps {
   stageRef: React.RefObject<Konva.Stage>;
@@ -45,6 +45,17 @@ export const usePointerEventCore = ({
   const stablePalmRejectionEnabled = useMemo(() => palmRejectionConfig.enabled, [palmRejectionConfig.enabled]);
   const stableIsReadOnly = useMemo(() => isReadOnly, [isReadOnly]);
 
+  // Touch-to-Selection Bridge for single-finger selection
+  const touchToSelectionBridge = useTouchToSelectionBridge({
+    panZoomState,
+    handlePointerDown,
+    handlePointerMove,
+    handlePointerUp,
+    currentTool: currentToolRef.current || 'pencil',
+    isReadOnly: stableIsReadOnly,
+    stageRef
+  });
+
   // Use memoized event handlers for better performance
   const handlers = useMemoizedEventHandlers({
     handlePointerDownEvent: {
@@ -54,16 +65,31 @@ export const usePointerEventCore = ({
 
         logEventHandling('pointerdown', 'pointer', { pointerId: e.pointerId, pointerType: e.pointerType });
         
-        // Don't prevent default for select tool - let Konva handle dragging
-        if (currentToolRef.current !== 'select') {
-          e.preventDefault();
-        }
-        
         // Handle right-click pan - works for everyone, including read-only users
         if (e.button === 2) {
           e.preventDefault();
           panZoom.startPan(e.clientX, e.clientY);
           return;
+        }
+        
+        // For touch pointers with select tool, try to bridge to selection
+        if (e.pointerType === 'touch' && currentToolRef.current === 'select') {
+          // Create a mock touch event for the bridge
+          const mockTouchEvent = {
+            touches: [{ clientX: e.clientX, clientY: e.clientY }],
+            preventDefault: () => e.preventDefault()
+          } as TouchEvent;
+          
+          const bridged = touchToSelectionBridge.bridgeTouchToSelection(mockTouchEvent, 'down');
+          if (bridged) {
+            e.preventDefault();
+            return;
+          }
+        }
+        
+        // Don't prevent default for select tool - let Konva handle dragging
+        if (currentToolRef.current !== 'select') {
+          e.preventDefault();
         }
         
         // Only proceed with drawing if not in read-only mode
@@ -77,7 +103,7 @@ export const usePointerEventCore = ({
         const { x, y } = getRelativePointerPosition(stage, e.clientX, e.clientY);
         handlePointerDown(x, y);
       },
-      deps: [stageRef, logEventHandling, currentToolRef, panZoom, stableIsReadOnly, stablePalmRejectionEnabled, palmRejection, getRelativePointerPosition, handlePointerDown]
+      deps: [stageRef, logEventHandling, currentToolRef, panZoom, stableIsReadOnly, stablePalmRejectionEnabled, palmRejection, getRelativePointerPosition, handlePointerDown, touchToSelectionBridge]
     },
 
     handlePointerMoveEvent: {
@@ -87,16 +113,30 @@ export const usePointerEventCore = ({
 
         logEventHandling('pointermove', 'pointer', { pointerId: e.pointerId, pointerType: e.pointerType });
         
-        // Don't prevent default for select tool - let Konva handle dragging
-        if (currentToolRef.current !== 'select') {
-          e.preventDefault();
-        }
-        
         // Handle right-click pan - works for everyone, including read-only users
         if (e.buttons === 2) {
           e.preventDefault();
           panZoom.continuePan(e.clientX, e.clientY);
           return;
+        }
+        
+        // For touch pointers with select tool, try to bridge to selection
+        if (e.pointerType === 'touch' && currentToolRef.current === 'select') {
+          const mockTouchEvent = {
+            touches: [{ clientX: e.clientX, clientY: e.clientY }],
+            preventDefault: () => e.preventDefault()
+          } as TouchEvent;
+          
+          const bridged = touchToSelectionBridge.bridgeTouchToSelection(mockTouchEvent, 'move');
+          if (bridged) {
+            e.preventDefault();
+            return;
+          }
+        }
+        
+        // Don't prevent default for select tool - let Konva handle dragging
+        if (currentToolRef.current !== 'select') {
+          e.preventDefault();
         }
         
         // Only proceed with drawing if not in read-only mode
@@ -108,23 +148,38 @@ export const usePointerEventCore = ({
         const { x, y } = getRelativePointerPosition(stage, e.clientX, e.clientY);
         handlePointerMove(x, y);
       },
-      deps: [stageRef, logEventHandling, currentToolRef, panZoom, stableIsReadOnly, stablePalmRejectionEnabled, palmRejection, getRelativePointerPosition, handlePointerMove]
+      deps: [stageRef, logEventHandling, currentToolRef, panZoom, stableIsReadOnly, stablePalmRejectionEnabled, palmRejection, getRelativePointerPosition, handlePointerMove, touchToSelectionBridge]
     },
 
     handlePointerUpEvent: {
       handler: (e: PointerEvent) => {
         logEventHandling('pointerup', 'pointer', { pointerId: e.pointerId, pointerType: e.pointerType });
         
-        // Don't prevent default for select tool - let Konva handle dragging
-        if (currentToolRef.current !== 'select') {
-          e.preventDefault();
-        }
-        
         // Handle right-click pan end - works for everyone, including read-only users
         if (e.button === 2) {
           e.preventDefault();
           panZoom.stopPan();
           return;
+        }
+        
+        // For touch pointers with select tool, try to bridge to selection
+        if (e.pointerType === 'touch' && currentToolRef.current === 'select') {
+          const mockTouchEvent = {
+            touches: [],
+            changedTouches: [{ clientX: e.clientX, clientY: e.clientY }],
+            preventDefault: () => e.preventDefault()
+          } as TouchEvent;
+          
+          const bridged = touchToSelectionBridge.bridgeTouchToSelection(mockTouchEvent, 'up');
+          if (bridged) {
+            e.preventDefault();
+            return;
+          }
+        }
+        
+        // Don't prevent default for select tool - let Konva handle dragging
+        if (currentToolRef.current !== 'select') {
+          e.preventDefault();
         }
         
         // Always clean up palm rejection state
@@ -135,7 +190,7 @@ export const usePointerEventCore = ({
           handlePointerUp();
         }
       },
-      deps: [logEventHandling, currentToolRef, panZoom, palmRejection, stableIsReadOnly, handlePointerUp]
+      deps: [logEventHandling, currentToolRef, panZoom, palmRejection, stableIsReadOnly, handlePointerUp, touchToSelectionBridge]
     },
 
     handlePointerLeaveEvent: {

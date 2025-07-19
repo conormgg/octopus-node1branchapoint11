@@ -7,8 +7,8 @@ import { PanZoomState } from '@/types/whiteboard';
 import { useEventDebug } from './eventHandling/useEventDebug';
 import { useWheelEventHandlers } from './eventHandling/useWheelEventHandlers';
 import { useTouchEventHandlers } from './eventHandling/useTouchEventHandlers';
+import { usePointerEventHandlers } from './eventHandling/usePointerEventHandlers';
 import { usePointerEventDetection } from './eventHandling/usePointerEventDetection';
-import { usePanZoom } from './usePanZoom';
 
 interface UseStageEventHandlersProps {
   containerRef: React.RefObject<HTMLDivElement>;
@@ -46,7 +46,6 @@ export const useStageEventHandlers = ({
   isReadOnly
 }: UseStageEventHandlersProps) => {
   const currentToolRef = useRef<string>('pencil');
-  const { getRelativePointerPosition } = useStageCoordinates(panZoomState);
   const { logEventHandling } = useEventDebug(palmRejectionConfig);
   const { supportsPointerEvents } = usePointerEventDetection();
 
@@ -62,6 +61,7 @@ export const useStageEventHandlers = ({
         // Update touch-action when tool changes
         const container = containerRef.current;
         if (container) {
+          // For select tool, allow native touch behavior; for others, prevent it
           container.style.touchAction = newTool === 'select' ? 'manipulation' : 'none';
         }
       }
@@ -82,188 +82,30 @@ export const useStageEventHandlers = ({
     panZoom
   });
 
-  // Touch events for pinch/pan - now tool-aware with selection bridge
+  // Touch events for multi-touch gestures - ALWAYS enabled now
   useTouchEventHandlers({
     containerRef,
     panZoom,
     logEventHandling,
     supportsPointerEvents,
     palmRejectionEnabled: palmRejectionConfig.enabled,
-    currentTool: currentToolRef.current,
-    // Phase 2: Touch-to-Selection Bridge props
-    panZoomState,
-    handlePointerDown,
-    handlePointerMove,
-    handlePointerUp,
-    isReadOnly,
-    stageRef
+    currentTool: currentToolRef.current
   });
 
-  // Pointer event handlers - tool-aware implementation
-  useEffect(() => {
-    const container = containerRef.current;
-    const stage = stageRef.current;
-    if (!container || !stage) return;
-
-    const handlePointerDownEvent = (e: PointerEvent) => {
-      logEventHandling('pointerdown', 'pointer', { 
-        pointerId: e.pointerId, 
-        pointerType: e.pointerType,
-        button: e.button,
-        tool: currentToolRef.current 
-      });
-
-      // Always handle right-click pan regardless of tool, but not for stylus
-      if (e.pointerType !== 'pen' && e.button === 2) {
-        e.preventDefault();
-        panZoom.startPan(e.clientX, e.clientY);
-        return;
-      }
-      
-      // For select tool, let Konva handle the events natively
-      // This allows selection, dragging, and transformation to work properly
-      if (currentToolRef.current === 'select') {
-        return;
-      }
-      
-      // Prevent default for drawing tools to avoid conflicts
-      e.preventDefault();
-      
-      // Only proceed with drawing if not in read-only mode
-      if (isReadOnly) return;
-      
-      // Apply palm rejection only if it's enabled
-      if (palmRejectionConfig.enabled && !palmRejection.shouldProcessPointer(e)) {
-        return;
-      }
-
-      const { x, y } = getRelativePointerPosition(stage, e.clientX, e.clientY);
-      handlePointerDown(x, y);
-    };
-
-    const handlePointerMoveEvent = (e: PointerEvent) => {
-      logEventHandling('pointermove', 'pointer', { 
-        pointerId: e.pointerId, 
-        pointerType: e.pointerType,
-        buttons: e.buttons,
-        tool: currentToolRef.current 
-      });
-
-      // Always handle right-click pan regardless of tool, but not for stylus
-      if (e.pointerType !== 'pen' && e.buttons === 2) {
-        e.preventDefault();
-        panZoom.continuePan(e.clientX, e.clientY);
-        return;
-      }
-      
-      // For select tool, let Konva handle the events natively
-      if (currentToolRef.current === 'select') {
-        return;
-      }
-      
-      // Prevent default for drawing tools to avoid conflicts
-      e.preventDefault();
-      
-      // Only proceed with drawing if not in read-only mode
-      if (isReadOnly) return;
-      
-      // Apply palm rejection only if it's enabled
-      if (palmRejectionConfig.enabled && !palmRejection.shouldProcessPointer(e)) return;
-
-      const { x, y } = getRelativePointerPosition(stage, e.clientX, e.clientY);
-      handlePointerMove(x, y);
-    };
-
-    const handlePointerUpEvent = (e: PointerEvent) => {
-      logEventHandling('pointerup', 'pointer', { 
-        pointerId: e.pointerId, 
-        pointerType: e.pointerType,
-        button: e.button,
-        tool: currentToolRef.current 
-      });
-
-      // Always handle right-click pan end regardless of tool, but not for stylus
-      if (e.pointerType !== 'pen' && e.button === 2) {
-        e.preventDefault();
-        panZoom.stopPan();
-        return;
-      }
-      
-      // Always clean up palm rejection state
-      palmRejection.onPointerEnd(e.pointerId);
-      
-      // For select tool, let Konva handle the events natively
-      if (currentToolRef.current === 'select') {
-        return;
-      }
-      
-      // Prevent default for drawing tools to avoid conflicts
-      e.preventDefault();
-      
-      // Only call handlePointerUp for drawing if not in read-only mode
-      if (!isReadOnly) {
-        handlePointerUp();
-      }
-    };
-
-    const handlePointerLeaveEvent = (e: PointerEvent) => {
-      logEventHandling('pointerleave', 'pointer', { 
-        pointerId: e.pointerId, 
-        pointerType: e.pointerType,
-        tool: currentToolRef.current 
-      });
-
-      // Always clean up palm rejection state
-      palmRejection.onPointerEnd(e.pointerId);
-      panZoom.stopPan(); // Always stop pan on leave
-      
-      // For select tool, let Konva handle the events natively
-      if (currentToolRef.current === 'select') {
-        return;
-      }
-      
-      // Only call handlePointerUp for drawing if not in read-only mode
-      if (!isReadOnly) {
-        handlePointerUp();
-      }
-    };
-
-    const handleContextMenu = (e: Event) => {
-      e.preventDefault(); // Prevent context menu on right-click
-    };
-
-    // Always add pointer event listeners for stylus support and right-click panning
-    container.addEventListener('pointerdown', handlePointerDownEvent);
-    container.addEventListener('pointermove', handlePointerMoveEvent);
-    container.addEventListener('pointerup', handlePointerUpEvent);
-    container.addEventListener('pointerleave', handlePointerLeaveEvent);
-    container.addEventListener('pointercancel', handlePointerUpEvent);
-    container.addEventListener('contextmenu', handleContextMenu);
-
-    // Set initial touch-action based on current tool
-    container.style.touchAction = currentToolRef.current === 'select' ? 'manipulation' : 'none';
-
-    return () => {
-      container.removeEventListener('pointerdown', handlePointerDownEvent);
-      container.removeEventListener('pointermove', handlePointerMoveEvent);
-      container.removeEventListener('pointerup', handlePointerUpEvent);
-      container.removeEventListener('pointerleave', handlePointerLeaveEvent);
-      container.removeEventListener('pointercancel', handlePointerUpEvent);
-      container.removeEventListener('contextmenu', handleContextMenu);
-      container.style.touchAction = '';
-    };
-  }, [
+  // Pointer event handlers - handles single-touch interactions
+  usePointerEventHandlers({
     containerRef,
     stageRef,
+    panZoomState,
     palmRejection,
+    palmRejectionConfig,
+    panZoom,
     handlePointerDown,
     handlePointerMove,
     handlePointerUp,
-    panZoomState,
     isReadOnly,
-    palmRejectionConfig.enabled,
-    panZoom,
-    getRelativePointerPosition,
-    logEventHandling
-  ]);
+    currentToolRef,
+    logEventHandling,
+    supportsPointerEvents
+  });
 };

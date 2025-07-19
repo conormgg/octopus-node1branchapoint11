@@ -1,6 +1,5 @@
 
 import { useEffect } from 'react';
-import { useTouchToSelectionBridge } from './useTouchToSelectionBridge';
 import { useEventDeduplication } from './useEventDeduplication';
 import { PanZoomState } from '@/types/whiteboard';
 
@@ -15,13 +14,6 @@ interface UseTouchEventHandlersProps {
   supportsPointerEvents: boolean;
   palmRejectionEnabled: boolean;
   currentTool?: string;
-  // Phase 2: Touch-to-Selection Bridge props
-  panZoomState?: PanZoomState;
-  handlePointerDown?: (x: number, y: number) => void;
-  handlePointerMove?: (x: number, y: number) => void;
-  handlePointerUp?: () => void;
-  isReadOnly?: boolean;
-  stageRef?: React.RefObject<any>;
 }
 
 export const useTouchEventHandlers = ({
@@ -30,44 +22,28 @@ export const useTouchEventHandlers = ({
   logEventHandling,
   supportsPointerEvents,
   palmRejectionEnabled,
-  currentTool,
-  // Phase 2: Touch-to-Selection Bridge props
-  panZoomState,
-  handlePointerDown,
-  handlePointerMove,
-  handlePointerUp,
-  isReadOnly = false,
-  stageRef
+  currentTool
 }: UseTouchEventHandlersProps) => {
-  // Phase 2: Touch-to-Selection Bridge
-  const touchToSelectionBridge = useTouchToSelectionBridge({
-    panZoomState: panZoomState!,
-    handlePointerDown: handlePointerDown!,
-    handlePointerMove: handlePointerMove!,
-    handlePointerUp: handlePointerUp!,
-    currentTool: currentTool || 'pencil',
-    isReadOnly,
-    stageRef: stageRef!
-  });
-  
-  // Phase 3: Event Deduplication
   const { shouldProcessEvent, resetEventHistory } = useEventDeduplication();
-  // Touch events for pinch/pan - works regardless of read-only status
+  
+  // Touch events for multi-touch gestures - ALWAYS enabled for pan/zoom functionality
   useEffect(() => {
     const container = containerRef.current;
     if (!container) return;
 
     /**
-     * Touch events are used ONLY when pointer events are not supported.
-     * This prevents conflicts between pointer and touch event systems.
-     * 
-     * IMPORTANT: When select tool is active, single-finger touches should 
-     * bypass pan logic and be handled by selection logic instead.
+     * CRITICAL FIX: Always enable touch events for multi-touch gestures
+     * This allows pan/zoom to work on tablets regardless of pointer event support.
+     * Touch events will ONLY handle multi-touch (2+ fingers) to avoid conflicts.
      */
-    const shouldUseTouchEvents = !supportsPointerEvents;
+    const shouldUseTouchEvents = true; // Always enable for multi-touch
 
     const handleTouchStart = (e: TouchEvent) => {
-      // Phase 3: Event Deduplication
+      // Only handle multi-touch gestures (2+ fingers)
+      if (e.touches.length < 2) {
+        return; // Let pointer events handle single-touch
+      }
+
       if (!shouldProcessEvent('touch', 'touchstart')) {
         return;
       }
@@ -77,27 +53,18 @@ export const useTouchEventHandlers = ({
         tool: currentTool 
       });
       
-      // Phase 2 & 4: Tool-Aware Event Routing
-      // For select tool with single finger, try to bridge to selection logic
-      if (currentTool === 'select' && e.touches.length === 1 && touchToSelectionBridge) {
-        const bridged = touchToSelectionBridge.bridgeTouchToSelection(e, 'down');
-        if (bridged) {
-          // Successfully bridged to selection - prevent pan and other processing
-          e.preventDefault();
-          return;
-        }
-      }
-      
-      // Always prevent default for multi-touch to ensure pinch-to-zoom works
-      if (e.touches.length >= 2) {
-        e.preventDefault();
-      }
+      // Prevent default for multi-touch to ensure pinch-to-zoom works
+      e.preventDefault();
       
       panZoom.handleTouchStart(e);
     };
 
     const handleTouchMove = (e: TouchEvent) => {
-      // Phase 3: Event Deduplication
+      // Only handle multi-touch gestures (2+ fingers)  
+      if (e.touches.length < 2) {
+        return; // Let pointer events handle single-touch
+      }
+
       if (!shouldProcessEvent('touch', 'touchmove')) {
         return;
       }
@@ -107,53 +74,28 @@ export const useTouchEventHandlers = ({
         tool: currentTool 
       });
       
-      // Phase 2 & 4: Tool-Aware Event Routing
-      // For select tool with single finger, try to bridge to selection logic
-      if (currentTool === 'select' && e.touches.length === 1 && touchToSelectionBridge) {
-        const bridged = touchToSelectionBridge.bridgeTouchToSelection(e, 'move');
-        if (bridged) {
-          // Successfully bridged to selection - prevent pan and other processing
-          e.preventDefault();
-          return;
-        }
-      }
-      
-      // Always prevent default for multi-touch gestures
-      if (e.touches.length >= 2) {
-        e.preventDefault();
-      }
+      // Prevent default for multi-touch gestures
+      e.preventDefault();
       
       panZoom.handleTouchMove(e);
     };
 
     const handleTouchEnd = (e: TouchEvent) => {
-      // Phase 3: Event Deduplication
-      if (!shouldProcessEvent('touch', 'touchend')) {
-        return;
-      }
-      
-      logEventHandling('touchend', 'touch', { 
-        touches: e.touches.length, 
-        tool: currentTool 
-      });
-      
-      // Phase 2 & 4: Tool-Aware Event Routing
-      // For select tool, try to bridge to selection logic
-      if (currentTool === 'select' && touchToSelectionBridge) {
-        const bridged = touchToSelectionBridge.bridgeTouchToSelection(e, 'up');
-        if (bridged) {
-          // Successfully bridged to selection - prevent pan and other processing
-          e.preventDefault();
+      // Handle end of multi-touch gestures
+      if (e.touches.length === 0 || (e.touches.length === 1 && e.changedTouches.length >= 1)) {
+        // End of multi-touch gesture - let pan zoom handle cleanup
+        
+        if (!shouldProcessEvent('touch', 'touchend')) {
           return;
         }
+        
+        logEventHandling('touchend', 'touch', { 
+          touches: e.touches.length, 
+          tool: currentTool 
+        });
+        
+        panZoom.handleTouchEnd(e);
       }
-      
-      // Only prevent default for multi-touch end events
-      if (e.touches.length >= 1 || (e.changedTouches && e.changedTouches.length >= 1)) {
-        e.preventDefault();
-      }
-      
-      panZoom.handleTouchEnd(e);
     };
 
     if (shouldUseTouchEvents) {
@@ -169,13 +111,10 @@ export const useTouchEventHandlers = ({
         container.removeEventListener('touchend', handleTouchEnd);
       }
     };
-  }, [panZoom.handleTouchStart, panZoom.handleTouchMove, panZoom.handleTouchEnd, logEventHandling, supportsPointerEvents, currentTool, shouldProcessEvent, touchToSelectionBridge]);
+  }, [panZoom.handleTouchStart, panZoom.handleTouchMove, panZoom.handleTouchEnd, logEventHandling, currentTool, shouldProcessEvent]);
   
-  // Reset event history and touch selection when tool changes
+  // Reset event history when tool changes
   useEffect(() => {
     resetEventHistory();
-    if (touchToSelectionBridge) {
-      touchToSelectionBridge.resetTouchSelection();
-    }
-  }, [currentTool, resetEventHistory, touchToSelectionBridge]);
+  }, [currentTool, resetEventHistory]);
 };
