@@ -9,6 +9,7 @@ interface UseKonvaKeyboardHandlersProps {
   select2Handlers?: {
     select2State: any;
     deleteSelectedObjects: () => void;
+    clearSelection: () => void;
   };
 }
 
@@ -70,7 +71,18 @@ export const useKonvaKeyboardHandlers = ({
         // Check if using select2 tool
         if (state.currentTool === 'select2' && select2Handlers?.select2State?.selectedObjects?.length > 0) {
           console.log(`[${whiteboardId}] Delete key pressed - select2 selected objects:`, select2Handlers.select2State.selectedObjects);
-          select2Handlers.deleteSelectedObjects();
+          
+          // Use the same delete function as the original select tool for proper sync
+          if ('deleteSelectedObjects' in whiteboardState && typeof whiteboardState.deleteSelectedObjects === 'function') {
+            // Pass the select2 selected objects to the whiteboard delete function
+            whiteboardState.deleteSelectedObjects(select2Handlers.select2State.selectedObjects);
+          }
+          
+          // Clear select2 selection
+          if (select2Handlers.clearSelection) {
+            select2Handlers.clearSelection();
+          }
+          
           e.preventDefault();
           return;
         }

@@ -132,7 +132,8 @@ const KonvaStage: React.FC<KonvaStageProps> = ({
     // Pass select2 handlers when select2 tool is active
     select2Handlers: state.currentTool === 'select2' && stageEventHandlers ? {
       select2State: stageEventHandlers.select2State,
-      deleteSelectedObjects: stageEventHandlers.deleteSelectedObjects || (() => {})
+      deleteSelectedObjects: stageEventHandlers.deleteSelectedObjects || (() => {}),
+      clearSelection: stageEventHandlers.clearSelect2Selection || (() => {})
     } : undefined
   });
 
