@@ -26,8 +26,11 @@ export const useSimplifiedPointerHandlers = (
       return;
     }
 
+    console.log('[SimplifiedPointer] Raw pointer down at client coordinates:', { clientX, clientY });
+    console.log('[SimplifiedPointer] Current pan/zoom state:', panZoomState);
+
     const { x, y } = getRelativePointerPosition(stage, clientX, clientY);
-    console.log('[SimplifiedPointer] Pointer down at stage coordinates:', { x, y, tool: currentTool });
+    console.log('[SimplifiedPointer] Converted to stage coordinates:', { x, y, tool: currentTool });
     
     // Don't start drawing if a pan/zoom gesture is active
     if (panZoom.isGestureActive()) {
@@ -36,16 +39,16 @@ export const useSimplifiedPointerHandlers = (
     }
     
     if (currentTool === 'pencil' || currentTool === 'highlighter' || currentTool === 'eraser') {
-      console.log('[SimplifiedPointer] Starting drawing operation');
+      console.log('[SimplifiedPointer] Starting drawing operation at coordinates:', { x, y });
       drawingCoordination.handleDrawingStart(x, y);
     } else if (currentTool === 'select') {
-      console.log('[SimplifiedPointer] Handling selection start');
+      console.log('[SimplifiedPointer] Handling selection start at coordinates:', { x, y });
       // Call the shared pointer handlers for selection
       if (selection && selection.handlePointerDown) {
         selection.handlePointerDown(x, y);
       }
     }
-  }, [stageRef, getRelativePointerPosition, panZoom, drawingCoordination, selection]);
+  }, [stageRef, getRelativePointerPosition, panZoom, drawingCoordination, selection, panZoomState]);
 
   // Handle pointer move with coordinate conversion
   const handlePointerMove = useCallback((clientX: number, clientY: number, currentTool: string) => {

@@ -7,6 +7,7 @@ export const usePanZoomCore = (
 ) => {
   const zoom = useCallback((factor: number, centerX?: number, centerY?: number) => {
     console.log('[PanZoom] Zooming with factor:', factor, 'center:', { centerX, centerY });
+    console.log('[PanZoom] Current state before zoom:', panZoomState);
     
     const newScale = Math.max(0.1, Math.min(5, panZoomState.scale * factor));
     
@@ -19,6 +20,8 @@ export const usePanZoomCore = (
     const worldX = (zoomCenterX - panZoomState.x) / panZoomState.scale;
     const worldY = (zoomCenterY - panZoomState.y) / panZoomState.scale;
     
+    console.log('[PanZoom] World position at zoom center:', { worldX, worldY });
+    
     // Calculate new pan position to keep the same world point under the cursor
     // New pan = screen position - (world position * new scale)
     const newX = zoomCenterX - (worldX * newScale);
@@ -30,17 +33,21 @@ export const usePanZoomCore = (
       x: newX,
       y: newY
     };
+    
+    console.log('[PanZoom] New state after zoom:', newState);
     setPanZoomState(newState);
   }, [setPanZoomState, panZoomState]);
 
   const handleWheel = useCallback((e: WheelEvent) => {
-    console.log('[PanZoom] Wheel event:', { deltaY: e.deltaY });
+    console.log('[PanZoom] Wheel event:', { deltaY: e.deltaY, clientX: e.clientX, clientY: e.clientY });
     e.preventDefault();
     
     const zoomFactor = e.deltaY > 0 ? 0.9 : 1.1;
     const rect = (e.target as HTMLElement).getBoundingClientRect();
     const centerX = e.clientX - rect.left;
     const centerY = e.clientY - rect.top;
+    
+    console.log('[PanZoom] Zoom center calculated:', { centerX, centerY });
     
     zoom(zoomFactor, centerX, centerY);
   }, [zoom]);
@@ -54,6 +61,7 @@ export const usePanZoomCore = (
     viewportHeight: number
   ) => {
     console.log('[PanZoom] Centering on bounds:', bounds);
+    console.log('[PanZoom] Viewport dimensions:', { viewportWidth, viewportHeight });
     
     // Calculate the center point of the bounds
     const boundsCenter = {
@@ -82,12 +90,14 @@ export const usePanZoomCore = (
       viewportCenter 
     });
     
-    // Apply the new pan state with smooth animation
+    // Apply the new pan state
     const newState: PanZoomState = {
       ...panZoomState,
       x: newPanX,
       y: newPanY
     };
+    
+    console.log('[PanZoom] Final centered state:', newState);
     setPanZoomState(newState);
   }, [panZoomState, setPanZoomState]);
 
