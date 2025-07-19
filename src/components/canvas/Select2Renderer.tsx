@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { Rect } from 'react-konva';
+import { Rect, Line, Image } from 'react-konva';
 import { SelectionBounds, SelectedObject, LineObject, ImageObject } from '@/types/whiteboard';
 
 interface Select2RendererProps {
@@ -11,6 +11,8 @@ interface Select2RendererProps {
   lines: LineObject[];
   images: ImageObject[];
   groupBounds: SelectionBounds | null;
+  dragOffset: { x: number; y: number } | null;
+  isDraggingObjects: boolean;
 }
 
 export const Select2Renderer: React.FC<Select2RendererProps> = ({
@@ -20,7 +22,9 @@ export const Select2Renderer: React.FC<Select2RendererProps> = ({
   isSelecting,
   lines,
   images,
-  groupBounds
+  groupBounds,
+  dragOffset,
+  isDraggingObjects
 }) => {
   // Helper function to get object bounds for individual hover feedback
   const getObjectBounds = (obj: SelectedObject) => {
@@ -58,6 +62,73 @@ export const Select2Renderer: React.FC<Select2RendererProps> = ({
       };
     }
     return null;
+  };
+
+  // Render preview objects during dragging
+  const renderPreviewObjects = () => {
+    if (!isDraggingObjects || !dragOffset) return null;
+
+    return selectedObjects.map(obj => {
+      if (obj.type === 'line') {
+        const line = lines.find(l => l.id === obj.id);
+        if (!line) return null;
+
+        return (
+          <Line
+            key={`preview-${obj.id}`}
+            points={line.points}
+            x={line.x + dragOffset.x}
+            y={line.y + dragOffset.y}
+            stroke="rgba(0, 123, 255, 0.6)"
+            strokeWidth={line.strokeWidth}
+            lineCap="round"
+            lineJoin="round"
+            opacity={0.5}
+            listening={false}
+            dash={[5, 5]}
+          />
+        );
+      } else if (obj.type === 'image') {
+        const image = images.find(i => i.id === obj.id);
+        if (!image || !image.imageElement) return null;
+
+        return (
+          <Image
+            key={`preview-${obj.id}`}
+            image={image.imageElement}
+            x={image.x + dragOffset.x}
+            y={image.y + dragOffset.y}
+            width={image.width}
+            height={image.height}
+            opacity={0.5}
+            listening={false}
+          />
+        );
+      }
+      return null;
+    });
+  };
+
+  // Render dimming overlay for original objects during drag
+  const renderOriginalObjectDimming = () => {
+    if (!isDraggingObjects || !dragOffset) return null;
+
+    return selectedObjects.map(obj => {
+      const bounds = getObjectBounds(obj);
+      if (!bounds) return null;
+
+      return (
+        <Rect
+          key={`dim-${obj.id}`}
+          x={bounds.x}
+          y={bounds.y}
+          width={bounds.width}
+          height={bounds.height}
+          fill="rgba(255, 255, 255, 0.7)"
+          listening={false}
+        />
+      );
+    });
   };
 
   return (
@@ -116,6 +187,12 @@ export const Select2Renderer: React.FC<Select2RendererProps> = ({
           );
         })()
       )}
+
+      {/* Dimming overlay for original objects during drag */}
+      {renderOriginalObjectDimming()}
+
+      {/* Preview objects during dragging */}
+      {renderPreviewObjects()}
     </>
   );
 };

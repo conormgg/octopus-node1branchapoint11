@@ -178,6 +178,8 @@ const KonvaStage: React.FC<KonvaStageProps> = ({
                   groupBounds={stageEventHandlers.select2State?.groupBounds || null}
                   lines={state.lines}
                   images={state.images}
+                  dragOffset={stageEventHandlers.select2State?.dragOffset || null}
+                  isDraggingObjects={stageEventHandlers.select2State?.isDraggingObjects || false}
                 />
               )}
             </>
