@@ -35,7 +35,8 @@ export const useSelect2EventHandlers = ({
     findObjectsAtPoint,
     calculateGroupBounds,
     updateGroupBounds,
-    isPointInGroupBounds
+    isPointInGroupBounds,
+    setState
   } = useSelect2State();
 
   const { getRelativePointerPosition } = useStageCoordinates(panZoomState);
@@ -57,12 +58,13 @@ export const useSelect2EventHandlers = ({
     );
   }, [findObjectsAtPoint, lines, images, state.selectedObjects, isPointInGroupBounds]);
 
-  // Apply drag offset to objects
+  // Apply drag offset to objects and update group bounds synchronously
   const applyDragOffset = useCallback(() => {
     if (!state.dragOffset || (!onUpdateLine && !onUpdateImage)) return;
 
     const { x: dx, y: dy } = state.dragOffset;
 
+    // Apply offset to objects
     state.selectedObjects.forEach(obj => {
       if (obj.type === 'line' && onUpdateLine) {
         onUpdateLine(obj.id, {
@@ -77,9 +79,19 @@ export const useSelect2EventHandlers = ({
       }
     });
 
-    // Update group bounds after moving objects
-    updateGroupBounds(lines, images);
-  }, [state.dragOffset, state.selectedObjects, lines, images, onUpdateLine, onUpdateImage, updateGroupBounds]);
+    // Apply the same offset to group bounds synchronously
+    if (state.groupBounds) {
+      setState(prev => ({
+        ...prev,
+        groupBounds: {
+          x: prev.groupBounds!.x + dx,
+          y: prev.groupBounds!.y + dy,
+          width: prev.groupBounds!.width,
+          height: prev.groupBounds!.height
+        }
+      }));
+    }
+  }, [state.dragOffset, state.selectedObjects, state.groupBounds, lines, images, onUpdateLine, onUpdateImage, setState]);
 
   const handleMouseDown = useCallback((e: Konva.KonvaEventObject<MouseEvent>) => {
     const stage = e.target.getStage();

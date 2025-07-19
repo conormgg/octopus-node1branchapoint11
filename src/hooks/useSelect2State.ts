@@ -386,6 +386,7 @@ export const useSelect2State = () => {
 
   return {
     state,
+    setState,
     startDragSelection,
     updateDragSelection,
     endDragSelection,
