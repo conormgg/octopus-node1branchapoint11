@@ -6,8 +6,6 @@ import { usePalmRejection } from '@/hooks/usePalmRejection';
 import { useStageEventHandlers } from '@/hooks/useStageEventHandlers';
 import { useKonvaKeyboardHandlers } from '@/hooks/canvas/useKonvaKeyboardHandlers';
 import { useKonvaPanZoomSync } from '@/hooks/canvas/useKonvaPanZoomSync';
-import { useCallback } from 'react';
-import { useStageCoordinates } from '@/hooks/useStageCoordinates';
 import KonvaStageCanvas from './KonvaStageCanvas';
 import KonvaImageContextMenuHandler from './KonvaImageContextMenuHandler';
 import KonvaImageOperationsHandler from './KonvaImageOperationsHandler';
@@ -49,27 +47,13 @@ const KonvaStage: React.FC<KonvaStageProps> = ({
 
   const {
     state,
+    handlePointerDown,
+    handlePointerMove,
+    handlePointerUp,
     panZoom,
     selection,
     updateLine
   } = whiteboardState;
-
-  const { getRelativePointerPosition } = useStageCoordinates(state.panZoomState);
-
-  // Create simple no-op pointer handlers to fix build errors
-  // These will be properly implemented when the drawing system is fully integrated
-  const handlePointerDown = useCallback((e: Konva.KonvaEventObject<PointerEvent>) => {
-    // TODO: Implement proper drawing operations
-    console.log('Pointer down:', e.evt.clientX, e.evt.clientY, state.currentTool);
-  }, [state.currentTool]);
-
-  const handlePointerMove = useCallback((e: Konva.KonvaEventObject<PointerEvent>) => {
-    // TODO: Implement proper drawing operations
-  }, []);
-
-  const handlePointerUp = useCallback((e: Konva.KonvaEventObject<PointerEvent>) => {
-    // TODO: Implement proper drawing operations
-  }, []);
 
   // Get whiteboard ID for this instance with proper typing
   const whiteboardId: string = 'whiteboardId' in whiteboardState && typeof whiteboardState.whiteboardId === 'string' 

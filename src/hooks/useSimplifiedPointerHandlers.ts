@@ -22,36 +22,30 @@ export const useSimplifiedPointerHandlers = (
   const handlePointerDown = useCallback((clientX: number, clientY: number, currentTool: string) => {
     const stage = stageRef.current;
     if (!stage) {
-      debugLog('PointerDown', 'No stage reference available');
+      console.log('[SimplifiedPointer] No stage reference');
       return;
     }
 
     const { x, y } = getRelativePointerPosition(stage, clientX, clientY);
-    
-    debugLog('PointerDown', 'Pointer down event', { 
-      client: { x: clientX, y: clientY },
-      stage: { x, y }, 
-      tool: currentTool,
-      panZoom: panZoomState
-    });
+    console.log('[SimplifiedPointer] Pointer down at stage coordinates:', { x, y, tool: currentTool });
     
     // Don't start drawing if a pan/zoom gesture is active
     if (panZoom.isGestureActive()) {
-      debugLog('PointerDown', 'Ignoring pointer down - gesture active');
+      console.log('[SimplifiedPointer] Ignoring pointer down - gesture active');
       return;
     }
     
     if (currentTool === 'pencil' || currentTool === 'highlighter' || currentTool === 'eraser') {
-      debugLog('PointerDown', 'Starting drawing operation', { coordinates: { x, y } });
+      console.log('[SimplifiedPointer] Starting drawing operation');
       drawingCoordination.handleDrawingStart(x, y);
     } else if (currentTool === 'select') {
-      debugLog('PointerDown', 'Handling selection start', { coordinates: { x, y } });
+      console.log('[SimplifiedPointer] Handling selection start');
       // Call the shared pointer handlers for selection
       if (selection && selection.handlePointerDown) {
         selection.handlePointerDown(x, y);
       }
     }
-  }, [stageRef, getRelativePointerPosition, panZoom, drawingCoordination, selection, panZoomState]);
+  }, [stageRef, getRelativePointerPosition, panZoom, drawingCoordination, selection]);
 
   // Handle pointer move with coordinate conversion
   const handlePointerMove = useCallback((clientX: number, clientY: number, currentTool: string) => {
@@ -75,13 +69,13 @@ export const useSimplifiedPointerHandlers = (
 
   // Handle pointer up
   const handlePointerUp = useCallback((currentTool: string) => {
-    debugLog('PointerUp', 'Pointer up event', { tool: currentTool });
+    console.log('[SimplifiedPointer] Pointer up for tool:', currentTool);
     
     if (currentTool === 'pencil' || currentTool === 'highlighter' || currentTool === 'eraser') {
-      debugLog('PointerUp', 'Ending drawing operation');
+      console.log('[SimplifiedPointer] Ending drawing operation');
       drawingCoordination.handleDrawingEnd();
     } else if (currentTool === 'select') {
-      debugLog('PointerUp', 'Handling selection end');
+      console.log('[SimplifiedPointer] Handling selection end');
       // Call the shared pointer handlers for selection
       if (selection && selection.handlePointerUp) {
         selection.handlePointerUp();
