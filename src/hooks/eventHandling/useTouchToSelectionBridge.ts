@@ -40,20 +40,36 @@ export const useTouchToSelectionBridge = ({
     e: TouchEvent, 
     action: 'down' | 'move' | 'up'
   ) => {
+    // Get stage reference early for tool checking
+    const stage = stageRef.current;
+    let effectiveTool = currentTool;
+    
+    // Fallback: If currentTool is undefined, try to get it from stage
+    if (effectiveTool === undefined && stage) {
+      effectiveTool = stage.getAttr('currentTool');
+      debugLog('TouchToSelectionBridge', 'Using stage fallback tool', {
+        originalTool: currentTool,
+        stageTool: effectiveTool
+      });
+    }
+    
     debugLog('TouchToSelectionBridge', `Bridge attempt for ${action}`, {
       currentTool,
-      toolIsSelect: currentTool === 'select',
+      effectiveTool,
+      stageTool: stage?.getAttr('currentTool'),
+      toolIsSelect: effectiveTool === 'select',
       isReadOnly,
       touchCount: action === 'up' ? e.changedTouches.length : e.touches.length,
-      toolUndefined: currentTool === undefined,
-      toolType: typeof currentTool
+      toolUndefined: effectiveTool === undefined,
+      toolType: typeof effectiveTool
     });
 
     // Only bridge single-finger touches when select tool is active
-    if (currentTool !== 'select' || isReadOnly || e.touches.length > 1) {
+    if (effectiveTool !== 'select' || isReadOnly || e.touches.length > 1) {
       debugLog('TouchToSelectionBridge', 'Bridge conditions not met', {
         currentTool,
-        toolNotSelect: currentTool !== 'select',
+        effectiveTool,
+        toolNotSelect: effectiveTool !== 'select',
         isReadOnly,
         multiTouch: e.touches.length > 1,
         touchCount: e.touches.length
@@ -61,7 +77,6 @@ export const useTouchToSelectionBridge = ({
       return false;
     }
     
-    const stage = stageRef.current;
     if (!stage) {
       debugLog('TouchToSelectionBridge', 'No stage reference');
       return false;
@@ -81,6 +96,7 @@ export const useTouchToSelectionBridge = ({
       touch: { clientX: touch.clientX, clientY: touch.clientY },
       stage: { x, y },
       currentTool,
+      effectiveTool,
       action
     });
     

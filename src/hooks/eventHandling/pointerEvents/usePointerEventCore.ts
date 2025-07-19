@@ -87,25 +87,38 @@ export const usePointerEventCore = ({
           return;
         }
         
-        // For touch pointers with select tool, try to bridge to selection
-        if (e.pointerType === 'touch' && currentToolRef.current === 'select') {
-          debugLog('PointerEventCore', 'Touch pointer with select tool - attempting bridge', {
+        // For touch pointers, check if we should bridge to selection
+        if (e.pointerType === 'touch') {
+          const stage = stageRef.current;
+          const stageTool = stage?.getAttr('currentTool');
+          const currentTool = currentToolRef.current;
+          const effectiveTool = currentTool || stageTool;
+          
+          debugLog('PointerEventCore', 'Touch pointer detected - checking for selection bridge', {
+            currentTool,
+            stageTool,
+            effectiveTool,
+            isSelectTool: effectiveTool === 'select',
             clientX: e.clientX,
             clientY: e.clientY
           });
           
-          // Create a mock touch event for the bridge
-          const mockTouchEvent = {
-            touches: [{ clientX: e.clientX, clientY: e.clientY }],
-            preventDefault: () => e.preventDefault()
-          } as unknown as TouchEvent;
-          
-          const bridged = touchToSelectionBridge.bridgeTouchToSelection(mockTouchEvent, 'down');
-          debugLog('PointerEventCore', 'Bridge attempt result', { bridged });
-          
-          if (bridged) {
-            e.preventDefault();
-            return;
+          if (effectiveTool === 'select') {
+            debugLog('PointerEventCore', 'Touch pointer with select tool - attempting bridge');
+            
+            // Create a mock touch event for the bridge
+            const mockTouchEvent = {
+              touches: [{ clientX: e.clientX, clientY: e.clientY }],
+              preventDefault: () => e.preventDefault()
+            } as unknown as TouchEvent;
+            
+            const bridged = touchToSelectionBridge.bridgeTouchToSelection(mockTouchEvent, 'down');
+            debugLog('PointerEventCore', 'Bridge attempt result', { bridged });
+            
+            if (bridged) {
+              e.preventDefault();
+              return;
+            }
           }
         }
         
@@ -147,17 +160,24 @@ export const usePointerEventCore = ({
           return;
         }
         
-        // For touch pointers with select tool, try to bridge to selection
-        if (e.pointerType === 'touch' && currentToolRef.current === 'select') {
-          const mockTouchEvent = {
-            touches: [{ clientX: e.clientX, clientY: e.clientY }],
-            preventDefault: () => e.preventDefault()
-          } as unknown as TouchEvent;
+        // For touch pointers, check if we should bridge to selection
+        if (e.pointerType === 'touch') {
+          const stage = stageRef.current;
+          const stageTool = stage?.getAttr('currentTool');
+          const currentTool = currentToolRef.current;
+          const effectiveTool = currentTool || stageTool;
           
-          const bridged = touchToSelectionBridge.bridgeTouchToSelection(mockTouchEvent, 'move');
-          if (bridged) {
-            e.preventDefault();
-            return;
+          if (effectiveTool === 'select') {
+            const mockTouchEvent = {
+              touches: [{ clientX: e.clientX, clientY: e.clientY }],
+              preventDefault: () => e.preventDefault()
+            } as unknown as TouchEvent;
+            
+            const bridged = touchToSelectionBridge.bridgeTouchToSelection(mockTouchEvent, 'move');
+            if (bridged) {
+              e.preventDefault();
+              return;
+            }
           }
         }
         
@@ -199,22 +219,36 @@ export const usePointerEventCore = ({
           return;
         }
         
-        // For touch pointers with select tool, try to bridge to selection
-        if (e.pointerType === 'touch' && currentToolRef.current === 'select') {
-          debugLog('PointerEventCore', 'Touch pointer up with select tool - attempting bridge');
+        // For touch pointers, check if we should bridge to selection
+        if (e.pointerType === 'touch') {
+          const stage = stageRef.current;
+          const stageTool = stage?.getAttr('currentTool');
+          const currentTool = currentToolRef.current;
+          const effectiveTool = currentTool || stageTool;
           
-          const mockTouchEvent = {
-            touches: [],
-            changedTouches: [{ clientX: e.clientX, clientY: e.clientY }],
-            preventDefault: () => e.preventDefault()
-          } as unknown as TouchEvent;
+          debugLog('PointerEventCore', 'Touch pointer up - checking for selection bridge', {
+            currentTool,
+            stageTool,
+            effectiveTool,
+            isSelectTool: effectiveTool === 'select'
+          });
           
-          const bridged = touchToSelectionBridge.bridgeTouchToSelection(mockTouchEvent, 'up');
-          debugLog('PointerEventCore', 'Bridge up result', { bridged });
-          
-          if (bridged) {
-            e.preventDefault();
-            return;
+          if (effectiveTool === 'select') {
+            debugLog('PointerEventCore', 'Touch pointer up with select tool - attempting bridge');
+            
+            const mockTouchEvent = {
+              touches: [],
+              changedTouches: [{ clientX: e.clientX, clientY: e.clientY }],
+              preventDefault: () => e.preventDefault()
+            } as unknown as TouchEvent;
+            
+            const bridged = touchToSelectionBridge.bridgeTouchToSelection(mockTouchEvent, 'up');
+            debugLog('PointerEventCore', 'Bridge up result', { bridged });
+            
+            if (bridged) {
+              e.preventDefault();
+              return;
+            }
           }
         }
         

@@ -39,7 +39,11 @@ export const useKonvaPanZoomSync = ({
   useEffect(() => {
     const stage = stageRef.current;
     if (!stage) {
-      debugLog('KonvaPanZoomSync', 'No stage reference for tool sync', { currentTool });
+      debugLog('KonvaPanZoomSync', 'No stage reference for tool sync', { 
+        currentTool,
+        stageRefExists: !!stageRef,
+        stageRefCurrent: !!stageRef.current 
+      });
       return;
     }
 
@@ -49,18 +53,48 @@ export const useKonvaPanZoomSync = ({
       previousTool,
       newTool: currentTool,
       toolChanged: previousTool !== currentTool,
-      stageExists: !!stage
+      stageExists: !!stage,
+      stageId: stage.id()
     });
 
-    stage.setAttr('currentTool', currentTool);
-    
-    // Verify the attribute was set correctly
-    const verifyTool = stage.getAttr('currentTool');
-    debugLog('KonvaPanZoomSync', 'Tool attribute verification', {
-      requested: currentTool,
-      actual: verifyTool,
-      success: verifyTool === currentTool
-    });
+    // Set the attribute with error handling
+    try {
+      stage.setAttr('currentTool', currentTool);
+      
+      // Verify the attribute was set correctly
+      const verifyTool = stage.getAttr('currentTool');
+      debugLog('KonvaPanZoomSync', 'Tool attribute verification', {
+        requested: currentTool,
+        actual: verifyTool,
+        success: verifyTool === currentTool,
+        attributeType: typeof verifyTool
+      });
+
+      // If verification failed, try alternative approach
+      if (verifyTool !== currentTool) {
+        debugLog('KonvaPanZoomSync', 'Tool attribute mismatch - trying alternative', {
+          requested: currentTool,
+          actual: verifyTool
+        });
+        
+        // Force the attribute setting
+        stage.attrs = stage.attrs || {};
+        stage.attrs.currentTool = currentTool;
+        
+        // Re-verify
+        const secondVerify = stage.getAttr('currentTool');
+        debugLog('KonvaPanZoomSync', 'Secondary verification', {
+          secondAttempt: secondVerify,
+          success: secondVerify === currentTool
+        });
+      }
+    } catch (error) {
+      debugLog('KonvaPanZoomSync', 'Error setting currentTool attribute', {
+        error: error.message,
+        currentTool,
+        stage: !!stage
+      });
+    }
 
   }, [stageRef, currentTool]);
 
