@@ -42,6 +42,8 @@ interface UseStageEventHandlersProps {
   onUpdateImage?: (imageId: string, updates: any) => void;
   onDeleteObjects?: (selectedObjects: Array<{id: string, type: 'line' | 'image'}>) => void;
   onDeleteObjectsNoParams?: () => void;
+  // Add selection parameter for select2 integration
+  selection?: any;
 }
 
 export const useStageEventHandlers = ({
@@ -61,7 +63,8 @@ export const useStageEventHandlers = ({
   onUpdateLine,
   onUpdateImage,
   onDeleteObjects,
-  onDeleteObjectsNoParams
+  onDeleteObjectsNoParams,
+  selection
 }: UseStageEventHandlersProps) => {
   const currentToolRef = useRef<string>(currentTool || 'pencil');
   const { logEventHandling } = useEventDebug(palmRejectionConfig);
@@ -75,8 +78,8 @@ export const useStageEventHandlers = ({
     deleteNoParamsFunction: onDeleteObjectsNoParams ? 'provided' : 'none'
   });
 
-  // Select2 event handlers with update functions and delete function
-  const select2Handlers = useSelect2EventHandlers({
+  // Select2 event handlers with main selection integration
+  const select2Handlers = currentTool === 'select2' && selection ? useSelect2EventHandlers({
     stageRef,
     lines,
     images,
@@ -84,8 +87,9 @@ export const useStageEventHandlers = ({
     onUpdateLine,
     onUpdateImage,
     onDeleteObjects,
-    containerRef
-  });
+    containerRef,
+    selection
+  }) : null;
 
   // Update current tool ref when currentTool prop changes
   useEffect(() => {
@@ -100,8 +104,8 @@ export const useStageEventHandlers = ({
       // Update touch-action when tool changes
       const container = containerRef.current;
       if (container) {
-        // For select tool, allow native touch behavior; for others, prevent it
-        container.style.touchAction = currentTool === 'select' ? 'manipulation' : 'none';
+        // For select tools, allow native touch behavior; for others, prevent it
+        container.style.touchAction = (currentTool === 'select' || currentTool === 'select2') ? 'manipulation' : 'none';
         debugLog('StageEventHandlers', 'Updated touch-action via prop', {
           tool: currentTool,
           touchAction: container.style.touchAction
@@ -152,15 +156,15 @@ export const useStageEventHandlers = ({
     palmRejection,
     palmRejectionConfig,
     panZoom,
-    handlePointerDown: currentTool === 'select2' ? 
+    handlePointerDown: currentTool === 'select2' && select2Handlers ? 
       (worldX: number, worldY: number) => {
         select2Handlers.handlePointerDown(worldX, worldY);
       } : handlePointerDown,
-    handlePointerMove: currentTool === 'select2' ? 
+    handlePointerMove: currentTool === 'select2' && select2Handlers ? 
       (worldX: number, worldY: number) => {
         select2Handlers.handlePointerMove(worldX, worldY);
       } : handlePointerMove,
-    handlePointerUp: currentTool === 'select2' ? 
+    handlePointerUp: currentTool === 'select2' && select2Handlers ? 
       select2Handlers.handlePointerUp : handlePointerUp,
     isReadOnly,
     currentToolRef,
@@ -168,8 +172,8 @@ export const useStageEventHandlers = ({
     supportsPointerEvents
   });
 
-  // Return select2 state for rendering when using select2 tool
-  if (currentTool === 'select2') {
+  // Return handlers for select2 when active
+  if (currentTool === 'select2' && select2Handlers) {
     return {
       select2State: select2Handlers.select2State,
       clearSelect2Selection: select2Handlers.clearSelection,
