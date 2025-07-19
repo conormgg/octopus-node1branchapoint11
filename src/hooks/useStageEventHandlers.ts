@@ -155,7 +155,11 @@ export const useStageEventHandlers = ({
       if (isReadOnly) return;
       
       // Apply palm rejection only if it's enabled
-      if (palmRejectionConfig.enabled && !palmRejection.shouldProcessPointer(e)) {
+      if (
+        palmRejectionConfig.enabled &&
+        currentToolRef.current !== 'select' &&
+        !palmRejection.shouldProcessPointer(e)
+      ) {
         return;
       }
 
@@ -190,7 +194,11 @@ export const useStageEventHandlers = ({
       if (isReadOnly) return;
       
       // Apply palm rejection only if it's enabled
-      if (palmRejectionConfig.enabled && !palmRejection.shouldProcessPointer(e)) return;
+      if (
+        palmRejectionConfig.enabled &&
+        currentToolRef.current !== 'select' &&
+        !palmRejection.shouldProcessPointer(e)
+      ) return;
 
       const { x, y } = getRelativePointerPosition(stage, e.clientX, e.clientY);
       handlePointerMove(x, y);
