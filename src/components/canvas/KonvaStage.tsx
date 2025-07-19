@@ -1,4 +1,3 @@
-
 import React, { useRef, useEffect } from 'react';
 import Konva from 'konva';
 import { useWhiteboardState } from '@/hooks/useWhiteboardState';
@@ -176,6 +175,7 @@ const KonvaStage: React.FC<KonvaStageProps> = ({
                   hoveredObjectId={stageEventHandlers.select2State?.hoveredObjectId || null}
                   selectionBounds={stageEventHandlers.select2State?.selectionBounds || null}
                   isSelecting={stageEventHandlers.select2State?.isSelecting || false}
+                  groupBounds={stageEventHandlers.select2State?.groupBounds || null}
                   lines={state.lines}
                   images={state.images}
                 />

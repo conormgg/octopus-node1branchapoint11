@@ -10,6 +10,7 @@ interface Select2RendererProps {
   isSelecting: boolean;
   lines: LineObject[];
   images: ImageObject[];
+  groupBounds: SelectionBounds | null;
 }
 
 export const Select2Renderer: React.FC<Select2RendererProps> = ({
@@ -18,9 +19,10 @@ export const Select2Renderer: React.FC<Select2RendererProps> = ({
   selectionBounds,
   isSelecting,
   lines,
-  images
+  images,
+  groupBounds
 }) => {
-  // Helper function to get object bounds
+  // Helper function to get object bounds for individual hover feedback
   const getObjectBounds = (obj: SelectedObject) => {
     if (obj.type === 'line') {
       const line = lines.find(l => l.id === obj.id);
@@ -75,28 +77,22 @@ export const Select2Renderer: React.FC<Select2RendererProps> = ({
         />
       )}
 
-      {/* Visual feedback for selected objects */}
-      {selectedObjects.map(obj => {
-        const bounds = getObjectBounds(obj);
-        if (!bounds) return null;
-        
-        return (
-          <Rect
-            key={`selection-${obj.id}`}
-            x={bounds.x}
-            y={bounds.y}
-            width={bounds.width}
-            height={bounds.height}
-            fill="transparent"
-            stroke="rgba(0, 123, 255, 0.8)"
-            strokeWidth={2}
-            listening={false}
-          />
-        );
-      })}
+      {/* Unified group selection bounds */}
+      {selectedObjects.length > 0 && groupBounds && (
+        <Rect
+          x={groupBounds.x}
+          y={groupBounds.y}
+          width={groupBounds.width}
+          height={groupBounds.height}
+          fill="transparent"
+          stroke="rgba(0, 123, 255, 0.8)"
+          strokeWidth={2}
+          listening={false}
+        />
+      )}
 
-      {/* Visual feedback for hovered object */}
-      {hoveredObjectId && (
+      {/* Visual feedback for hovered object (only when not selected) */}
+      {hoveredObjectId && !selectedObjects.some(obj => obj.id === hoveredObjectId) && (
         (() => {
           const hoveredObj = { 
             id: hoveredObjectId, 
