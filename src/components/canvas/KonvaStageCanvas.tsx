@@ -40,6 +40,11 @@ interface KonvaStageCanvasProps {
   onUpdateImage?: (imageId: string, updates: any) => void;
   onTransformEnd?: () => void;
   normalizedState?: ReturnType<typeof useNormalizedWhiteboardState>;
+  select2MouseHandlers?: {
+    onMouseDown: (e: Konva.KonvaEventObject<MouseEvent>) => void;
+    onMouseMove: (e: Konva.KonvaEventObject<MouseEvent>) => void;
+    onMouseUp: (e: Konva.KonvaEventObject<MouseEvent>) => void;
+  };
 }
 
 const KonvaStageCanvas: React.FC<KonvaStageCanvasProps> = ({
@@ -65,7 +70,8 @@ const KonvaStageCanvas: React.FC<KonvaStageCanvasProps> = ({
   onUpdateLine,
   onUpdateImage,
   onTransformEnd,
-  normalizedState
+  normalizedState,
+  select2MouseHandlers
 }) => {
   const { handleMouseDown, handleMouseMove, handleMouseUp } = useMouseEventHandlers({
     currentTool,
@@ -88,15 +94,25 @@ const KonvaStageCanvas: React.FC<KonvaStageCanvasProps> = ({
 
   const cursor = useStageCursor({ currentTool, selection });
 
+  // Use select2 mouse handlers when select2 tool is active, otherwise use default handlers
+  const stageMouseHandlers = currentTool === 'select2' && select2MouseHandlers ? {
+    onMouseDown: select2MouseHandlers.onMouseDown,
+    onMouseMove: select2MouseHandlers.onMouseMove,
+    onMouseUp: select2MouseHandlers.onMouseUp,
+    onMouseLeave: select2MouseHandlers.onMouseUp
+  } : {
+    onMouseDown: handleMouseDown,
+    onMouseMove: handleMouseMove,
+    onMouseUp: handleMouseUp,
+    onMouseLeave: handleMouseUp
+  };
+
   return (
     <Stage
       width={width}
       height={height}
       ref={stageRef}
-      onMouseDown={handleMouseDown}
-      onMouseMove={handleMouseMove}
-      onMouseUp={handleMouseUp}
-      onMouseLeave={handleMouseUp}
+      {...stageMouseHandlers}
       onTouchStart={handleTouchStart}
       style={{ cursor }}
     >

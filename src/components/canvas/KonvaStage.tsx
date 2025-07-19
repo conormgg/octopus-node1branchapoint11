@@ -159,6 +159,7 @@ const KonvaStage: React.FC<KonvaStageProps> = ({
             }
           }}
           normalizedState={normalizedState}
+          select2MouseHandlers={state.currentTool === 'select2' && stageEventHandlers ? stageEventHandlers.select2MouseHandlers : undefined}
           extraContent={
             <>
               <KonvaImageOperationsHandler
