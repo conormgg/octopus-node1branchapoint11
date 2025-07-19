@@ -89,17 +89,21 @@ const KonvaStage: React.FC<KonvaStageProps> = ({
   const hasSharedOperations = 'operations' in whiteboardState && 
     whiteboardState.operations && 
     typeof whiteboardState.operations === 'object' && 
-    'deleteSelectedObjects' in whiteboardState.operations;
+    'deleteSelectedObjects' in whiteboardState.operations &&
+    typeof (whiteboardState.operations as any).deleteSelectedObjects === 'function';
     
   const deleteFunction = hasSharedOperations 
     ? (whiteboardState.operations as any).deleteSelectedObjects 
-    : deleteSelectedObjects;
+    : ('deleteSelectedObjects' in whiteboardState && typeof whiteboardState.deleteSelectedObjects === 'function' 
+       ? whiteboardState.deleteSelectedObjects 
+       : deleteSelectedObjects);
 
   debugLog('KonvaStage', 'Delete function selection', {
     whiteboardId,
     hasOperations: 'operations' in whiteboardState,
     hasSharedDelete: hasSharedOperations,
-    usingSharedDelete: hasSharedOperations
+    usingSharedDelete: hasSharedOperations,
+    deleteFunction: deleteFunction ? 'available' : 'none'
   });
 
   // Set up all event handlers with proper update functions for select2
