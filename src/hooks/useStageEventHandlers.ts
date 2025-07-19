@@ -168,7 +168,11 @@ export const useStageEventHandlers = ({
       
       if (isReadOnly) return;
 
-      if (palmRejectionConfig.enabled && !palmRejection.shouldProcessPointer(e)) {
+      if (
+        palmRejectionConfig.enabled &&
+        currentToolRef.current !== 'select' &&
+        !palmRejection.shouldProcessPointer(e)
+      ) {
         return;
       }
 
@@ -184,7 +188,11 @@ export const useStageEventHandlers = ({
       
       if (isReadOnly) return;
 
-      if (palmRejectionConfig.enabled && !palmRejection.shouldProcessPointer(e)) return;
+      if (
+        palmRejectionConfig.enabled &&
+        currentToolRef.current !== 'select' &&
+        !palmRejection.shouldProcessPointer(e)
+      ) return;
 
       handlePointerMove(handleKonvaEvent(e));
     };
