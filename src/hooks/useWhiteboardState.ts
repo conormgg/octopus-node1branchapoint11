@@ -1,5 +1,5 @@
 
-import { useState, useCallback, useEffect, useRef } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { WhiteboardState, PanZoomState, LineObject } from '@/types/whiteboard';
 import { useHistoryState } from './useHistoryState';
 import { usePanZoom } from './usePanZoom';
@@ -20,9 +20,6 @@ const debugLog = createDebugLogger('state');
  */
 export const useWhiteboardState = () => {
   debugLog('Hook', 'Initializing useWhiteboardState');
-
-  // Create a ref to hold the stage reference that will be passed from components
-  const stageRef = useRef<any>(null);
 
   // Tool management
   const toolManagement = useWhiteboardToolManagement();
@@ -132,23 +129,8 @@ export const useWhiteboardState = () => {
   // Image operations
   const imageOperations = useWhiteboardImageOperations(state, setState, addToHistory);
 
-  // Pointer handlers with stage ref
-  const pointerHandlers = useWhiteboardPointerHandlers(state, panZoom, selection, drawingCoordination, stageRef);
-
-  // Expose direct handlers for event system integration
-  const exposedHandlers = {
-    ...pointerHandlers,
-    __whiteboardHandlers: {
-      handleDirectPointerDown: pointerHandlers.handleDirectPointerDown,
-      handleDirectPointerMove: pointerHandlers.handleDirectPointerMove,
-      handleDirectPointerUp: pointerHandlers.handleDirectPointerUp
-    }
-  };
-
-  // Attach the direct handlers to the main handlers for access in event system
-  (exposedHandlers.handlePointerDown as any).__whiteboardHandlers = exposedHandlers.__whiteboardHandlers;
-  (exposedHandlers.handlePointerMove as any).__whiteboardHandlers = exposedHandlers.__whiteboardHandlers;
-  (exposedHandlers.handlePointerUp as any).__whiteboardHandlers = exposedHandlers.__whiteboardHandlers;
+  // Pointer handlers
+  const pointerHandlers = useWhiteboardPointerHandlers(state, panZoom, selection, drawingCoordination);
 
   // Update line position
   const updateLine = useCallback((lineId: string, updates: Partial<LineObject>) => {
@@ -189,12 +171,6 @@ export const useWhiteboardState = () => {
     addToHistory();
   }, [selection.selectionState.selectedObjects, selection, addToHistory]);
 
-  // Set stage ref function for components to call
-  const setStageRef = useCallback((ref: any) => {
-    stageRef.current = ref;
-    console.log('[WhiteboardState] Stage ref set:', !!ref);
-  }, []);
-
   return {
     state,
     // Expose normalized state for components that can use it
@@ -204,9 +180,9 @@ export const useWhiteboardState = () => {
     setPencilColor: toolManagement.setPencilColor,
     setHighlighterColor: toolManagement.setHighlighterColor,
     setStrokeWidth: toolManagement.setStrokeWidth,
-    handlePointerDown: exposedHandlers.handlePointerDown,
-    handlePointerMove: exposedHandlers.handlePointerMove,
-    handlePointerUp: exposedHandlers.handlePointerUp,
+    handlePointerDown: pointerHandlers.handlePointerDown,
+    handlePointerMove: pointerHandlers.handlePointerMove,
+    handlePointerUp: pointerHandlers.handlePointerUp,
     handlePaste: imageOperations.handlePaste,
     addToHistory,
     undo,
@@ -218,8 +194,6 @@ export const useWhiteboardState = () => {
     updateLine,
     updateImage: imageOperations.updateImage,
     toggleImageLock: imageOperations.toggleImageLock,
-    deleteSelectedObjects,
-    // Expose stage ref setter
-    setStageRef
+    deleteSelectedObjects
   };
 };

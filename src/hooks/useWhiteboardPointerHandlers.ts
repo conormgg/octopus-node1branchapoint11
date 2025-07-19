@@ -1,8 +1,5 @@
 
 import { useCallback, useMemo } from 'react';
-import Konva from 'konva';
-import { useStageCoordinates } from './useStageCoordinates';
-import { useSimplifiedPointerHandlers } from './useSimplifiedPointerHandlers';
 import { createDebugLogger } from '@/utils/debug/debugConfig';
 
 const debugLog = createDebugLogger('events');
@@ -15,93 +12,112 @@ export const useWhiteboardPointerHandlers = (
   state: any,
   panZoom: any,
   selection: any,
-  drawingCoordination: any,
-  stageRef?: React.RefObject<Konva.Stage>
+  drawingCoordination: any
 ) => {
   // Memoize stable references to prevent unnecessary re-renders
+  const stableSelectionState = useMemo(() => selection.selectionState, [selection.selectionState]);
   const stableCurrentTool = useMemo(() => state.currentTool, [state.currentTool]);
-  const { getRelativePointerPosition } = useStageCoordinates(state.panZoomState);
+  const stableLines = useMemo(() => state.lines, [state.lines]);
+  const stableImages = useMemo(() => state.images, [state.images]);
 
-  // Use simplified handlers for coordinate-based drawing
-  const simplifiedHandlers = useSimplifiedPointerHandlers(
-    stageRef || { current: null },
-    state.panZoomState,
-    drawingCoordination,
-    selection, // Pass the full selection object with pointer handlers
-    panZoom
-  );
-
-  // Handle Konva pointer events (for compatibility with existing code)
-  const handlePointerDown = useCallback((e: Konva.KonvaEventObject<PointerEvent>) => {
-    console.log('[WhiteboardPointer] Konva pointer down event received');
+  // Handle pointer down
+  const handlePointerDown = useCallback((x: number, y: number) => {
+    debugLog('PointerHandlers', 'Pointer down', { x, y, tool: stableCurrentTool });
     
-    // Extract coordinates from the Konva event
-    const clientX = e.evt.clientX;
-    const clientY = e.evt.clientY;
+    // Don't start drawing if a pan/zoom gesture is active
+    if (panZoom.isGestureActive()) {
+      debugLog('PointerHandlers', 'Ignoring pointer down - gesture active');
+      return;
+    }
     
-    // Use simplified handler
-    simplifiedHandlers.handlePointerDown(clientX, clientY, stableCurrentTool);
-  }, [stableCurrentTool, simplifiedHandlers]);
+    if (stableCurrentTool === 'pencil' || stableCurrentTool === 'highlighter' || stableCurrentTool === 'eraser') {
+      drawingCoordination.handleDrawingStart(x, y);
+    } else if (stableCurrentTool === 'select') {
+      // Handle selection logic with priority:
+      // 1. Check if clicking within existing selection bounds (for group dragging)
+      // 2. Check if clicking on individual objects
+      // 3. Start new selection or clear existing selection
+      
+      const isInSelectionBounds = selection.isPointInSelectionBounds({ x, y });
+      
+      if (isInSelectionBounds && stableSelectionState.selectedObjects.length > 0) {
+        debugLog('PointerHandlers', 'Clicked within selection bounds');
+        // Clicking within selection bounds - this will allow dragging the entire group
+        // The actual dragging logic will be handled by the SelectionGroup component
+        // We don't need to change the selection here, just maintain it
+        return;
+      }
+      
+      // Check for individual objects
+      const foundObjects = selection.findObjectsAtPoint({ x, y }, stableLines, stableImages);
+      
+      if (foundObjects.length > 0) {
+        debugLog('PointerHandlers', 'Found objects at point', { count: foundObjects.length });
+        // Select the first found object
+        selection.selectObjects([foundObjects[0]]);
+        // Update selection bounds for the selected object
+        setTimeout(() => {
+          selection.updateSelectionBounds([foundObjects[0]], stableLines, stableImages);
+        }, 0);
+      } else {
+        debugLog('PointerHandlers', 'Starting drag-to-select');
+        // Clear selection when clicking on empty space
+        selection.clearSelection();
+        // Start drag-to-select
+        selection.setIsSelecting(true);
+        selection.setSelectionBounds({ x, y, width: 0, height: 0 });
+      }
+    }
+  }, [stableCurrentTool, stableLines, stableImages, stableSelectionState.selectedObjects.length, panZoom, selection, drawingCoordination]);
 
   // Handle pointer move
-  const handlePointerMove = useCallback((e: Konva.KonvaEventObject<PointerEvent>) => {
-    const clientX = e.evt.clientX;
-    const clientY = e.evt.clientY;
+  const handlePointerMove = useCallback((x: number, y: number) => {
+    // Don't continue drawing if a pan/zoom gesture is active
+    if (panZoom.isGestureActive()) return;
     
-    simplifiedHandlers.handlePointerMove(clientX, clientY, stableCurrentTool);
-  }, [stableCurrentTool, simplifiedHandlers]);
+    if (stableCurrentTool === 'pencil' || stableCurrentTool === 'highlighter' || stableCurrentTool === 'eraser') {
+      drawingCoordination.handleDrawingContinue(x, y);
+    } else if (stableCurrentTool === 'select' && stableSelectionState.isSelecting) {
+      // Update drag-to-select rectangle
+      const bounds = stableSelectionState.selectionBounds;
+      if (bounds) {
+        const newBounds = {
+          x: Math.min(bounds.x, x),
+          y: Math.min(bounds.y, y),
+          width: Math.abs(x - bounds.x),
+          height: Math.abs(y - bounds.y)
+        };
+        selection.setSelectionBounds(newBounds);
+      }
+    }
+  }, [stableCurrentTool, stableSelectionState.isSelecting, stableSelectionState.selectionBounds, panZoom, selection, drawingCoordination]);
 
   // Handle pointer up
-  const handlePointerUp = useCallback((e: Konva.KonvaEventObject<PointerEvent>) => {
-    console.log('[WhiteboardPointer] Konva pointer up event received');
-    simplifiedHandlers.handlePointerUp(stableCurrentTool);
-  }, [stableCurrentTool, simplifiedHandlers]);
-
-  // Expose simplified handlers for direct DOM event usage
-  const handleDirectPointerDown = useCallback((clientX: number, clientY: number) => {
-    console.log('[WhiteboardPointer] Direct pointer down event received');
-    simplifiedHandlers.handlePointerDown(clientX, clientY, stableCurrentTool);
-  }, [stableCurrentTool, simplifiedHandlers]);
-
-  const handleDirectPointerMove = useCallback((clientX: number, clientY: number) => {
-    simplifiedHandlers.handlePointerMove(clientX, clientY, stableCurrentTool);
-  }, [stableCurrentTool, simplifiedHandlers]);
-
-  const handleDirectPointerUp = useCallback(() => {
-    console.log('[WhiteboardPointer] Direct pointer up event received');
-    simplifiedHandlers.handlePointerUp(stableCurrentTool);
-  }, [stableCurrentTool, simplifiedHandlers]);
-
-  // Attach whiteboard handlers to the Konva handlers for access in stage event handlers
-  const enhancedHandlePointerDown = handlePointerDown as any;
-  enhancedHandlePointerDown.__whiteboardHandlers = {
-    handleDirectPointerDown,
-    handleDirectPointerMove,
-    handleDirectPointerUp
-  };
-
-  const enhancedHandlePointerMove = handlePointerMove as any;
-  enhancedHandlePointerMove.__whiteboardHandlers = {
-    handleDirectPointerDown,
-    handleDirectPointerMove,
-    handleDirectPointerUp
-  };
-
-  const enhancedHandlePointerUp = handlePointerUp as any;
-  enhancedHandlePointerUp.__whiteboardHandlers = {
-    handleDirectPointerDown,
-    handleDirectPointerMove,
-    handleDirectPointerUp
-  };
+  const handlePointerUp = useCallback(() => {
+    if (stableCurrentTool === 'pencil' || stableCurrentTool === 'highlighter' || stableCurrentTool === 'eraser') {
+      drawingCoordination.handleDrawingEnd();
+    } else if (stableCurrentTool === 'select' && stableSelectionState.isSelecting) {
+      // Complete drag-to-select
+      const bounds = stableSelectionState.selectionBounds;
+      if (bounds && (bounds.width > 5 || bounds.height > 5)) {
+        // Find objects within selection bounds
+        const objectsInBounds = selection.findObjectsInBounds(bounds, stableLines, stableImages);
+        selection.selectObjects(objectsInBounds);
+        // Update selection bounds for the selected objects
+        setTimeout(() => {
+          selection.updateSelectionBounds(objectsInBounds, stableLines, stableImages);
+        }, 0);
+      }
+      
+      // End selection
+      selection.setIsSelecting(false);
+      selection.setSelectionBounds(null);
+    }
+  }, [stableCurrentTool, stableLines, stableImages, stableSelectionState.isSelecting, stableSelectionState.selectionBounds, selection, drawingCoordination]);
 
   return {
-    // Konva-compatible handlers with attached direct handlers
-    handlePointerDown: enhancedHandlePointerDown,
-    handlePointerMove: enhancedHandlePointerMove,
-    handlePointerUp: enhancedHandlePointerUp,
-    // Direct coordinate handlers
-    handleDirectPointerDown,
-    handleDirectPointerMove,
-    handleDirectPointerUp
+    handlePointerDown,
+    handlePointerMove,
+    handlePointerUp
   };
 };
