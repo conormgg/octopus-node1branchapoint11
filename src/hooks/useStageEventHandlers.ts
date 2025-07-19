@@ -153,10 +153,13 @@ export const useStageEventHandlers = ({
         return;
       }
       
-      // For select tool, let Konva handle the events natively
-      // This allows selection, dragging, and transformation to work properly
+      // For select tool, handle pointer events for both mouse and touch (do NOT skip custom logic)
       if (currentToolRef.current === 'select') {
-        console.log('[DEBUG][PointerDown] Select tool active, event passed to Konva');
+        if (isReadOnly) return;
+        // For select tool, allow both mouse and touch to trigger selection logic
+        const { x, y } = getRelativePointerPosition(stage, e.clientX, e.clientY);
+        console.log('[DEBUG][PointerDown][SelectTool] Calling handlePointerDown with', { x, y, pointerType: e.pointerType });
+        handlePointerDown(x, y);
         return;
       }
       
@@ -207,9 +210,12 @@ export const useStageEventHandlers = ({
         return;
       }
       
-      // For select tool, let Konva handle the events natively
+      // For select tool, handle pointer events for both mouse and touch (do NOT skip custom logic)
       if (currentToolRef.current === 'select') {
-        console.log('[DEBUG][PointerMove] Select tool active, event passed to Konva');
+        if (isReadOnly) return;
+        const { x, y } = getRelativePointerPosition(stage, e.clientX, e.clientY);
+        console.log('[DEBUG][PointerMove][SelectTool] Calling handlePointerMove with', { x, y, pointerType: e.pointerType });
+        handlePointerMove(x, y);
         return;
       }
       
@@ -263,9 +269,12 @@ export const useStageEventHandlers = ({
       // Always clean up palm rejection state
       palmRejection.onPointerEnd(e.pointerId);
       
-      // For select tool, let Konva handle the events natively
+      // For select tool, handle pointer events for both mouse and touch (do NOT skip custom logic)
       if (currentToolRef.current === 'select') {
-        console.log('[DEBUG][PointerUp] Select tool active, event passed to Konva');
+        if (!isReadOnly) {
+          console.log('[DEBUG][PointerUp][SelectTool] Calling handlePointerUp');
+          handlePointerUp();
+        }
         return;
       }
       
@@ -300,9 +309,12 @@ export const useStageEventHandlers = ({
       palmRejection.onPointerEnd(e.pointerId);
       panZoom.stopPan(); // Always stop pan on leave
       
-      // For select tool, let Konva handle the events natively
+      // For select tool, handle pointer events for both mouse and touch (do NOT skip custom logic)
       if (currentToolRef.current === 'select') {
-        console.log('[DEBUG][PointerLeave] Select tool active, event passed to Konva');
+        if (!isReadOnly) {
+          console.log('[DEBUG][PointerLeave][SelectTool] Calling handlePointerUp');
+          handlePointerUp();
+        }
         return;
       }
       
