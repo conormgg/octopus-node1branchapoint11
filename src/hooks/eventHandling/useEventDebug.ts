@@ -32,8 +32,9 @@ export const useEventDebug = (palmRejectionConfig: { enabled: boolean }) => {
       ...detail
     });
     
-    // Detect potential duplicates (events within 10ms)
-    if (timeSinceLastEvent < 10 && eventSystemRef.current && eventSystemRef.current !== source) {
+    // Phase 3: Improved duplicate detection with reduced noise
+    // Only log duplicates if they're from different sources and very close together
+    if (timeSinceLastEvent < 5 && eventSystemRef.current && eventSystemRef.current !== source) {
       console.warn(`[EventDebug] Potential duplicate event detected! Previous: ${eventSystemRef.current}, Current: ${source}, Gap: ${timeSinceLastEvent}ms`);
     }
     

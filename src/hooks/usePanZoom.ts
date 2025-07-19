@@ -16,7 +16,7 @@ export const usePanZoom = (
   // Pan state management
   const panHandlers = usePanState(panZoomState, setPanZoomState);
   
-  // Touch event handlers with current tool awareness
+  // Touch event handlers with current tool awareness (Phase 1 implementation)
   const touchHandlers = useTouchHandlers(panHandlers, zoom, currentTool);
 
   // Wrap the return object in useMemo to stabilize its reference

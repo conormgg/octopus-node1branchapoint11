@@ -82,14 +82,21 @@ export const useStageEventHandlers = ({
     panZoom
   });
 
-  // Touch events for pinch/pan - now tool-aware
+  // Touch events for pinch/pan - now tool-aware with selection bridge
   useTouchEventHandlers({
     containerRef,
     panZoom,
     logEventHandling,
     supportsPointerEvents,
     palmRejectionEnabled: palmRejectionConfig.enabled,
-    currentTool: currentToolRef.current
+    currentTool: currentToolRef.current,
+    // Phase 2: Touch-to-Selection Bridge props
+    panZoomState,
+    handlePointerDown,
+    handlePointerMove,
+    handlePointerUp,
+    isReadOnly,
+    stageRef
   });
 
   // Pointer event handlers - tool-aware implementation

@@ -1,5 +1,8 @@
 
 import { useEffect } from 'react';
+import { useTouchToSelectionBridge } from './useTouchToSelectionBridge';
+import { useEventDeduplication } from './useEventDeduplication';
+import { PanZoomState } from '@/types/whiteboard';
 
 interface UseTouchEventHandlersProps {
   containerRef: React.RefObject<HTMLDivElement>;
@@ -12,6 +15,13 @@ interface UseTouchEventHandlersProps {
   supportsPointerEvents: boolean;
   palmRejectionEnabled: boolean;
   currentTool?: string;
+  // Phase 2: Touch-to-Selection Bridge props
+  panZoomState?: PanZoomState;
+  handlePointerDown?: (x: number, y: number) => void;
+  handlePointerMove?: (x: number, y: number) => void;
+  handlePointerUp?: () => void;
+  isReadOnly?: boolean;
+  stageRef?: React.RefObject<any>;
 }
 
 export const useTouchEventHandlers = ({
@@ -20,8 +30,28 @@ export const useTouchEventHandlers = ({
   logEventHandling,
   supportsPointerEvents,
   palmRejectionEnabled,
-  currentTool
+  currentTool,
+  // Phase 2: Touch-to-Selection Bridge props
+  panZoomState,
+  handlePointerDown,
+  handlePointerMove,
+  handlePointerUp,
+  isReadOnly = false,
+  stageRef
 }: UseTouchEventHandlersProps) => {
+  // Phase 2: Touch-to-Selection Bridge
+  const touchToSelectionBridge = useTouchToSelectionBridge({
+    panZoomState: panZoomState!,
+    handlePointerDown: handlePointerDown!,
+    handlePointerMove: handlePointerMove!,
+    handlePointerUp: handlePointerUp!,
+    currentTool: currentTool || 'pencil',
+    isReadOnly,
+    stageRef: stageRef!
+  });
+  
+  // Phase 3: Event Deduplication
+  const { shouldProcessEvent, resetEventHistory } = useEventDeduplication();
   // Touch events for pinch/pan - works regardless of read-only status
   useEffect(() => {
     const container = containerRef.current;
@@ -37,15 +67,25 @@ export const useTouchEventHandlers = ({
     const shouldUseTouchEvents = !supportsPointerEvents;
 
     const handleTouchStart = (e: TouchEvent) => {
+      // Phase 3: Event Deduplication
+      if (!shouldProcessEvent('touch', 'touchstart')) {
+        return;
+      }
+      
       logEventHandling('touchstart', 'touch', { 
         touches: e.touches.length, 
         tool: currentTool 
       });
       
-      // For select tool with single finger, only prevent default but don't handle pan
-      if (currentTool === 'select' && e.touches.length === 1) {
-        // Let selection logic handle this touch
-        return;
+      // Phase 2 & 4: Tool-Aware Event Routing
+      // For select tool with single finger, try to bridge to selection logic
+      if (currentTool === 'select' && e.touches.length === 1 && touchToSelectionBridge) {
+        const bridged = touchToSelectionBridge.bridgeTouchToSelection(e, 'down');
+        if (bridged) {
+          // Successfully bridged to selection - prevent pan and other processing
+          e.preventDefault();
+          return;
+        }
       }
       
       // Always prevent default for multi-touch to ensure pinch-to-zoom works
@@ -57,15 +97,25 @@ export const useTouchEventHandlers = ({
     };
 
     const handleTouchMove = (e: TouchEvent) => {
+      // Phase 3: Event Deduplication
+      if (!shouldProcessEvent('touch', 'touchmove')) {
+        return;
+      }
+      
       logEventHandling('touchmove', 'touch', { 
         touches: e.touches.length, 
         tool: currentTool 
       });
       
-      // For select tool with single finger, only prevent default but don't handle pan
-      if (currentTool === 'select' && e.touches.length === 1) {
-        // Let selection logic handle this touch
-        return;
+      // Phase 2 & 4: Tool-Aware Event Routing
+      // For select tool with single finger, try to bridge to selection logic
+      if (currentTool === 'select' && e.touches.length === 1 && touchToSelectionBridge) {
+        const bridged = touchToSelectionBridge.bridgeTouchToSelection(e, 'move');
+        if (bridged) {
+          // Successfully bridged to selection - prevent pan and other processing
+          e.preventDefault();
+          return;
+        }
       }
       
       // Always prevent default for multi-touch gestures
@@ -77,18 +127,25 @@ export const useTouchEventHandlers = ({
     };
 
     const handleTouchEnd = (e: TouchEvent) => {
+      // Phase 3: Event Deduplication
+      if (!shouldProcessEvent('touch', 'touchend')) {
+        return;
+      }
+      
       logEventHandling('touchend', 'touch', { 
         touches: e.touches.length, 
         tool: currentTool 
       });
       
-      // For select tool, let selection logic handle touch end
-      if (currentTool === 'select') {
-        // Still prevent default behaviors but don't interfere with selection
-        if (e.touches.length >= 1 || (e.changedTouches && e.changedTouches.length >= 1)) {
+      // Phase 2 & 4: Tool-Aware Event Routing
+      // For select tool, try to bridge to selection logic
+      if (currentTool === 'select' && touchToSelectionBridge) {
+        const bridged = touchToSelectionBridge.bridgeTouchToSelection(e, 'up');
+        if (bridged) {
+          // Successfully bridged to selection - prevent pan and other processing
           e.preventDefault();
+          return;
         }
-        return;
       }
       
       // Only prevent default for multi-touch end events
@@ -112,5 +169,13 @@ export const useTouchEventHandlers = ({
         container.removeEventListener('touchend', handleTouchEnd);
       }
     };
-  }, [panZoom.handleTouchStart, panZoom.handleTouchMove, panZoom.handleTouchEnd, logEventHandling, supportsPointerEvents, currentTool]);
+  }, [panZoom.handleTouchStart, panZoom.handleTouchMove, panZoom.handleTouchEnd, logEventHandling, supportsPointerEvents, currentTool, shouldProcessEvent, touchToSelectionBridge]);
+  
+  // Reset event history and touch selection when tool changes
+  useEffect(() => {
+    resetEventHistory();
+    if (touchToSelectionBridge) {
+      touchToSelectionBridge.resetTouchSelection();
+    }
+  }, [currentTool, resetEventHistory, touchToSelectionBridge]);
 };
