@@ -1,4 +1,5 @@
-import React, { useRef } from 'react';
+
+import React, { useRef, useEffect } from 'react';
 import Konva from 'konva';
 import { useWhiteboardState } from '@/hooks/useWhiteboardState';
 import { useNormalizedWhiteboardState } from '@/hooks/performance/useNormalizedWhiteboardState';
@@ -9,6 +10,9 @@ import { useKonvaPanZoomSync } from '@/hooks/canvas/useKonvaPanZoomSync';
 import KonvaStageCanvas from './KonvaStageCanvas';
 import KonvaImageContextMenuHandler from './KonvaImageContextMenuHandler';
 import KonvaImageOperationsHandler from './KonvaImageOperationsHandler';
+import { createDebugLogger } from '@/utils/debug/debugConfig';
+
+const debugLog = createDebugLogger('toolSync');
 
 interface KonvaStageProps {
   width: number;
@@ -61,6 +65,15 @@ const KonvaStage: React.FC<KonvaStageProps> = ({
     : 'default';
 
   const palmRejection = usePalmRejection(palmRejectionConfig);
+
+  // Debug tool state flow in KonvaStage
+  useEffect(() => {
+    debugLog('KonvaStage', 'Tool state in KonvaStage', {
+      currentTool: state.currentTool,
+      toolType: typeof state.currentTool,
+      whiteboardId
+    });
+  }, [state.currentTool, whiteboardId]);
 
   // Use focused hooks for specific functionality
   useKonvaPanZoomSync({
