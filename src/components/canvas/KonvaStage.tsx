@@ -129,6 +129,8 @@ const KonvaStage: React.FC<KonvaStageProps> = ({
     whiteboardState,
     isReadOnly,
     whiteboardId,
+    // Pass the correct delete function (shared or basic)
+    deleteFunction,
     // Pass select2 handlers when select2 tool is active
     select2Handlers: state.currentTool === 'select2' && stageEventHandlers ? {
       select2State: stageEventHandlers.select2State,

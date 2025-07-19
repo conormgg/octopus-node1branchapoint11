@@ -6,6 +6,7 @@ interface UseKonvaKeyboardHandlersProps {
   whiteboardState: ReturnType<typeof useWhiteboardState>;
   isReadOnly: boolean;
   whiteboardId?: string;
+  deleteFunction?: (selectedObjects?: Array<{id: string, type: 'line' | 'image'}>) => void;
   select2Handlers?: {
     select2State: any;
     deleteSelectedObjects: () => void;
@@ -18,6 +19,7 @@ export const useKonvaKeyboardHandlers = ({
   whiteboardState,
   isReadOnly,
   whiteboardId,
+  deleteFunction,
   select2Handlers
 }: UseKonvaKeyboardHandlersProps) => {
   const { state, handlePaste, selection } = whiteboardState;
@@ -72,9 +74,12 @@ export const useKonvaKeyboardHandlers = ({
         if (state.currentTool === 'select2' && select2Handlers?.select2State?.selectedObjects?.length > 0) {
           console.log(`[${whiteboardId}] Delete key pressed - select2 selected objects:`, select2Handlers.select2State.selectedObjects);
           
-          // Use the same delete function as the original select tool for proper sync
-          if ('deleteSelectedObjects' in whiteboardState && typeof whiteboardState.deleteSelectedObjects === 'function') {
-            // Pass the select2 selected objects to the whiteboard delete function
+          // Use the correct delete function (shared or basic) passed from KonvaStage
+          if (deleteFunction) {
+            // Pass the select2 selected objects to the correct delete function
+            deleteFunction(select2Handlers.select2State.selectedObjects);
+          } else if ('deleteSelectedObjects' in whiteboardState && typeof whiteboardState.deleteSelectedObjects === 'function') {
+            // Fallback to whiteboard state delete function
             whiteboardState.deleteSelectedObjects(select2Handlers.select2State.selectedObjects);
           }
           
@@ -91,7 +96,10 @@ export const useKonvaKeyboardHandlers = ({
         if (selection?.selectionState?.selectedObjects?.length > 0) {
           console.log(`[${whiteboardId}] Delete key pressed - selected objects:`, selection.selectionState.selectedObjects);
           
-          if ('deleteSelectedObjects' in whiteboardState && typeof whiteboardState.deleteSelectedObjects === 'function') {
+          // Use the correct delete function (shared or basic) passed from KonvaStage
+          if (deleteFunction) {
+            deleteFunction();
+          } else if ('deleteSelectedObjects' in whiteboardState && typeof whiteboardState.deleteSelectedObjects === 'function') {
             whiteboardState.deleteSelectedObjects();
           }
           
@@ -125,5 +133,5 @@ export const useKonvaKeyboardHandlers = ({
       container.removeEventListener('keydown', keyDownHandler);
       container.removeEventListener('click', clickHandler);
     };
-  }, [handlePaste, isReadOnly, selection, whiteboardId, state.currentTool, state.lines, state.images, whiteboardState, select2Handlers]);
+  }, [handlePaste, isReadOnly, selection, whiteboardId, state.currentTool, state.lines, state.images, whiteboardState, deleteFunction, select2Handlers]);
 };
