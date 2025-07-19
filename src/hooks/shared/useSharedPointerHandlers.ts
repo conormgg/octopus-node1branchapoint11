@@ -104,7 +104,6 @@ export const useSharedPointerHandlers = (
         if (bounds && (bounds.width > 5 || bounds.height > 5)) {
           // Find objects within selection bounds
           const objectsInBounds = selection.findObjectsInBounds(bounds, stableLines, stableImages);
-          console.log('[DEBUG][Selection][Completion] Final bounds:', bounds, 'Objects found:', objectsInBounds);
           selection.selectObjects(objectsInBounds);
         }
         

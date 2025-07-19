@@ -108,11 +108,6 @@ export const useStageEventHandlers = ({
         e.preventDefault();
       }
       panZoom.handleTouchEnd(e);
-      // --- ADDED: Ensure selection completion logic is called for select tool ---
-      if (currentToolRef.current === 'select') {
-        console.log('[DEBUG][TouchEnd][SelectTool] Calling handlePointerUp');
-        handlePointerUp();
-      }
     };
 
     container.addEventListener('touchstart', handleTouchStart, { passive: false });
@@ -140,17 +135,6 @@ export const useStageEventHandlers = ({
         tool: currentToolRef.current 
       });
 
-      // === DEBUG LOGGING ===
-      console.log('[DEBUG][PointerDown]', {
-        pointerType: e.pointerType,
-        button: e.button,
-        clientX: e.clientX,
-        clientY: e.clientY,
-        tool: currentToolRef.current,
-        isReadOnly,
-        palmRejectionEnabled: palmRejectionConfig.enabled
-      });
-
       // Always handle right-click pan regardless of tool, but not for stylus
       if (e.pointerType !== 'pen' && e.button === 2) {
         e.preventDefault();
@@ -158,13 +142,9 @@ export const useStageEventHandlers = ({
         return;
       }
       
-      // For select tool, handle pointer events for both mouse and touch (do NOT skip custom logic)
+      // For select tool, let Konva handle the events natively
+      // This allows selection, dragging, and transformation to work properly
       if (currentToolRef.current === 'select') {
-        if (isReadOnly) return;
-        // For select tool, allow both mouse and touch to trigger selection logic
-        const { x, y } = getRelativePointerPosition(stage, e.clientX, e.clientY);
-        console.log('[DEBUG][PointerDown][SelectTool] Calling handlePointerDown with', { x, y, pointerType: e.pointerType });
-        handlePointerDown(x, y);
         return;
       }
       
@@ -175,17 +155,11 @@ export const useStageEventHandlers = ({
       if (isReadOnly) return;
       
       // Apply palm rejection only if it's enabled
-      if (
-        palmRejectionConfig.enabled &&
-        currentToolRef.current !== 'select' &&
-        !palmRejection.shouldProcessPointer(e)
-      ) {
-        console.log('[DEBUG][PointerDown] Palm rejection blocked event');
+      if (palmRejectionConfig.enabled && !palmRejection.shouldProcessPointer(e)) {
         return;
       }
 
       const { x, y } = getRelativePointerPosition(stage, e.clientX, e.clientY);
-      console.log('[DEBUG][PointerDown] Calling handlePointerDown with', { x, y });
       handlePointerDown(x, y);
     };
 
@@ -197,17 +171,6 @@ export const useStageEventHandlers = ({
         tool: currentToolRef.current 
       });
 
-      // === DEBUG LOGGING ===
-      console.log('[DEBUG][PointerMove]', {
-        pointerType: e.pointerType,
-        buttons: e.buttons,
-        clientX: e.clientX,
-        clientY: e.clientY,
-        tool: currentToolRef.current,
-        isReadOnly,
-        palmRejectionEnabled: palmRejectionConfig.enabled
-      });
-
       // Always handle right-click pan regardless of tool, but not for stylus
       if (e.pointerType !== 'pen' && e.buttons === 2) {
         e.preventDefault();
@@ -215,12 +178,8 @@ export const useStageEventHandlers = ({
         return;
       }
       
-      // For select tool, handle pointer events for both mouse and touch (do NOT skip custom logic)
+      // For select tool, let Konva handle the events natively
       if (currentToolRef.current === 'select') {
-        if (isReadOnly) return;
-        const { x, y } = getRelativePointerPosition(stage, e.clientX, e.clientY);
-        console.log('[DEBUG][PointerMove][SelectTool] Calling handlePointerMove with', { x, y, pointerType: e.pointerType });
-        handlePointerMove(x, y);
         return;
       }
       
@@ -231,17 +190,9 @@ export const useStageEventHandlers = ({
       if (isReadOnly) return;
       
       // Apply palm rejection only if it's enabled
-      if (
-        palmRejectionConfig.enabled &&
-        currentToolRef.current !== 'select' &&
-        !palmRejection.shouldProcessPointer(e)
-      ) {
-        console.log('[DEBUG][PointerMove] Palm rejection blocked event');
-        return;
-      }
+      if (palmRejectionConfig.enabled && !palmRejection.shouldProcessPointer(e)) return;
 
       const { x, y } = getRelativePointerPosition(stage, e.clientX, e.clientY);
-      console.log('[DEBUG][PointerMove] Calling handlePointerMove with', { x, y });
       handlePointerMove(x, y);
     };
 
@@ -251,17 +202,6 @@ export const useStageEventHandlers = ({
         pointerType: e.pointerType,
         button: e.button,
         tool: currentToolRef.current 
-      });
-
-      // === DEBUG LOGGING ===
-      console.log('[DEBUG][PointerUp]', {
-        pointerType: e.pointerType,
-        button: e.button,
-        clientX: e.clientX,
-        clientY: e.clientY,
-        tool: currentToolRef.current,
-        isReadOnly,
-        palmRejectionEnabled: palmRejectionConfig.enabled
       });
 
       // Always handle right-click pan end regardless of tool, but not for stylus
@@ -274,12 +214,8 @@ export const useStageEventHandlers = ({
       // Always clean up palm rejection state
       palmRejection.onPointerEnd(e.pointerId);
       
-      // For select tool, handle pointer events for both mouse and touch (do NOT skip custom logic)
+      // For select tool, let Konva handle the events natively
       if (currentToolRef.current === 'select') {
-        if (!isReadOnly) {
-          console.log('[DEBUG][PointerUp][SelectTool] Calling handlePointerUp');
-          handlePointerUp();
-        }
         return;
       }
       
@@ -288,7 +224,6 @@ export const useStageEventHandlers = ({
       
       // Only call handlePointerUp for drawing if not in read-only mode
       if (!isReadOnly) {
-        console.log('[DEBUG][PointerUp] Calling handlePointerUp');
         handlePointerUp();
       }
     };
@@ -300,32 +235,17 @@ export const useStageEventHandlers = ({
         tool: currentToolRef.current 
       });
 
-      // === DEBUG LOGGING ===
-      console.log('[DEBUG][PointerLeave]', {
-        pointerType: e.pointerType,
-        clientX: e.clientX,
-        clientY: e.clientY,
-        tool: currentToolRef.current,
-        isReadOnly,
-        palmRejectionEnabled: palmRejectionConfig.enabled
-      });
-
       // Always clean up palm rejection state
       palmRejection.onPointerEnd(e.pointerId);
       panZoom.stopPan(); // Always stop pan on leave
       
-      // For select tool, handle pointer events for both mouse and touch (do NOT skip custom logic)
+      // For select tool, let Konva handle the events natively
       if (currentToolRef.current === 'select') {
-        if (!isReadOnly) {
-          console.log('[DEBUG][PointerLeave][SelectTool] Calling handlePointerUp');
-          handlePointerUp();
-        }
         return;
       }
       
       // Only call handlePointerUp for drawing if not in read-only mode
       if (!isReadOnly) {
-        console.log('[DEBUG][PointerLeave] Calling handlePointerUp');
         handlePointerUp();
       }
     };

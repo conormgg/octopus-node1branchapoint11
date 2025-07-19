@@ -30,7 +30,6 @@ export const useSelectionState = () => {
 
   // Select objects
   const selectObjects = useCallback((objects: SelectedObject[]) => {
-    console.log('[DEBUG][Selection] selectObjects called', { objects });
     setSelectionState(prev => ({
       ...prev,
       selectedObjects: objects
@@ -65,7 +64,6 @@ export const useSelectionState = () => {
 
   // Set selection bounds (for drag-to-select rectangle)
   const setSelectionBounds = useCallback((bounds: SelectionBounds | null) => {
-    console.log('[DEBUG][Selection] setSelectionBounds called', { bounds });
     setSelectionState(prev => ({
       ...prev,
       selectionBounds: bounds
@@ -74,7 +72,6 @@ export const useSelectionState = () => {
 
   // Set selecting state
   const setIsSelecting = useCallback((isSelecting: boolean) => {
-    console.log('[DEBUG][Selection] setIsSelecting called', { isSelecting });
     setSelectionState(prev => ({
       ...prev,
       isSelecting
