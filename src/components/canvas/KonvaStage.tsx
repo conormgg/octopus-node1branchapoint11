@@ -10,6 +10,7 @@ import { useKonvaPanZoomSync } from '@/hooks/canvas/useKonvaPanZoomSync';
 import KonvaStageCanvas from './KonvaStageCanvas';
 import KonvaImageContextMenuHandler from './KonvaImageContextMenuHandler';
 import KonvaImageOperationsHandler from './KonvaImageOperationsHandler';
+import { Select2Renderer } from './Select2Renderer';
 import { createDebugLogger } from '@/utils/debug/debugConfig';
 
 const debugLog = createDebugLogger('toolSync');
@@ -135,9 +136,7 @@ const KonvaStage: React.FC<KonvaStageProps> = ({
     // Pass the select2 delete function (accepts parameters)
     onDeleteObjects: select2DeleteFunction,
     // Pass the original select delete function (wrapper, no parameters)
-    onDeleteObjectsNoParams: originalSelectDeleteFunction,
-    // Pass selection for select2 integration
-    selection: selection
+    onDeleteObjectsNoParams: originalSelectDeleteFunction
   });
 
   useKonvaKeyboardHandlers({
@@ -148,7 +147,7 @@ const KonvaStage: React.FC<KonvaStageProps> = ({
     // Pass both delete functions
     select2DeleteFunction,
     originalSelectDeleteFunction,
-    // Pass select2 handlers when select2 tool is active - now uses main selection state
+    // Pass select2 handlers when select2 tool is active
     select2Handlers: state.currentTool === 'select2' && stageEventHandlers ? {
       select2State: stageEventHandlers.select2State,
       deleteSelectedObjects: stageEventHandlers.deleteSelectedObjects || (() => {}),
@@ -215,7 +214,20 @@ const KonvaStage: React.FC<KonvaStageProps> = ({
                 whiteboardState={whiteboardState}
                 whiteboardId={whiteboardId}
               />
-              {/* No longer render Select2Renderer - main selection system handles all visual feedback */}
+              {/* Select2 overlay when select2 tool is active */}
+              {state.currentTool === 'select2' && stageEventHandlers && (
+                <Select2Renderer
+                  selectedObjects={stageEventHandlers.select2State?.selectedObjects || []}
+                  hoveredObjectId={stageEventHandlers.select2State?.hoveredObjectId || null}
+                  selectionBounds={stageEventHandlers.select2State?.selectionBounds || null}
+                  isSelecting={stageEventHandlers.select2State?.isSelecting || false}
+                  groupBounds={stageEventHandlers.select2State?.groupBounds || null}
+                  lines={state.lines}
+                  images={state.images}
+                  dragOffset={stageEventHandlers.select2State?.dragOffset || null}
+                  isDraggingObjects={stageEventHandlers.select2State?.isDraggingObjects || false}
+                />
+              )}
             </>
           }
         />
