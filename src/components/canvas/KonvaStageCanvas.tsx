@@ -4,6 +4,8 @@ import { Stage } from 'react-konva';
 import Konva from 'konva';
 import { PanZoomState, Tool, SelectionBounds } from '@/types/whiteboard';
 import { useNormalizedWhiteboardState } from '@/hooks/performance/useNormalizedWhiteboardState';
+import { useMouseEventHandlers } from './hooks/useMouseEventHandlers';
+import { useTouchEventHandlers } from './hooks/useTouchEventHandlers';
 import { useStageCursor } from './hooks/useStageCursor';
 import ImagesLayer from './layers/ImagesLayer';
 import LinesLayer from './layers/LinesLayer';
@@ -25,9 +27,9 @@ interface KonvaStageCanvasProps {
     continuePan: (x: number, y: number) => void;
     stopPan: () => void;
   };
-  handlePointerDown: (e: Konva.KonvaEventObject<PointerEvent>) => void;
-  handlePointerMove: (e: Konva.KonvaEventObject<PointerEvent>) => void;
-  handlePointerUp: (e: Konva.KonvaEventObject<PointerEvent>) => void;
+  handlePointerDown: (x: number, y: number) => void;
+  handlePointerMove: (x: number, y: number) => void;
+  handlePointerUp: () => void;
   isReadOnly: boolean;
   onStageClick?: (e: Konva.KonvaEventObject<MouseEvent | TouchEvent>) => void;
   extraContent?: React.ReactNode;
@@ -65,6 +67,25 @@ const KonvaStageCanvas: React.FC<KonvaStageCanvasProps> = ({
   onTransformEnd,
   normalizedState
 }) => {
+  const { handleMouseDown, handleMouseMove, handleMouseUp } = useMouseEventHandlers({
+    currentTool,
+    panZoomState,
+    palmRejectionConfig,
+    panZoom,
+    handlePointerDown,
+    handlePointerMove,
+    handlePointerUp,
+    isReadOnly,
+    onStageClick,
+    selection
+  });
+
+  const { handleTouchStart } = useTouchEventHandlers({
+    currentTool,
+    palmRejectionConfig,
+    onStageClick
+  });
+
   const cursor = useStageCursor({ currentTool, selection });
 
   return (
@@ -72,7 +93,11 @@ const KonvaStageCanvas: React.FC<KonvaStageCanvasProps> = ({
       width={width}
       height={height}
       ref={stageRef}
-      onClick={onStageClick}
+      onMouseDown={handleMouseDown}
+      onMouseMove={handleMouseMove}
+      onMouseUp={handleMouseUp}
+      onMouseLeave={handleMouseUp}
+      onTouchStart={handleTouchStart}
       style={{ cursor }}
     >
       {/* Images layer - rendered first (behind) */}

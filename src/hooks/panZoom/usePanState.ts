@@ -43,6 +43,9 @@ export const usePanState = (
       x: panZoomState.x + deltaX,
       y: panZoomState.y + deltaY
     });
+
+    panStateRef.current.lastX = x;
+    panStateRef.current.lastY = y;
   }, [panZoomState, setPanZoomState]);
 
   const stopPan = useCallback(() => {

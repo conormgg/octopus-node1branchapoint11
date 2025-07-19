@@ -147,7 +147,6 @@ export const SyncWhiteboard: React.FC<SyncWhiteboardProps> = ({
           preferStylus: true,
           enabled: false
         }}
-        setStageRef={whiteboardState.setStageRef}
       />
       
       {/* Only show toolbar if not read-only */}

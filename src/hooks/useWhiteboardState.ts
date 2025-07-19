@@ -1,5 +1,5 @@
 
-import { useState, useCallback, useEffect, useRef } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { WhiteboardState, PanZoomState, LineObject } from '@/types/whiteboard';
 import { useHistoryState } from './useHistoryState';
 import { usePanZoom } from './usePanZoom';
@@ -7,9 +7,9 @@ import { useSelectionState } from './useSelectionState';
 import { useWhiteboardToolManagement } from './useWhiteboardToolManagement';
 import { useWhiteboardDrawingCoordination } from './useWhiteboardDrawingCoordination';
 import { useWhiteboardImageOperations } from './useWhiteboardImageOperations';
+import { useWhiteboardPointerHandlers } from './useWhiteboardPointerHandlers';
 import { useNormalizedWhiteboardState } from './performance/useNormalizedWhiteboardState';
 import { createDebugLogger } from '@/utils/debug/debugConfig';
-import Konva from 'konva';
 
 const USE_NORMALIZED_STATE = true; // Feature flag for gradual rollout
 const debugLog = createDebugLogger('state');
@@ -20,9 +20,6 @@ const debugLog = createDebugLogger('state');
  */
 export const useWhiteboardState = () => {
   debugLog('Hook', 'Initializing useWhiteboardState');
-
-  // Create a ref to hold the stage reference that will be passed from components
-  const stageRef = useRef<any>(null);
 
   // Tool management
   const toolManagement = useWhiteboardToolManagement();
@@ -132,6 +129,9 @@ export const useWhiteboardState = () => {
   // Image operations
   const imageOperations = useWhiteboardImageOperations(state, setState, addToHistory);
 
+  // Pointer handlers
+  const pointerHandlers = useWhiteboardPointerHandlers(state, panZoom, selection, drawingCoordination);
+
   // Update line position
   const updateLine = useCallback((lineId: string, updates: Partial<LineObject>) => {
     setState(prev => ({
@@ -171,12 +171,6 @@ export const useWhiteboardState = () => {
     addToHistory();
   }, [selection.selectionState.selectedObjects, selection, addToHistory]);
 
-  // Set stage ref function for components to call
-  const setStageRef = useCallback((ref: any) => {
-    stageRef.current = ref;
-    console.log('[WhiteboardState] Stage ref set:', !!ref);
-  }, []);
-
   return {
     state,
     // Expose normalized state for components that can use it
@@ -186,6 +180,9 @@ export const useWhiteboardState = () => {
     setPencilColor: toolManagement.setPencilColor,
     setHighlighterColor: toolManagement.setHighlighterColor,
     setStrokeWidth: toolManagement.setStrokeWidth,
+    handlePointerDown: pointerHandlers.handlePointerDown,
+    handlePointerMove: pointerHandlers.handlePointerMove,
+    handlePointerUp: pointerHandlers.handlePointerUp,
     handlePaste: imageOperations.handlePaste,
     addToHistory,
     undo,
@@ -197,8 +194,6 @@ export const useWhiteboardState = () => {
     updateLine,
     updateImage: imageOperations.updateImage,
     toggleImageLock: imageOperations.toggleImageLock,
-    deleteSelectedObjects,
-    // Expose stage ref setter
-    setStageRef
+    deleteSelectedObjects
   };
 };
