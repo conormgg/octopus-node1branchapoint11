@@ -82,18 +82,6 @@ const KonvaStage: React.FC<KonvaStageProps> = ({
     currentTool: state.currentTool
   });
 
-  useKonvaKeyboardHandlers({
-    containerRef,
-    whiteboardState,
-    isReadOnly,
-    whiteboardId,
-    // Pass select2 handlers when select2 tool is active
-    select2Handlers: state.currentTool === 'select2' && stageEventHandlers ? {
-      select2State: stageEventHandlers.select2State,
-      deleteSelectedObjects: stageEventHandlers.deleteSelectedObjects || (() => {})
-    } : undefined
-  });
-
   // Set up all event handlers with proper update functions for select2
   const stageEventHandlers = useStageEventHandlers({
     containerRef,
@@ -112,6 +100,18 @@ const KonvaStage: React.FC<KonvaStageProps> = ({
     // Pass update functions for select2 object movement
     onUpdateLine: updateLine,
     onUpdateImage: 'updateImage' in whiteboardState && whiteboardState.updateImage ? whiteboardState.updateImage : undefined
+  });
+
+  useKonvaKeyboardHandlers({
+    containerRef,
+    whiteboardState,
+    isReadOnly,
+    whiteboardId,
+    // Pass select2 handlers when select2 tool is active
+    select2Handlers: state.currentTool === 'select2' && stageEventHandlers ? {
+      select2State: stageEventHandlers.select2State,
+      deleteSelectedObjects: stageEventHandlers.deleteSelectedObjects || (() => {})
+    } : undefined
   });
 
   return (
