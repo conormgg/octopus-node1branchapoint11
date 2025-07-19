@@ -9,6 +9,9 @@ import { useWheelEventHandlers } from './eventHandling/useWheelEventHandlers';
 import { useTouchEventHandlers } from './eventHandling/useTouchEventHandlers';
 import { usePointerEventHandlers } from './eventHandling/usePointerEventHandlers';
 import { usePointerEventDetection } from './eventHandling/usePointerEventDetection';
+import { createDebugLogger } from '@/utils/debug/debugConfig';
+
+const debugLog = createDebugLogger('touchEvents');
 
 interface UseStageEventHandlersProps {
   containerRef: React.RefObject<HTMLDivElement>;
@@ -56,13 +59,26 @@ export const useStageEventHandlers = ({
     
     const updateTool = () => {
       const newTool = stage.getAttr('currentTool') as string;
+      const previousTool = currentToolRef.current;
+      
       if (newTool && newTool !== currentToolRef.current) {
+        debugLog('StageEventHandlers', 'Tool changed', {
+          previousTool,
+          newTool,
+          wasUndefined: previousTool === undefined,
+          nowUndefined: newTool === undefined
+        });
+        
         currentToolRef.current = newTool;
         // Update touch-action when tool changes
         const container = containerRef.current;
         if (container) {
           // For select tool, allow native touch behavior; for others, prevent it
           container.style.touchAction = newTool === 'select' ? 'manipulation' : 'none';
+          debugLog('StageEventHandlers', 'Updated touch-action', {
+            tool: newTool,
+            touchAction: container.style.touchAction
+          });
         }
       }
     };
@@ -75,6 +91,24 @@ export const useStageEventHandlers = ({
     
     return () => clearInterval(interval);
   }, [stageRef, containerRef]);
+
+  // Log current tool state periodically for debugging
+  useEffect(() => {
+    const logToolState = () => {
+      const stage = stageRef.current;
+      const stageAttr = stage?.getAttr('currentTool');
+      debugLog('StageEventHandlers', 'Tool state check', {
+        refTool: currentToolRef.current,
+        stageAttr,
+        refUndefined: currentToolRef.current === undefined,
+        stageUndefined: stageAttr === undefined,
+        match: currentToolRef.current === stageAttr
+      });
+    };
+    
+    const interval = setInterval(logToolState, 2000);
+    return () => clearInterval(interval);
+  }, [stageRef]);
 
   // Wheel event handlers - always active for pan/zoom
   useWheelEventHandlers({

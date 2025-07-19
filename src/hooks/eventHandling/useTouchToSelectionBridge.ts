@@ -1,3 +1,4 @@
+
 import { useCallback, useRef } from 'react';
 import { useStageCoordinates } from '@/hooks/useStageCoordinates';
 import { PanZoomState } from '@/types/whiteboard';
@@ -39,17 +40,39 @@ export const useTouchToSelectionBridge = ({
     e: TouchEvent, 
     action: 'down' | 'move' | 'up'
   ) => {
+    debugLog('TouchToSelectionBridge', `Bridge attempt for ${action}`, {
+      currentTool,
+      toolIsSelect: currentTool === 'select',
+      isReadOnly,
+      touchCount: action === 'up' ? e.changedTouches.length : e.touches.length,
+      toolUndefined: currentTool === undefined,
+      toolType: typeof currentTool
+    });
+
     // Only bridge single-finger touches when select tool is active
     if (currentTool !== 'select' || isReadOnly || e.touches.length > 1) {
+      debugLog('TouchToSelectionBridge', 'Bridge conditions not met', {
+        currentTool,
+        toolNotSelect: currentTool !== 'select',
+        isReadOnly,
+        multiTouch: e.touches.length > 1,
+        touchCount: e.touches.length
+      });
       return false;
     }
     
     const stage = stageRef.current;
-    if (!stage) return false;
+    if (!stage) {
+      debugLog('TouchToSelectionBridge', 'No stage reference');
+      return false;
+    }
     
     // Get touch coordinates
     const touch = action === 'up' ? e.changedTouches[0] : e.touches[0];
-    if (!touch) return false;
+    if (!touch) {
+      debugLog('TouchToSelectionBridge', 'No touch found');
+      return false;
+    }
     
     // Convert to stage coordinates
     const { x, y } = getRelativePointerPosition(stage, touch.clientX, touch.clientY);
@@ -57,33 +80,43 @@ export const useTouchToSelectionBridge = ({
     debugLog('TouchToSelectionBridge', `Bridging touch ${action} to selection`, {
       touch: { clientX: touch.clientX, clientY: touch.clientY },
       stage: { x, y },
-      currentTool
+      currentTool,
+      action
     });
     
     // Route to appropriate pointer handler
     switch (action) {
       case 'down':
+        debugLog('TouchToSelectionBridge', 'Calling handlePointerDown', { x, y });
         isTouchSelectionActiveRef.current = true;
         handlePointerDown(x, y);
         break;
       case 'move':
         if (isTouchSelectionActiveRef.current) {
+          debugLog('TouchToSelectionBridge', 'Calling handlePointerMove', { x, y });
           handlePointerMove(x, y);
+        } else {
+          debugLog('TouchToSelectionBridge', 'Touch selection not active for move');
         }
         break;
       case 'up':
         if (isTouchSelectionActiveRef.current) {
+          debugLog('TouchToSelectionBridge', 'Calling handlePointerUp');
           handlePointerUp();
           isTouchSelectionActiveRef.current = false;
+        } else {
+          debugLog('TouchToSelectionBridge', 'Touch selection not active for up');
         }
         break;
     }
     
+    debugLog('TouchToSelectionBridge', `Bridge ${action} completed successfully`);
     return true;
   }, [currentTool, isReadOnly, stageRef, getRelativePointerPosition, handlePointerDown, handlePointerMove, handlePointerUp]);
   
   // Reset state when tool changes
   const resetTouchSelection = useCallback(() => {
+    debugLog('TouchToSelectionBridge', 'Resetting touch selection state');
     isTouchSelectionActiveRef.current = false;
   }, []);
   
