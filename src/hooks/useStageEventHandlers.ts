@@ -23,6 +23,7 @@ interface UseStageEventHandlersProps {
     startPan: (x: number, y: number) => void;
     continuePan: (x: number, y: number) => void;
     stopPan: () => void;
+    isGestureActive: () => boolean;
   };
   handlePointerDown: (e: Konva.KonvaEventObject<PointerEvent>) => void;
   handlePointerMove: (e: Konva.KonvaEventObject<PointerEvent>) => void;
@@ -43,6 +44,7 @@ export const useStageEventHandlers = ({
   isReadOnly
 }: UseStageEventHandlersProps) => {
   const currentToolRef = useRef<string>('pencil');
+  const isDrawingRef = useRef<boolean>(false);
   const { getRelativePointerPosition } = useStageCoordinates(panZoomState);
   const { logEventHandling } = useEventDebug(palmRejectionConfig);
 
@@ -169,43 +171,71 @@ export const useStageEventHandlers = ({
         return;
       }
       
-      // For select tool, prevent default but let the event through to selection handlers
-      console.log('[PointerEvents] Processing pointer down for tool:', currentToolRef.current);
-      
       // Apply palm rejection only if enabled
       if (palmRejectionConfig.enabled && !palmRejection.shouldProcessPointer(e)) {
         console.log('[PointerEvents] Palm rejection blocked pointer');
         return;
       }
 
-      // Try direct coordinate handling first
-      if (whiteboardHandlers?.handleDirectPointerDown) {
-        console.log('[PointerEvents] Using direct coordinate handler');
-        e.preventDefault(); // Prevent default after palm rejection check
-        whiteboardHandlers.handleDirectPointerDown(e.clientX, e.clientY);
-      } else {
-        console.log('[PointerEvents] Using Konva event wrapper');
-        // Only prevent default for drawing tools to avoid conflicts
-        if (currentToolRef.current !== 'select') {
-          e.preventDefault();
-        }
+      // For drawing tools, don't check pan/zoom gesture state - just draw
+      if (currentToolRef.current === 'pencil' || currentToolRef.current === 'highlighter' || currentToolRef.current === 'eraser') {
+        console.log('[PointerEvents] Starting drawing operation for tool:', currentToolRef.current);
+        e.preventDefault();
+        isDrawingRef.current = true;
         
-        // Only proceed with drawing if not in read-only mode
-        if (isReadOnly && currentToolRef.current !== 'select') {
-          console.log('[PointerEvents] Read-only mode - skipping drawing');
+        // Try direct coordinate handling first
+        if (whiteboardHandlers?.handleDirectPointerDown) {
+          console.log('[PointerEvents] Using direct coordinate handler');
+          whiteboardHandlers.handleDirectPointerDown(e.clientX, e.clientY);
+        } else {
+          console.log('[PointerEvents] Using Konva event wrapper');
+          // Fallback to Konva event wrapper
+          const konvaEvent = {
+            evt: e,
+            target: stage,
+            currentTarget: stage,
+            cancelBubble: false,
+            type: e.type as any,
+            pointerId: e.pointerId
+          } as Konva.KonvaEventObject<PointerEvent>;
+          handlePointerDown(konvaEvent);
+        }
+        return;
+      }
+
+      // For select tool, check pan/zoom state
+      if (currentToolRef.current === 'select') {
+        console.log('[PointerEvents] Processing selection for tool:', currentToolRef.current);
+        
+        // Don't start selection if a pan/zoom gesture is active
+        if (panZoom.isGestureActive && panZoom.isGestureActive()) {
+          console.log('[PointerEvents] Ignoring selection - gesture active');
           return;
         }
         
-        // Fallback to Konva event wrapper
-        const konvaEvent = {
-          evt: e,
-          target: stage,
-          currentTarget: stage,
-          cancelBubble: false,
-          type: e.type as any,
-          pointerId: e.pointerId
-        } as Konva.KonvaEventObject<PointerEvent>;
-        handlePointerDown(konvaEvent);
+        // Only proceed with selection if not in read-only mode
+        if (isReadOnly) {
+          console.log('[PointerEvents] Read-only mode - skipping selection');
+          return;
+        }
+        
+        // Try direct coordinate handling first
+        if (whiteboardHandlers?.handleDirectPointerDown) {
+          console.log('[PointerEvents] Using direct coordinate handler for selection');
+          whiteboardHandlers.handleDirectPointerDown(e.clientX, e.clientY);
+        } else {
+          console.log('[PointerEvents] Using Konva event wrapper for selection');
+          // Fallback to Konva event wrapper
+          const konvaEvent = {
+            evt: e,
+            target: stage,
+            currentTarget: stage,
+            cancelBubble: false,
+            type: e.type as any,
+            pointerId: e.pointerId
+          } as Konva.KonvaEventObject<PointerEvent>;
+          handlePointerDown(konvaEvent);
+        }
       }
     };
 
@@ -227,29 +257,52 @@ export const useStageEventHandlers = ({
       // Apply palm rejection only if enabled
       if (palmRejectionConfig.enabled && !palmRejection.shouldProcessPointer(e)) return;
 
-      // Try direct coordinate handling first
-      if (whiteboardHandlers?.handleDirectPointerMove) {
-        e.preventDefault(); // Prevent default after palm rejection check
-        whiteboardHandlers.handleDirectPointerMove(e.clientX, e.clientY);
-      } else {
-        // Only prevent default for drawing tools
-        if (currentToolRef.current !== 'select') {
-          e.preventDefault();
+      // For drawing tools, continue drawing if we're actively drawing
+      if ((currentToolRef.current === 'pencil' || currentToolRef.current === 'highlighter' || currentToolRef.current === 'eraser') && isDrawingRef.current) {
+        console.log('[PointerEvents] Continuing drawing operation for tool:', currentToolRef.current);
+        e.preventDefault();
+        
+        // Try direct coordinate handling first
+        if (whiteboardHandlers?.handleDirectPointerMove) {
+          whiteboardHandlers.handleDirectPointerMove(e.clientX, e.clientY);
+        } else {
+          // Fallback to Konva event wrapper
+          const konvaEvent = {
+            evt: e,
+            target: stage,
+            currentTarget: stage,
+            cancelBubble: false,
+            type: e.type as any,
+            pointerId: e.pointerId
+          } as Konva.KonvaEventObject<PointerEvent>;
+          handlePointerMove(konvaEvent);
         }
+        return;
+      }
+
+      // For select tool, handle selection operations
+      if (currentToolRef.current === 'select') {
+        // Don't continue selection if a pan/zoom gesture is active
+        if (panZoom.isGestureActive && panZoom.isGestureActive()) return;
         
-        // Only proceed with drawing if not in read-only mode
-        if (isReadOnly && currentToolRef.current !== 'select') return;
+        // Only proceed with selection if not in read-only mode
+        if (isReadOnly) return;
         
-        // Fallback to Konva event wrapper
-        const konvaEvent = {
-          evt: e,
-          target: stage,
-          currentTarget: stage,
-          cancelBubble: false,
-          type: e.type as any,
-          pointerId: e.pointerId
-        } as Konva.KonvaEventObject<PointerEvent>;
-        handlePointerMove(konvaEvent);
+        // Try direct coordinate handling first
+        if (whiteboardHandlers?.handleDirectPointerMove) {
+          whiteboardHandlers.handleDirectPointerMove(e.clientX, e.clientY);
+        } else {
+          // Fallback to Konva event wrapper
+          const konvaEvent = {
+            evt: e,
+            target: stage,
+            currentTarget: stage,
+            cancelBubble: false,
+            type: e.type as any,
+            pointerId: e.pointerId
+          } as Konva.KonvaEventObject<PointerEvent>;
+          handlePointerMove(konvaEvent);
+        }
       }
     };
 
@@ -278,20 +331,16 @@ export const useStageEventHandlers = ({
       // Always clean up palm rejection state
       palmRejection.onPointerEnd(e.pointerId);
       
-      console.log('[PointerEvents] Calling handlePointerUp for tool:', currentToolRef.current);
-      
-      // Try direct coordinate handling first
-      if (whiteboardHandlers?.handleDirectPointerUp) {
-        e.preventDefault(); // Prevent default after palm rejection cleanup
-        whiteboardHandlers.handleDirectPointerUp();
-      } else {
-        // Only prevent default for drawing tools
-        if (currentToolRef.current !== 'select') {
-          e.preventDefault();
-        }
+      // For drawing tools, end drawing
+      if (currentToolRef.current === 'pencil' || currentToolRef.current === 'highlighter' || currentToolRef.current === 'eraser') {
+        console.log('[PointerEvents] Ending drawing operation for tool:', currentToolRef.current);
+        e.preventDefault();
+        isDrawingRef.current = false;
         
-        // Call handlePointerUp for all tools when not in read-only mode
-        if (!isReadOnly || currentToolRef.current === 'select') {
+        // Try direct coordinate handling first
+        if (whiteboardHandlers?.handleDirectPointerUp) {
+          whiteboardHandlers.handleDirectPointerUp();
+        } else {
           // Fallback to Konva event wrapper
           const konvaEvent = {
             evt: e,
@@ -302,6 +351,31 @@ export const useStageEventHandlers = ({
             pointerId: e.pointerId
           } as Konva.KonvaEventObject<PointerEvent>;
           handlePointerUp(konvaEvent);
+        }
+        return;
+      }
+
+      // For select tool, end selection
+      if (currentToolRef.current === 'select') {
+        console.log('[PointerEvents] Ending selection for tool:', currentToolRef.current);
+        
+        // Call handlePointerUp for selection when not in read-only mode
+        if (!isReadOnly) {
+          // Try direct coordinate handling first
+          if (whiteboardHandlers?.handleDirectPointerUp) {
+            whiteboardHandlers.handleDirectPointerUp();
+          } else {
+            // Fallback to Konva event wrapper
+            const konvaEvent = {
+              evt: e,
+              target: stage,
+              currentTarget: stage,
+              cancelBubble: false,
+              type: e.type as any,
+              pointerId: e.pointerId
+            } as Konva.KonvaEventObject<PointerEvent>;
+            handlePointerUp(konvaEvent);
+          }
         }
       }
     };
@@ -316,6 +390,7 @@ export const useStageEventHandlers = ({
       // Always clean up palm rejection state
       palmRejection.onPointerEnd(e.pointerId);
       panZoom.stopPan(); // Always stop pan on leave
+      isDrawingRef.current = false; // Stop drawing on leave
       
       // Try direct coordinate handling first
       if (whiteboardHandlers?.handleDirectPointerUp) {
