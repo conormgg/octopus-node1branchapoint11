@@ -1,4 +1,3 @@
-
 import { useState, useCallback } from 'react';
 import { LineObject, ImageObject, SelectedObject, SelectionBounds } from '@/types/whiteboard';
 
@@ -10,6 +9,7 @@ interface Select2State {
   dragStartPoint: { x: number; y: number } | null;
   isDraggingObjects: boolean;
   dragOffset: { x: number; y: number } | null;
+  groupBounds: SelectionBounds | null;
 }
 
 export const useSelect2State = () => {
@@ -20,8 +20,85 @@ export const useSelect2State = () => {
     selectionBounds: null,
     dragStartPoint: null,
     isDraggingObjects: false,
-    dragOffset: null
+    dragOffset: null,
+    groupBounds: null
   });
+
+  // Calculate group bounds for selected objects
+  const calculateGroupBounds = useCallback((
+    selectedObjects: SelectedObject[],
+    lines: LineObject[],
+    images: ImageObject[]
+  ): SelectionBounds | null => {
+    if (selectedObjects.length === 0) return null;
+
+    let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+
+    selectedObjects.forEach(obj => {
+      if (obj.type === 'line') {
+        const line = lines.find(l => l.id === obj.id);
+        if (!line || line.points.length < 4) return;
+        
+        for (let i = 0; i < line.points.length; i += 2) {
+          const x = line.points[i] + line.x;
+          const y = line.points[i + 1] + line.y;
+          minX = Math.min(minX, x);
+          minY = Math.min(minY, y);
+          maxX = Math.max(maxX, x);
+          maxY = Math.max(maxY, y);
+        }
+        
+        // Add padding for stroke width
+        const padding = line.strokeWidth / 2 + 5;
+        minX -= padding;
+        minY -= padding;
+        maxX += padding;
+        maxY += padding;
+      } else if (obj.type === 'image') {
+        const image = images.find(i => i.id === obj.id);
+        if (!image) return;
+        
+        const width = image.width || 100;
+        const height = image.height || 100;
+        minX = Math.min(minX, image.x);
+        minY = Math.min(minY, image.y);
+        maxX = Math.max(maxX, image.x + width);
+        maxY = Math.max(maxY, image.y + height);
+      }
+    });
+
+    if (minX === Infinity) return null;
+
+    // Add extra padding for easier interaction
+    const extraPadding = 10;
+    return {
+      x: minX - extraPadding,
+      y: minY - extraPadding,
+      width: (maxX - minX) + (extraPadding * 2),
+      height: (maxY - minY) + (extraPadding * 2)
+    };
+  }, []);
+
+  // Update group bounds for currently selected objects
+  const updateGroupBounds = useCallback((lines: LineObject[], images: ImageObject[]) => {
+    setState(prev => {
+      const newGroupBounds = calculateGroupBounds(prev.selectedObjects, lines, images);
+      return {
+        ...prev,
+        groupBounds: newGroupBounds
+      };
+    });
+  }, [calculateGroupBounds]);
+
+  // Check if point is within group bounds
+  const isPointInGroupBounds = useCallback((point: { x: number; y: number }): boolean => {
+    if (!state.groupBounds) return false;
+    
+    return point.x >= state.groupBounds.x && 
+           point.x <= state.groupBounds.x + state.groupBounds.width && 
+           point.y >= state.groupBounds.y && 
+           point.y <= state.groupBounds.y + state.groupBounds.height;
+  }, [state.groupBounds]);
 
   // Simple hit detection for lines
   const isPointOnLine = useCallback((point: { x: number; y: number }, line: LineObject): boolean => {
@@ -189,16 +266,18 @@ export const useSelect2State = () => {
       }
 
       const objectsInBounds = findObjectsInBounds(prev.selectionBounds, lines, images);
+      const groupBounds = calculateGroupBounds(objectsInBounds, lines, images);
 
       return {
         ...prev,
         selectedObjects: objectsInBounds,
+        groupBounds,
         isSelecting: false,
         dragStartPoint: null,
         selectionBounds: null
       };
     });
-  }, [findObjectsInBounds]);
+  }, [findObjectsInBounds, calculateGroupBounds]);
 
   // Start dragging objects
   const startDraggingObjects = useCallback((point: { x: number; y: number }) => {
@@ -249,9 +328,12 @@ export const useSelect2State = () => {
     setState(prev => {
       if (objectsAtPoint.length === 0) {
         // Clicked on empty space
+        const newSelectedObjects = multiSelect ? prev.selectedObjects : [];
+        const groupBounds = calculateGroupBounds(newSelectedObjects, lines, images);
         return {
           ...prev,
-          selectedObjects: multiSelect ? prev.selectedObjects : []
+          selectedObjects: newSelectedObjects,
+          groupBounds
         };
       }
 
@@ -260,26 +342,28 @@ export const useSelect2State = () => {
       if (multiSelect) {
         // Toggle selection for multi-select
         const isAlreadySelected = prev.selectedObjects.some(obj => obj.id === firstObject.id);
-        if (isAlreadySelected) {
-          return {
-            ...prev,
-            selectedObjects: prev.selectedObjects.filter(obj => obj.id !== firstObject.id)
-          };
-        } else {
-          return {
-            ...prev,
-            selectedObjects: [...prev.selectedObjects, firstObject]
-          };
-        }
-      } else {
-        // Single select
+        const newSelectedObjects = isAlreadySelected
+          ? prev.selectedObjects.filter(obj => obj.id !== firstObject.id)
+          : [...prev.selectedObjects, firstObject];
+        
+        const groupBounds = calculateGroupBounds(newSelectedObjects, lines, images);
         return {
           ...prev,
-          selectedObjects: [firstObject]
+          selectedObjects: newSelectedObjects,
+          groupBounds
+        };
+      } else {
+        // Single select
+        const newSelectedObjects = [firstObject];
+        const groupBounds = calculateGroupBounds(newSelectedObjects, lines, images);
+        return {
+          ...prev,
+          selectedObjects: newSelectedObjects,
+          groupBounds
         };
       }
     });
-  }, [findObjectsAtPoint]);
+  }, [findObjectsAtPoint, calculateGroupBounds]);
 
   // Clear selection
   const clearSelection = useCallback(() => {
@@ -287,7 +371,8 @@ export const useSelect2State = () => {
       ...prev,
       selectedObjects: [],
       hoveredObjectId: null,
-      selectionBounds: null
+      selectionBounds: null,
+      groupBounds: null
     }));
   }, []);
 
@@ -310,6 +395,9 @@ export const useSelect2State = () => {
     selectObjectsAtPoint,
     clearSelection,
     setHoveredObject,
-    findObjectsAtPoint
+    findObjectsAtPoint,
+    calculateGroupBounds,
+    updateGroupBounds,
+    isPointInGroupBounds
   };
 };

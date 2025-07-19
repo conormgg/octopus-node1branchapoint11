@@ -1,4 +1,3 @@
-
 import { useCallback, useRef } from 'react';
 import Konva from 'konva';
 import { LineObject, ImageObject } from '@/types/whiteboard';
@@ -33,7 +32,10 @@ export const useSelect2EventHandlers = ({
     selectObjectsAtPoint,
     clearSelection,
     setHoveredObject,
-    findObjectsAtPoint
+    findObjectsAtPoint,
+    calculateGroupBounds,
+    updateGroupBounds,
+    isPointInGroupBounds
   } = useSelect2State();
 
   const { getRelativePointerPosition } = useStageCoordinates(panZoomState);
@@ -41,13 +43,19 @@ export const useSelect2EventHandlers = ({
   const isDraggingRef = useRef(false);
   const hasMovedRef = useRef(false);
 
-  // Check if point is on any selected object
+  // Check if point is on any selected object OR within group bounds
   const isPointOnSelectedObject = useCallback((point: { x: number; y: number }) => {
+    // First check if we're within the group bounds (for easy dragging)
+    if (state.selectedObjects.length > 0 && isPointInGroupBounds(point)) {
+      return true;
+    }
+    
+    // Fallback: check if clicking directly on a selected object
     const objectsAtPoint = findObjectsAtPoint(point, lines, images);
     return objectsAtPoint.some(obj => 
       state.selectedObjects.some(selected => selected.id === obj.id)
     );
-  }, [findObjectsAtPoint, lines, images, state.selectedObjects]);
+  }, [findObjectsAtPoint, lines, images, state.selectedObjects, isPointInGroupBounds]);
 
   // Apply drag offset to objects
   const applyDragOffset = useCallback(() => {
@@ -68,7 +76,10 @@ export const useSelect2EventHandlers = ({
         });
       }
     });
-  }, [state.dragOffset, state.selectedObjects, lines, images, onUpdateLine, onUpdateImage]);
+
+    // Update group bounds after moving objects
+    updateGroupBounds(lines, images);
+  }, [state.dragOffset, state.selectedObjects, lines, images, onUpdateLine, onUpdateImage, updateGroupBounds]);
 
   const handleMouseDown = useCallback((e: Konva.KonvaEventObject<MouseEvent>) => {
     const stage = e.target.getStage();
@@ -79,7 +90,7 @@ export const useSelect2EventHandlers = ({
     isDraggingRef.current = true;
     hasMovedRef.current = false;
 
-    // Check if clicking on a selected object first
+    // Check if clicking on a selected object or within group bounds first
     if (isPointOnSelectedObject(worldPoint)) {
       // Start dragging selected objects
       startDraggingObjects(worldPoint);
@@ -152,14 +163,14 @@ export const useSelect2EventHandlers = ({
     }
   }, [getRelativePointerPosition, selectObjectsAtPoint, lines, images]);
 
-  // Updated pointer handlers - now accept world coordinates directly (no transformation needed)
+  // Updated pointer handlers - now use group bounds for better interaction
   const handlePointerDown = useCallback((worldX: number, worldY: number, ctrlKey: boolean = false) => {
     const worldPoint = { x: worldX, y: worldY };
     
     isDraggingRef.current = true;
     hasMovedRef.current = false;
 
-    // Check if clicking on a selected object first
+    // Check if clicking on a selected object or within group bounds first
     if (isPointOnSelectedObject(worldPoint)) {
       // Start dragging selected objects
       startDraggingObjects(worldPoint);
