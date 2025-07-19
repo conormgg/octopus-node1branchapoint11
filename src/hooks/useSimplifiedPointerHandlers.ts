@@ -5,6 +5,10 @@ import { createDebugLogger } from '@/utils/debug/debugConfig';
 
 const debugLog = createDebugLogger('events');
 
+/**
+ * @hook useSimplifiedPointerHandlers
+ * @description Simple coordinate-based pointer handlers that work with DOM events
+ */
 export const useSimplifiedPointerHandlers = (
   stageRef: React.RefObject<any>,
   panZoomState: any,
@@ -14,101 +18,68 @@ export const useSimplifiedPointerHandlers = (
 ) => {
   const { getRelativePointerPosition } = useStageCoordinates(panZoomState);
 
+  // Handle pointer down with coordinate conversion
   const handlePointerDown = useCallback((clientX: number, clientY: number, currentTool: string) => {
     const stage = stageRef.current;
     if (!stage) {
-      console.log('[SimplifiedPointer] ERROR: No stage reference');
+      console.log('[SimplifiedPointer] No stage reference');
       return;
     }
 
-    console.log('[SimplifiedPointer] POINTER DOWN - Converting coordinates:', { clientX, clientY, tool: currentTool });
+    const { x, y } = getRelativePointerPosition(stage, clientX, clientY);
+    console.log('[SimplifiedPointer] Pointer down at stage coordinates:', { x, y, tool: currentTool });
     
-    try {
-      const { x, y } = getRelativePointerPosition(stage, clientX, clientY);
-      console.log('[SimplifiedPointer] Stage coordinates:', { x, y, tool: currentTool });
-      
-      // Check if pan/zoom is actually interfering
-      const gestureActive = panZoom?.isGestureActive?.();
-      if (gestureActive) {
-        console.log('[SimplifiedPointer] WARNING: Gesture active, ignoring pointer down');
-        return;
+    // Don't start drawing if a pan/zoom gesture is active
+    if (panZoom.isGestureActive()) {
+      console.log('[SimplifiedPointer] Ignoring pointer down - gesture active');
+      return;
+    }
+    
+    if (currentTool === 'pencil' || currentTool === 'highlighter' || currentTool === 'eraser') {
+      console.log('[SimplifiedPointer] Starting drawing operation');
+      drawingCoordination.handleDrawingStart(x, y);
+    } else if (currentTool === 'select') {
+      console.log('[SimplifiedPointer] Handling selection start');
+      // Call the shared pointer handlers for selection
+      if (selection && selection.handlePointerDown) {
+        selection.handlePointerDown(x, y);
       }
-      
-      if (currentTool === 'pencil' || currentTool === 'highlighter' || currentTool === 'eraser') {
-        console.log('[SimplifiedPointer] Starting drawing operation for tool:', currentTool);
-        if (drawingCoordination?.handleDrawingStart) {
-          drawingCoordination.handleDrawingStart(x, y);
-          console.log('[SimplifiedPointer] Drawing start called successfully');
-        } else {
-          console.log('[SimplifiedPointer] ERROR: No drawingCoordination.handleDrawingStart method');
-        }
-      } else if (currentTool === 'select') {
-        console.log('[SimplifiedPointer] Handling selection start');
-        if (selection?.handlePointerDown) {
-          selection.handlePointerDown(x, y);
-          console.log('[SimplifiedPointer] Selection pointer down called successfully');
-        } else {
-          console.log('[SimplifiedPointer] WARNING: No selection.handlePointerDown method');
-        }
-      }
-    } catch (error) {
-      console.error('[SimplifiedPointer] ERROR in handlePointerDown:', error);
     }
   }, [stageRef, getRelativePointerPosition, panZoom, drawingCoordination, selection]);
 
+  // Handle pointer move with coordinate conversion
   const handlePointerMove = useCallback((clientX: number, clientY: number, currentTool: string) => {
     const stage = stageRef.current;
     if (!stage) return;
 
-    try {
-      const { x, y } = getRelativePointerPosition(stage, clientX, clientY);
-      
-      // Check if pan/zoom is actually interfering  
-      const gestureActive = panZoom?.isGestureActive?.();
-      if (gestureActive) {
-        return;
+    const { x, y } = getRelativePointerPosition(stage, clientX, clientY);
+    
+    // Don't continue drawing if a pan/zoom gesture is active
+    if (panZoom.isGestureActive()) return;
+    
+    if (currentTool === 'pencil' || currentTool === 'highlighter' || currentTool === 'eraser') {
+      drawingCoordination.handleDrawingContinue(x, y);
+    } else if (currentTool === 'select') {
+      // Call the shared pointer handlers for selection
+      if (selection && selection.handlePointerMove) {
+        selection.handlePointerMove(x, y);
       }
-      
-      if (currentTool === 'pencil' || currentTool === 'highlighter' || currentTool === 'eraser') {
-        console.log('[SimplifiedPointer] Continuing drawing operation for tool:', currentTool, 'at:', { x, y });
-        if (drawingCoordination?.handleDrawingContinue) {
-          drawingCoordination.handleDrawingContinue(x, y);
-        } else {
-          console.log('[SimplifiedPointer] WARNING: No drawingCoordination.handleDrawingContinue method');
-        }
-      } else if (currentTool === 'select') {
-        if (selection?.handlePointerMove) {
-          selection.handlePointerMove(x, y);
-        }
-      }
-    } catch (error) {
-      console.error('[SimplifiedPointer] ERROR in handlePointerMove:', error);
     }
   }, [stageRef, getRelativePointerPosition, panZoom, drawingCoordination, selection]);
 
+  // Handle pointer up
   const handlePointerUp = useCallback((currentTool: string) => {
-    console.log('[SimplifiedPointer] POINTER UP for tool:', currentTool);
+    console.log('[SimplifiedPointer] Pointer up for tool:', currentTool);
     
-    try {
-      if (currentTool === 'pencil' || currentTool === 'highlighter' || currentTool === 'eraser') {
-        console.log('[SimplifiedPointer] Ending drawing operation for tool:', currentTool);
-        if (drawingCoordination?.handleDrawingEnd) {
-          drawingCoordination.handleDrawingEnd();
-          console.log('[SimplifiedPointer] Drawing end called successfully');
-        } else {
-          console.log('[SimplifiedPointer] ERROR: No drawingCoordination.handleDrawingEnd method');
-        }
-      } else if (currentTool === 'select') {
-        console.log('[SimplifiedPointer] Handling selection end');
-        if (selection?.handlePointerUp) {
-          selection.handlePointerUp();
-          console.log('[SimplifiedPointer] Selection pointer up called successfully');
-        } else {
-          console.log('[SimplifiedPointer] WARNING: No selection.handlePointerUp method');
-        }
+    if (currentTool === 'pencil' || currentTool === 'highlighter' || currentTool === 'eraser') {
+      console.log('[SimplifiedPointer] Ending drawing operation');
+      drawingCoordination.handleDrawingEnd();
+    } else if (currentTool === 'select') {
+      console.log('[SimplifiedPointer] Handling selection end');
+      // Call the shared pointer handlers for selection
+      if (selection && selection.handlePointerUp) {
+        selection.handlePointerUp();
       }
-    } catch (error) {
-      console.error('[SimplifiedPointer] ERROR in handlePointerUp:', error);
     }
   }, [drawingCoordination, selection]);
 

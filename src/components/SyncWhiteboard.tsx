@@ -29,7 +29,7 @@ export const SyncWhiteboard: React.FC<SyncWhiteboardProps> = ({
   onCenterCallbackUpdate
 }) => {
   const whiteboardId = syncConfig?.whiteboardId;
-  const whiteboardState = useSharedWhiteboardState(whiteboardId, syncConfig);
+  const whiteboardState = useSharedWhiteboardState(syncConfig, whiteboardId, width, height);
   const isReadOnly = whiteboardState.isReadOnly;
   
   // Enhanced logging for sync config changes and toolbar visibility

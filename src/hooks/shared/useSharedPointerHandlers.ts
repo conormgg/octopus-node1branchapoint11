@@ -32,50 +32,31 @@ export const useSharedPointerHandlers = (
     } else if (stableCurrentTool === 'eraser') {
       startErasing(x, y);
     } else if (stableCurrentTool === 'select' && selection) {
-      console.log('[SharedPointer] Selection pointer down at:', { x, y });
+      // Handle selection logic with priority and safety checks:
+      // 1. Check if clicking within existing selection bounds (for group dragging)
+      // 2. Check if clicking on individual objects
+      // 3. Start new selection or clear existing selection
       
-      // Check if we have selection modes support
-      if (selection.selectionModes) {
-        const { shouldAllowObjectSelection, startPotentialDrag } = selection.selectionModes;
-        
-        // Check if clicking within existing selection bounds for group dragging
-        if (selection.isPointInSelectionBounds && selection.isPointInSelectionBounds({ x, y }) && 
-            stableSelectionState?.selectedObjects?.length > 0) {
-          console.log('[SharedPointer] Clicking within selection bounds - allowing group drag');
-          return;
-        }
-        
-        // Start potential drag mode - we'll decide later if it's object selection or rectangle
-        startPotentialDrag(x, y);
-        
-        // Check for individual objects only if we allow it
-        if (shouldAllowObjectSelection() && selection.findObjectsAtPoint) {
-          const foundObjects = selection.findObjectsAtPoint({ x, y }, stableLines, stableImages);
-          
-          if (foundObjects.length > 0) {
-            console.log('[SharedPointer] Found object at point, selecting immediately');
-            selection.selectionModes.selectObject();
-            selection.selectObjects([foundObjects[0]]);
-            return;
-          }
-        }
-        
-        // If no object found, we'll wait for drag movement to decide mode
-      } else {
-        // Fallback to old behavior if no selection modes
-        console.log('[SharedPointer] Using fallback selection logic');
-        const isInSelectionBounds = selection.isPointInSelectionBounds && selection.isPointInSelectionBounds({ x, y });
+      if (selection.isPointInSelectionBounds && selection.findObjectsAtPoint && selection.selectObjects && selection.setIsSelecting && selection.setSelectionBounds && selection.clearSelection) {
+        const isInSelectionBounds = selection.isPointInSelectionBounds({ x, y });
         
         if (isInSelectionBounds && stableSelectionState?.selectedObjects?.length > 0) {
+          // Clicking within selection bounds - this will allow dragging the entire group
+          // The actual dragging logic will be handled by the SelectionGroup component
+          // We don't need to change the selection here, just maintain it
           return;
         }
         
-        const foundObjects = selection.findObjectsAtPoint ? selection.findObjectsAtPoint({ x, y }, stableLines, stableImages) : [];
+        // Check for individual objects
+        const foundObjects = selection.findObjectsAtPoint({ x, y }, stableLines, stableImages);
         
         if (foundObjects.length > 0) {
+          // Select the first found object
           selection.selectObjects([foundObjects[0]]);
         } else {
+          // Clear selection when clicking on empty space
           selection.clearSelection();
+          // Start drag-to-select
           selection.setIsSelecting(true);
           selection.setSelectionBounds({ x, y, width: 0, height: 0 });
         }
@@ -92,40 +73,17 @@ export const useSharedPointerHandlers = (
       continueDrawing(x, y);
     } else if (stableCurrentTool === 'eraser') {
       continueErasing(x, y);
-    } else if (stableCurrentTool === 'select' && selection) {
-      // Check if we have selection modes support
-      if (selection.selectionModes) {
-        const { checkDragThreshold, isRectangleDragging, selectionMode } = selection.selectionModes;
-        
-        // If we're in potential drag mode, check if we should switch to rectangle
-        if (selectionMode.type === 'potential_drag') {
-          checkDragThreshold(x, y);
-        }
-        
-        // If we're actively dragging a rectangle, update its bounds
-        if (isRectangleDragging() && selectionMode.startPoint && selection.setSelectionBounds) {
-          const bounds = {
-            x: Math.min(selectionMode.startPoint.x, x),
-            y: Math.min(selectionMode.startPoint.y, y),
-            width: Math.abs(x - selectionMode.startPoint.x),
-            height: Math.abs(y - selectionMode.startPoint.y)
-          };
-          console.log('[SharedPointer] Updating rectangle bounds:', bounds);
-          selection.setSelectionBounds(bounds);
-          selection.setIsSelecting(true);
-        }
-      } else {
-        // Fallback to old behavior
-        if (stableSelectionState?.isSelecting && selection.setSelectionBounds && stableSelectionState.selectionBounds) {
-          const bounds = stableSelectionState.selectionBounds;
-          const newBounds = {
-            x: Math.min(bounds.x, x),
-            y: Math.min(bounds.y, y),
-            width: Math.abs(x - bounds.x),
-            height: Math.abs(y - bounds.y)
-          };
-          selection.setSelectionBounds(newBounds);
-        }
+    } else if (stableCurrentTool === 'select' && selection && stableSelectionState?.isSelecting) {
+      // Update drag-to-select rectangle with safety checks
+      if (selection.setSelectionBounds && stableSelectionState.selectionBounds) {
+        const bounds = stableSelectionState.selectionBounds;
+        const newBounds = {
+          x: Math.min(bounds.x, x),
+          y: Math.min(bounds.y, y),
+          width: Math.abs(x - bounds.x),
+          height: Math.abs(y - bounds.y)
+        };
+        selection.setSelectionBounds(newBounds);
       }
     }
   }, [stableCurrentTool, stableSelectionState?.isSelecting, stableSelectionState?.selectionBounds, continueDrawing, continueErasing, isReceiveOnly, panZoom, selection]);
@@ -139,55 +97,19 @@ export const useSharedPointerHandlers = (
       stopDrawing();
     } else if (stableCurrentTool === 'eraser') {
       stopErasing();
-    } else if (stableCurrentTool === 'select' && selection) {
-      console.log('[SharedPointer] Selection pointer up');
-      
-      // Check if we have selection modes support
-      if (selection.selectionModes) {
-        const { selectionMode, completeRectangleSelection, resetSelection } = selection.selectionModes;
+    } else if (stableCurrentTool === 'select' && selection && stableSelectionState?.isSelecting) {
+      // Complete drag-to-select with safety checks
+      if (selection.setIsSelecting && selection.setSelectionBounds && selection.findObjectsInBounds && selection.selectObjects) {
+        const bounds = stableSelectionState.selectionBounds;
+        if (bounds && (bounds.width > 5 || bounds.height > 5)) {
+          // Find objects within selection bounds
+          const objectsInBounds = selection.findObjectsInBounds(bounds, stableLines, stableImages);
+          selection.selectObjects(objectsInBounds);
+        }
         
-        if (selectionMode.type === 'rectangle_selection') {
-          // Complete rectangle selection
-          console.log('[SharedPointer] Completing rectangle selection');
-          
-          if (selection.setIsSelecting && selection.setSelectionBounds && selection.findObjectsInBounds && selection.selectObjects) {
-            const bounds = stableSelectionState?.selectionBounds;
-            if (bounds && (bounds.width > 2 || bounds.height > 2)) { // Lowered threshold
-              console.log('[SharedPointer] Finding objects in bounds:', bounds);
-              const objectsInBounds = selection.findObjectsInBounds(bounds, stableLines, stableImages);
-              console.log('[SharedPointer] Found objects in bounds:', objectsInBounds);
-              selection.selectObjects(objectsInBounds);
-            } else {
-              console.log('[SharedPointer] Rectangle too small, clearing selection');
-              selection.clearSelection();
-            }
-            
-            selection.setIsSelecting(false);
-            selection.setSelectionBounds(null);
-          }
-          
-          completeRectangleSelection();
-        } else if (selectionMode.type === 'potential_drag') {
-          // Potential drag that didn't become a rectangle - treat as click to clear
-          console.log('[SharedPointer] Potential drag ended without rectangle - clearing selection');
-          selection.clearSelection();
-          resetSelection();
-        } else if (selectionMode.type === 'object_selected') {
-          // Object was already selected in pointer down
-          resetSelection();
-        }
-      } else {
-        // Fallback to old behavior
-        if (stableSelectionState?.isSelecting && selection.setIsSelecting && selection.setSelectionBounds && selection.findObjectsInBounds && selection.selectObjects) {
-          const bounds = stableSelectionState.selectionBounds;
-          if (bounds && (bounds.width > 5 || bounds.height > 5)) {
-            const objectsInBounds = selection.findObjectsInBounds(bounds, stableLines, stableImages);
-            selection.selectObjects(objectsInBounds);
-          }
-          
-          selection.setIsSelecting(false);
-          selection.setSelectionBounds(null);
-        }
+        // End selection
+        selection.setIsSelecting(false);
+        selection.setSelectionBounds(null);
       }
     }
   }, [stableCurrentTool, stableLines, stableImages, stableSelectionState?.isSelecting, stableSelectionState?.selectionBounds, stopDrawing, stopErasing, isReceiveOnly, selection]);
