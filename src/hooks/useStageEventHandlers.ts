@@ -6,6 +6,13 @@ import { useStageCoordinates } from './useStageCoordinates';
 import { PanZoomState } from '@/types/whiteboard';
 import { useEventDebug } from './eventHandling/useEventDebug';
 import { useWheelEventHandlers } from './eventHandling/useWheelEventHandlers';
+import { useTouchEventHandlers } from './eventHandling/useTouchEventHandlers';
+import { usePointerEventHandlers } from './eventHandling/usePointerEventHandlers';
+import { usePointerEventDetection } from './eventHandling/usePointerEventDetection';
+import { useSelect2EventHandlers } from './useSelect2EventHandlers';
+import { createDebugLogger } from '@/utils/debug/debugConfig';
+
+const debugLog = createDebugLogger('touchEvents');
 
 interface UseStageEventHandlersProps {
   containerRef: React.RefObject<HTMLDivElement>;
@@ -28,6 +35,9 @@ interface UseStageEventHandlersProps {
   handlePointerMove: (x: number, y: number) => void;
   handlePointerUp: () => void;
   isReadOnly: boolean;
+  currentTool: string;
+  lines?: any[];
+  images?: any[];
 }
 
 export const useStageEventHandlers = ({
@@ -40,37 +50,62 @@ export const useStageEventHandlers = ({
   handlePointerDown,
   handlePointerMove,
   handlePointerUp,
-  isReadOnly
+  isReadOnly,
+  currentTool,
+  lines = [],
+  images = []
 }: UseStageEventHandlersProps) => {
-  const currentToolRef = useRef<string>('pencil');
-  const { getRelativePointerPosition } = useStageCoordinates(panZoomState);
+  const currentToolRef = useRef<string>(currentTool || 'pencil');
   const { logEventHandling } = useEventDebug(palmRejectionConfig);
+  const { supportsPointerEvents } = usePointerEventDetection();
 
-  // Update current tool ref by tracking the stage attribute
+  // Select2 event handlers
+  const select2Handlers = useSelect2EventHandlers({
+    lines,
+    images,
+    panZoomState
+  });
+
+  // Update current tool ref when currentTool prop changes
   useEffect(() => {
-    const stage = stageRef.current;
-    if (!stage) return;
-    
-    const updateTool = () => {
-      const newTool = stage.getAttr('currentTool') as string;
-      if (newTool && newTool !== currentToolRef.current) {
-        currentToolRef.current = newTool;
-        // Update touch-action when tool changes
-        const container = containerRef.current;
-        if (container) {
-          container.style.touchAction = (newTool === 'select' || newTool === 'select2') ? 'manipulation' : 'none';
-        }
+    if (currentTool && currentTool !== currentToolRef.current) {
+      debugLog('StageEventHandlers', 'Tool changed via prop', {
+        previousTool: currentToolRef.current,
+        newTool: currentTool
+      });
+      
+      currentToolRef.current = currentTool;
+      
+      // Update touch-action when tool changes
+      const container = containerRef.current;
+      if (container) {
+        // For select tool, allow native touch behavior; for others, prevent it
+        container.style.touchAction = currentTool === 'select' ? 'manipulation' : 'none';
+        debugLog('StageEventHandlers', 'Updated touch-action via prop', {
+          tool: currentTool,
+          touchAction: container.style.touchAction
+        });
       }
+    }
+  }, [currentTool, containerRef]);
+
+  // Log current tool state periodically for debugging
+  useEffect(() => {
+    const logToolState = () => {
+      const stage = stageRef.current;
+      const stageAttr = stage?.getAttr('currentTool');
+      debugLog('StageEventHandlers', 'Tool state check', {
+        refTool: currentToolRef.current,
+        stageAttr,
+        refUndefined: currentToolRef.current === undefined,
+        stageUndefined: stageAttr === undefined,
+        match: currentToolRef.current === stageAttr
+      });
     };
     
-    // Initial update
-    updateTool();
-    
-    // Listen for attribute changes
-    const interval = setInterval(updateTool, 100);
-    
+    const interval = setInterval(logToolState, 2000);
     return () => clearInterval(interval);
-  }, [stageRef, containerRef]);
+  }, [stageRef]);
 
   // Wheel event handlers - always active for pan/zoom
   useWheelEventHandlers({
@@ -78,220 +113,53 @@ export const useStageEventHandlers = ({
     panZoom
   });
 
-  // Touch events for pinch/pan - always works regardless of read-only status
-  useEffect(() => {
-    const container = containerRef.current;
-    if (!container) return;
+  // Touch events for multi-touch gestures - ALWAYS enabled now
+  useTouchEventHandlers({
+    containerRef,
+    panZoom,
+    logEventHandling,
+    supportsPointerEvents,
+    palmRejectionEnabled: palmRejectionConfig.enabled,
+    currentTool: currentToolRef.current
+  });
 
-    const handleTouchStart = (e: TouchEvent) => {
-      logEventHandling('touchstart', 'touch', { touches: e.touches.length });
-      // Always prevent default for multi-touch to ensure pinch-to-zoom works
-      if (e.touches.length >= 2) {
-        e.preventDefault();
-      }
-      panZoom.handleTouchStart(e);
-    };
-
-    const handleTouchMove = (e: TouchEvent) => {
-      logEventHandling('touchmove', 'touch', { touches: e.touches.length });
-      // Always prevent default for multi-touch gestures
-      if (e.touches.length >= 2) {
-        e.preventDefault();
-      }
-      panZoom.handleTouchMove(e);
-    };
-
-    const handleTouchEnd = (e: TouchEvent) => {
-      logEventHandling('touchend', 'touch', { touches: e.touches.length });
-      // Only prevent default for multi-touch end events
-      if (e.touches.length >= 1 || (e.changedTouches && e.changedTouches.length >= 1)) {
-        e.preventDefault();
-      }
-      panZoom.handleTouchEnd(e);
-    };
-
-    container.addEventListener('touchstart', handleTouchStart, { passive: false });
-    container.addEventListener('touchmove', handleTouchMove, { passive: false });
-    container.addEventListener('touchend', handleTouchEnd, { passive: false });
-
-    return () => {
-      container.removeEventListener('touchstart', handleTouchStart);
-      container.removeEventListener('touchmove', handleTouchMove);
-      container.removeEventListener('touchend', handleTouchEnd);
-    };
-  }, [panZoom, palmRejectionConfig.enabled, logEventHandling]);
-
-  // Pointer event handlers - tool-aware implementation
-  useEffect(() => {
-    const container = containerRef.current;
-    const stage = stageRef.current;
-    if (!container || !stage) return;
-
-    const handlePointerDownEvent = (e: PointerEvent) => {
-      logEventHandling('pointerdown', 'pointer', { 
-        pointerId: e.pointerId, 
-        pointerType: e.pointerType,
-        button: e.button,
-        tool: currentToolRef.current 
-      });
-
-      // Always handle right-click pan regardless of tool, but not for stylus
-      if (e.pointerType !== 'pen' && e.button === 2) {
-        e.preventDefault();
-        panZoom.startPan(e.clientX, e.clientY);
-        return;
-      }
-      
-      // For select tool, let Konva handle the events natively
-      // This allows selection, dragging, and transformation to work properly
-      if (currentToolRef.current === 'select') {
-        return;
-      }
-      
-      // For select2 tool, let Konva handle the events natively (for now)
-      // TODO: In Phase 2, implement custom pointer event handling for select2
-      if (currentToolRef.current === 'select2') {
-        return;
-      }
-      
-      // Prevent default for drawing tools to avoid conflicts
-      e.preventDefault();
-      
-      // Only proceed with drawing if not in read-only mode
-      if (isReadOnly) return;
-      
-      // Apply palm rejection only if it's enabled
-      if (palmRejectionConfig.enabled && !palmRejection.shouldProcessPointer(e)) {
-        return;
-      }
-
-      const { x, y } = getRelativePointerPosition(stage, e.clientX, e.clientY);
-      handlePointerDown(x, y);
-    };
-
-    const handlePointerMoveEvent = (e: PointerEvent) => {
-      logEventHandling('pointermove', 'pointer', { 
-        pointerId: e.pointerId, 
-        pointerType: e.pointerType,
-        buttons: e.buttons,
-        tool: currentToolRef.current 
-      });
-
-      // Always handle right-click pan regardless of tool, but not for stylus
-      if (e.pointerType !== 'pen' && e.buttons === 2) {
-        e.preventDefault();
-        panZoom.continuePan(e.clientX, e.clientY);
-        return;
-      }
-      
-      // For select tool, let Konva handle the events natively
-      if (currentToolRef.current === 'select') {
-        return;
-      }
-      
-      // Prevent default for drawing tools to avoid conflicts
-      e.preventDefault();
-      
-      // Only proceed with drawing if not in read-only mode
-      if (isReadOnly) return;
-      
-      // Apply palm rejection only if it's enabled
-      if (palmRejectionConfig.enabled && !palmRejection.shouldProcessPointer(e)) return;
-
-      const { x, y } = getRelativePointerPosition(stage, e.clientX, e.clientY);
-      handlePointerMove(x, y);
-    };
-
-    const handlePointerUpEvent = (e: PointerEvent) => {
-      logEventHandling('pointerup', 'pointer', { 
-        pointerId: e.pointerId, 
-        pointerType: e.pointerType,
-        button: e.button,
-        tool: currentToolRef.current 
-      });
-
-      // Always handle right-click pan end regardless of tool, but not for stylus
-      if (e.pointerType !== 'pen' && e.button === 2) {
-        e.preventDefault();
-        panZoom.stopPan();
-        return;
-      }
-      
-      // Always clean up palm rejection state
-      palmRejection.onPointerEnd(e.pointerId);
-      
-      // For select tool, let Konva handle the events natively
-      if (currentToolRef.current === 'select') {
-        return;
-      }
-      
-      // Prevent default for drawing tools to avoid conflicts
-      e.preventDefault();
-      
-      // Only call handlePointerUp for drawing if not in read-only mode
-      if (!isReadOnly) {
-        handlePointerUp();
-      }
-    };
-
-    const handlePointerLeaveEvent = (e: PointerEvent) => {
-      logEventHandling('pointerleave', 'pointer', { 
-        pointerId: e.pointerId, 
-        pointerType: e.pointerType,
-        tool: currentToolRef.current 
-      });
-
-      // Always clean up palm rejection state
-      palmRejection.onPointerEnd(e.pointerId);
-      panZoom.stopPan(); // Always stop pan on leave
-      
-      // For select tool, let Konva handle the events natively
-      if (currentToolRef.current === 'select') {
-        return;
-      }
-      
-      // Only call handlePointerUp for drawing if not in read-only mode
-      if (!isReadOnly) {
-        handlePointerUp();
-      }
-    };
-
-    const handleContextMenu = (e: Event) => {
-      e.preventDefault(); // Prevent context menu on right-click
-    };
-
-    // Always add pointer event listeners for stylus support and right-click panning
-    container.addEventListener('pointerdown', handlePointerDownEvent);
-    container.addEventListener('pointermove', handlePointerMoveEvent);
-    container.addEventListener('pointerup', handlePointerUpEvent);
-    container.addEventListener('pointerleave', handlePointerLeaveEvent);
-    container.addEventListener('pointercancel', handlePointerUpEvent);
-    container.addEventListener('contextmenu', handleContextMenu);
-
-    // Set initial touch-action based on current tool
-    container.style.touchAction = (currentToolRef.current === 'select' || currentToolRef.current === 'select2') ? 'manipulation' : 'none';
-
-    return () => {
-      container.removeEventListener('pointerdown', handlePointerDownEvent);
-      container.removeEventListener('pointermove', handlePointerMoveEvent);
-      container.removeEventListener('pointerup', handlePointerUpEvent);
-      container.removeEventListener('pointerleave', handlePointerLeaveEvent);
-      container.removeEventListener('pointercancel', handlePointerUpEvent);
-      container.removeEventListener('contextmenu', handleContextMenu);
-      container.style.touchAction = '';
-    };
-  }, [
+  // Pointer event handlers - handles single-touch interactions
+  usePointerEventHandlers({
     containerRef,
     stageRef,
-    palmRejection,
-    handlePointerDown,
-    handlePointerMove,
-    handlePointerUp,
     panZoomState,
-    isReadOnly,
-    palmRejectionConfig.enabled,
+    palmRejection,
+    palmRejectionConfig,
     panZoom,
-    getRelativePointerPosition,
-    logEventHandling
-  ]);
+    handlePointerDown: currentTool === 'select2' ? 
+      (x: number, y: number) => {
+        const rect = containerRef.current?.getBoundingClientRect();
+        if (rect) {
+          select2Handlers.handlePointerDown(x - rect.left, y - rect.top);
+        }
+      } : handlePointerDown,
+    handlePointerMove: currentTool === 'select2' ? 
+      (x: number, y: number) => {
+        const rect = containerRef.current?.getBoundingClientRect();
+        if (rect) {
+          select2Handlers.handlePointerMove(x - rect.left, y - rect.top);
+        }
+      } : handlePointerMove,
+    handlePointerUp: currentTool === 'select2' ? 
+      select2Handlers.handlePointerUp : handlePointerUp,
+    isReadOnly,
+    currentToolRef,
+    logEventHandling,
+    supportsPointerEvents
+  });
+
+  // Return select2 state for rendering when using select2 tool
+  if (currentTool === 'select2') {
+    return {
+      select2State: select2Handlers.select2State,
+      clearSelect2Selection: select2Handlers.clearSelection
+    };
+  }
+
+  return {};
 };

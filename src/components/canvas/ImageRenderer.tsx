@@ -37,7 +37,7 @@ const ImageRenderer: React.FC<ImageRendererProps> = React.memo(({
   const trRef = useRef<Konva.Transformer>(null);
 
   useEffect(() => {
-    if (isSelected && (currentTool === 'select' || currentTool === 'select2')) {
+    if (isSelected && currentTool === 'select') {
       trRef.current?.nodes([imageRef.current!]);
       trRef.current?.getLayer()?.batchDraw();
     }
@@ -103,7 +103,7 @@ const ImageRenderer: React.FC<ImageRendererProps> = React.memo(({
         x={imageObject.x}
         y={imageObject.y}
         rotation={imageObject.rotation || 0}
-        draggable={(currentTool === 'select' || currentTool === 'select2') && isSelected && !isLocked}
+        draggable={currentTool === 'select' && isSelected && !isLocked}
         onDragStart={onSelect}
         onDragEnd={handleDragEnd}
         onTransformEnd={handleTransformEnd}
@@ -113,7 +113,7 @@ const ImageRenderer: React.FC<ImageRendererProps> = React.memo(({
         {...(imageObject.width && { width: imageObject.width })}
         {...(imageObject.height && { height: imageObject.height })}
       />
-      {isSelected && (currentTool === 'select' || currentTool === 'select2') && !isLocked && (
+      {isSelected && currentTool === 'select' && !isLocked && (
         <Transformer
           ref={trRef}
           boundBoxFunc={(oldBox, newBox) => {

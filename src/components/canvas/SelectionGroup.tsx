@@ -44,7 +44,7 @@ const SelectionGroup: React.FC<SelectionGroupProps> = ({
     .filter(Boolean) as ImageObject[];
 
   // Only show group if multiple objects are selected
-  const shouldShowGroup = selectedObjects.length > 1 && isVisible && (currentTool === 'select' || currentTool === 'select2');
+  const shouldShowGroup = selectedObjects.length > 1 && isVisible && currentTool === 'select';
 
   // Calculate group bounds for the background
   const groupBounds = shouldShowGroup ? calculateGroupBounds(selectedObjects, selectedLines, selectedImages) : null;

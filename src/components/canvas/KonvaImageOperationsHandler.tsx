@@ -46,7 +46,7 @@ const KonvaImageOperationsHandler: React.FC<KonvaImageOperationsHandlerProps> = 
             isSelected={isSelected && !isInGroup}
             isHovered={selection?.hoveredObjectId === image.id}
             onSelect={() => {
-              if (selection && (state.currentTool === 'select' || state.currentTool === 'select2')) {
+              if (selection && state.currentTool === 'select') {
                 selection.selectObjects([{ id: image.id, type: 'image' }]);
               }
             }}
@@ -63,12 +63,12 @@ const KonvaImageOperationsHandler: React.FC<KonvaImageOperationsHandlerProps> = 
               }
             }}
             currentTool={state.currentTool}
-            onMouseEnter={(state.currentTool === 'select' || state.currentTool === 'select2') ? () => {
+            onMouseEnter={state.currentTool === 'select' ? () => {
               if (selection?.setHoveredObjectId) {
                 selection.setHoveredObjectId(image.id);
               }
             } : undefined}
-            onMouseLeave={(state.currentTool === 'select' || state.currentTool === 'select2') ? () => {
+            onMouseLeave={state.currentTool === 'select' ? () => {
               if (selection?.setHoveredObjectId) {
                 selection.setHoveredObjectId(null);
               }
