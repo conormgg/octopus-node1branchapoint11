@@ -1,4 +1,3 @@
-
 import { useState, useCallback, useEffect } from 'react';
 import { WhiteboardState, PanZoomState, LineObject } from '@/types/whiteboard';
 import { useHistoryState } from './useHistoryState';
@@ -144,9 +143,11 @@ export const useWhiteboardState = () => {
     setTimeout(() => addToHistory(), 0);
   }, [addToHistory]);
 
-  // Delete selected objects
-  const deleteSelectedObjects = useCallback(() => {
-    const selectedObjects = selection.selectionState.selectedObjects;
+  // Generic delete function that can accept optional selected objects
+  const deleteSelectedObjects = useCallback((customSelectedObjects?: Array<{id: string, type: 'line' | 'image'}>) => {
+    // Use custom selected objects if provided, otherwise use selection state
+    const selectedObjects = customSelectedObjects || selection.selectionState.selectedObjects;
+    
     if (!selectedObjects || selectedObjects.length === 0) return;
 
     setState(prev => {
@@ -164,8 +165,10 @@ export const useWhiteboardState = () => {
       };
     });
 
-    // Clear selection after deletion
-    selection.clearSelection();
+    // Clear selection after deletion (only if using default selection state)
+    if (!customSelectedObjects) {
+      selection.clearSelection();
+    }
     
     // Add to history
     addToHistory();
