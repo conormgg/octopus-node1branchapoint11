@@ -17,12 +17,13 @@
  * - Session-based persistence
  */
 
-import { useCallback } from 'react';
+import { useCallback, useRef } from 'react';
 import { SyncConfig } from '@/types/sync';
 import { useSharedWhiteboardCore } from './shared/useSharedWhiteboardCore';
 import { useSharedNormalizedState } from './shared/useSharedNormalizedState';
 import { useSharedOperationsHandler } from './shared/useSharedOperationsHandler';
 import { createDebugLogger, logError } from '@/utils/debug/debugConfig';
+import Konva from 'konva';
 
 const debugLog = createDebugLogger('state');
 
@@ -47,7 +48,10 @@ const debugLog = createDebugLogger('state');
  * - useSharedOperationsHandler: Coordinates operations, persistence, and pointer handling
  */
 export const useSharedWhiteboardState = (syncConfig?: SyncConfig, whiteboardId?: string, containerWidth?: number, containerHeight?: number) => {
-  debugLog('Hook', 'Initializing useSharedWhiteboardState', { 
+  // Create stage ref for whiteboard coordination
+  const stageRef = useRef<Konva.Stage>(null);
+  
+  debugLog('Hook', 'Initializing useSharedWhiteboardState', {
     syncConfig: syncConfig ? 'provided' : 'none',
     whiteboardId,
     isReceiveOnly: syncConfig?.isReceiveOnly
@@ -102,6 +106,33 @@ export const useSharedWhiteboardState = (syncConfig?: SyncConfig, whiteboardId?:
     hasLastActivity: !!currentActivity
   });
 
+  // Set stage ref function for components to call
+  const setStageRef = useCallback((ref: any) => {
+    stageRef.current = ref;
+    debugLog('Hook', 'Stage ref set:', !!ref);
+  }, []);
+
+  // Create Konva-compatible event handlers that extract coordinates
+  const konvaHandlePointerDown = useCallback((e: Konva.KonvaEventObject<PointerEvent>) => {
+    const stage = e.target.getStage();
+    if (!stage) return;
+    
+    const { x, y } = stage.getPointerPosition() || { x: 0, y: 0 };
+    handlePointerDown(x, y);
+  }, [handlePointerDown]);
+
+  const konvaHandlePointerMove = useCallback((e: Konva.KonvaEventObject<PointerEvent>) => {
+    const stage = e.target.getStage();
+    if (!stage) return;
+    
+    const { x, y } = stage.getPointerPosition() || { x: 0, y: 0 };
+    handlePointerMove(x, y);
+  }, [handlePointerMove]);
+
+  const konvaHandlePointerUp = useCallback((e: Konva.KonvaEventObject<PointerEvent>) => {
+    handlePointerUp();
+  }, [handlePointerUp]);
+
   return {
     state,
     // Expose normalized state for components that can use it
@@ -112,9 +143,9 @@ export const useSharedWhiteboardState = (syncConfig?: SyncConfig, whiteboardId?:
     setPencilColor,
     setHighlighterColor,
     setStrokeWidth,
-    handlePointerDown,
-    handlePointerMove,
-    handlePointerUp,
+    handlePointerDown: konvaHandlePointerDown,
+    handlePointerMove: konvaHandlePointerMove,
+    handlePointerUp: konvaHandlePointerUp,
     handlePaste: operations.handlePaste,
     addToHistory: operations.addToHistory,
     undo: operations.undo,
@@ -131,6 +162,7 @@ export const useSharedWhiteboardState = (syncConfig?: SyncConfig, whiteboardId?:
     deleteSelectedObjects,
     selection,
     isReadOnly,
-    whiteboardId // Expose whiteboard ID for component identification
+    whiteboardId, // Expose whiteboard ID for component identification
+    setStageRef // Expose stage ref setter
   };
 };
