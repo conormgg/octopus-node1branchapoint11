@@ -78,7 +78,7 @@ export const usePointerEventCore = ({
           const mockTouchEvent = {
             touches: [{ clientX: e.clientX, clientY: e.clientY }],
             preventDefault: () => e.preventDefault()
-          } as TouchEvent;
+          } as unknown as TouchEvent;
           
           const bridged = touchToSelectionBridge.bridgeTouchToSelection(mockTouchEvent, 'down');
           if (bridged) {
@@ -125,7 +125,7 @@ export const usePointerEventCore = ({
           const mockTouchEvent = {
             touches: [{ clientX: e.clientX, clientY: e.clientY }],
             preventDefault: () => e.preventDefault()
-          } as TouchEvent;
+          } as unknown as TouchEvent;
           
           const bridged = touchToSelectionBridge.bridgeTouchToSelection(mockTouchEvent, 'move');
           if (bridged) {
@@ -168,7 +168,7 @@ export const usePointerEventCore = ({
             touches: [],
             changedTouches: [{ clientX: e.clientX, clientY: e.clientY }],
             preventDefault: () => e.preventDefault()
-          } as TouchEvent;
+          } as unknown as TouchEvent;
           
           const bridged = touchToSelectionBridge.bridgeTouchToSelection(mockTouchEvent, 'up');
           if (bridged) {
