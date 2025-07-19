@@ -135,6 +135,17 @@ export const useStageEventHandlers = ({
         tool: currentToolRef.current 
       });
 
+      // === DEBUG LOGGING ===
+      console.log('[DEBUG][PointerDown]', {
+        pointerType: e.pointerType,
+        button: e.button,
+        clientX: e.clientX,
+        clientY: e.clientY,
+        tool: currentToolRef.current,
+        isReadOnly,
+        palmRejectionEnabled: palmRejectionConfig.enabled
+      });
+
       // Always handle right-click pan regardless of tool, but not for stylus
       if (e.pointerType !== 'pen' && e.button === 2) {
         e.preventDefault();
@@ -145,6 +156,7 @@ export const useStageEventHandlers = ({
       // For select tool, let Konva handle the events natively
       // This allows selection, dragging, and transformation to work properly
       if (currentToolRef.current === 'select') {
+        console.log('[DEBUG][PointerDown] Select tool active, event passed to Konva');
         return;
       }
       
@@ -160,10 +172,12 @@ export const useStageEventHandlers = ({
         currentToolRef.current !== 'select' &&
         !palmRejection.shouldProcessPointer(e)
       ) {
+        console.log('[DEBUG][PointerDown] Palm rejection blocked event');
         return;
       }
 
       const { x, y } = getRelativePointerPosition(stage, e.clientX, e.clientY);
+      console.log('[DEBUG][PointerDown] Calling handlePointerDown with', { x, y });
       handlePointerDown(x, y);
     };
 
@@ -175,6 +189,17 @@ export const useStageEventHandlers = ({
         tool: currentToolRef.current 
       });
 
+      // === DEBUG LOGGING ===
+      console.log('[DEBUG][PointerMove]', {
+        pointerType: e.pointerType,
+        buttons: e.buttons,
+        clientX: e.clientX,
+        clientY: e.clientY,
+        tool: currentToolRef.current,
+        isReadOnly,
+        palmRejectionEnabled: palmRejectionConfig.enabled
+      });
+
       // Always handle right-click pan regardless of tool, but not for stylus
       if (e.pointerType !== 'pen' && e.buttons === 2) {
         e.preventDefault();
@@ -184,6 +209,7 @@ export const useStageEventHandlers = ({
       
       // For select tool, let Konva handle the events natively
       if (currentToolRef.current === 'select') {
+        console.log('[DEBUG][PointerMove] Select tool active, event passed to Konva');
         return;
       }
       
@@ -198,9 +224,13 @@ export const useStageEventHandlers = ({
         palmRejectionConfig.enabled &&
         currentToolRef.current !== 'select' &&
         !palmRejection.shouldProcessPointer(e)
-      ) return;
+      ) {
+        console.log('[DEBUG][PointerMove] Palm rejection blocked event');
+        return;
+      }
 
       const { x, y } = getRelativePointerPosition(stage, e.clientX, e.clientY);
+      console.log('[DEBUG][PointerMove] Calling handlePointerMove with', { x, y });
       handlePointerMove(x, y);
     };
 
@@ -210,6 +240,17 @@ export const useStageEventHandlers = ({
         pointerType: e.pointerType,
         button: e.button,
         tool: currentToolRef.current 
+      });
+
+      // === DEBUG LOGGING ===
+      console.log('[DEBUG][PointerUp]', {
+        pointerType: e.pointerType,
+        button: e.button,
+        clientX: e.clientX,
+        clientY: e.clientY,
+        tool: currentToolRef.current,
+        isReadOnly,
+        palmRejectionEnabled: palmRejectionConfig.enabled
       });
 
       // Always handle right-click pan end regardless of tool, but not for stylus
@@ -224,6 +265,7 @@ export const useStageEventHandlers = ({
       
       // For select tool, let Konva handle the events natively
       if (currentToolRef.current === 'select') {
+        console.log('[DEBUG][PointerUp] Select tool active, event passed to Konva');
         return;
       }
       
@@ -232,6 +274,7 @@ export const useStageEventHandlers = ({
       
       // Only call handlePointerUp for drawing if not in read-only mode
       if (!isReadOnly) {
+        console.log('[DEBUG][PointerUp] Calling handlePointerUp');
         handlePointerUp();
       }
     };
@@ -243,17 +286,29 @@ export const useStageEventHandlers = ({
         tool: currentToolRef.current 
       });
 
+      // === DEBUG LOGGING ===
+      console.log('[DEBUG][PointerLeave]', {
+        pointerType: e.pointerType,
+        clientX: e.clientX,
+        clientY: e.clientY,
+        tool: currentToolRef.current,
+        isReadOnly,
+        palmRejectionEnabled: palmRejectionConfig.enabled
+      });
+
       // Always clean up palm rejection state
       palmRejection.onPointerEnd(e.pointerId);
       panZoom.stopPan(); // Always stop pan on leave
       
       // For select tool, let Konva handle the events natively
       if (currentToolRef.current === 'select') {
+        console.log('[DEBUG][PointerLeave] Select tool active, event passed to Konva');
         return;
       }
       
       // Only call handlePointerUp for drawing if not in read-only mode
       if (!isReadOnly) {
+        console.log('[DEBUG][PointerLeave] Calling handlePointerUp');
         handlePointerUp();
       }
     };
