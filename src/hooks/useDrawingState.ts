@@ -1,5 +1,5 @@
 
-import { useCallback, useRef } from 'react';
+import { useCallback, useRef, useMemo } from 'react';
 import { LineObject, Tool } from '@/types/whiteboard';
 import { createDebugLogger } from '@/utils/debug/debugConfig';
 
@@ -18,7 +18,7 @@ export const useDrawingState = (
 ) => {
   const lineIdRef = useRef(0);
 
-  console.log('[DrawingState] Initializing drawing state:', {
+  console.log('[DrawingState] STABLE - Initializing drawing state:', {
     hasState: !!state,
     hasSetState: !!setState,
     hasAddToHistory: !!addToHistory,
@@ -29,6 +29,7 @@ export const useDrawingState = (
     isDrawing: state?.isDrawing
   });
 
+  // STABLE memoized drawing functions to prevent re-creation
   const startDrawing = useCallback((x: number, y: number) => {
     if (!state || !setState) {
       console.log('[DrawingState] ERROR: Missing state or setState in startDrawing');
@@ -40,7 +41,7 @@ export const useDrawingState = (
       return;
     }
 
-    console.log('[DrawingState] STARTING DRAWING:', {
+    console.log('[DrawingState] STABLE STARTING DRAWING:', {
       tool: state.currentTool,
       position: { x, y },
       color: state.currentColor,
@@ -90,7 +91,7 @@ export const useDrawingState = (
       return;
     }
 
-    console.log('[DrawingState] CONTINUING DRAWING at:', { x, y });
+    console.log('[DrawingState] STABLE CONTINUING DRAWING at:', { x, y });
 
     setState(prev => {
       if (!prev.lines || prev.lines.length === 0) {
@@ -126,7 +127,7 @@ export const useDrawingState = (
       return;
     }
 
-    console.log('[DrawingState] STOPPING DRAWING');
+    console.log('[DrawingState] STABLE STOPPING DRAWING');
 
     setState(prev => ({
       ...prev,
@@ -144,15 +145,15 @@ export const useDrawingState = (
     }
   }, [state?.isDrawing, state, setState, addToHistory]);
 
-  console.log('[DrawingState] Drawing methods created:', {
+  console.log('[DrawingState] STABLE drawing methods created:', {
     hasStartDrawing: !!startDrawing,
     hasContinueDrawing: !!continueDrawing,
     hasStopDrawing: !!stopDrawing
   });
 
-  return {
+  return useMemo(() => ({
     startDrawing,
     continueDrawing,
     stopDrawing
-  };
+  }), [startDrawing, continueDrawing, stopDrawing]);
 };

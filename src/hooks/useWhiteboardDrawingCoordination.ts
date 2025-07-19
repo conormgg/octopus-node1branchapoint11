@@ -1,5 +1,5 @@
 
-import { useCallback, useMemo } from 'react';
+import { useCallback, useMemo, useRef } from 'react';
 import { Tool } from '@/types/whiteboard';
 import { useDrawingState } from './useDrawingState';
 import { useEraserState } from './useEraserState';
@@ -12,7 +12,7 @@ export const useWhiteboardDrawingCoordination = (
   setState: any,
   addToHistory: () => void
 ) => {
-  console.log('[DrawingCoordination] Initializing with state:', {
+  console.log('[DrawingCoordination] STABLE - Initializing with state:', {
     hasState: !!state,
     hasSetState: !!setState,
     hasAddToHistory: !!addToHistory,
@@ -20,37 +20,43 @@ export const useWhiteboardDrawingCoordination = (
     linesCount: state?.lines?.length || 0
   });
 
+  // Use refs to prevent re-initialization
+  const stateRef = useRef(state);
+  const setStateRef = useRef(setState);
+  const addToHistoryRef = useRef(addToHistory);
+  
+  // Update refs when values change
+  stateRef.current = state;
+  setStateRef.current = setState;
+  addToHistoryRef.current = addToHistory;
+
   // Memoize current tool to prevent unnecessary re-initializations
   const stableCurrentTool = useMemo(() => state?.currentTool || 'pencil', [state?.currentTool]);
 
-  // Initialize drawing and eraser states
-  const drawingState = useDrawingState(state, setState, addToHistory);
-  const eraserState = useEraserState(state, setState, addToHistory);
-
-  // Memoize the operations to prevent unnecessary re-renders
-  const drawingOperations = useMemo(() => {
-    if (!state || !setState || !addToHistory) {
+  // CRITICAL: Use stable refs for drawing and eraser states to prevent re-initialization
+  const drawingState = useMemo(() => {
+    if (!stateRef.current || !setStateRef.current || !addToHistoryRef.current) {
       console.log('[DrawingCoordination] WARNING: Missing required parameters for drawing operations');
       return { startDrawing: () => {}, continueDrawing: () => {}, stopDrawing: () => {} };
     }
-    return drawingState;
-  }, [drawingState, state, setState, addToHistory]);
+    return useDrawingState(stateRef.current, setStateRef.current, addToHistoryRef.current);
+  }, [stateRef.current, setStateRef.current, addToHistoryRef.current]);
 
-  const eraserOperations = useMemo(() => {
-    if (!state || !setState || !addToHistory) {
+  const eraserState = useMemo(() => {
+    if (!stateRef.current || !setStateRef.current || !addToHistoryRef.current) {
       console.log('[DrawingCoordination] WARNING: Missing required parameters for eraser operations');
       return { startErasing: () => {}, continueErasing: () => {}, stopErasing: () => {} };
     }
-    return eraserState;
-  }, [eraserState, state, setState, addToHistory]);
+    return useEraserState(stateRef.current, setStateRef.current, addToHistoryRef.current);
+  }, [stateRef.current, setStateRef.current, addToHistoryRef.current]);
 
   // Destructure with stable references
-  const { startDrawing, continueDrawing, stopDrawing } = drawingOperations;
-  const { startErasing, continueErasing, stopErasing } = eraserOperations;
+  const { startDrawing, continueDrawing, stopDrawing } = drawingState;
+  const { startErasing, continueErasing, stopErasing } = eraserState;
 
-  // Coordinate drawing start based on tool
+  // STABLE coordinate drawing start based on tool
   const handleDrawingStart = useCallback((x: number, y: number) => {
-    console.log('[DrawingCoordination] DRAWING START requested:', { x, y, tool: stableCurrentTool });
+    console.log('[DrawingCoordination] STABLE DRAWING START requested:', { x, y, tool: stableCurrentTool });
     
     if (stableCurrentTool === 'pencil' || stableCurrentTool === 'highlighter') {
       console.log('[DrawingCoordination] Starting drawing operation');
@@ -63,7 +69,7 @@ export const useWhiteboardDrawingCoordination = (
     }
   }, [stableCurrentTool, startDrawing, startErasing]);
 
-  // Coordinate drawing continuation based on tool
+  // STABLE coordinate drawing continuation based on tool
   const handleDrawingContinue = useCallback((x: number, y: number) => {
     if (stableCurrentTool === 'pencil' || stableCurrentTool === 'highlighter') {
       console.log('[DrawingCoordination] Continuing drawing operation:', { x, y });
@@ -74,9 +80,9 @@ export const useWhiteboardDrawingCoordination = (
     }
   }, [stableCurrentTool, continueDrawing, continueErasing]);
 
-  // Coordinate drawing end based on tool
+  // STABLE coordinate drawing end based on tool
   const handleDrawingEnd = useCallback(() => {
-    console.log('[DrawingCoordination] DRAWING END requested for tool:', stableCurrentTool);
+    console.log('[DrawingCoordination] STABLE DRAWING END requested for tool:', stableCurrentTool);
     
     if (stableCurrentTool === 'pencil' || stableCurrentTool === 'highlighter') {
       console.log('[DrawingCoordination] Finishing drawing operation');
@@ -89,7 +95,7 @@ export const useWhiteboardDrawingCoordination = (
     }
   }, [stableCurrentTool, stopDrawing, stopErasing]);
 
-  console.log('[DrawingCoordination] Coordination methods created:', {
+  console.log('[DrawingCoordination] STABLE coordination methods created:', {
     hasHandleDrawingStart: !!handleDrawingStart,
     hasHandleDrawingContinue: !!handleDrawingContinue,
     hasHandleDrawingEnd: !!handleDrawingEnd
