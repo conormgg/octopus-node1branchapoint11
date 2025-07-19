@@ -34,6 +34,7 @@ export const useSelect2EventHandlers = ({
     setHoveredObject,
     findObjectsAtPoint,
     calculateGroupBounds,
+    updateGroupBounds,
     isPointInGroupBounds
   } = useSelect2State();
 
@@ -75,7 +76,10 @@ export const useSelect2EventHandlers = ({
         });
       }
     });
-  }, [state.dragOffset, state.selectedObjects, lines, images, onUpdateLine, onUpdateImage]);
+
+    // Update group bounds after moving objects
+    updateGroupBounds(lines, images);
+  }, [state.dragOffset, state.selectedObjects, lines, images, onUpdateLine, onUpdateImage, updateGroupBounds]);
 
   const handleMouseDown = useCallback((e: Konva.KonvaEventObject<MouseEvent>) => {
     const stage = e.target.getStage();

@@ -79,6 +79,17 @@ export const useSelect2State = () => {
     };
   }, []);
 
+  // Update group bounds for currently selected objects
+  const updateGroupBounds = useCallback((lines: LineObject[], images: ImageObject[]) => {
+    setState(prev => {
+      const newGroupBounds = calculateGroupBounds(prev.selectedObjects, lines, images);
+      return {
+        ...prev,
+        groupBounds: newGroupBounds
+      };
+    });
+  }, [calculateGroupBounds]);
+
   // Check if point is within group bounds
   const isPointInGroupBounds = useCallback((point: { x: number; y: number }): boolean => {
     if (!state.groupBounds) return false;
@@ -386,6 +397,7 @@ export const useSelect2State = () => {
     setHoveredObject,
     findObjectsAtPoint,
     calculateGroupBounds,
+    updateGroupBounds,
     isPointInGroupBounds
   };
 };
