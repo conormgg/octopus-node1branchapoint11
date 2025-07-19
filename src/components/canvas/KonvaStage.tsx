@@ -86,15 +86,20 @@ const KonvaStage: React.FC<KonvaStageProps> = ({
 
   // Determine the correct delete function to use
   // Check if this is a shared whiteboard (has operations property) vs regular whiteboard
-  const deleteFunction = 'operations' in whiteboardState && whiteboardState.operations?.deleteSelectedObjects 
-    ? whiteboardState.operations.deleteSelectedObjects 
+  const hasSharedOperations = 'operations' in whiteboardState && 
+    whiteboardState.operations && 
+    typeof whiteboardState.operations === 'object' && 
+    'deleteSelectedObjects' in whiteboardState.operations;
+    
+  const deleteFunction = hasSharedOperations 
+    ? (whiteboardState.operations as any).deleteSelectedObjects 
     : deleteSelectedObjects;
 
   debugLog('KonvaStage', 'Delete function selection', {
     whiteboardId,
     hasOperations: 'operations' in whiteboardState,
-    hasSharedDelete: !!(('operations' in whiteboardState) && whiteboardState.operations?.deleteSelectedObjects),
-    usingSharedDelete: deleteFunction !== deleteSelectedObjects
+    hasSharedDelete: hasSharedOperations,
+    usingSharedDelete: hasSharedOperations
   });
 
   // Set up all event handlers with proper update functions for select2
