@@ -365,14 +365,7 @@ export const useStageEventHandlers = ({
   }, [
     containerRef,
     stageRef,
-    palmRejection,
-    handlePointerDown,
-    handlePointerMove,
-    handlePointerUp,
-    panZoomState,
     isReadOnly,
-    palmRejectionConfig.enabled,
-    panZoom,
-    logEventHandling
+    palmRejectionConfig.enabled
   ]);
 };
