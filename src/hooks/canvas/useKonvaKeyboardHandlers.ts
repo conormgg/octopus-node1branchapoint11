@@ -1,4 +1,3 @@
-
 import { useEffect } from 'react';
 import { useWhiteboardState } from '@/hooks/useWhiteboardState';
 
@@ -7,13 +6,18 @@ interface UseKonvaKeyboardHandlersProps {
   whiteboardState: ReturnType<typeof useWhiteboardState>;
   isReadOnly: boolean;
   whiteboardId?: string;
+  select2Handlers?: {
+    select2State: any;
+    deleteSelectedObjects: () => void;
+  };
 }
 
 export const useKonvaKeyboardHandlers = ({
   containerRef,
   whiteboardState,
   isReadOnly,
-  whiteboardId
+  whiteboardId,
+  select2Handlers
 }: UseKonvaKeyboardHandlersProps) => {
   const { state, handlePaste, selection } = whiteboardState;
 
@@ -62,14 +66,25 @@ export const useKonvaKeyboardHandlers = ({
       }
       
       // Delete key - remove selected objects
-      if ((e.key === 'Delete' || e.key === 'Backspace') && selection?.selectionState?.selectedObjects?.length > 0) {
-        console.log(`[${whiteboardId}] Delete key pressed - selected objects:`, selection.selectionState.selectedObjects);
-        
-        if ('deleteSelectedObjects' in whiteboardState && typeof whiteboardState.deleteSelectedObjects === 'function') {
-          whiteboardState.deleteSelectedObjects();
+      if ((e.key === 'Delete' || e.key === 'Backspace')) {
+        // Check if using select2 tool
+        if (state.currentTool === 'select2' && select2Handlers?.select2State?.selectedObjects?.length > 0) {
+          console.log(`[${whiteboardId}] Delete key pressed - select2 selected objects:`, select2Handlers.select2State.selectedObjects);
+          select2Handlers.deleteSelectedObjects();
+          e.preventDefault();
+          return;
         }
         
-        e.preventDefault();
+        // Fallback to regular selection
+        if (selection?.selectionState?.selectedObjects?.length > 0) {
+          console.log(`[${whiteboardId}] Delete key pressed - selected objects:`, selection.selectionState.selectedObjects);
+          
+          if ('deleteSelectedObjects' in whiteboardState && typeof whiteboardState.deleteSelectedObjects === 'function') {
+            whiteboardState.deleteSelectedObjects();
+          }
+          
+          e.preventDefault();
+        }
       }
     };
 
@@ -98,5 +113,5 @@ export const useKonvaKeyboardHandlers = ({
       container.removeEventListener('keydown', keyDownHandler);
       container.removeEventListener('click', clickHandler);
     };
-  }, [handlePaste, isReadOnly, selection, whiteboardId, state.currentTool, state.lines, state.images, whiteboardState]);
+  }, [handlePaste, isReadOnly, selection, whiteboardId, state.currentTool, state.lines, state.images, whiteboardState, select2Handlers]);
 };

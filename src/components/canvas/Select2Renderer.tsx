@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Rect, Line, Image } from 'react-konva';
 import { SelectionBounds, SelectedObject, LineObject, ImageObject } from '@/types/whiteboard';
@@ -90,12 +89,16 @@ export const Select2Renderer: React.FC<Select2RendererProps> = ({
         );
       } else if (obj.type === 'image') {
         const image = images.find(i => i.id === obj.id);
-        if (!image || !image.imageElement) return null;
+        if (!image) return null;
+
+        // Create a temporary image element for rendering
+        const img = new window.Image();
+        img.src = image.src;
 
         return (
           <Image
             key={`preview-${obj.id}`}
-            image={image.imageElement}
+            image={img}
             x={image.x + dragOffset.x}
             y={image.y + dragOffset.y}
             width={image.width}
