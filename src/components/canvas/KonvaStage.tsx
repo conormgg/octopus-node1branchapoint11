@@ -1,3 +1,4 @@
+
 import React, { useRef, useEffect } from 'react';
 import Konva from 'konva';
 import { useWhiteboardState } from '@/hooks/useWhiteboardState';
@@ -83,6 +84,19 @@ const KonvaStage: React.FC<KonvaStageProps> = ({
     currentTool: state.currentTool
   });
 
+  // Determine the correct delete function to use
+  // Check if this is a shared whiteboard (has operations property) vs regular whiteboard
+  const deleteFunction = 'operations' in whiteboardState && whiteboardState.operations?.deleteSelectedObjects 
+    ? whiteboardState.operations.deleteSelectedObjects 
+    : deleteSelectedObjects;
+
+  debugLog('KonvaStage', 'Delete function selection', {
+    whiteboardId,
+    hasOperations: 'operations' in whiteboardState,
+    hasSharedDelete: !!(('operations' in whiteboardState) && whiteboardState.operations?.deleteSelectedObjects),
+    usingSharedDelete: deleteFunction !== deleteSelectedObjects
+  });
+
   // Set up all event handlers with proper update functions for select2
   const stageEventHandlers = useStageEventHandlers({
     containerRef,
@@ -101,8 +115,8 @@ const KonvaStage: React.FC<KonvaStageProps> = ({
     // Pass update functions for select2 object movement
     onUpdateLine: updateLine,
     onUpdateImage: 'updateImage' in whiteboardState && whiteboardState.updateImage ? whiteboardState.updateImage : undefined,
-    // Pass the generic delete function that accepts selected objects
-    onDeleteObjects: deleteSelectedObjects
+    // Pass the correct delete function (sync-enabled when available)
+    onDeleteObjects: deleteFunction
   });
 
   useKonvaKeyboardHandlers({

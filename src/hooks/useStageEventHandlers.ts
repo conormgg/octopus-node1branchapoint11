@@ -1,3 +1,4 @@
+
 import { useEffect, useRef } from 'react';
 import Konva from 'konva';
 import { usePalmRejection } from './usePalmRejection';
@@ -63,6 +64,12 @@ export const useStageEventHandlers = ({
   const currentToolRef = useRef<string>(currentTool || 'pencil');
   const { logEventHandling } = useEventDebug(palmRejectionConfig);
   const { supportsPointerEvents } = usePointerEventDetection();
+
+  debugLog('StageEventHandlers', 'Initializing with delete function', {
+    currentTool,
+    hasDeleteFunction: !!onDeleteObjects,
+    deleteFunction: onDeleteObjects ? 'provided' : 'none'
+  });
 
   // Select2 event handlers with update functions and delete function
   const select2Handlers = useSelect2EventHandlers({
