@@ -1,5 +1,7 @@
 
 import { useCallback, useMemo } from 'react';
+import Konva from 'konva';
+import { useStageCoordinates } from './useStageCoordinates';
 import { createDebugLogger } from '@/utils/debug/debugConfig';
 
 const debugLog = createDebugLogger('events');
@@ -19,9 +21,13 @@ export const useWhiteboardPointerHandlers = (
   const stableCurrentTool = useMemo(() => state.currentTool, [state.currentTool]);
   const stableLines = useMemo(() => state.lines, [state.lines]);
   const stableImages = useMemo(() => state.images, [state.images]);
+  const { getRelativePointerPosition } = useStageCoordinates(state.panZoomState);
 
   // Handle pointer down
-  const handlePointerDown = useCallback((x: number, y: number) => {
+  const handlePointerDown = useCallback((e: Konva.KonvaEventObject<PointerEvent>) => {
+    const stage = e.target.getStage();
+    if (!stage) return;
+    const { x, y } = getRelativePointerPosition(stage, e.evt.clientX, e.evt.clientY);
     debugLog('PointerHandlers', 'Pointer down', { x, y, tool: stableCurrentTool });
     
     // Don't start drawing if a pan/zoom gesture is active
@@ -68,10 +74,13 @@ export const useWhiteboardPointerHandlers = (
         selection.setSelectionBounds({ x, y, width: 0, height: 0 });
       }
     }
-  }, [stableCurrentTool, stableLines, stableImages, stableSelectionState.selectedObjects.length, panZoom, selection, drawingCoordination]);
+  }, [stableCurrentTool, stableLines, stableImages, stableSelectionState.selectedObjects.length, panZoom, selection, drawingCoordination, getRelativePointerPosition]);
 
   // Handle pointer move
-  const handlePointerMove = useCallback((x: number, y: number) => {
+  const handlePointerMove = useCallback((e: Konva.KonvaEventObject<PointerEvent>) => {
+    const stage = e.target.getStage();
+    if (!stage) return;
+    const { x, y } = getRelativePointerPosition(stage, e.evt.clientX, e.evt.clientY);
     // Don't continue drawing if a pan/zoom gesture is active
     if (panZoom.isGestureActive()) return;
     
@@ -90,10 +99,10 @@ export const useWhiteboardPointerHandlers = (
         selection.setSelectionBounds(newBounds);
       }
     }
-  }, [stableCurrentTool, stableSelectionState.isSelecting, stableSelectionState.selectionBounds, panZoom, selection, drawingCoordination]);
+  }, [stableCurrentTool, stableSelectionState.isSelecting, stableSelectionState.selectionBounds, panZoom, selection, drawingCoordination, getRelativePointerPosition]);
 
   // Handle pointer up
-  const handlePointerUp = useCallback(() => {
+  const handlePointerUp = useCallback((e: Konva.KonvaEventObject<PointerEvent>) => {
     if (stableCurrentTool === 'pencil' || stableCurrentTool === 'highlighter' || stableCurrentTool === 'eraser') {
       drawingCoordination.handleDrawingEnd();
     } else if (stableCurrentTool === 'select' && stableSelectionState.isSelecting) {

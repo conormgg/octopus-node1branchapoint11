@@ -1,4 +1,3 @@
-
 import { useEffect, useRef } from 'react';
 import Konva from 'konva';
 import { usePalmRejection } from './usePalmRejection';
@@ -24,9 +23,9 @@ interface UseStageEventHandlersProps {
     continuePan: (x: number, y: number) => void;
     stopPan: () => void;
   };
-  handlePointerDown: (x: number, y: number) => void;
-  handlePointerMove: (x: number, y: number) => void;
-  handlePointerUp: () => void;
+  handlePointerDown: (e: Konva.KonvaEventObject<PointerEvent>) => void;
+  handlePointerMove: (e: Konva.KonvaEventObject<PointerEvent>) => void;
+  handlePointerUp: (e: Konva.KonvaEventObject<PointerEvent>) => void;
   isReadOnly: boolean;
 }
 
@@ -159,8 +158,7 @@ export const useStageEventHandlers = ({
         return;
       }
 
-      const { x, y } = getRelativePointerPosition(stage, e.clientX, e.clientY);
-      handlePointerDown(x, y);
+      handlePointerDown(e as any);
     };
 
     const handlePointerMoveEvent = (e: PointerEvent) => {
@@ -192,8 +190,7 @@ export const useStageEventHandlers = ({
       // Apply palm rejection only if it's enabled
       if (palmRejectionConfig.enabled && !palmRejection.shouldProcessPointer(e)) return;
 
-      const { x, y } = getRelativePointerPosition(stage, e.clientX, e.clientY);
-      handlePointerMove(x, y);
+      handlePointerMove(e as any);
     };
 
     const handlePointerUpEvent = (e: PointerEvent) => {
@@ -224,7 +221,7 @@ export const useStageEventHandlers = ({
       
       // Only call handlePointerUp for drawing if not in read-only mode
       if (!isReadOnly) {
-        handlePointerUp();
+        handlePointerUp(e as any);
       }
     };
 
@@ -246,7 +243,7 @@ export const useStageEventHandlers = ({
       
       // Only call handlePointerUp for drawing if not in read-only mode
       if (!isReadOnly) {
-        handlePointerUp();
+        handlePointerUp(e as any);
       }
     };
 

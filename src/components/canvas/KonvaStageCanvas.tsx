@@ -4,8 +4,6 @@ import { Stage } from 'react-konva';
 import Konva from 'konva';
 import { PanZoomState, Tool, SelectionBounds } from '@/types/whiteboard';
 import { useNormalizedWhiteboardState } from '@/hooks/performance/useNormalizedWhiteboardState';
-import { useMouseEventHandlers } from './hooks/useMouseEventHandlers';
-import { useTouchEventHandlers } from './hooks/useTouchEventHandlers';
 import { useStageCursor } from './hooks/useStageCursor';
 import ImagesLayer from './layers/ImagesLayer';
 import LinesLayer from './layers/LinesLayer';
@@ -67,25 +65,6 @@ const KonvaStageCanvas: React.FC<KonvaStageCanvasProps> = ({
   onTransformEnd,
   normalizedState
 }) => {
-  const { handleMouseDown, handleMouseMove, handleMouseUp } = useMouseEventHandlers({
-    currentTool,
-    panZoomState,
-    palmRejectionConfig,
-    panZoom,
-    handlePointerDown,
-    handlePointerMove,
-    handlePointerUp,
-    isReadOnly,
-    onStageClick,
-    selection
-  });
-
-  const { handleTouchStart } = useTouchEventHandlers({
-    currentTool,
-    palmRejectionConfig,
-    onStageClick
-  });
-
   const cursor = useStageCursor({ currentTool, selection });
 
   return (
@@ -93,11 +72,11 @@ const KonvaStageCanvas: React.FC<KonvaStageCanvasProps> = ({
       width={width}
       height={height}
       ref={stageRef}
-      onMouseDown={handleMouseDown}
-      onMouseMove={handleMouseMove}
-      onMouseUp={handleMouseUp}
-      onMouseLeave={handleMouseUp}
-      onTouchStart={handleTouchStart}
+      onPointerDown={handlePointerDown}
+      onPointerMove={handlePointerMove}
+      onPointerUp={handlePointerUp}
+      onPointerLeave={handlePointerUp}
+      onClick={onStageClick}
       style={{ cursor }}
     >
       {/* Images layer - rendered first (behind) */}
