@@ -58,7 +58,7 @@ export const useStageEventHandlers = ({
         // Update touch-action when tool changes
         const container = containerRef.current;
         if (container) {
-          container.style.touchAction = newTool === 'select' ? 'manipulation' : 'none';
+          container.style.touchAction = (newTool === 'select' || newTool === 'select2') ? 'manipulation' : 'none';
         }
       }
     };
@@ -145,6 +145,12 @@ export const useStageEventHandlers = ({
       // For select tool, let Konva handle the events natively
       // This allows selection, dragging, and transformation to work properly
       if (currentToolRef.current === 'select') {
+        return;
+      }
+      
+      // For select2 tool, let Konva handle the events natively (for now)
+      // TODO: In Phase 2, implement custom pointer event handling for select2
+      if (currentToolRef.current === 'select2') {
         return;
       }
       
@@ -263,7 +269,7 @@ export const useStageEventHandlers = ({
     container.addEventListener('contextmenu', handleContextMenu);
 
     // Set initial touch-action based on current tool
-    container.style.touchAction = currentToolRef.current === 'select' ? 'manipulation' : 'none';
+    container.style.touchAction = (currentToolRef.current === 'select' || currentToolRef.current === 'select2') ? 'manipulation' : 'none';
 
     return () => {
       container.removeEventListener('pointerdown', handlePointerDownEvent);

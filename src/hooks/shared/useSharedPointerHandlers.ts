@@ -31,7 +31,7 @@ export const useSharedPointerHandlers = (
       startDrawing(x, y);
     } else if (stableCurrentTool === 'eraser') {
       startErasing(x, y);
-    } else if (stableCurrentTool === 'select' && selection) {
+    } else if ((stableCurrentTool === 'select' || stableCurrentTool === 'select2') && selection) {
       // Handle selection logic with priority and safety checks:
       // 1. Check if clicking within existing selection bounds (for group dragging)
       // 2. Check if clicking on individual objects
@@ -73,7 +73,7 @@ export const useSharedPointerHandlers = (
       continueDrawing(x, y);
     } else if (stableCurrentTool === 'eraser') {
       continueErasing(x, y);
-    } else if (stableCurrentTool === 'select' && selection && stableSelectionState?.isSelecting) {
+    } else if ((stableCurrentTool === 'select' || stableCurrentTool === 'select2') && selection && stableSelectionState?.isSelecting) {
       // Update drag-to-select rectangle with safety checks
       if (selection.setSelectionBounds && stableSelectionState.selectionBounds) {
         const bounds = stableSelectionState.selectionBounds;
@@ -97,7 +97,7 @@ export const useSharedPointerHandlers = (
       stopDrawing();
     } else if (stableCurrentTool === 'eraser') {
       stopErasing();
-    } else if (stableCurrentTool === 'select' && selection && stableSelectionState?.isSelecting) {
+    } else if ((stableCurrentTool === 'select' || stableCurrentTool === 'select2') && selection && stableSelectionState?.isSelecting) {
       // Complete drag-to-select with safety checks
       if (selection.setIsSelecting && selection.setSelectionBounds && selection.findObjectsInBounds && selection.selectObjects) {
         const bounds = stableSelectionState.selectionBounds;

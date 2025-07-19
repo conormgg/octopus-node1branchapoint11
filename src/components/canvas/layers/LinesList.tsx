@@ -31,17 +31,17 @@ const LinesList: React.FC<LinesListProps> = ({
             isSelected={isSelected && !isInGroup} // Hide individual selection when in group
             isHovered={selection?.hoveredObjectId === line.id}
             currentTool={currentTool}
-            onSelect={currentTool === 'select' ? () => {
+            onSelect={(currentTool === 'select' || currentTool === 'select2') ? () => {
               if (selection) {
                 selection.selectObjects([{ id: line.id, type: 'line' }]);
               }
             } : undefined}
-            onMouseEnter={currentTool === 'select' ? () => {
+            onMouseEnter={(currentTool === 'select' || currentTool === 'select2') ? () => {
               if (selection?.setHoveredObjectId) {
                 selection.setHoveredObjectId(line.id);
               }
             } : undefined}
-            onMouseLeave={currentTool === 'select' ? () => {
+            onMouseLeave={(currentTool === 'select' || currentTool === 'select2') ? () => {
               if (selection?.setHoveredObjectId) {
                 selection.setHoveredObjectId(null);
               }

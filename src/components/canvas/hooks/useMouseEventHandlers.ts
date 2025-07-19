@@ -68,7 +68,7 @@ export const useMouseEventHandlers = ({
         }
         
         // Handle selection tool clicks
-        if (stableCurrentTool === 'select' && selection && !stableIsReadOnly) {
+        if ((stableCurrentTool === 'select' || stableCurrentTool === 'select2') && selection && !stableIsReadOnly) {
           // Check if we clicked on a line or image
           const clickedShape = e.target;
           if (clickedShape && clickedShape !== e.target.getStage()) {
@@ -78,13 +78,13 @@ export const useMouseEventHandlers = ({
           }
           // For empty space clicks with select tool, let handlePointerDown handle it
           // so that drag-to-select can work
-        } else if (onStageClick && stableCurrentTool !== 'select') {
+        } else if (onStageClick && stableCurrentTool !== 'select' && stableCurrentTool !== 'select2') {
           // Call the stage click handler for other tools
           onStageClick(e);
         }
         
         // Only proceed with drawing/selection if not in read-only mode or palm rejection is disabled
-        if (stableIsReadOnly || (stablePalmRejectionEnabled && stableCurrentTool !== 'select')) return;
+        if (stableIsReadOnly || (stablePalmRejectionEnabled && stableCurrentTool !== 'select' && stableCurrentTool !== 'select2')) return;
         
         const stage = e.target.getStage();
         if (!stage) return;
@@ -116,7 +116,7 @@ export const useMouseEventHandlers = ({
         }
         
         // Only proceed with drawing/selection if not in read-only mode or palm rejection is disabled
-        if (stableIsReadOnly || (stablePalmRejectionEnabled && stableCurrentTool !== 'select')) return;
+        if (stableIsReadOnly || (stablePalmRejectionEnabled && stableCurrentTool !== 'select' && stableCurrentTool !== 'select2')) return;
         
         const stage = e.target.getStage();
         if (!stage) return;
@@ -141,7 +141,7 @@ export const useMouseEventHandlers = ({
         }
         
         // Only proceed with drawing/selection if not in read-only mode or palm rejection is disabled
-        if (stableIsReadOnly || (stablePalmRejectionEnabled && stableCurrentTool !== 'select')) return;
+        if (stableIsReadOnly || (stablePalmRejectionEnabled && stableCurrentTool !== 'select' && stableCurrentTool !== 'select2')) return;
         
         handlePointerUp();
       },
