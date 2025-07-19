@@ -1,5 +1,4 @@
-
-import React, { useRef, useEffect } from 'react';
+import React, { useRef } from 'react';
 import Konva from 'konva';
 import { useWhiteboardState } from '@/hooks/useWhiteboardState';
 import { useNormalizedWhiteboardState } from '@/hooks/performance/useNormalizedWhiteboardState';
@@ -10,10 +9,6 @@ import { useKonvaPanZoomSync } from '@/hooks/canvas/useKonvaPanZoomSync';
 import KonvaStageCanvas from './KonvaStageCanvas';
 import KonvaImageContextMenuHandler from './KonvaImageContextMenuHandler';
 import KonvaImageOperationsHandler from './KonvaImageOperationsHandler';
-import { Select2Renderer } from './Select2Renderer';
-import { createDebugLogger } from '@/utils/debug/debugConfig';
-
-const debugLog = createDebugLogger('toolSync');
 
 interface KonvaStageProps {
   width: number;
@@ -67,15 +62,6 @@ const KonvaStage: React.FC<KonvaStageProps> = ({
 
   const palmRejection = usePalmRejection(palmRejectionConfig);
 
-  // Debug tool state flow in KonvaStage
-  useEffect(() => {
-    debugLog('KonvaStage', 'Tool state in KonvaStage', {
-      currentTool: state.currentTool,
-      toolType: typeof state.currentTool,
-      whiteboardId
-    });
-  }, [state.currentTool, whiteboardId]);
-
   // Use focused hooks for specific functionality
   useKonvaPanZoomSync({
     stageRef,
@@ -91,7 +77,7 @@ const KonvaStage: React.FC<KonvaStageProps> = ({
   });
 
   // Set up all event handlers
-  const stageEventHandlers = useStageEventHandlers({
+  useStageEventHandlers({
     containerRef,
     stageRef,
     panZoomState: state.panZoomState,
@@ -101,10 +87,7 @@ const KonvaStage: React.FC<KonvaStageProps> = ({
     handlePointerDown,
     handlePointerMove,
     handlePointerUp,
-    isReadOnly,
-    currentTool: state.currentTool,
-    lines: state.lines,
-    images: state.images
+    isReadOnly
   });
 
   return (
@@ -160,21 +143,10 @@ const KonvaStage: React.FC<KonvaStageProps> = ({
           }}
           normalizedState={normalizedState}
           extraContent={
-            <>
-              <KonvaImageOperationsHandler
-                whiteboardState={whiteboardState}
-                whiteboardId={whiteboardId}
-              />
-              {/* Select2 overlay when select2 tool is active */}
-              {state.currentTool === 'select2' && stageEventHandlers && (
-                <Select2Renderer
-                  selectedObjects={stageEventHandlers.select2State?.selectedObjects || []}
-                  hoveredObjectId={stageEventHandlers.select2State?.hoveredObjectId || null}
-                  selectionBounds={stageEventHandlers.select2State?.selectionBounds || null}
-                  isSelecting={stageEventHandlers.select2State?.isSelecting || false}
-                />
-              )}
-            </>
+            <KonvaImageOperationsHandler
+              whiteboardState={whiteboardState}
+              whiteboardId={whiteboardId}
+            />
           }
         />
       </KonvaImageContextMenuHandler>

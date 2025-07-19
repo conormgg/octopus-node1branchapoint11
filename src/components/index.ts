@@ -168,11 +168,6 @@ export { default as AuthForm } from './auth/AuthForm';
 export { default as MovableToolbar } from './MovableToolbar';
 
 /**
- * Select2 renderer for experimental selection tool
- */
-export { Select2Renderer } from './canvas/Select2Renderer';
-
-/**
  * Layout selector for student board arrangements
  * Allows teachers to choose grid layouts for student monitoring
  */

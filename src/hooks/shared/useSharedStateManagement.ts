@@ -1,9 +1,6 @@
 
 import { useCallback, useMemo } from 'react';
 import { Tool, PanZoomState } from '@/types/whiteboard';
-import { createDebugLogger } from '@/utils/debug/debugConfig';
-
-const debugLog = createDebugLogger('toolSync');
 
 export const useSharedStateManagement = (setState: any) => {
   // Pan/zoom state management - memoized to prevent unnecessary re-renders
@@ -27,15 +24,9 @@ export const useSharedStateManagement = (setState: any) => {
 
   // Tool change with settings sync - memoized to prevent re-creation
   const setTool = useCallback((tool: Tool) => {
-    debugLog('SharedStateManagement', 'Tool change requested in shared state', {
-      newTool: tool,
-      toolType: typeof tool
-    });
-
     setState((prev: any) => {
       // Only update if tool actually changed
       if (prev.currentTool === tool) {
-        debugLog('SharedStateManagement', 'Tool unchanged, skipping update', { tool });
         return prev; // No change, prevent re-render
       }
       
@@ -51,13 +42,6 @@ export const useSharedStateManagement = (setState: any) => {
         newStrokeWidth = prev.highlighterSettings.strokeWidth;
       }
       
-      debugLog('SharedStateManagement', 'Tool state updated', {
-        tool,
-        newColor,
-        newStrokeWidth,
-        previousTool: prev.currentTool
-      });
-
       return {
         ...prev,
         currentTool: tool,
@@ -84,8 +68,6 @@ export const useSharedStateManagement = (setState: any) => {
 
   // Pencil-specific color change with auto-switching - memoized
   const setPencilColor = useCallback((color: string) => {
-    debugLog('SharedStateManagement', 'Pencil color change - switching to pencil tool', { color });
-    
     setState((prev: any) => {
       // Only update if pencil color actually changed
       if (prev.pencilSettings.color === color && prev.currentTool === 'pencil') {
@@ -104,8 +86,6 @@ export const useSharedStateManagement = (setState: any) => {
 
   // Highlighter-specific color change with auto-switching - memoized
   const setHighlighterColor = useCallback((color: string) => {
-    debugLog('SharedStateManagement', 'Highlighter color change - switching to highlighter tool', { color });
-    
     setState((prev: any) => {
       // Only update if highlighter color actually changed
       if (prev.highlighterSettings.color === color && prev.currentTool === 'highlighter') {
