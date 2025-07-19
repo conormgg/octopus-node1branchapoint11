@@ -34,6 +34,7 @@ interface UseStageEventHandlersProps {
   handlePointerMove: (x: number, y: number) => void;
   handlePointerUp: () => void;
   isReadOnly: boolean;
+  currentTool: string;
 }
 
 export const useStageEventHandlers = ({
@@ -46,51 +47,35 @@ export const useStageEventHandlers = ({
   handlePointerDown,
   handlePointerMove,
   handlePointerUp,
-  isReadOnly
+  isReadOnly,
+  currentTool
 }: UseStageEventHandlersProps) => {
-  const currentToolRef = useRef<string>('pencil');
+  const currentToolRef = useRef<string>(currentTool || 'pencil');
   const { logEventHandling } = useEventDebug(palmRejectionConfig);
   const { supportsPointerEvents } = usePointerEventDetection();
 
-  // Update current tool ref by tracking the stage attribute
+  // Update current tool ref when currentTool prop changes
   useEffect(() => {
-    const stage = stageRef.current;
-    if (!stage) return;
-    
-    const updateTool = () => {
-      const newTool = stage.getAttr('currentTool') as string;
-      const previousTool = currentToolRef.current;
+    if (currentTool && currentTool !== currentToolRef.current) {
+      debugLog('StageEventHandlers', 'Tool changed via prop', {
+        previousTool: currentToolRef.current,
+        newTool: currentTool
+      });
       
-      if (newTool && newTool !== currentToolRef.current) {
-        debugLog('StageEventHandlers', 'Tool changed', {
-          previousTool,
-          newTool,
-          wasUndefined: previousTool === undefined,
-          nowUndefined: newTool === undefined
+      currentToolRef.current = currentTool;
+      
+      // Update touch-action when tool changes
+      const container = containerRef.current;
+      if (container) {
+        // For select tool, allow native touch behavior; for others, prevent it
+        container.style.touchAction = currentTool === 'select' ? 'manipulation' : 'none';
+        debugLog('StageEventHandlers', 'Updated touch-action via prop', {
+          tool: currentTool,
+          touchAction: container.style.touchAction
         });
-        
-        currentToolRef.current = newTool;
-        // Update touch-action when tool changes
-        const container = containerRef.current;
-        if (container) {
-          // For select tool, allow native touch behavior; for others, prevent it
-          container.style.touchAction = newTool === 'select' ? 'manipulation' : 'none';
-          debugLog('StageEventHandlers', 'Updated touch-action', {
-            tool: newTool,
-            touchAction: container.style.touchAction
-          });
-        }
       }
-    };
-    
-    // Initial update
-    updateTool();
-    
-    // Listen for attribute changes
-    const interval = setInterval(updateTool, 100);
-    
-    return () => clearInterval(interval);
-  }, [stageRef, containerRef]);
+    }
+  }, [currentTool, containerRef]);
 
   // Log current tool state periodically for debugging
   useEffect(() => {

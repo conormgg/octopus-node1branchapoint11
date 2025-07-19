@@ -100,7 +100,8 @@ const KonvaStage: React.FC<KonvaStageProps> = ({
     handlePointerDown,
     handlePointerMove,
     handlePointerUp,
-    isReadOnly
+    isReadOnly,
+    currentTool: state.currentTool
   });
 
   return (
