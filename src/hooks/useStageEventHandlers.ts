@@ -60,7 +60,7 @@ export const useStageEventHandlers = ({
   const { supportsPointerEvents } = usePointerEventDetection();
 
   // Create a synchronized panZoomState that updates when stage transforms change
-  const [syncedPanZoomState, setSyncedPanZoomState] = useRef(panZoomState);
+  const syncedPanZoomState = useRef(panZoomState);
   
   // Sync panZoomState with actual stage transformation
   useEffect(() => {
@@ -86,7 +86,7 @@ export const useStageEventHandlers = ({
           provided: panZoomState
         });
         
-        setSyncedPanZoomState.current = actualTransform;
+        syncedPanZoomState.current = actualTransform;
       }
     };
 
@@ -106,7 +106,7 @@ export const useStageEventHandlers = ({
 
   // Update syncedPanZoomState when panZoomState prop changes
   useEffect(() => {
-    setSyncedPanZoomState.current = panZoomState;
+    syncedPanZoomState.current = panZoomState;
   }, [panZoomState]);
 
   // Select2 event handlers with synced pan/zoom state
