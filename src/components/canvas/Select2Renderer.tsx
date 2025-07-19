@@ -1,20 +1,63 @@
+
 import React from 'react';
 import { Rect } from 'react-konva';
-import { SelectionBounds, SelectedObject } from '@/types/whiteboard';
+import { SelectionBounds, SelectedObject, LineObject, ImageObject } from '@/types/whiteboard';
 
 interface Select2RendererProps {
   selectedObjects: SelectedObject[];
   hoveredObjectId: string | null;
   selectionBounds: SelectionBounds | null;
   isSelecting: boolean;
+  lines: LineObject[];
+  images: ImageObject[];
 }
 
 export const Select2Renderer: React.FC<Select2RendererProps> = ({
   selectedObjects,
   hoveredObjectId,
   selectionBounds,
-  isSelecting
+  isSelecting,
+  lines,
+  images
 }) => {
+  // Helper function to get object bounds
+  const getObjectBounds = (obj: SelectedObject) => {
+    if (obj.type === 'line') {
+      const line = lines.find(l => l.id === obj.id);
+      if (!line || line.points.length < 4) return null;
+      
+      let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+      for (let i = 0; i < line.points.length; i += 2) {
+        const x = line.points[i] + line.x;
+        const y = line.points[i + 1] + line.y;
+        minX = Math.min(minX, x);
+        minY = Math.min(minY, y);
+        maxX = Math.max(maxX, x);
+        maxY = Math.max(maxY, y);
+      }
+      
+      // Add padding for stroke width
+      const padding = line.strokeWidth / 2 + 5;
+      return {
+        x: minX - padding,
+        y: minY - padding,
+        width: maxX - minX + padding * 2,
+        height: maxY - minY + padding * 2
+      };
+    } else if (obj.type === 'image') {
+      const image = images.find(i => i.id === obj.id);
+      if (!image) return null;
+      
+      return {
+        x: image.x,
+        y: image.y,
+        width: image.width || 100,
+        height: image.height || 100
+      };
+    }
+    return null;
+  };
+
   return (
     <>
       {/* Selection rectangle during drag-to-select */}
@@ -33,35 +76,49 @@ export const Select2Renderer: React.FC<Select2RendererProps> = ({
       )}
 
       {/* Visual feedback for selected objects */}
-      {selectedObjects.map(obj => (
-        <Rect
-          key={`selection-${obj.id}`}
-          x={0} // Will be positioned by parent
-          y={0}
-          width={100} // Will be sized by parent
-          height={100}
-          fill="transparent"
-          stroke="rgba(0, 123, 255, 0.8)"
-          strokeWidth={2}
-          listening={false}
-          visible={false} // For now, just keeping the structure
-        />
-      ))}
+      {selectedObjects.map(obj => {
+        const bounds = getObjectBounds(obj);
+        if (!bounds) return null;
+        
+        return (
+          <Rect
+            key={`selection-${obj.id}`}
+            x={bounds.x}
+            y={bounds.y}
+            width={bounds.width}
+            height={bounds.height}
+            fill="transparent"
+            stroke="rgba(0, 123, 255, 0.8)"
+            strokeWidth={2}
+            listening={false}
+          />
+        );
+      })}
 
       {/* Visual feedback for hovered object */}
       {hoveredObjectId && (
-        <Rect
-          key={`hover-${hoveredObjectId}`}
-          x={0}
-          y={0}
-          width={100}
-          height={100}
-          fill="transparent"
-          stroke="rgba(0, 123, 255, 0.4)"
-          strokeWidth={1}
-          listening={false}
-          visible={false} // For now, just keeping the structure
-        />
+        (() => {
+          const hoveredObj = { 
+            id: hoveredObjectId, 
+            type: (lines.find(l => l.id === hoveredObjectId) ? 'line' : 'image') as 'line' | 'image'
+          };
+          const bounds = getObjectBounds(hoveredObj);
+          if (!bounds) return null;
+          
+          return (
+            <Rect
+              key={`hover-${hoveredObjectId}`}
+              x={bounds.x}
+              y={bounds.y}
+              width={bounds.width}
+              height={bounds.height}
+              fill="transparent"
+              stroke="rgba(0, 123, 255, 0.4)"
+              strokeWidth={1}
+              listening={false}
+            />
+          );
+        })()
       )}
     </>
   );

@@ -1,3 +1,4 @@
+
 import { useState, useCallback } from 'react';
 import { LineObject, ImageObject, SelectedObject, SelectionBounds } from '@/types/whiteboard';
 
@@ -7,6 +8,8 @@ interface Select2State {
   isSelecting: boolean;
   selectionBounds: SelectionBounds | null;
   dragStartPoint: { x: number; y: number } | null;
+  isDraggingObjects: boolean;
+  dragOffset: { x: number; y: number } | null;
 }
 
 export const useSelect2State = () => {
@@ -15,7 +18,9 @@ export const useSelect2State = () => {
     hoveredObjectId: null,
     isSelecting: false,
     selectionBounds: null,
-    dragStartPoint: null
+    dragStartPoint: null,
+    isDraggingObjects: false,
+    dragOffset: null
   });
 
   // Simple hit detection for lines
@@ -195,6 +200,43 @@ export const useSelect2State = () => {
     });
   }, [findObjectsInBounds]);
 
+  // Start dragging objects
+  const startDraggingObjects = useCallback((point: { x: number; y: number }) => {
+    setState(prev => ({
+      ...prev,
+      isDraggingObjects: true,
+      dragStartPoint: point,
+      dragOffset: { x: 0, y: 0 }
+    }));
+  }, []);
+
+  // Update object dragging
+  const updateObjectDragging = useCallback((point: { x: number; y: number }) => {
+    setState(prev => {
+      if (!prev.dragStartPoint || !prev.isDraggingObjects) return prev;
+
+      const dragOffset = {
+        x: point.x - prev.dragStartPoint.x,
+        y: point.y - prev.dragStartPoint.y
+      };
+
+      return {
+        ...prev,
+        dragOffset
+      };
+    });
+  }, []);
+
+  // End object dragging
+  const endObjectDragging = useCallback(() => {
+    setState(prev => ({
+      ...prev,
+      isDraggingObjects: false,
+      dragStartPoint: null,
+      dragOffset: null
+    }));
+  }, []);
+
   // Select objects at point
   const selectObjectsAtPoint = useCallback((
     point: { x: number; y: number },
@@ -262,6 +304,9 @@ export const useSelect2State = () => {
     startDragSelection,
     updateDragSelection,
     endDragSelection,
+    startDraggingObjects,
+    updateObjectDragging,
+    endObjectDragging,
     selectObjectsAtPoint,
     clearSelection,
     setHoveredObject,

@@ -90,7 +90,7 @@ const KonvaStage: React.FC<KonvaStageProps> = ({
     whiteboardId
   });
 
-  // Set up all event handlers
+  // Set up all event handlers with proper update functions for select2
   const stageEventHandlers = useStageEventHandlers({
     containerRef,
     stageRef,
@@ -104,7 +104,10 @@ const KonvaStage: React.FC<KonvaStageProps> = ({
     isReadOnly,
     currentTool: state.currentTool,
     lines: state.lines,
-    images: state.images
+    images: state.images,
+    // Pass update functions for select2 object movement
+    onUpdateLine: updateLine,
+    onUpdateImage: 'updateImage' in whiteboardState && whiteboardState.updateImage ? whiteboardState.updateImage : undefined
   });
 
   return (
@@ -173,6 +176,8 @@ const KonvaStage: React.FC<KonvaStageProps> = ({
                   hoveredObjectId={stageEventHandlers.select2State?.hoveredObjectId || null}
                   selectionBounds={stageEventHandlers.select2State?.selectionBounds || null}
                   isSelecting={stageEventHandlers.select2State?.isSelecting || false}
+                  lines={state.lines}
+                  images={state.images}
                 />
               )}
             </>

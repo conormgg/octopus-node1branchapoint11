@@ -10,19 +10,26 @@ interface UseSelect2EventHandlersProps {
   lines: LineObject[];
   images: ImageObject[];
   panZoomState: { x: number; y: number; scale: number };
+  onUpdateLine?: (lineId: string, updates: any) => void;
+  onUpdateImage?: (imageId: string, updates: any) => void;
 }
 
 export const useSelect2EventHandlers = ({ 
   stageRef,
   lines, 
   images, 
-  panZoomState 
+  panZoomState,
+  onUpdateLine,
+  onUpdateImage
 }: UseSelect2EventHandlersProps) => {
   const {
     state,
     startDragSelection,
     updateDragSelection,
     endDragSelection,
+    startDraggingObjects,
+    updateObjectDragging,
+    endObjectDragging,
     selectObjectsAtPoint,
     clearSelection,
     setHoveredObject,
@@ -34,6 +41,35 @@ export const useSelect2EventHandlers = ({
   const isDraggingRef = useRef(false);
   const hasMovedRef = useRef(false);
 
+  // Check if point is on any selected object
+  const isPointOnSelectedObject = useCallback((point: { x: number; y: number }) => {
+    const objectsAtPoint = findObjectsAtPoint(point, lines, images);
+    return objectsAtPoint.some(obj => 
+      state.selectedObjects.some(selected => selected.id === obj.id)
+    );
+  }, [findObjectsAtPoint, lines, images, state.selectedObjects]);
+
+  // Apply drag offset to objects
+  const applyDragOffset = useCallback(() => {
+    if (!state.dragOffset || (!onUpdateLine && !onUpdateImage)) return;
+
+    const { x: dx, y: dy } = state.dragOffset;
+
+    state.selectedObjects.forEach(obj => {
+      if (obj.type === 'line' && onUpdateLine) {
+        onUpdateLine(obj.id, {
+          x: (lines.find(l => l.id === obj.id)?.x || 0) + dx,
+          y: (lines.find(l => l.id === obj.id)?.y || 0) + dy
+        });
+      } else if (obj.type === 'image' && onUpdateImage) {
+        onUpdateImage(obj.id, {
+          x: (images.find(i => i.id === obj.id)?.x || 0) + dx,
+          y: (images.find(i => i.id === obj.id)?.y || 0) + dy
+        });
+      }
+    });
+  }, [state.dragOffset, state.selectedObjects, lines, images, onUpdateLine, onUpdateImage]);
+
   const handleMouseDown = useCallback((e: Konva.KonvaEventObject<MouseEvent>) => {
     const stage = e.target.getStage();
     if (!stage) return;
@@ -42,6 +78,13 @@ export const useSelect2EventHandlers = ({
     
     isDraggingRef.current = true;
     hasMovedRef.current = false;
+
+    // Check if clicking on a selected object first
+    if (isPointOnSelectedObject(worldPoint)) {
+      // Start dragging selected objects
+      startDraggingObjects(worldPoint);
+      return;
+    }
 
     // Check if clicking on an object
     const objectsAtPoint = findObjectsAtPoint(worldPoint, lines, images);
@@ -56,7 +99,7 @@ export const useSelect2EventHandlers = ({
       }
       startDragSelection(worldPoint);
     }
-  }, [getRelativePointerPosition, findObjectsAtPoint, selectObjectsAtPoint, clearSelection, startDragSelection, lines, images]);
+  }, [getRelativePointerPosition, isPointOnSelectedObject, startDraggingObjects, findObjectsAtPoint, selectObjectsAtPoint, clearSelection, startDragSelection, lines, images]);
 
   const handleMouseMove = useCallback((e: Konva.KonvaEventObject<MouseEvent>) => {
     const stage = e.target.getStage();
@@ -67,22 +110,28 @@ export const useSelect2EventHandlers = ({
     if (isDraggingRef.current) {
       hasMovedRef.current = true;
       
-      if (state.isSelecting) {
+      if (state.isDraggingObjects) {
+        // Update object dragging
+        updateObjectDragging(worldPoint);
+      } else if (state.isSelecting) {
         // Update drag selection rectangle
         updateDragSelection(worldPoint);
       }
-      // TODO: Handle object movement for selected objects
     } else {
       // Update hover feedback
       const objectsAtPoint = findObjectsAtPoint(worldPoint, lines, images);
       const hoveredId = objectsAtPoint.length > 0 ? objectsAtPoint[0].id : null;
       setHoveredObject(hoveredId);
     }
-  }, [getRelativePointerPosition, state.isSelecting, updateDragSelection, findObjectsAtPoint, setHoveredObject, lines, images]);
+  }, [getRelativePointerPosition, state.isDraggingObjects, state.isSelecting, updateObjectDragging, updateDragSelection, findObjectsAtPoint, setHoveredObject, lines, images]);
 
   const handleMouseUp = useCallback((e: Konva.KonvaEventObject<MouseEvent>) => {
     if (isDraggingRef.current) {
-      if (state.isSelecting && hasMovedRef.current) {
+      if (state.isDraggingObjects && hasMovedRef.current) {
+        // Apply the drag offset to actually move the objects
+        applyDragOffset();
+        endObjectDragging();
+      } else if (state.isSelecting && hasMovedRef.current) {
         // Complete drag selection
         endDragSelection(lines, images);
       }
@@ -90,7 +139,7 @@ export const useSelect2EventHandlers = ({
     
     isDraggingRef.current = false;
     hasMovedRef.current = false;
-  }, [state.isSelecting, endDragSelection, lines, images]);
+  }, [state.isDraggingObjects, state.isSelecting, applyDragOffset, endObjectDragging, endDragSelection, lines, images]);
 
   const handleStageClick = useCallback((e: Konva.KonvaEventObject<MouseEvent>) => {
     if (!hasMovedRef.current) {
@@ -110,6 +159,13 @@ export const useSelect2EventHandlers = ({
     isDraggingRef.current = true;
     hasMovedRef.current = false;
 
+    // Check if clicking on a selected object first
+    if (isPointOnSelectedObject(worldPoint)) {
+      // Start dragging selected objects
+      startDraggingObjects(worldPoint);
+      return;
+    }
+
     // Check if clicking on an object
     const objectsAtPoint = findObjectsAtPoint(worldPoint, lines, images);
     
@@ -123,7 +179,7 @@ export const useSelect2EventHandlers = ({
       }
       startDragSelection(worldPoint);
     }
-  }, [findObjectsAtPoint, selectObjectsAtPoint, clearSelection, startDragSelection, lines, images]);
+  }, [isPointOnSelectedObject, startDraggingObjects, findObjectsAtPoint, selectObjectsAtPoint, clearSelection, startDragSelection, lines, images]);
 
   const handlePointerMove = useCallback((worldX: number, worldY: number) => {
     const worldPoint = { x: worldX, y: worldY };
@@ -131,22 +187,28 @@ export const useSelect2EventHandlers = ({
     if (isDraggingRef.current) {
       hasMovedRef.current = true;
       
-      if (state.isSelecting) {
+      if (state.isDraggingObjects) {
+        // Update object dragging
+        updateObjectDragging(worldPoint);
+      } else if (state.isSelecting) {
         // Update drag selection rectangle
         updateDragSelection(worldPoint);
       }
-      // TODO: Handle object movement for selected objects
     } else {
       // Update hover feedback
       const objectsAtPoint = findObjectsAtPoint(worldPoint, lines, images);
       const hoveredId = objectsAtPoint.length > 0 ? objectsAtPoint[0].id : null;
       setHoveredObject(hoveredId);
     }
-  }, [state.isSelecting, updateDragSelection, findObjectsAtPoint, setHoveredObject, lines, images]);
+  }, [state.isDraggingObjects, state.isSelecting, updateObjectDragging, updateDragSelection, findObjectsAtPoint, setHoveredObject, lines, images]);
 
   const handlePointerUp = useCallback(() => {
     if (isDraggingRef.current) {
-      if (state.isSelecting && hasMovedRef.current) {
+      if (state.isDraggingObjects && hasMovedRef.current) {
+        // Apply the drag offset to actually move the objects
+        applyDragOffset();
+        endObjectDragging();
+      } else if (state.isSelecting && hasMovedRef.current) {
         // Complete drag selection
         endDragSelection(lines, images);
       }
@@ -154,7 +216,7 @@ export const useSelect2EventHandlers = ({
     
     isDraggingRef.current = false;
     hasMovedRef.current = false;
-  }, [state.isSelecting, endDragSelection, lines, images]);
+  }, [state.isDraggingObjects, state.isSelecting, applyDragOffset, endObjectDragging, endDragSelection, lines, images]);
 
   return {
     select2State: state,
