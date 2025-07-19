@@ -41,6 +41,7 @@ interface UseStageEventHandlersProps {
   onUpdateLine?: (lineId: string, updates: any) => void;
   onUpdateImage?: (imageId: string, updates: any) => void;
   onDeleteObjects?: (selectedObjects: Array<{id: string, type: 'line' | 'image'}>) => void;
+  onDeleteObjectsNoParams?: () => void;
 }
 
 export const useStageEventHandlers = ({
@@ -59,16 +60,19 @@ export const useStageEventHandlers = ({
   images = [],
   onUpdateLine,
   onUpdateImage,
-  onDeleteObjects
+  onDeleteObjects,
+  onDeleteObjectsNoParams
 }: UseStageEventHandlersProps) => {
   const currentToolRef = useRef<string>(currentTool || 'pencil');
   const { logEventHandling } = useEventDebug(palmRejectionConfig);
   const { supportsPointerEvents } = usePointerEventDetection();
 
-  debugLog('StageEventHandlers', 'Initializing with delete function', {
+  debugLog('StageEventHandlers', 'Initializing with delete functions', {
     currentTool,
     hasDeleteFunction: !!onDeleteObjects,
-    deleteFunction: onDeleteObjects ? 'provided' : 'none'
+    hasDeleteNoParams: !!onDeleteObjectsNoParams,
+    deleteFunction: onDeleteObjects ? 'provided' : 'none',
+    deleteNoParamsFunction: onDeleteObjectsNoParams ? 'provided' : 'none'
   });
 
   // Select2 event handlers with update functions and delete function

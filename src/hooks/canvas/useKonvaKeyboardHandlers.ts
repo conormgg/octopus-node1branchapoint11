@@ -1,3 +1,4 @@
+
 import { useEffect } from 'react';
 import { useWhiteboardState } from '@/hooks/useWhiteboardState';
 
@@ -6,7 +7,8 @@ interface UseKonvaKeyboardHandlersProps {
   whiteboardState: ReturnType<typeof useWhiteboardState>;
   isReadOnly: boolean;
   whiteboardId?: string;
-  deleteFunction?: (selectedObjects?: Array<{id: string, type: 'line' | 'image'}>) => void;
+  select2DeleteFunction?: (selectedObjects: Array<{id: string, type: 'line' | 'image'}>) => void;
+  originalSelectDeleteFunction?: () => void;
   select2Handlers?: {
     select2State: any;
     deleteSelectedObjects: () => void;
@@ -19,7 +21,8 @@ export const useKonvaKeyboardHandlers = ({
   whiteboardState,
   isReadOnly,
   whiteboardId,
-  deleteFunction,
+  select2DeleteFunction,
+  originalSelectDeleteFunction,
   select2Handlers
 }: UseKonvaKeyboardHandlersProps) => {
   const { state, handlePaste, selection } = whiteboardState;
@@ -74,13 +77,9 @@ export const useKonvaKeyboardHandlers = ({
         if (state.currentTool === 'select2' && select2Handlers?.select2State?.selectedObjects?.length > 0) {
           console.log(`[${whiteboardId}] Delete key pressed - select2 selected objects:`, select2Handlers.select2State.selectedObjects);
           
-          // Use the correct delete function (shared or basic) passed from KonvaStage
-          if (deleteFunction) {
-            // Pass the select2 selected objects to the correct delete function
-            deleteFunction(select2Handlers.select2State.selectedObjects);
-          } else if ('deleteSelectedObjects' in whiteboardState && typeof whiteboardState.deleteSelectedObjects === 'function') {
-            // Fallback to whiteboard state delete function
-            whiteboardState.deleteSelectedObjects(select2Handlers.select2State.selectedObjects);
+          // Use the select2 delete function (accepts parameters)
+          if (select2DeleteFunction) {
+            select2DeleteFunction(select2Handlers.select2State.selectedObjects);
           }
           
           // Clear select2 selection
@@ -96,11 +95,9 @@ export const useKonvaKeyboardHandlers = ({
         if (selection?.selectionState?.selectedObjects?.length > 0) {
           console.log(`[${whiteboardId}] Delete key pressed - selected objects:`, selection.selectionState.selectedObjects);
           
-          // Use the correct delete function (shared or basic) passed from KonvaStage
-          if (deleteFunction) {
-            deleteFunction();
-          } else if ('deleteSelectedObjects' in whiteboardState && typeof whiteboardState.deleteSelectedObjects === 'function') {
-            whiteboardState.deleteSelectedObjects();
+          // Use the original select delete function (no parameters - wrapper)
+          if (originalSelectDeleteFunction) {
+            originalSelectDeleteFunction();
           }
           
           e.preventDefault();
@@ -133,5 +130,5 @@ export const useKonvaKeyboardHandlers = ({
       container.removeEventListener('keydown', keyDownHandler);
       container.removeEventListener('click', clickHandler);
     };
-  }, [handlePaste, isReadOnly, selection, whiteboardId, state.currentTool, state.lines, state.images, whiteboardState, deleteFunction, select2Handlers]);
+  }, [handlePaste, isReadOnly, selection, whiteboardId, state.currentTool, state.lines, state.images, whiteboardState, select2DeleteFunction, originalSelectDeleteFunction, select2Handlers]);
 };
