@@ -12,11 +12,7 @@ export const useSharedWhiteboardState = (whiteboardId: string, syncConfig?: any)
   // Enhanced selection object with modes support
   const enhancedSelection = coreState.selection ? {
     ...coreState.selection,
-    selectionModes,
-    // Add pointer handlers for simplified handlers to use
-    handlePointerDown: coreState.handlePointerDown,
-    handlePointerMove: coreState.handlePointerMove,
-    handlePointerUp: coreState.handlePointerUp
+    selectionModes
   } : null;
 
   return {
