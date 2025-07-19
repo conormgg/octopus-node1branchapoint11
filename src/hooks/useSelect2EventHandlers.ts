@@ -103,12 +103,9 @@ export const useSelect2EventHandlers = ({
     }
   }, [getRelativePointerPosition, selectObjectsAtPoint, lines, images]);
 
-  // Legacy pointer handlers for backward compatibility
-  const handlePointerDown = useCallback((clientX: number, clientY: number, ctrlKey: boolean = false) => {
-    const stage = stageRef.current;
-    if (!stage) return;
-
-    const worldPoint = getRelativePointerPosition(stage, clientX, clientY);
+  // Updated pointer handlers - now accept world coordinates directly (no transformation needed)
+  const handlePointerDown = useCallback((worldX: number, worldY: number, ctrlKey: boolean = false) => {
+    const worldPoint = { x: worldX, y: worldY };
     
     isDraggingRef.current = true;
     hasMovedRef.current = false;
@@ -126,13 +123,10 @@ export const useSelect2EventHandlers = ({
       }
       startDragSelection(worldPoint);
     }
-  }, [stageRef, getRelativePointerPosition, findObjectsAtPoint, selectObjectsAtPoint, clearSelection, startDragSelection, lines, images]);
+  }, [findObjectsAtPoint, selectObjectsAtPoint, clearSelection, startDragSelection, lines, images]);
 
-  const handlePointerMove = useCallback((clientX: number, clientY: number) => {
-    const stage = stageRef.current;
-    if (!stage) return;
-
-    const worldPoint = getRelativePointerPosition(stage, clientX, clientY);
+  const handlePointerMove = useCallback((worldX: number, worldY: number) => {
+    const worldPoint = { x: worldX, y: worldY };
     
     if (isDraggingRef.current) {
       hasMovedRef.current = true;
@@ -148,7 +142,7 @@ export const useSelect2EventHandlers = ({
       const hoveredId = objectsAtPoint.length > 0 ? objectsAtPoint[0].id : null;
       setHoveredObject(hoveredId);
     }
-  }, [stageRef, getRelativePointerPosition, state.isSelecting, updateDragSelection, findObjectsAtPoint, setHoveredObject, lines, images]);
+  }, [state.isSelecting, updateDragSelection, findObjectsAtPoint, setHoveredObject, lines, images]);
 
   const handlePointerUp = useCallback(() => {
     if (isDraggingRef.current) {

@@ -132,12 +132,12 @@ export const useStageEventHandlers = ({
     palmRejectionConfig,
     panZoom,
     handlePointerDown: currentTool === 'select2' ? 
-      (clientX: number, clientY: number) => {
-        select2Handlers.handlePointerDown(clientX, clientY);
+      (worldX: number, worldY: number) => {
+        select2Handlers.handlePointerDown(worldX, worldY);
       } : handlePointerDown,
     handlePointerMove: currentTool === 'select2' ? 
-      (clientX: number, clientY: number) => {
-        select2Handlers.handlePointerMove(clientX, clientY);
+      (worldX: number, worldY: number) => {
+        select2Handlers.handlePointerMove(worldX, worldY);
       } : handlePointerMove,
     handlePointerUp: currentTool === 'select2' ? 
       select2Handlers.handlePointerUp : handlePointerUp,
