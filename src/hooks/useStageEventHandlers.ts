@@ -1,4 +1,3 @@
-
 import { useEffect, useRef } from 'react';
 import Konva from 'konva';
 import { usePalmRejection } from './usePalmRejection';
@@ -61,6 +60,7 @@ export const useStageEventHandlers = ({
 
   // Select2 event handlers
   const select2Handlers = useSelect2EventHandlers({
+    stageRef,
     lines,
     images,
     panZoomState
@@ -132,18 +132,12 @@ export const useStageEventHandlers = ({
     palmRejectionConfig,
     panZoom,
     handlePointerDown: currentTool === 'select2' ? 
-      (x: number, y: number) => {
-        const rect = containerRef.current?.getBoundingClientRect();
-        if (rect) {
-          select2Handlers.handlePointerDown(x - rect.left, y - rect.top);
-        }
+      (clientX: number, clientY: number) => {
+        select2Handlers.handlePointerDown(clientX, clientY);
       } : handlePointerDown,
     handlePointerMove: currentTool === 'select2' ? 
-      (x: number, y: number) => {
-        const rect = containerRef.current?.getBoundingClientRect();
-        if (rect) {
-          select2Handlers.handlePointerMove(x - rect.left, y - rect.top);
-        }
+      (clientX: number, clientY: number) => {
+        select2Handlers.handlePointerMove(clientX, clientY);
       } : handlePointerMove,
     handlePointerUp: currentTool === 'select2' ? 
       select2Handlers.handlePointerUp : handlePointerUp,
