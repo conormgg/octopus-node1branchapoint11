@@ -6,8 +6,6 @@ import { usePalmRejection } from '@/hooks/usePalmRejection';
 import { useStageEventHandlers } from '@/hooks/useStageEventHandlers';
 import { useKonvaKeyboardHandlers } from '@/hooks/canvas/useKonvaKeyboardHandlers';
 import { useKonvaPanZoomSync } from '@/hooks/canvas/useKonvaPanZoomSync';
-import { useSimplifiedPointerHandlers } from '@/hooks/useSimplifiedPointerHandlers';
-import { useWhiteboardDrawingCoordination } from '@/hooks/useWhiteboardDrawingCoordination';
 import KonvaStageCanvas from './KonvaStageCanvas';
 import KonvaImageContextMenuHandler from './KonvaImageContextMenuHandler';
 import KonvaImageOperationsHandler from './KonvaImageOperationsHandler';
@@ -49,47 +47,13 @@ const KonvaStage: React.FC<KonvaStageProps> = ({
 
   const {
     state,
+    handlePointerDown,
+    handlePointerMove,
+    handlePointerUp,
     panZoom,
     selection,
     updateLine
   } = whiteboardState;
-
-  // Drawing coordination for simplified pointer handlers
-  const drawingCoordination = useWhiteboardDrawingCoordination(
-    state, 
-    (newState) => {
-      // Since whiteboardState doesn't expose setState, we need to work around this
-      // For now, we'll handle updates through the existing methods
-      console.log('[KonvaStage] Drawing coordination state update needed:', newState);
-    }, 
-    whiteboardState.addToHistory
-  );
-
-  // Simplified pointer handlers
-  const simplifiedHandlers = useSimplifiedPointerHandlers(
-    stageRef,
-    state.panZoomState,
-    drawingCoordination,
-    selection,
-    panZoom
-  );
-
-  // Create adapter functions to bridge the signature differences
-  const handlePointerDown = React.useCallback((e: any) => {
-    const clientX = e.evt?.clientX || 0;
-    const clientY = e.evt?.clientY || 0;
-    simplifiedHandlers.handlePointerDown(clientX, clientY, state.currentTool);
-  }, [simplifiedHandlers, state.currentTool]);
-
-  const handlePointerMove = React.useCallback((e: any) => {
-    const clientX = e.evt?.clientX || 0;
-    const clientY = e.evt?.clientY || 0;
-    simplifiedHandlers.handlePointerMove(clientX, clientY, state.currentTool);
-  }, [simplifiedHandlers, state.currentTool]);
-
-  const handlePointerUp = React.useCallback((e: any) => {
-    simplifiedHandlers.handlePointerUp(state.currentTool);
-  }, [simplifiedHandlers, state.currentTool]);
 
   // Get whiteboard ID for this instance with proper typing
   const whiteboardId: string = 'whiteboardId' in whiteboardState && typeof whiteboardState.whiteboardId === 'string' 

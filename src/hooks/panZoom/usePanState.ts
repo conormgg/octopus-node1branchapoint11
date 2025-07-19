@@ -36,7 +36,7 @@ export const usePanState = (
     const deltaX = x - lastX;
     const deltaY = y - lastY;
 
-    console.log('[PanZoom] Continuing pan with delta:', { deltaX, deltaY, from: { lastX, lastY }, to: { x, y } });
+    console.log('[PanZoom] Continuing pan with delta:', { deltaX, deltaY });
 
     setPanZoomState({
       ...panZoomState,
@@ -44,7 +44,6 @@ export const usePanState = (
       y: panZoomState.y + deltaY
     });
 
-    // CRITICAL: Update the last position to prevent cumulative errors
     panStateRef.current.lastX = x;
     panStateRef.current.lastY = y;
   }, [panZoomState, setPanZoomState]);
