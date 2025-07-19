@@ -79,7 +79,8 @@ export const useStageEventHandlers = ({
     panZoomState,
     onUpdateLine,
     onUpdateImage,
-    onDeleteObjects
+    onDeleteObjects,
+    containerRef
   });
 
   // Update current tool ref when currentTool prop changes

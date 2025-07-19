@@ -12,6 +12,7 @@ interface UseSelect2EventHandlersProps {
   onUpdateLine?: (lineId: string, updates: any) => void;
   onUpdateImage?: (imageId: string, updates: any) => void;
   onDeleteObjects?: (selectedObjects: Array<{id: string, type: 'line' | 'image'}>) => void;
+  containerRef?: React.RefObject<HTMLDivElement>;
 }
 
 export const useSelect2EventHandlers = ({ 
@@ -21,7 +22,8 @@ export const useSelect2EventHandlers = ({
   panZoomState,
   onUpdateLine,
   onUpdateImage,
-  onDeleteObjects
+  onDeleteObjects,
+  containerRef
 }: UseSelect2EventHandlersProps) => {
   const {
     state,
@@ -45,6 +47,13 @@ export const useSelect2EventHandlers = ({
 
   const isDraggingRef = useRef(false);
   const hasMovedRef = useRef(false);
+
+  // Helper function to ensure container has focus for keyboard events
+  const ensureContainerFocus = useCallback(() => {
+    if (containerRef?.current) {
+      containerRef.current.focus();
+    }
+  }, [containerRef]);
 
   // Check if point is on any selected object OR within group bounds
   const isPointOnSelectedObject = useCallback((point: { x: number; y: number }) => {
@@ -117,6 +126,8 @@ export const useSelect2EventHandlers = ({
     if (objectsAtPoint.length > 0) {
       // Clicking on an object
       selectObjectsAtPoint(worldPoint, lines, images, e.evt.ctrlKey);
+      // Ensure container has focus for keyboard events
+      ensureContainerFocus();
     } else {
       // Clicking on empty space - start drag selection
       if (!e.evt.ctrlKey) {
@@ -124,7 +135,7 @@ export const useSelect2EventHandlers = ({
       }
       startDragSelection(worldPoint);
     }
-  }, [getRelativePointerPosition, isPointOnSelectedObject, startDraggingObjects, findObjectsAtPoint, selectObjectsAtPoint, clearSelection, startDragSelection, lines, images]);
+  }, [getRelativePointerPosition, isPointOnSelectedObject, startDraggingObjects, findObjectsAtPoint, selectObjectsAtPoint, clearSelection, startDragSelection, lines, images, ensureContainerFocus]);
 
   const handleMouseMove = useCallback((e: Konva.KonvaEventObject<MouseEvent>) => {
     const stage = e.target.getStage();
@@ -159,12 +170,14 @@ export const useSelect2EventHandlers = ({
       } else if (state.isSelecting && hasMovedRef.current) {
         // Complete drag selection
         endDragSelection(lines, images);
+        // Ensure container has focus for keyboard events after drag selection
+        ensureContainerFocus();
       }
     }
     
     isDraggingRef.current = false;
     hasMovedRef.current = false;
-  }, [state.isDraggingObjects, state.isSelecting, applyDragOffset, endObjectDragging, endDragSelection, lines, images]);
+  }, [state.isDraggingObjects, state.isSelecting, applyDragOffset, endObjectDragging, endDragSelection, lines, images, ensureContainerFocus]);
 
   const handleStageClick = useCallback((e: Konva.KonvaEventObject<MouseEvent>) => {
     if (!hasMovedRef.current) {
@@ -197,6 +210,8 @@ export const useSelect2EventHandlers = ({
     if (objectsAtPoint.length > 0) {
       // Clicking on an object
       selectObjectsAtPoint(worldPoint, lines, images, ctrlKey);
+      // Ensure container has focus for keyboard events
+      ensureContainerFocus();
     } else {
       // Clicking on empty space - start drag selection
       if (!ctrlKey) {
@@ -204,7 +219,7 @@ export const useSelect2EventHandlers = ({
       }
       startDragSelection(worldPoint);
     }
-  }, [isPointOnSelectedObject, startDraggingObjects, findObjectsAtPoint, selectObjectsAtPoint, clearSelection, startDragSelection, lines, images]);
+  }, [isPointOnSelectedObject, startDraggingObjects, findObjectsAtPoint, selectObjectsAtPoint, clearSelection, startDragSelection, lines, images, ensureContainerFocus]);
 
   const handlePointerMove = useCallback((worldX: number, worldY: number) => {
     const worldPoint = { x: worldX, y: worldY };
@@ -236,12 +251,14 @@ export const useSelect2EventHandlers = ({
       } else if (state.isSelecting && hasMovedRef.current) {
         // Complete drag selection
         endDragSelection(lines, images);
+        // Ensure container has focus for keyboard events after drag selection
+        ensureContainerFocus();
       }
     }
     
     isDraggingRef.current = false;
     hasMovedRef.current = false;
-  }, [state.isDraggingObjects, state.isSelecting, applyDragOffset, endObjectDragging, endDragSelection, lines, images]);
+  }, [state.isDraggingObjects, state.isSelecting, applyDragOffset, endObjectDragging, endDragSelection, lines, images, ensureContainerFocus]);
 
   // Updated delete functionality - now uses the proper delete function
   const deleteSelectedObjects = useCallback(() => {
