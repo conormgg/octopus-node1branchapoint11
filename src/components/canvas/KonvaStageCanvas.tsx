@@ -1,12 +1,14 @@
 
 import React from 'react';
-import { Stage } from 'react-konva';
+import { Stage, Layer } from 'react-konva';
 import Konva from 'konva';
 import { PanZoomState, Tool, SelectionBounds } from '@/types/whiteboard';
 import { useNormalizedWhiteboardState } from '@/hooks/performance/useNormalizedWhiteboardState';
 import { useStageCursor } from './hooks/useStageCursor';
-import ImagesLayer from './layers/ImagesLayer';
-import LinesLayer from './layers/LinesLayer';
+import LineRenderer from './LineRenderer';
+import ImageRenderer from './ImageRenderer';
+import SelectionRect from './SelectionRect';
+import SelectionGroup from './SelectionGroup';
 
 interface KonvaStageCanvasProps {
   width: number;
@@ -67,6 +69,46 @@ const KonvaStageCanvas: React.FC<KonvaStageCanvasProps> = ({
 }) => {
   const cursor = useStageCursor({ currentTool, selection });
 
+  // Handle line selection
+  const handleLineSelect = (lineId: string) => {
+    if (currentTool === 'select' && selection) {
+      selection.selectObjects([{ id: lineId, type: 'line' }]);
+    }
+  };
+
+  // Handle line hover
+  const handleLineMouseEnter = (lineId: string) => {
+    if (currentTool === 'select' && selection?.setHoveredObjectId) {
+      selection.setHoveredObjectId(lineId);
+    }
+  };
+
+  const handleLineMouseLeave = () => {
+    if (currentTool === 'select' && selection?.setHoveredObjectId) {
+      selection.setHoveredObjectId(null);
+    }
+  };
+
+  // Handle image selection
+  const handleImageSelect = (imageId: string) => {
+    if (currentTool === 'select' && selection) {
+      selection.selectObjects([{ id: imageId, type: 'image' }]);
+    }
+  };
+
+  // Handle image hover
+  const handleImageMouseEnter = (imageId: string) => {
+    if (currentTool === 'select' && selection?.setHoveredObjectId) {
+      selection.setHoveredObjectId(imageId);
+    }
+  };
+
+  const handleImageMouseLeave = () => {
+    if (currentTool === 'select' && selection?.setHoveredObjectId) {
+      selection.setHoveredObjectId(null);
+    }
+  };
+
   return (
     <Stage
       width={width}
@@ -80,23 +122,90 @@ const KonvaStageCanvas: React.FC<KonvaStageCanvasProps> = ({
       style={{ cursor }}
     >
       {/* Images layer - rendered first (behind) */}
-      <ImagesLayer extraContent={extraContent} />
+      <Layer>
+        {/* Render extraContent (contains existing image renderers) */}
+        {extraContent}
+        
+        {/* Directly render images if they exist and aren't in extraContent */}
+        {images.map((image) => {
+          if (!image) return null;
+          const isSelected = selection?.isObjectSelected?.(image.id) || false;
+          const isInGroup = selection?.selectionState?.selectedObjects?.length > 1 && isSelected;
+          const isHovered = selection?.hoveredObjectId === image.id;
+          
+          return (
+            <ImageRenderer
+              key={image.id}
+              imageObject={image}
+              isSelected={isSelected && !isInGroup}
+              isHovered={isHovered}
+              currentTool={currentTool}
+              onSelect={() => handleImageSelect(image.id)}
+              onMouseEnter={() => handleImageMouseEnter(image.id)}
+              onMouseLeave={handleImageMouseLeave}
+              onChange={(updates) => {
+                if (onUpdateImage) {
+                  onUpdateImage(image.id, updates);
+                }
+              }}
+              onUpdateState={() => {
+                if (onTransformEnd) {
+                  onTransformEnd();
+                }
+              }}
+            />
+          );
+        })}
+      </Layer>
       
       {/* Lines layer - rendered second (on top) */}
-      <LinesLayer
-        layerRef={layerRef}
-        lines={lines}
-        images={images}
-        currentTool={currentTool}
-        selectionBounds={selectionBounds}
-        isSelecting={isSelecting}
-        selection={selection}
-        normalizedState={normalizedState}
-        onUpdateLine={onUpdateLine}
-        onUpdateImage={onUpdateImage}
-        onTransformEnd={onTransformEnd}
-        stageRef={stageRef} // Pass stageRef for viewport calculations
-      />
+      <Layer ref={layerRef}>
+        {/* Directly render lines */}
+        {lines.map((line) => {
+          if (!line) return null;
+          const isSelected = selection?.isObjectSelected?.(line.id) || false;
+          const isInGroup = selection?.selectionState?.selectedObjects?.length > 1 && isSelected;
+          const isHovered = selection?.hoveredObjectId === line.id;
+          
+          return (
+            <LineRenderer 
+              key={line.id} 
+              line={line}
+              isSelected={isSelected && !isInGroup}
+              isHovered={isHovered}
+              currentTool={currentTool}
+              onSelect={currentTool === 'select' ? () => handleLineSelect(line.id) : undefined}
+              onMouseEnter={currentTool === 'select' ? () => handleLineMouseEnter(line.id) : undefined}
+              onMouseLeave={currentTool === 'select' ? handleLineMouseLeave : undefined}
+              onDragEnd={(updates) => {
+                if (onUpdateLine) {
+                  onUpdateLine(line.id, updates);
+                }
+              }}
+            />
+          );
+        })}
+        
+        {/* Selection Group for multi-object selection */}
+        {selection?.selectionState?.selectedObjects && selection.selectionState.selectedObjects.length > 1 && (
+          <SelectionGroup
+            selectedObjects={selection.selectionState.selectedObjects}
+            lines={lines}
+            images={images}
+            onUpdateLine={onUpdateLine}
+            onUpdateImage={onUpdateImage}
+            onTransformEnd={onTransformEnd}
+            currentTool={currentTool}
+            isVisible={!isSelecting}
+          />
+        )}
+        
+        {/* Selection rectangle for area selection */}
+        <SelectionRect
+          selectionBounds={selectionBounds}
+          isVisible={isSelecting}
+        />
+      </Layer>
     </Stage>
   );
 };
