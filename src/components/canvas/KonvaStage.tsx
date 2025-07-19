@@ -56,7 +56,8 @@ const KonvaStage: React.FC<KonvaStageProps> = ({
     handlePointerUp,
     panZoom,
     selection,
-    updateLine
+    updateLine,
+    setState
   } = whiteboardState;
 
   // Get whiteboard ID for this instance with proper typing
@@ -82,6 +83,28 @@ const KonvaStage: React.FC<KonvaStageProps> = ({
     currentTool: state.currentTool
   });
 
+  // Delete objects function for select2
+  const handleDeleteObjects = (selectedObjects: Array<{id: string, type: 'line' | 'image'}>) => {
+    setState(prev => {
+      const linesToDelete = selectedObjects.filter(obj => obj.type === 'line').map(obj => obj.id);
+      const imagesToDelete = selectedObjects.filter(obj => obj.type === 'image').map(obj => obj.id);
+      
+      const newLines = prev.lines.filter(line => !linesToDelete.includes(line.id));
+      const newImages = prev.images.filter(image => !imagesToDelete.includes(image.id));
+      
+      return {
+        ...prev,
+        lines: newLines,
+        images: newImages
+      };
+    });
+
+    // Add to history if available
+    if ('addToHistory' in whiteboardState && whiteboardState.addToHistory) {
+      setTimeout(() => whiteboardState.addToHistory(), 0);
+    }
+  };
+
   // Set up all event handlers with proper update functions for select2
   const stageEventHandlers = useStageEventHandlers({
     containerRef,
@@ -99,7 +122,9 @@ const KonvaStage: React.FC<KonvaStageProps> = ({
     images: state.images,
     // Pass update functions for select2 object movement
     onUpdateLine: updateLine,
-    onUpdateImage: 'updateImage' in whiteboardState && whiteboardState.updateImage ? whiteboardState.updateImage : undefined
+    onUpdateImage: 'updateImage' in whiteboardState && whiteboardState.updateImage ? whiteboardState.updateImage : undefined,
+    // Pass delete function for select2
+    onDeleteObjects: handleDeleteObjects
   });
 
   useKonvaKeyboardHandlers({

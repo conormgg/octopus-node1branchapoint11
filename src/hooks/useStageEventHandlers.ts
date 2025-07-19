@@ -39,6 +39,7 @@ interface UseStageEventHandlersProps {
   images?: any[];
   onUpdateLine?: (lineId: string, updates: any) => void;
   onUpdateImage?: (imageId: string, updates: any) => void;
+  onDeleteObjects?: (selectedObjects: Array<{id: string, type: 'line' | 'image'}>) => void;
 }
 
 export const useStageEventHandlers = ({
@@ -56,20 +57,22 @@ export const useStageEventHandlers = ({
   lines = [],
   images = [],
   onUpdateLine,
-  onUpdateImage
+  onUpdateImage,
+  onDeleteObjects
 }: UseStageEventHandlersProps) => {
   const currentToolRef = useRef<string>(currentTool || 'pencil');
   const { logEventHandling } = useEventDebug(palmRejectionConfig);
   const { supportsPointerEvents } = usePointerEventDetection();
 
-  // Select2 event handlers with update functions
+  // Select2 event handlers with update functions and delete function
   const select2Handlers = useSelect2EventHandlers({
     stageRef,
     lines,
     images,
     panZoomState,
     onUpdateLine,
-    onUpdateImage
+    onUpdateImage,
+    onDeleteObjects
   });
 
   // Update current tool ref when currentTool prop changes

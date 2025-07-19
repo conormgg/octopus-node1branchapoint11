@@ -11,6 +11,7 @@ interface UseSelect2EventHandlersProps {
   panZoomState: { x: number; y: number; scale: number };
   onUpdateLine?: (lineId: string, updates: any) => void;
   onUpdateImage?: (imageId: string, updates: any) => void;
+  onDeleteObjects?: (selectedObjects: Array<{id: string, type: 'line' | 'image'}>) => void;
 }
 
 export const useSelect2EventHandlers = ({ 
@@ -19,7 +20,8 @@ export const useSelect2EventHandlers = ({
   images, 
   panZoomState,
   onUpdateLine,
-  onUpdateImage
+  onUpdateImage,
+  onDeleteObjects
 }: UseSelect2EventHandlersProps) => {
   const {
     state,
@@ -241,26 +243,18 @@ export const useSelect2EventHandlers = ({
     hasMovedRef.current = false;
   }, [state.isDraggingObjects, state.isSelecting, applyDragOffset, endObjectDragging, endDragSelection, lines, images]);
 
-  // Add delete functionality for select2
+  // Updated delete functionality - now uses the proper delete function
   const deleteSelectedObjects = useCallback(() => {
-    if (state.selectedObjects.length === 0 || (!onUpdateLine && !onUpdateImage)) return;
+    if (state.selectedObjects.length === 0 || !onDeleteObjects) return;
 
-    // Delete selected objects by calling the update functions with null/undefined
-    state.selectedObjects.forEach(obj => {
-      if (obj.type === 'line' && onUpdateLine) {
-        // For lines, we need to remove them from the lines array
-        // This is typically done by the parent component's delete logic
-        console.log(`Deleting line: ${obj.id}`);
-      } else if (obj.type === 'image' && onUpdateImage) {
-        // For images, we need to remove them from the images array
-        // This is typically done by the parent component's delete logic
-        console.log(`Deleting image: ${obj.id}`);
-      }
-    });
+    console.log(`Deleting ${state.selectedObjects.length} selected objects`);
+    
+    // Use the proper delete function
+    onDeleteObjects(state.selectedObjects);
 
     // Clear the selection after deletion
     clearSelection();
-  }, [state.selectedObjects, onUpdateLine, onUpdateImage, clearSelection]);
+  }, [state.selectedObjects, onDeleteObjects, clearSelection]);
 
   return {
     select2State: state,
