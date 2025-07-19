@@ -53,6 +53,9 @@ export interface DebugConfig {
   'sync-direction-manager': boolean;
   'sync-config': boolean;
   'session-students': boolean;
+  
+  // Tool synchronization
+  toolSync: boolean;
 }
 
 // Default configuration - most debugging disabled by default
@@ -104,7 +107,10 @@ const DEFAULT_DEBUG_CONFIG: DebugConfig = {
   'sync-direction': false,
   'sync-direction-manager': false,
   'sync-config': false,
-  'session-students': false
+  'session-students': false,
+  
+  // Tool synchronization - disabled by default
+  toolSync: false
 };
 
 // Environment-based configuration
