@@ -1,3 +1,4 @@
+
 import { useEffect, useRef } from 'react';
 import Konva from 'konva';
 import { usePalmRejection } from './usePalmRejection';
@@ -58,11 +59,61 @@ export const useStageEventHandlers = ({
   const { logEventHandling } = useEventDebug(palmRejectionConfig);
   const { supportsPointerEvents } = usePointerEventDetection();
 
-  // Select2 event handlers
+  // Create a synchronized panZoomState that updates when stage transforms change
+  const [syncedPanZoomState, setSyncedPanZoomState] = useRef(panZoomState);
+  
+  // Sync panZoomState with actual stage transformation
+  useEffect(() => {
+    const stage = stageRef.current;
+    if (!stage) return;
+
+    const syncTransformation = () => {
+      const actualTransform = {
+        x: stage.x(),
+        y: stage.y(),
+        scale: stage.scaleX() // Assuming uniform scaling
+      };
+
+      // Only update if there's a significant difference
+      const threshold = 0.001;
+      if (Math.abs(actualTransform.x - syncedPanZoomState.current.x) > threshold ||
+          Math.abs(actualTransform.y - syncedPanZoomState.current.y) > threshold ||
+          Math.abs(actualTransform.scale - syncedPanZoomState.current.scale) > threshold) {
+        
+        debugLog('StageEventHandlers', 'Syncing panZoomState with stage', {
+          previous: syncedPanZoomState.current,
+          actual: actualTransform,
+          provided: panZoomState
+        });
+        
+        setSyncedPanZoomState.current = actualTransform;
+      }
+    };
+
+    // Sync on every animation frame during transformations
+    const syncInterval = setInterval(syncTransformation, 16); // ~60fps
+
+    // Also sync on specific events
+    stage.on('dragend', syncTransformation);
+    stage.on('transformend', syncTransformation);
+
+    return () => {
+      clearInterval(syncInterval);
+      stage.off('dragend', syncTransformation);
+      stage.off('transformend', syncTransformation);
+    };
+  }, [stageRef, panZoomState]);
+
+  // Update syncedPanZoomState when panZoomState prop changes
+  useEffect(() => {
+    setSyncedPanZoomState.current = panZoomState;
+  }, [panZoomState]);
+
+  // Select2 event handlers with synced pan/zoom state
   const select2Handlers = useSelect2EventHandlers({
     lines,
     images,
-    panZoomState,
+    panZoomState: syncedPanZoomState.current,
     stageRef
   });
 
@@ -132,14 +183,38 @@ export const useStageEventHandlers = ({
     palmRejectionConfig,
     panZoom,
     handlePointerDown: currentTool === 'select2' ? 
-      (x: number, y: number) => {
-        // Pass raw client coordinates directly to select2
-        select2Handlers.handlePointerDown(x, y);
+      (x: number, y: number, e?: PointerEvent) => {
+        // For select2, pass raw client coordinates with event context
+        if (e) {
+          select2Handlers.handlePointerDown(e.clientX, e.clientY, e.ctrlKey);
+        } else {
+          // Fallback - convert world coordinates back to client coordinates (not ideal)
+          const stage = stageRef.current;
+          if (stage) {
+            const container = stage.container();
+            const rect = container.getBoundingClientRect();
+            const clientX = x * panZoomState.scale + panZoomState.x + rect.left;
+            const clientY = y * panZoomState.scale + panZoomState.y + rect.top;
+            select2Handlers.handlePointerDown(clientX, clientY);
+          }
+        }
       } : handlePointerDown,
     handlePointerMove: currentTool === 'select2' ? 
-      (x: number, y: number) => {
-        // Pass raw client coordinates directly to select2
-        select2Handlers.handlePointerMove(x, y);
+      (x: number, y: number, e?: PointerEvent) => {
+        // For select2, pass raw client coordinates with event context
+        if (e) {
+          select2Handlers.handlePointerMove(e.clientX, e.clientY);
+        } else {
+          // Fallback - convert world coordinates back to client coordinates (not ideal)
+          const stage = stageRef.current;
+          if (stage) {
+            const container = stage.container();
+            const rect = container.getBoundingClientRect();
+            const clientX = x * panZoomState.scale + panZoomState.x + rect.left;
+            const clientY = y * panZoomState.scale + panZoomState.y + rect.top;
+            select2Handlers.handlePointerMove(clientX, clientY);
+          }
+        }
       } : handlePointerMove,
     handlePointerUp: currentTool === 'select2' ? 
       select2Handlers.handlePointerUp : handlePointerUp,

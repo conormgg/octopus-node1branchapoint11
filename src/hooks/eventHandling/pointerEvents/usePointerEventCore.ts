@@ -22,8 +22,8 @@ interface UsePointerEventCoreProps {
     continuePan: (x: number, y: number) => void;
     stopPan: () => void;
   };
-  handlePointerDown: (x: number, y: number) => void;
-  handlePointerMove: (x: number, y: number) => void;
+  handlePointerDown: (x: number, y: number, e?: PointerEvent) => void;
+  handlePointerMove: (x: number, y: number, e?: PointerEvent) => void;
   handlePointerUp: () => void;
   isReadOnly: boolean;
   currentToolRef: React.RefObject<string>;
@@ -74,7 +74,8 @@ export const usePointerEventCore = ({
           toolUndefined: currentToolRef.current === undefined,
           button: e.button,
           isTouch: e.pointerType === 'touch',
-          isSelectTool: currentToolRef.current === 'select'
+          isSelectTool: currentToolRef.current === 'select',
+          isSelect2Tool: currentToolRef.current === 'select2'
         });
 
         logEventHandling('pointerdown', 'pointer', { pointerId: e.pointerId, pointerType: e.pointerType });
@@ -139,9 +140,14 @@ export const usePointerEventCore = ({
           return;
         }
 
-        const { x, y } = getRelativePointerPosition(stage, e.clientX, e.clientY);
-        debugLog('PointerEventCore', 'Calling handlePointerDown', { x, y });
-        handlePointerDown(x, y);
+        // For select2, pass the raw event; for others, convert to world coordinates
+        if (currentToolRef.current === 'select2') {
+          handlePointerDown(0, 0, e); // Pass raw event for select2
+        } else {
+          const { x, y } = getRelativePointerPosition(stage, e.clientX, e.clientY);
+          debugLog('PointerEventCore', 'Calling handlePointerDown', { x, y });
+          handlePointerDown(x, y, e);
+        }
       },
       deps: [stageRef, logEventHandling, currentToolRef, panZoom, stableIsReadOnly, stablePalmRejectionEnabled, palmRejection, getRelativePointerPosition, handlePointerDown, touchToSelectionBridge]
     },
@@ -192,8 +198,13 @@ export const usePointerEventCore = ({
         // Apply palm rejection ONLY if it's enabled
         if (stablePalmRejectionEnabled && !palmRejection.shouldProcessPointer(e)) return;
 
-        const { x, y } = getRelativePointerPosition(stage, e.clientX, e.clientY);
-        handlePointerMove(x, y);
+        // For select2, pass the raw event; for others, convert to world coordinates
+        if (currentToolRef.current === 'select2') {
+          handlePointerMove(0, 0, e); // Pass raw event for select2
+        } else {
+          const { x, y } = getRelativePointerPosition(stage, e.clientX, e.clientY);
+          handlePointerMove(x, y, e);
+        }
       },
       deps: [stageRef, logEventHandling, currentToolRef, panZoom, stableIsReadOnly, stablePalmRejectionEnabled, palmRejection, getRelativePointerPosition, handlePointerMove, touchToSelectionBridge]
     },
@@ -206,7 +217,8 @@ export const usePointerEventCore = ({
           currentTool: currentToolRef.current,
           button: e.button,
           isTouch: e.pointerType === 'touch',
-          isSelectTool: currentToolRef.current === 'select'
+          isSelectTool: currentToolRef.current === 'select',
+          isSelect2Tool: currentToolRef.current === 'select2'
         });
 
         logEventHandling('pointerup', 'pointer', { pointerId: e.pointerId, pointerType: e.pointerType });
