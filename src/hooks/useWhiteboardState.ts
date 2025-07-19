@@ -7,9 +7,9 @@ import { useSelectionState } from './useSelectionState';
 import { useWhiteboardToolManagement } from './useWhiteboardToolManagement';
 import { useWhiteboardDrawingCoordination } from './useWhiteboardDrawingCoordination';
 import { useWhiteboardImageOperations } from './useWhiteboardImageOperations';
-import { useWhiteboardPointerHandlers } from './useWhiteboardPointerHandlers';
 import { useNormalizedWhiteboardState } from './performance/useNormalizedWhiteboardState';
 import { createDebugLogger } from '@/utils/debug/debugConfig';
+import Konva from 'konva';
 
 const USE_NORMALIZED_STATE = true; // Feature flag for gradual rollout
 const debugLog = createDebugLogger('state');
@@ -132,24 +132,6 @@ export const useWhiteboardState = () => {
   // Image operations
   const imageOperations = useWhiteboardImageOperations(state, setState, addToHistory);
 
-  // Pointer handlers with stage ref
-  const pointerHandlers = useWhiteboardPointerHandlers(state, panZoom, selection, drawingCoordination, stageRef);
-
-  // Expose direct handlers for event system integration
-  const exposedHandlers = {
-    ...pointerHandlers,
-    __whiteboardHandlers: {
-      handleDirectPointerDown: pointerHandlers.handleDirectPointerDown,
-      handleDirectPointerMove: pointerHandlers.handleDirectPointerMove,
-      handleDirectPointerUp: pointerHandlers.handleDirectPointerUp
-    }
-  };
-
-  // Attach the direct handlers to the main handlers for access in event system
-  (exposedHandlers.handlePointerDown as any).__whiteboardHandlers = exposedHandlers.__whiteboardHandlers;
-  (exposedHandlers.handlePointerMove as any).__whiteboardHandlers = exposedHandlers.__whiteboardHandlers;
-  (exposedHandlers.handlePointerUp as any).__whiteboardHandlers = exposedHandlers.__whiteboardHandlers;
-
   // Update line position
   const updateLine = useCallback((lineId: string, updates: Partial<LineObject>) => {
     setState(prev => ({
@@ -204,9 +186,6 @@ export const useWhiteboardState = () => {
     setPencilColor: toolManagement.setPencilColor,
     setHighlighterColor: toolManagement.setHighlighterColor,
     setStrokeWidth: toolManagement.setStrokeWidth,
-    handlePointerDown: exposedHandlers.handlePointerDown,
-    handlePointerMove: exposedHandlers.handlePointerMove,
-    handlePointerUp: exposedHandlers.handlePointerUp,
     handlePaste: imageOperations.handlePaste,
     addToHistory,
     undo,

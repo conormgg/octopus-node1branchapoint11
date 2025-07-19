@@ -72,10 +72,6 @@ const KonvaStageCanvas: React.FC<KonvaStageCanvasProps> = ({
       width={width}
       height={height}
       ref={stageRef}
-      onPointerDown={handlePointerDown}
-      onPointerMove={handlePointerMove}
-      onPointerUp={handlePointerUp}
-      onPointerLeave={handlePointerUp}
       onClick={onStageClick}
       style={{ cursor }}
     >
