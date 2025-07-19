@@ -108,6 +108,11 @@ export const useStageEventHandlers = ({
         e.preventDefault();
       }
       panZoom.handleTouchEnd(e);
+      // --- ADDED: Ensure selection completion logic is called for select tool ---
+      if (currentToolRef.current === 'select') {
+        console.log('[DEBUG][TouchEnd][SelectTool] Calling handlePointerUp');
+        handlePointerUp();
+      }
     };
 
     container.addEventListener('touchstart', handleTouchStart, { passive: false });
