@@ -7,7 +7,8 @@ import { useTouchHandlers } from './panZoom/useTouchHandlers';
 
 export const usePanZoom = (
   panZoomState: PanZoomState,
-  setPanZoomState: (state: PanZoomState) => void
+  setPanZoomState: (state: PanZoomState) => void,
+  currentTool?: string
 ) => {
   // Core zoom and centering functionality
   const { zoom, handleWheel, centerOnBounds } = usePanZoomCore(panZoomState, setPanZoomState);
@@ -15,8 +16,8 @@ export const usePanZoom = (
   // Pan state management
   const panHandlers = usePanState(panZoomState, setPanZoomState);
   
-  // Touch event handlers
-  const touchHandlers = useTouchHandlers(panHandlers, zoom);
+  // Touch event handlers with current tool awareness
+  const touchHandlers = useTouchHandlers(panHandlers, zoom, currentTool);
 
   // Wrap the return object in useMemo to stabilize its reference
   return useMemo(() => ({

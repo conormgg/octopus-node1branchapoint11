@@ -3,7 +3,8 @@ import { useCallback, useRef } from 'react';
 
 export const useTouchHandlers = (
   panHandlers: any,
-  zoom: (factor: number, centerX?: number, centerY?: number) => void
+  zoom: (factor: number, centerX?: number, centerY?: number) => void,
+  currentTool?: string
 ) => {
   // Track touch state for pinch-to-zoom
   const touchStateRef = useRef<{
@@ -32,10 +33,10 @@ export const useTouchHandlers = (
   }, []);
 
   const handleTouchStart = useCallback((e: TouchEvent) => {
-    console.log('[PanZoom] Touch start with', e.touches.length, 'touches');
+    console.log('[PanZoom] Touch start with', e.touches.length, 'touches, tool:', currentTool);
     
-    // CRITICAL CHANGE: Only handle multi-touch gestures (2+ fingers)
-    // Single touch (stylus or finger) is ignored for panning
+    // CRITICAL CHANGE: Only handle multi-touch gestures (2+ fingers) OR single touch when NOT using select tool
+    // This allows select tool to receive single-finger touches for selection rectangles
     if (e.touches.length >= 2) {
       panHandlers.setIsGestureActiveState(true);
       // Initialize pinch-to-zoom
@@ -47,16 +48,19 @@ export const useTouchHandlers = (
         const center = getTouchCenter(e.touches);
         panHandlers.startPan(center.x, center.y);
       }
+    } else if (e.touches.length === 1 && currentTool !== 'select') {
+      // Only allow single-finger pan if NOT using select tool
+      panHandlers.setIsGestureActiveState(true);
+      panHandlers.startPan(e.touches[0].clientX, e.touches[0].clientY);
     }
-    // Single touches are completely ignored - no panning initiated
-  }, [getTouchDistance, getTouchCenter, panHandlers]);
+    // Single touches with select tool are completely ignored - they'll be handled by selection logic
+  }, [getTouchDistance, getTouchCenter, panHandlers, currentTool]);
 
   const handleTouchMove = useCallback((e: TouchEvent) => {
-    console.log('[PanZoom] Touch move with', e.touches.length, 'touches');
+    console.log('[PanZoom] Touch move with', e.touches.length, 'touches, tool:', currentTool);
     
-    // Only handle multi-touch gestures
     if (e.touches.length >= 2) {
-      // Pinch-to-zoom
+      // Multi-touch: handle pinch-to-zoom and 2-finger pan
       const currentDistance = getTouchDistance(e.touches);
       const currentCenter = getTouchCenter(e.touches);
       
@@ -91,12 +95,15 @@ export const useTouchHandlers = (
       
       touchStateRef.current.lastDistance = currentDistance;
       touchStateRef.current.lastCenter = currentCenter;
+    } else if (e.touches.length === 1 && currentTool !== 'select' && panHandlers.isGestureActive) {
+      // Single-finger pan (only if NOT select tool and gesture is already active)
+      panHandlers.continuePan(e.touches[0].clientX, e.touches[0].clientY);
     }
-    // Single touches are ignored - no panning
-  }, [getTouchDistance, getTouchCenter, zoom, panHandlers]);
+    // Single touches with select tool are ignored for pan
+  }, [getTouchDistance, getTouchCenter, zoom, panHandlers, currentTool]);
 
   const handleTouchEnd = useCallback((e: TouchEvent) => {
-    console.log('[PanZoom] Touch end with', e.touches.length, 'remaining touches');
+    console.log('[PanZoom] Touch end with', e.touches.length, 'remaining touches, tool:', currentTool);
     
     // Reset gesture state when no touches remain
     if (e.touches.length === 0) {
@@ -108,10 +115,10 @@ export const useTouchHandlers = (
       panHandlers.setIsGestureActiveState(false);
       panHandlers.stopPan();
       touchStateRef.current.lastDistance = 0;
-      // Do NOT start single-touch panning here
+      // Do NOT start single-touch panning here for select tool
     }
     // Continue multi-touch handling if still multiple touches
-  }, [panHandlers]);
+  }, [panHandlers, currentTool]);
 
   return {
     handleTouchStart,

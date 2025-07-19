@@ -6,6 +6,9 @@ import { useStageCoordinates } from './useStageCoordinates';
 import { PanZoomState } from '@/types/whiteboard';
 import { useEventDebug } from './eventHandling/useEventDebug';
 import { useWheelEventHandlers } from './eventHandling/useWheelEventHandlers';
+import { useTouchEventHandlers } from './eventHandling/useTouchEventHandlers';
+import { usePointerEventDetection } from './eventHandling/usePointerEventDetection';
+import { usePanZoom } from './usePanZoom';
 
 interface UseStageEventHandlersProps {
   containerRef: React.RefObject<HTMLDivElement>;
@@ -45,6 +48,7 @@ export const useStageEventHandlers = ({
   const currentToolRef = useRef<string>('pencil');
   const { getRelativePointerPosition } = useStageCoordinates(panZoomState);
   const { logEventHandling } = useEventDebug(palmRejectionConfig);
+  const { supportsPointerEvents } = usePointerEventDetection();
 
   // Update current tool ref by tracking the stage attribute
   useEffect(() => {
@@ -78,48 +82,15 @@ export const useStageEventHandlers = ({
     panZoom
   });
 
-  // Touch events for pinch/pan - always works regardless of read-only status
-  useEffect(() => {
-    const container = containerRef.current;
-    if (!container) return;
-
-    const handleTouchStart = (e: TouchEvent) => {
-      logEventHandling('touchstart', 'touch', { touches: e.touches.length });
-      // Always prevent default for multi-touch to ensure pinch-to-zoom works
-      if (e.touches.length >= 2) {
-        e.preventDefault();
-      }
-      panZoom.handleTouchStart(e);
-    };
-
-    const handleTouchMove = (e: TouchEvent) => {
-      logEventHandling('touchmove', 'touch', { touches: e.touches.length });
-      // Always prevent default for multi-touch gestures
-      if (e.touches.length >= 2) {
-        e.preventDefault();
-      }
-      panZoom.handleTouchMove(e);
-    };
-
-    const handleTouchEnd = (e: TouchEvent) => {
-      logEventHandling('touchend', 'touch', { touches: e.touches.length });
-      // Only prevent default for multi-touch end events
-      if (e.touches.length >= 1 || (e.changedTouches && e.changedTouches.length >= 1)) {
-        e.preventDefault();
-      }
-      panZoom.handleTouchEnd(e);
-    };
-
-    container.addEventListener('touchstart', handleTouchStart, { passive: false });
-    container.addEventListener('touchmove', handleTouchMove, { passive: false });
-    container.addEventListener('touchend', handleTouchEnd, { passive: false });
-
-    return () => {
-      container.removeEventListener('touchstart', handleTouchStart);
-      container.removeEventListener('touchmove', handleTouchMove);
-      container.removeEventListener('touchend', handleTouchEnd);
-    };
-  }, [panZoom, palmRejectionConfig.enabled, logEventHandling]);
+  // Touch events for pinch/pan - now tool-aware
+  useTouchEventHandlers({
+    containerRef,
+    panZoom,
+    logEventHandling,
+    supportsPointerEvents,
+    palmRejectionEnabled: palmRejectionConfig.enabled,
+    currentTool: currentToolRef.current
+  });
 
   // Pointer event handlers - tool-aware implementation
   useEffect(() => {
