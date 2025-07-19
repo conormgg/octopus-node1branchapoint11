@@ -2,7 +2,7 @@
 import { useEffect, useRef } from 'react';
 import Konva from 'konva';
 import { usePalmRejection } from './usePalmRejection';
-// import { useStageCoordinates } from './useStageCoordinates';
+import { useStageCoordinates } from './useStageCoordinates';
 import { PanZoomState } from '@/types/whiteboard';
 import { useEventDebug } from './eventHandling/useEventDebug';
 import { useWheelEventHandlers } from './eventHandling/useWheelEventHandlers';
@@ -43,26 +43,8 @@ export const useStageEventHandlers = ({
   isReadOnly
 }: UseStageEventHandlersProps) => {
   const currentToolRef = useRef<string>('pencil');
-  // const { getRelativePointerPosition } = useStageCoordinates(panZoomState);
+  const { getRelativePointerPosition } = useStageCoordinates(panZoomState);
   const { logEventHandling } = useEventDebug(palmRejectionConfig);
-
-  // Always have the latest panZoomState in a ref
-  const panZoomStateRef = useRef<PanZoomState>(panZoomState);
-  useEffect(() => {
-    panZoomStateRef.current = panZoomState;
-  }, [panZoomState]);
-
-  // Inline coordinate transform to always use latest panZoomState
-  const getRelativePointerPosition = (stage: Konva.Stage, clientX: number, clientY: number) => {
-    const rect = stage.container().getBoundingClientRect();
-    const x = clientX - rect.left;
-    const y = clientY - rect.top;
-    const { x: stageX, y: stageY, scale } = panZoomStateRef.current;
-    return {
-      x: (x - stageX) / scale,
-      y: (y - stageY) / scale
-    };
-  };
 
   // Update current tool ref by tracking the stage attribute
   useEffect(() => {
