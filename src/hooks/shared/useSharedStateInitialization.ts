@@ -46,5 +46,21 @@ export const useSharedStateInitialization = (whiteboardId?: string) => {
     };
   });
 
-  return { state, setState };
+  // ENHANCED: Log state changes for debugging
+  const enhancedSetState = (updater: (prev: WhiteboardState) => WhiteboardState) => {
+    setState(prev => {
+      const newState = updater(prev);
+      console.log('[StateInit] State updated:', {
+        linesCount: newState.lines.length,
+        imagesCount: newState.images.length,
+        currentTool: newState.currentTool,
+        isDrawing: newState.isDrawing,
+        historyIndex: newState.historyIndex,
+        historyLength: newState.history.length
+      });
+      return newState;
+    });
+  };
+
+  return { state, setState: enhancedSetState };
 };

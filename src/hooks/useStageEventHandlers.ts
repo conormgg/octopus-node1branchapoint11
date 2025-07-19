@@ -23,6 +23,7 @@ interface UseStageEventHandlersProps {
     startPan: (x: number, y: number) => void;
     continuePan: (x: number, y: number) => void;
     stopPan: () => void;
+    isGestureActive: () => boolean;
   };
   handlePointerDown: (e: Konva.KonvaEventObject<PointerEvent>) => void;
   handlePointerMove: (e: Konva.KonvaEventObject<PointerEvent>) => void;
@@ -46,7 +47,7 @@ export const useStageEventHandlers = ({
   const { getRelativePointerPosition } = useStageCoordinates(panZoomState);
   const { logEventHandling } = useEventDebug(palmRejectionConfig);
 
-  // Update current tool ref by tracking the stage attribute
+  // Track current tool more efficiently
   useEffect(() => {
     const stage = stageRef.current;
     if (!stage) return;
@@ -56,58 +57,43 @@ export const useStageEventHandlers = ({
       if (newTool && newTool !== currentToolRef.current) {
         currentToolRef.current = newTool;
         console.log('[StageEventHandlers] Tool updated to:', newTool);
-        
-        // Update touch-action when tool changes
-        const container = containerRef.current;
-        if (container) {
-          container.style.touchAction = newTool === 'select' ? 'manipulation' : 'none';
-        }
       }
     };
     
-    // Initial update
     updateTool();
-    
-    // Check for updates - reduced frequency for better performance
     const interval = setInterval(updateTool, 100);
-    
     return () => clearInterval(interval);
-  }, [stageRef, containerRef]);
+  }, [stageRef]);
 
-  // Wheel event handlers - always active for pan/zoom
+  // Wheel events for pan/zoom
   useWheelEventHandlers({
     containerRef,
     panZoom
   });
 
-  // Touch events for pinch/pan - only for multi-touch gestures
+  // Touch events - only for multi-touch gestures
   useEffect(() => {
     const container = containerRef.current;
     if (!container) return;
 
     const handleTouchStart = (e: TouchEvent) => {
+      console.log('[TouchEvents] Touch start:', e.touches.length, 'touches');
       logEventHandling('touchstart', 'touch', { touches: e.touches.length });
       
-      // Only handle multi-touch gestures (2+ fingers) for pan/zoom
       if (e.touches.length >= 2) {
-        console.log('[TouchEvents] Multi-touch detected, handling pan/zoom');
+        console.log('[TouchEvents] Multi-touch detected - handling pan/zoom');
         e.preventDefault();
         panZoom.handleTouchStart(e);
-      } else {
-        console.log('[TouchEvents] Single touch detected, allowing for pointer events');
-        // Don't prevent default - let it become a pointer event
       }
     };
 
     const handleTouchMove = (e: TouchEvent) => {
       logEventHandling('touchmove', 'touch', { touches: e.touches.length });
       
-      // Only handle multi-touch gestures
       if (e.touches.length >= 2) {
         e.preventDefault();
         panZoom.handleTouchMove(e);
       }
-      // Single touch moves are allowed to become pointer events
     };
 
     const handleTouchEnd = (e: TouchEvent) => {
@@ -116,12 +102,10 @@ export const useStageEventHandlers = ({
         changedTouches: e.changedTouches.length 
       });
       
-      // Only handle multi-touch scenarios
       if (e.touches.length >= 1 && e.changedTouches.length > 1) {
         e.preventDefault();
         panZoom.handleTouchEnd(e);
       }
-      // Single touch end events become pointer events - don't prevent default
     };
 
     container.addEventListener('touchstart', handleTouchStart, { passive: false });
@@ -135,17 +119,19 @@ export const useStageEventHandlers = ({
     };
   }, [panZoom, logEventHandling]);
 
-  // Pointer event handlers - the main drawing interface
+  // SIMPLIFIED POINTER EVENT HANDLERS - Remove complex branching
   useEffect(() => {
     const container = containerRef.current;
     const stage = stageRef.current;
     if (!container || !stage) return;
 
-    // Get direct access to whiteboard handlers if available
-    const whiteboardHandlers = (handlePointerDown as any)?.__whiteboardHandlers;
+    console.log('[StageEventHandlers] Setting up simplified pointer event listeners');
+
+    // Get direct handlers if available
+    const directHandlers = (handlePointerDown as any)?.__whiteboardHandlers;
 
     const handlePointerDownEvent = (e: PointerEvent) => {
-      console.log('[PointerEvents] Pointer down:', {
+      console.log('[PointerEvents] SIMPLIFIED - Pointer down:', {
         pointerId: e.pointerId,
         pointerType: e.pointerType,
         button: e.button,
@@ -161,7 +147,7 @@ export const useStageEventHandlers = ({
         tool: currentToolRef.current 
       });
 
-      // Handle right-click pan for non-stylus devices
+      // Handle right-click pan ONLY for non-stylus
       if (e.pointerType !== 'pen' && e.button === 2) {
         console.log('[PointerEvents] Right-click pan initiated');
         e.preventDefault();
@@ -169,34 +155,31 @@ export const useStageEventHandlers = ({
         return;
       }
       
-      // For select tool, prevent default but let the event through to selection handlers
-      console.log('[PointerEvents] Processing pointer down for tool:', currentToolRef.current);
+      // For drawing tools, skip read-only check and pan/zoom interference
+      const isDrawingTool = ['pencil', 'highlighter', 'eraser'].includes(currentToolRef.current);
       
-      // Apply palm rejection only if enabled
+      if (isDrawingTool && isReadOnly) {
+        console.log('[PointerEvents] Read-only mode - blocking drawing');
+        return;
+      }
+
+      // Apply palm rejection ONLY if enabled
       if (palmRejectionConfig.enabled && !palmRejection.shouldProcessPointer(e)) {
         console.log('[PointerEvents] Palm rejection blocked pointer');
         return;
       }
 
-      // Try direct coordinate handling first
-      if (whiteboardHandlers?.handleDirectPointerDown) {
-        console.log('[PointerEvents] Using direct coordinate handler');
-        e.preventDefault(); // Prevent default after palm rejection check
-        whiteboardHandlers.handleDirectPointerDown(e.clientX, e.clientY);
+      // ALWAYS prevent default after checks for drawing tools
+      if (isDrawingTool) {
+        e.preventDefault();
+      }
+
+      // Use direct handlers if available, otherwise fallback to Konva wrapper
+      if (directHandlers?.handleDirectPointerDown) {
+        console.log('[PointerEvents] Using direct coordinate handler for pointer down');
+        directHandlers.handleDirectPointerDown(e.clientX, e.clientY);
       } else {
-        console.log('[PointerEvents] Using Konva event wrapper');
-        // Only prevent default for drawing tools to avoid conflicts
-        if (currentToolRef.current !== 'select') {
-          e.preventDefault();
-        }
-        
-        // Only proceed with drawing if not in read-only mode
-        if (isReadOnly && currentToolRef.current !== 'select') {
-          console.log('[PointerEvents] Read-only mode - skipping drawing');
-          return;
-        }
-        
-        // Fallback to Konva event wrapper
+        console.log('[PointerEvents] Using Konva event wrapper for pointer down');
         const konvaEvent = {
           evt: e,
           target: stage,
@@ -217,30 +200,35 @@ export const useStageEventHandlers = ({
         tool: currentToolRef.current 
       });
 
-      // Handle right-click pan for non-stylus devices
+      // Handle right-click pan ONLY for non-stylus
       if (e.pointerType !== 'pen' && e.buttons === 2) {
         e.preventDefault();
         panZoom.continuePan(e.clientX, e.clientY);
         return;
       }
       
-      // Apply palm rejection only if enabled
-      if (palmRejectionConfig.enabled && !palmRejection.shouldProcessPointer(e)) return;
+      const isDrawingTool = ['pencil', 'highlighter', 'eraser'].includes(currentToolRef.current);
+      
+      if (isDrawingTool && isReadOnly) {
+        return;
+      }
 
-      // Try direct coordinate handling first
-      if (whiteboardHandlers?.handleDirectPointerMove) {
-        e.preventDefault(); // Prevent default after palm rejection check
-        whiteboardHandlers.handleDirectPointerMove(e.clientX, e.clientY);
+      // Apply palm rejection ONLY if enabled
+      if (palmRejectionConfig.enabled && !palmRejection.shouldProcessPointer(e)) {
+        return;
+      }
+
+      // ALWAYS prevent default after checks for drawing tools
+      if (isDrawingTool) {
+        e.preventDefault();
+      }
+
+      // Use direct handlers if available
+      if (directHandlers?.handleDirectPointerMove) {
+        console.log('[PointerEvents] Using direct coordinate handler for pointer move');
+        directHandlers.handleDirectPointerMove(e.clientX, e.clientY);
       } else {
-        // Only prevent default for drawing tools
-        if (currentToolRef.current !== 'select') {
-          e.preventDefault();
-        }
-        
-        // Only proceed with drawing if not in read-only mode
-        if (isReadOnly && currentToolRef.current !== 'select') return;
-        
-        // Fallback to Konva event wrapper
+        console.log('[PointerEvents] Using Konva event wrapper for pointer move');
         const konvaEvent = {
           evt: e,
           target: stage,
@@ -254,7 +242,7 @@ export const useStageEventHandlers = ({
     };
 
     const handlePointerUpEvent = (e: PointerEvent) => {
-      console.log('[PointerEvents] Pointer up:', {
+      console.log('[PointerEvents] SIMPLIFIED - Pointer up:', {
         pointerId: e.pointerId,
         pointerType: e.pointerType,
         button: e.button,
@@ -268,31 +256,30 @@ export const useStageEventHandlers = ({
         tool: currentToolRef.current 
       });
 
-      // Handle right-click pan end for non-stylus devices
+      // Handle right-click pan end ONLY for non-stylus
       if (e.pointerType !== 'pen' && e.button === 2) {
         e.preventDefault();
         panZoom.stopPan();
         return;
       }
       
-      // Always clean up palm rejection state
+      // ALWAYS clean up palm rejection state
       palmRejection.onPointerEnd(e.pointerId);
       
-      console.log('[PointerEvents] Calling handlePointerUp for tool:', currentToolRef.current);
+      const isDrawingTool = ['pencil', 'highlighter', 'eraser'].includes(currentToolRef.current);
       
-      // Try direct coordinate handling first
-      if (whiteboardHandlers?.handleDirectPointerUp) {
-        e.preventDefault(); // Prevent default after palm rejection cleanup
-        whiteboardHandlers.handleDirectPointerUp();
-      } else {
-        // Only prevent default for drawing tools
-        if (currentToolRef.current !== 'select') {
-          e.preventDefault();
-        }
-        
-        // Call handlePointerUp for all tools when not in read-only mode
-        if (!isReadOnly || currentToolRef.current === 'select') {
-          // Fallback to Konva event wrapper
+      // ALWAYS prevent default after palm rejection cleanup for drawing tools
+      if (isDrawingTool) {
+        e.preventDefault();
+      }
+      
+      // Call handlePointerUp for all tools (including selection) when appropriate
+      if (!isReadOnly || currentToolRef.current === 'select') {
+        if (directHandlers?.handleDirectPointerUp) {
+          console.log('[PointerEvents] Using direct coordinate handler for pointer up');
+          directHandlers.handleDirectPointerUp();
+        } else {
+          console.log('[PointerEvents] Using Konva event wrapper for pointer up');
           const konvaEvent = {
             evt: e,
             target: stage,
@@ -307,22 +294,22 @@ export const useStageEventHandlers = ({
     };
 
     const handlePointerLeaveEvent = (e: PointerEvent) => {
+      console.log('[PointerEvents] Pointer leave - cleaning up');
       logEventHandling('pointerleave', 'pointer', { 
         pointerId: e.pointerId, 
         pointerType: e.pointerType,
         tool: currentToolRef.current 
       });
 
-      // Always clean up palm rejection state
+      // ALWAYS clean up states
       palmRejection.onPointerEnd(e.pointerId);
-      panZoom.stopPan(); // Always stop pan on leave
+      panZoom.stopPan();
       
-      // Try direct coordinate handling first
-      if (whiteboardHandlers?.handleDirectPointerUp) {
-        whiteboardHandlers.handleDirectPointerUp();
-      } else {
-        // Call handlePointerUp for all tools when not in read-only mode
-        if (!isReadOnly || currentToolRef.current === 'select') {
+      // Call handlePointerUp for cleanup
+      if (!isReadOnly || currentToolRef.current === 'select') {
+        if (directHandlers?.handleDirectPointerUp) {
+          directHandlers.handleDirectPointerUp();
+        } else {
           const konvaEvent = {
             evt: e,
             target: stage,
@@ -337,11 +324,10 @@ export const useStageEventHandlers = ({
     };
 
     const handleContextMenu = (e: Event) => {
-      e.preventDefault(); // Prevent context menu on right-click
+      e.preventDefault();
     };
 
-    // Always add pointer event listeners
-    console.log('[StageEventHandlers] Setting up pointer event listeners');
+    // Add all pointer event listeners
     container.addEventListener('pointerdown', handlePointerDownEvent, { passive: false });
     container.addEventListener('pointermove', handlePointerMoveEvent, { passive: false });
     container.addEventListener('pointerup', handlePointerUpEvent, { passive: false });
@@ -349,11 +335,11 @@ export const useStageEventHandlers = ({
     container.addEventListener('pointercancel', handlePointerUpEvent, { passive: false });
     container.addEventListener('contextmenu', handleContextMenu);
 
-    // Set initial touch-action based on current tool
-    container.style.touchAction = currentToolRef.current === 'select' ? 'manipulation' : 'none';
+    // Set appropriate touch-action
+    container.style.touchAction = 'none';
 
     return () => {
-      console.log('[StageEventHandlers] Cleaning up pointer event listeners');
+      console.log('[StageEventHandlers] Cleaning up simplified pointer event listeners');
       container.removeEventListener('pointerdown', handlePointerDownEvent);
       container.removeEventListener('pointermove', handlePointerMoveEvent);
       container.removeEventListener('pointerup', handlePointerUpEvent);
@@ -366,6 +352,12 @@ export const useStageEventHandlers = ({
     containerRef,
     stageRef,
     isReadOnly,
-    palmRejectionConfig.enabled
+    palmRejectionConfig.enabled,
+    palmRejection,
+    panZoom,
+    handlePointerDown,
+    handlePointerMove,
+    handlePointerUp,
+    logEventHandling
   ]);
 };

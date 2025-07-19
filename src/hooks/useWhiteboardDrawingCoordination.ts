@@ -7,25 +7,30 @@ import { createDebugLogger } from '@/utils/debug/debugConfig';
 
 const debugLog = createDebugLogger('drawing');
 
-/**
- * @hook useWhiteboardDrawingCoordination
- * @description Coordinates all drawing operations (pencil, highlighter, eraser)
- */
 export const useWhiteboardDrawingCoordination = (
   state: any,
   setState: any,
   addToHistory: () => void
 ) => {
+  console.log('[DrawingCoordination] Initializing with state:', {
+    hasState: !!state,
+    hasSetState: !!setState,
+    hasAddToHistory: !!addToHistory,
+    currentTool: state?.currentTool,
+    linesCount: state?.lines?.length || 0
+  });
+
   // Memoize current tool to prevent unnecessary re-initializations
   const stableCurrentTool = useMemo(() => state?.currentTool || 'pencil', [state?.currentTool]);
 
-  // Call hooks at the top level - this is required by Rules of Hooks
+  // Initialize drawing and eraser states
   const drawingState = useDrawingState(state, setState, addToHistory);
   const eraserState = useEraserState(state, setState, addToHistory);
 
   // Memoize the operations to prevent unnecessary re-renders
   const drawingOperations = useMemo(() => {
     if (!state || !setState || !addToHistory) {
+      console.log('[DrawingCoordination] WARNING: Missing required parameters for drawing operations');
       return { startDrawing: () => {}, continueDrawing: () => {}, stopDrawing: () => {} };
     }
     return drawingState;
@@ -33,6 +38,7 @@ export const useWhiteboardDrawingCoordination = (
 
   const eraserOperations = useMemo(() => {
     if (!state || !setState || !addToHistory) {
+      console.log('[DrawingCoordination] WARNING: Missing required parameters for eraser operations');
       return { startErasing: () => {}, continueErasing: () => {}, stopErasing: () => {} };
     }
     return eraserState;
@@ -44,38 +50,50 @@ export const useWhiteboardDrawingCoordination = (
 
   // Coordinate drawing start based on tool
   const handleDrawingStart = useCallback((x: number, y: number) => {
-    debugLog('DrawingCoordination', 'Drawing start requested', { x, y, tool: stableCurrentTool });
+    console.log('[DrawingCoordination] DRAWING START requested:', { x, y, tool: stableCurrentTool });
     
     if (stableCurrentTool === 'pencil' || stableCurrentTool === 'highlighter') {
-      debugLog('DrawingCoordination', 'Starting drawing operation');
+      console.log('[DrawingCoordination] Starting drawing operation');
       startDrawing(x, y);
     } else if (stableCurrentTool === 'eraser') {
-      debugLog('DrawingCoordination', 'Starting eraser operation');
+      console.log('[DrawingCoordination] Starting eraser operation');
       startErasing(x, y);
+    } else {
+      console.log('[DrawingCoordination] WARNING: Unknown tool for drawing start:', stableCurrentTool);
     }
   }, [stableCurrentTool, startDrawing, startErasing]);
 
   // Coordinate drawing continuation based on tool
   const handleDrawingContinue = useCallback((x: number, y: number) => {
     if (stableCurrentTool === 'pencil' || stableCurrentTool === 'highlighter') {
-      debugLog('DrawingCoordination', 'Continuing drawing operation');
+      console.log('[DrawingCoordination] Continuing drawing operation:', { x, y });
       continueDrawing(x, y);
     } else if (stableCurrentTool === 'eraser') {
-      debugLog('DrawingCoordination', 'Continuing eraser operation');
+      console.log('[DrawingCoordination] Continuing eraser operation:', { x, y });
       continueErasing(x, y);
     }
   }, [stableCurrentTool, continueDrawing, continueErasing]);
 
   // Coordinate drawing end based on tool
   const handleDrawingEnd = useCallback(() => {
+    console.log('[DrawingCoordination] DRAWING END requested for tool:', stableCurrentTool);
+    
     if (stableCurrentTool === 'pencil' || stableCurrentTool === 'highlighter') {
-      debugLog('DrawingCoordination', 'Finishing drawing operation');
+      console.log('[DrawingCoordination] Finishing drawing operation');
       stopDrawing();
     } else if (stableCurrentTool === 'eraser') {
-      debugLog('DrawingCoordination', 'Finishing eraser operation');
+      console.log('[DrawingCoordination] Finishing eraser operation');
       stopErasing();
+    } else {
+      console.log('[DrawingCoordination] WARNING: Unknown tool for drawing end:', stableCurrentTool);
     }
   }, [stableCurrentTool, stopDrawing, stopErasing]);
+
+  console.log('[DrawingCoordination] Coordination methods created:', {
+    hasHandleDrawingStart: !!handleDrawingStart,
+    hasHandleDrawingContinue: !!handleDrawingContinue,
+    hasHandleDrawingEnd: !!handleDrawingEnd
+  });
 
   return {
     handleDrawingStart,
