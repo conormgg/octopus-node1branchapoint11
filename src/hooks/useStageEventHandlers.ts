@@ -9,6 +9,7 @@ import { useWheelEventHandlers } from './eventHandling/useWheelEventHandlers';
 import { useTouchEventHandlers } from './eventHandling/useTouchEventHandlers';
 import { usePointerEventHandlers } from './eventHandling/usePointerEventHandlers';
 import { usePointerEventDetection } from './eventHandling/usePointerEventDetection';
+import { useSelect2EventHandlers } from './useSelect2EventHandlers';
 import { createDebugLogger } from '@/utils/debug/debugConfig';
 
 const debugLog = createDebugLogger('touchEvents');
@@ -35,6 +36,8 @@ interface UseStageEventHandlersProps {
   handlePointerUp: () => void;
   isReadOnly: boolean;
   currentTool: string;
+  lines?: any[];
+  images?: any[];
 }
 
 export const useStageEventHandlers = ({
@@ -48,11 +51,20 @@ export const useStageEventHandlers = ({
   handlePointerMove,
   handlePointerUp,
   isReadOnly,
-  currentTool
+  currentTool,
+  lines = [],
+  images = []
 }: UseStageEventHandlersProps) => {
   const currentToolRef = useRef<string>(currentTool || 'pencil');
   const { logEventHandling } = useEventDebug(palmRejectionConfig);
   const { supportsPointerEvents } = usePointerEventDetection();
+
+  // Select2 event handlers
+  const select2Handlers = useSelect2EventHandlers({
+    lines,
+    images,
+    panZoomState
+  });
 
   // Update current tool ref when currentTool prop changes
   useEffect(() => {
@@ -119,12 +131,35 @@ export const useStageEventHandlers = ({
     palmRejection,
     palmRejectionConfig,
     panZoom,
-    handlePointerDown,
-    handlePointerMove,
-    handlePointerUp,
+    handlePointerDown: currentTool === 'select2' ? 
+      (x: number, y: number) => {
+        const rect = containerRef.current?.getBoundingClientRect();
+        if (rect) {
+          select2Handlers.handlePointerDown(x - rect.left, y - rect.top);
+        }
+      } : handlePointerDown,
+    handlePointerMove: currentTool === 'select2' ? 
+      (x: number, y: number) => {
+        const rect = containerRef.current?.getBoundingClientRect();
+        if (rect) {
+          select2Handlers.handlePointerMove(x - rect.left, y - rect.top);
+        }
+      } : handlePointerMove,
+    handlePointerUp: currentTool === 'select2' ? 
+      select2Handlers.handlePointerUp : handlePointerUp,
     isReadOnly,
     currentToolRef,
     logEventHandling,
     supportsPointerEvents
   });
+
+  // Return select2 state for rendering when using select2 tool
+  if (currentTool === 'select2') {
+    return {
+      select2State: select2Handlers.select2State,
+      clearSelect2Selection: select2Handlers.clearSelection
+    };
+  }
+
+  return {};
 };

@@ -140,6 +140,13 @@ export { useTeacherViewState } from './useTeacherViewState';
 export { useToolbarDrag } from './useToolbarDrag';
 
 /**
+ * Select2 state management and event handling (experimental)
+ * Simplified selection tool for testing and development
+ */
+export { useSelect2State } from './useSelect2State';
+export { useSelect2EventHandlers } from './useSelect2EventHandlers';
+
+/**
  * Session creation form state and validation
  * Manages form data for creating new classroom sessions
  */

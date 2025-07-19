@@ -10,6 +10,7 @@ import { useKonvaPanZoomSync } from '@/hooks/canvas/useKonvaPanZoomSync';
 import KonvaStageCanvas from './KonvaStageCanvas';
 import KonvaImageContextMenuHandler from './KonvaImageContextMenuHandler';
 import KonvaImageOperationsHandler from './KonvaImageOperationsHandler';
+import { Select2Renderer } from './Select2Renderer';
 import { createDebugLogger } from '@/utils/debug/debugConfig';
 
 const debugLog = createDebugLogger('toolSync');
@@ -90,7 +91,7 @@ const KonvaStage: React.FC<KonvaStageProps> = ({
   });
 
   // Set up all event handlers
-  useStageEventHandlers({
+  const stageEventHandlers = useStageEventHandlers({
     containerRef,
     stageRef,
     panZoomState: state.panZoomState,
@@ -101,7 +102,9 @@ const KonvaStage: React.FC<KonvaStageProps> = ({
     handlePointerMove,
     handlePointerUp,
     isReadOnly,
-    currentTool: state.currentTool
+    currentTool: state.currentTool,
+    lines: state.lines,
+    images: state.images
   });
 
   return (
@@ -157,10 +160,21 @@ const KonvaStage: React.FC<KonvaStageProps> = ({
           }}
           normalizedState={normalizedState}
           extraContent={
-            <KonvaImageOperationsHandler
-              whiteboardState={whiteboardState}
-              whiteboardId={whiteboardId}
-            />
+            <>
+              <KonvaImageOperationsHandler
+                whiteboardState={whiteboardState}
+                whiteboardId={whiteboardId}
+              />
+              {/* Select2 overlay when select2 tool is active */}
+              {state.currentTool === 'select2' && stageEventHandlers && (
+                <Select2Renderer
+                  selectedObjects={stageEventHandlers.select2State?.selectedObjects || []}
+                  hoveredObjectId={stageEventHandlers.select2State?.hoveredObjectId || null}
+                  selectionBounds={stageEventHandlers.select2State?.selectionBounds || null}
+                  isSelecting={stageEventHandlers.select2State?.isSelecting || false}
+                />
+              )}
+            </>
           }
         />
       </KonvaImageContextMenuHandler>
