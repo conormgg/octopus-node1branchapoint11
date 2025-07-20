@@ -43,8 +43,8 @@ const SelectionGroup: React.FC<SelectionGroupProps> = ({
     .map(obj => images.find(image => image.id === obj.id))
     .filter(Boolean) as ImageObject[];
 
-  // Only show group if multiple objects are selected
-  const shouldShowGroup = selectedObjects.length > 1 && isVisible && currentTool === 'select';
+  // Only show group if multiple objects are selected and tool is select or select2
+  const shouldShowGroup = selectedObjects.length > 1 && isVisible && (currentTool === 'select' || currentTool === 'select2');
 
   // Calculate group bounds for the background
   const groupBounds = shouldShowGroup ? calculateGroupBounds(selectedObjects, selectedLines, selectedImages) : null;
@@ -63,7 +63,6 @@ const SelectionGroup: React.FC<SelectionGroupProps> = ({
   };
 
   const handleDragMove = () => {
-    // Update transformer bounds during drag to keep it following the group
     if (transformerRef.current && groupRef.current) {
       transformerRef.current.forceUpdate();
     }
@@ -83,9 +82,7 @@ const SelectionGroup: React.FC<SelectionGroupProps> = ({
       rotation: group.rotation()
     };
     
-    // For simple translation (dragging), just apply the offset to each object
     if (groupTransform.scaleX === 1 && groupTransform.scaleY === 1 && groupTransform.rotation === 0) {
-      // Simple translation - just move each object by the group offset
       selectedLines.forEach((line) => {
         if (onUpdateLine) {
           onUpdateLine(line.id, {
@@ -104,25 +101,19 @@ const SelectionGroup: React.FC<SelectionGroupProps> = ({
         }
       });
     } else {
-      // Complex transformation (scaling/rotation) - use matrix calculations
       const children = group.getChildren();
       
       children.forEach((child, index) => {
-        // Skip the background rectangle (first child)
         if (index === 0) return;
         
-        // Calculate the child's new position after group transformation
         const localTransform = child.getTransform().copy();
         const groupTransformMatrix = group.getTransform().copy();
         const finalTransform = groupTransformMatrix.multiply(localTransform);
         const decomposed = finalTransform.decompose();
         
-        // Adjust index for background rectangle
         const adjustedIndex = index - 1;
         
-        // Find the corresponding object and apply updates
         if (adjustedIndex < selectedLines.length) {
-          // This is a line
           const line = selectedLines[adjustedIndex];
           if (onUpdateLine) {
             const updatedLine = {
@@ -136,7 +127,6 @@ const SelectionGroup: React.FC<SelectionGroupProps> = ({
             onUpdateLine(line.id, updatedLine);
           }
         } else {
-          // This is an image
           const imageIndex = adjustedIndex - selectedLines.length;
           const image = selectedImages[imageIndex];
           if (image && onUpdateImage) {
@@ -157,14 +147,12 @@ const SelectionGroup: React.FC<SelectionGroupProps> = ({
       });
     }
 
-    // Reset group transform to identity
     group.x(0);
     group.y(0);
     group.scaleX(1);
     group.scaleY(1);
     group.rotation(0);
 
-    // Force transformer update after reset
     requestAnimationFrame(() => {
       if (transformerRef.current) {
         transformerRef.current.forceUpdate();
@@ -191,39 +179,34 @@ const SelectionGroup: React.FC<SelectionGroupProps> = ({
         onDragMove={handleDragMove}
         onDragEnd={handleTransformEnd}
       >
-        {/* Background rectangle for easier selection and dragging */}
         <SelectionGroupBackground groupBounds={groupBounds} />
         
-        {/* Render selected lines in the group */}
         {selectedLines.map((line) => (
           <LineRenderer
             key={`group-line-${line.id}`}
             line={line}
-            isSelected={false} // Don't show individual selection in group
+            isSelected={false}
             currentTool={currentTool}
-            onDragEnd={() => {}} // Group handles dragging
+            onDragEnd={() => {}}
           />
         ))}
         
-        {/* Render selected images in the group */}
         {selectedImages.map((image) => (
           <ImageRenderer
             key={`group-image-${image.id}`}
             imageObject={image}
-            isSelected={false} // Don't show individual selection in group
-            onSelect={() => {}} // Group handles selection
-            onChange={() => {}} // Group handles changes
-            onUpdateState={() => {}} // Group handles updates
+            isSelected={false}
+            onSelect={() => {}}
+            onChange={() => {}}
+            onUpdateState={() => {}}
             currentTool={currentTool}
           />
         ))}
       </Group>
       
-      {/* Transformer for the group */}
       <Transformer
         ref={transformerRef}
         boundBoxFunc={(oldBox, newBox) => {
-          // Limit minimum size
           if (newBox.width < 10 || newBox.height < 10) {
             return oldBox;
           }

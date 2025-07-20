@@ -1,4 +1,3 @@
-
 import React, { useRef, useEffect } from 'react';
 import { Image, Transformer } from 'react-konva';
 import Konva from 'konva';
@@ -37,7 +36,7 @@ const ImageRenderer: React.FC<ImageRendererProps> = React.memo(({
   const trRef = useRef<Konva.Transformer>(null);
 
   useEffect(() => {
-    if (isSelected && currentTool === 'select') {
+    if (isSelected && (currentTool === 'select' || currentTool === 'select2')) {
       trRef.current?.nodes([imageRef.current!]);
       trRef.current?.getLayer()?.batchDraw();
     }
@@ -63,7 +62,7 @@ const ImageRenderer: React.FC<ImageRendererProps> = React.memo(({
         y: node.y(),
         width: Math.max(5, node.width() * scaleX),
         height: Math.max(node.height() * scaleY),
-        rotation: node.rotation(), // Include rotation in the update
+        rotation: node.rotation(),
       });
       onUpdateState();
     }
@@ -103,7 +102,7 @@ const ImageRenderer: React.FC<ImageRendererProps> = React.memo(({
         x={imageObject.x}
         y={imageObject.y}
         rotation={imageObject.rotation || 0}
-        draggable={currentTool === 'select' && isSelected && !isLocked}
+        draggable={(currentTool === 'select' || currentTool === 'select2') && isSelected && !isLocked}
         onDragStart={onSelect}
         onDragEnd={handleDragEnd}
         onTransformEnd={handleTransformEnd}
@@ -113,7 +112,7 @@ const ImageRenderer: React.FC<ImageRendererProps> = React.memo(({
         {...(imageObject.width && { width: imageObject.width })}
         {...(imageObject.height && { height: imageObject.height })}
       />
-      {isSelected && currentTool === 'select' && !isLocked && (
+      {isSelected && (currentTool === 'select' || currentTool === 'select2') && !isLocked && (
         <Transformer
           ref={trRef}
           boundBoxFunc={(oldBox, newBox) => {
@@ -127,8 +126,6 @@ const ImageRenderer: React.FC<ImageRendererProps> = React.memo(({
     </>
   );
 }, (prevProps, nextProps) => {
-  // Custom comparison function for React.memo
-  // Only re-render if these specific props change
   return (
     prevProps.imageObject.id === nextProps.imageObject.id &&
     prevProps.imageObject.src === nextProps.imageObject.src &&
