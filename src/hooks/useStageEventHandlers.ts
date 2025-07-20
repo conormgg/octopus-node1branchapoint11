@@ -88,6 +88,11 @@ export const useStageEventHandlers = ({
     hasMainSelection: !!mainSelection
   });
 
+  // Helper function to check if tool is any select variant
+  const isSelectTool = (tool: string): boolean => {
+    return tool === 'select' || tool === 'select2';
+  };
+
   // Select2 event handlers with update functions, delete function, and main selection integration
   const select2Handlers = useSelect2EventHandlers({
     stageRef,
@@ -111,14 +116,15 @@ export const useStageEventHandlers = ({
       
       currentToolRef.current = currentTool;
       
-      // Update touch-action when tool changes
+      // Update touch-action when tool changes - optimize for both select tools
       const container = containerRef.current;
       if (container) {
-        // For select tool, allow native touch behavior; for others, prevent it
-        container.style.touchAction = currentTool === 'select' ? 'manipulation' : 'none';
+        // For any select tool, allow native touch behavior; for others, prevent it
+        container.style.touchAction = isSelectTool(currentTool) ? 'manipulation' : 'none';
         debugLog('StageEventHandlers', 'Updated touch-action via prop', {
           tool: currentTool,
-          touchAction: container.style.touchAction
+          touchAction: container.style.touchAction,
+          isSelectTool: isSelectTool(currentTool)
         });
       }
     }
@@ -158,7 +164,7 @@ export const useStageEventHandlers = ({
     currentTool: currentToolRef.current
   });
 
-  // Pointer event handlers - handles single-touch interactions
+  // Pointer event handlers - handles single-touch interactions with enhanced select tool support
   usePointerEventHandlers({
     containerRef,
     stageRef,
