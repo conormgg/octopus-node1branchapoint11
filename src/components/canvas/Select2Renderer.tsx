@@ -1,6 +1,7 @@
 import React from 'react';
 import { Rect, Line, Image } from 'react-konva';
 import { SelectionBounds, SelectedObject, LineObject, ImageObject } from '@/types/whiteboard';
+import SelectionRect from './SelectionRect';
 
 interface Select2RendererProps {
   selectedObjects: SelectedObject[];
@@ -136,20 +137,11 @@ export const Select2Renderer: React.FC<Select2RendererProps> = ({
 
   return (
     <>
-      {/* Selection rectangle during drag-to-select */}
-      {isSelecting && selectionBounds && (
-        <Rect
-          x={selectionBounds.x}
-          y={selectionBounds.y}
-          width={selectionBounds.width}
-          height={selectionBounds.height}
-          fill="rgba(0, 123, 255, 0.1)"
-          stroke="rgba(0, 123, 255, 0.5)"
-          strokeWidth={1}
-          dash={[5, 5]}
-          listening={false}
-        />
-      )}
+      {/* Use the same SelectionRect component as the original select tool */}
+      <SelectionRect
+        selectionBounds={selectionBounds}
+        isVisible={isSelecting}
+      />
 
       {/* Unified group selection bounds */}
       {selectedObjects.length > 0 && groupBounds && (
