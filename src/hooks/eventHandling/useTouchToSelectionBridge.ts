@@ -19,7 +19,7 @@ interface UseTouchToSelectionBridgeProps {
 /**
  * Phase 2: Touch-to-Selection Bridge
  * 
- * This hook bridges single-finger touch events to selection logic when any select tool is active.
+ * This hook bridges single-finger touch events to selection logic when the select tool is active.
  * It converts touch coordinates to the same format expected by pointer handlers and routes
  * them appropriately based on the current tool.
  */
@@ -34,11 +34,6 @@ export const useTouchToSelectionBridge = ({
 }: UseTouchToSelectionBridgeProps) => {
   const { getRelativePointerPosition } = useStageCoordinates(panZoomState);
   const isTouchSelectionActiveRef = useRef(false);
-  
-  // Helper function to check if tool is any select variant
-  const isSelectTool = useCallback((tool: string | undefined): boolean => {
-    return tool === 'select' || tool === 'select2';
-  }, []);
   
   // Convert touch event to selection coordinates and route to pointer handlers
   const bridgeTouchToSelection = useCallback((
@@ -62,19 +57,19 @@ export const useTouchToSelectionBridge = ({
       currentTool,
       effectiveTool,
       stageTool: stage?.getAttr('currentTool'),
-      toolIsSelect: isSelectTool(effectiveTool),
+      toolIsSelect: effectiveTool === 'select',
       isReadOnly,
       touchCount: action === 'up' ? e.changedTouches.length : e.touches.length,
       toolUndefined: effectiveTool === undefined,
       toolType: typeof effectiveTool
     });
 
-    // Only bridge single-finger touches when any select tool is active
-    if (!isSelectTool(effectiveTool) || isReadOnly || e.touches.length > 1) {
+    // Only bridge single-finger touches when select tool is active
+    if (effectiveTool !== 'select' || isReadOnly || e.touches.length > 1) {
       debugLog('TouchToSelectionBridge', 'Bridge conditions not met', {
         currentTool,
         effectiveTool,
-        toolNotSelect: !isSelectTool(effectiveTool),
+        toolNotSelect: effectiveTool !== 'select',
         isReadOnly,
         multiTouch: e.touches.length > 1,
         touchCount: e.touches.length
@@ -133,7 +128,7 @@ export const useTouchToSelectionBridge = ({
     
     debugLog('TouchToSelectionBridge', `Bridge ${action} completed successfully`);
     return true;
-  }, [currentTool, isReadOnly, stageRef, getRelativePointerPosition, handlePointerDown, handlePointerMove, handlePointerUp, isSelectTool]);
+  }, [currentTool, isReadOnly, stageRef, getRelativePointerPosition, handlePointerDown, handlePointerMove, handlePointerUp]);
   
   // Reset state when tool changes
   const resetTouchSelection = useCallback(() => {

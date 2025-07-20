@@ -49,12 +49,7 @@ export const usePointerEventCore = ({
   const stablePalmRejectionEnabled = useMemo(() => palmRejectionConfig.enabled, [palmRejectionConfig.enabled]);
   const stableIsReadOnly = useMemo(() => isReadOnly, [isReadOnly]);
 
-  // Helper function to check if tool is any select variant
-  const isSelectTool = useCallback((tool: string | undefined): boolean => {
-    return tool === 'select' || tool === 'select2';
-  }, []);
-
-  // Touch-to-Selection Bridge for single-finger selection - now works for both select tools
+  // Touch-to-Selection Bridge for single-finger selection
   const touchToSelectionBridge = useTouchToSelectionBridge({
     panZoomState,
     handlePointerDown,
@@ -79,7 +74,7 @@ export const usePointerEventCore = ({
           toolUndefined: currentToolRef.current === undefined,
           button: e.button,
           isTouch: e.pointerType === 'touch',
-          isSelectTool: isSelectTool(currentToolRef.current)
+          isSelectTool: currentToolRef.current === 'select'
         });
 
         logEventHandling('pointerdown', 'pointer', { pointerId: e.pointerId, pointerType: e.pointerType });
@@ -92,7 +87,7 @@ export const usePointerEventCore = ({
           return;
         }
         
-        // For touch pointers with select tools, check if we should bridge to selection
+        // For touch pointers, check if we should bridge to selection
         if (e.pointerType === 'touch') {
           const stage = stageRef.current;
           const stageTool = stage?.getAttr('currentTool');
@@ -103,12 +98,12 @@ export const usePointerEventCore = ({
             currentTool,
             stageTool,
             effectiveTool,
-            isSelectTool: isSelectTool(effectiveTool),
+            isSelectTool: effectiveTool === 'select',
             clientX: e.clientX,
             clientY: e.clientY
           });
           
-          if (isSelectTool(effectiveTool)) {
+          if (effectiveTool === 'select') {
             debugLog('PointerEventCore', 'Touch pointer with select tool - attempting bridge');
             
             // Create a mock touch event for the bridge
@@ -127,8 +122,8 @@ export const usePointerEventCore = ({
           }
         }
         
-        // Don't prevent default for select tools - let Konva handle dragging
-        if (!isSelectTool(currentToolRef.current)) {
+        // Don't prevent default for select tool - let Konva handle dragging
+        if (currentToolRef.current !== 'select') {
           e.preventDefault();
         }
         
@@ -148,7 +143,7 @@ export const usePointerEventCore = ({
         debugLog('PointerEventCore', 'Calling handlePointerDown', { x, y });
         handlePointerDown(x, y);
       },
-      deps: [stageRef, logEventHandling, currentToolRef, panZoom, stableIsReadOnly, stablePalmRejectionEnabled, palmRejection, getRelativePointerPosition, handlePointerDown, touchToSelectionBridge, isSelectTool]
+      deps: [stageRef, logEventHandling, currentToolRef, panZoom, stableIsReadOnly, stablePalmRejectionEnabled, palmRejection, getRelativePointerPosition, handlePointerDown, touchToSelectionBridge]
     },
 
     handlePointerMoveEvent: {
@@ -165,14 +160,14 @@ export const usePointerEventCore = ({
           return;
         }
         
-        // For touch pointers with select tools, check if we should bridge to selection
+        // For touch pointers, check if we should bridge to selection
         if (e.pointerType === 'touch') {
           const stage = stageRef.current;
           const stageTool = stage?.getAttr('currentTool');
           const currentTool = currentToolRef.current;
           const effectiveTool = currentTool || stageTool;
           
-          if (isSelectTool(effectiveTool)) {
+          if (effectiveTool === 'select') {
             const mockTouchEvent = {
               touches: [{ clientX: e.clientX, clientY: e.clientY }],
               preventDefault: () => e.preventDefault()
@@ -186,8 +181,8 @@ export const usePointerEventCore = ({
           }
         }
         
-        // Don't prevent default for select tools - let Konva handle dragging
-        if (!isSelectTool(currentToolRef.current)) {
+        // Don't prevent default for select tool - let Konva handle dragging
+        if (currentToolRef.current !== 'select') {
           e.preventDefault();
         }
         
@@ -200,7 +195,7 @@ export const usePointerEventCore = ({
         const { x, y } = getRelativePointerPosition(stage, e.clientX, e.clientY);
         handlePointerMove(x, y);
       },
-      deps: [stageRef, logEventHandling, currentToolRef, panZoom, stableIsReadOnly, stablePalmRejectionEnabled, palmRejection, getRelativePointerPosition, handlePointerMove, touchToSelectionBridge, isSelectTool]
+      deps: [stageRef, logEventHandling, currentToolRef, panZoom, stableIsReadOnly, stablePalmRejectionEnabled, palmRejection, getRelativePointerPosition, handlePointerMove, touchToSelectionBridge]
     },
 
     handlePointerUpEvent: {
@@ -211,7 +206,7 @@ export const usePointerEventCore = ({
           currentTool: currentToolRef.current,
           button: e.button,
           isTouch: e.pointerType === 'touch',
-          isSelectTool: isSelectTool(currentToolRef.current)
+          isSelectTool: currentToolRef.current === 'select'
         });
 
         logEventHandling('pointerup', 'pointer', { pointerId: e.pointerId, pointerType: e.pointerType });
@@ -224,7 +219,7 @@ export const usePointerEventCore = ({
           return;
         }
         
-        // For touch pointers with select tools, check if we should bridge to selection
+        // For touch pointers, check if we should bridge to selection
         if (e.pointerType === 'touch') {
           const stage = stageRef.current;
           const stageTool = stage?.getAttr('currentTool');
@@ -235,10 +230,10 @@ export const usePointerEventCore = ({
             currentTool,
             stageTool,
             effectiveTool,
-            isSelectTool: isSelectTool(effectiveTool)
+            isSelectTool: effectiveTool === 'select'
           });
           
-          if (isSelectTool(effectiveTool)) {
+          if (effectiveTool === 'select') {
             debugLog('PointerEventCore', 'Touch pointer up with select tool - attempting bridge');
             
             const mockTouchEvent = {
@@ -257,8 +252,8 @@ export const usePointerEventCore = ({
           }
         }
         
-        // Don't prevent default for select tools - let Konva handle dragging
-        if (!isSelectTool(currentToolRef.current)) {
+        // Don't prevent default for select tool - let Konva handle dragging
+        if (currentToolRef.current !== 'select') {
           e.preventDefault();
         }
         
@@ -271,7 +266,7 @@ export const usePointerEventCore = ({
           handlePointerUp();
         }
       },
-      deps: [logEventHandling, currentToolRef, panZoom, palmRejection, stableIsReadOnly, handlePointerUp, touchToSelectionBridge, isSelectTool]
+      deps: [logEventHandling, currentToolRef, panZoom, palmRejection, stableIsReadOnly, handlePointerUp, touchToSelectionBridge]
     },
 
     handlePointerLeaveEvent: {
