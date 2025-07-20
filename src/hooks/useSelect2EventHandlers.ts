@@ -1,3 +1,4 @@
+
 import { useCallback, useRef } from 'react';
 import Konva from 'konva';
 import { LineObject, ImageObject } from '@/types/whiteboard';
@@ -13,6 +14,18 @@ interface UseSelect2EventHandlersProps {
   onUpdateImage?: (imageId: string, updates: any) => void;
   onDeleteObjects?: (selectedObjects: Array<{id: string, type: 'line' | 'image'}>) => void;
   containerRef?: React.RefObject<HTMLDivElement>;
+  // Main selection state integration for delete/visual feedback
+  mainSelection?: {
+    selectObjects: (objects: Array<{id: string, type: 'line' | 'image'}>) => void;
+    clearSelection: () => void;
+    setSelectionBounds: (bounds: any) => void;
+    setIsSelecting: (selecting: boolean) => void;
+    selectionState: {
+      selectedObjects: Array<{id: string, type: 'line' | 'image'}>;
+      isSelecting: boolean;
+      selectionBounds: any;
+    };
+  };
 }
 
 export const useSelect2EventHandlers = ({ 
@@ -23,7 +36,8 @@ export const useSelect2EventHandlers = ({
   onUpdateLine,
   onUpdateImage,
   onDeleteObjects,
-  containerRef
+  containerRef,
+  mainSelection
 }: UseSelect2EventHandlersProps) => {
   const {
     state,
@@ -47,6 +61,28 @@ export const useSelect2EventHandlers = ({
 
   const isDraggingRef = useRef(false);
   const hasMovedRef = useRef(false);
+
+  // Helper function to sync selection with main state
+  const syncSelectionWithMainState = useCallback((selectedObjects: Array<{id: string, type: 'line' | 'image'}>) => {
+    if (mainSelection) {
+      mainSelection.selectObjects(selectedObjects);
+    }
+  }, [mainSelection]);
+
+  // Helper function to sync selection bounds with main state
+  const syncSelectionBoundsWithMainState = useCallback((bounds: any, isSelecting: boolean) => {
+    if (mainSelection) {
+      mainSelection.setSelectionBounds(bounds);
+      mainSelection.setIsSelecting(isSelecting);
+    }
+  }, [mainSelection]);
+
+  // Helper function to clear main selection
+  const clearMainSelection = useCallback(() => {
+    if (mainSelection) {
+      mainSelection.clearSelection();
+    }
+  }, [mainSelection]);
 
   // Helper function to ensure container has focus for keyboard events
   const ensureContainerFocus = useCallback(() => {
@@ -126,16 +162,23 @@ export const useSelect2EventHandlers = ({
     if (objectsAtPoint.length > 0) {
       // Clicking on an object
       selectObjectsAtPoint(worldPoint, lines, images, e.evt.ctrlKey);
+      // Sync with main selection state
+      const newSelection = e.evt.ctrlKey ? 
+        [...state.selectedObjects, objectsAtPoint[0]] : 
+        [objectsAtPoint[0]];
+      syncSelectionWithMainState(newSelection);
       // Ensure container has focus for keyboard events
       ensureContainerFocus();
     } else {
       // Clicking on empty space - start drag selection
       if (!e.evt.ctrlKey) {
         clearSelection();
+        clearMainSelection();
       }
       startDragSelection(worldPoint);
+      syncSelectionBoundsWithMainState({ x: worldPoint.x, y: worldPoint.y, width: 0, height: 0 }, true);
     }
-  }, [getRelativePointerPosition, isPointOnSelectedObject, startDraggingObjects, findObjectsAtPoint, selectObjectsAtPoint, clearSelection, startDragSelection, lines, images, ensureContainerFocus]);
+  }, [getRelativePointerPosition, isPointOnSelectedObject, startDraggingObjects, findObjectsAtPoint, selectObjectsAtPoint, clearSelection, startDragSelection, lines, images, ensureContainerFocus, state.selectedObjects, syncSelectionWithMainState, clearMainSelection, syncSelectionBoundsWithMainState]);
 
   const handleMouseMove = useCallback((e: Konva.KonvaEventObject<MouseEvent>) => {
     const stage = e.target.getStage();
@@ -152,6 +195,16 @@ export const useSelect2EventHandlers = ({
       } else if (state.isSelecting) {
         // Update drag selection rectangle
         updateDragSelection(worldPoint);
+        // Sync with main selection bounds
+        if (state.selectionBounds) {
+          const newBounds = {
+            x: Math.min(state.selectionBounds.x, worldPoint.x),
+            y: Math.min(state.selectionBounds.y, worldPoint.y),
+            width: Math.abs(worldPoint.x - state.selectionBounds.x),
+            height: Math.abs(worldPoint.y - state.selectionBounds.y)
+          };
+          syncSelectionBoundsWithMainState(newBounds, true);
+        }
       }
     } else {
       // Update hover feedback
@@ -159,7 +212,7 @@ export const useSelect2EventHandlers = ({
       const hoveredId = objectsAtPoint.length > 0 ? objectsAtPoint[0].id : null;
       setHoveredObject(hoveredId);
     }
-  }, [getRelativePointerPosition, state.isDraggingObjects, state.isSelecting, updateObjectDragging, updateDragSelection, findObjectsAtPoint, setHoveredObject, lines, images]);
+  }, [getRelativePointerPosition, state.isDraggingObjects, state.isSelecting, state.selectionBounds, updateObjectDragging, updateDragSelection, findObjectsAtPoint, setHoveredObject, lines, images, syncSelectionBoundsWithMainState]);
 
   const handleMouseUp = useCallback((e: Konva.KonvaEventObject<MouseEvent>) => {
     if (isDraggingRef.current) {
@@ -169,7 +222,10 @@ export const useSelect2EventHandlers = ({
         endObjectDragging();
       } else if (state.isSelecting && hasMovedRef.current) {
         // Complete drag selection
-        endDragSelection(lines, images);
+        const selectedObjects = endDragSelection(lines, images);
+        // Sync with main selection state
+        syncSelectionWithMainState(selectedObjects);
+        syncSelectionBoundsWithMainState(null, false);
         // Ensure container has focus for keyboard events after drag selection
         ensureContainerFocus();
       }
@@ -177,7 +233,7 @@ export const useSelect2EventHandlers = ({
     
     isDraggingRef.current = false;
     hasMovedRef.current = false;
-  }, [state.isDraggingObjects, state.isSelecting, applyDragOffset, endObjectDragging, endDragSelection, lines, images, ensureContainerFocus]);
+  }, [state.isDraggingObjects, state.isSelecting, applyDragOffset, endObjectDragging, endDragSelection, lines, images, ensureContainerFocus, syncSelectionWithMainState, syncSelectionBoundsWithMainState]);
 
   const handleStageClick = useCallback((e: Konva.KonvaEventObject<MouseEvent>) => {
     if (!hasMovedRef.current) {
@@ -187,10 +243,19 @@ export const useSelect2EventHandlers = ({
       
       const worldPoint = getRelativePointerPosition(stage, e.evt.clientX, e.evt.clientY);
       selectObjectsAtPoint(worldPoint, lines, images, e.evt.ctrlKey);
+      
+      // Sync click selection with main state
+      const objectsAtPoint = findObjectsAtPoint(worldPoint, lines, images);
+      if (objectsAtPoint.length > 0) {
+        const newSelection = e.evt.ctrlKey ? 
+          [...state.selectedObjects, objectsAtPoint[0]] : 
+          [objectsAtPoint[0]];
+        syncSelectionWithMainState(newSelection);
+      }
     }
-  }, [getRelativePointerPosition, selectObjectsAtPoint, lines, images]);
+  }, [getRelativePointerPosition, selectObjectsAtPoint, findObjectsAtPoint, lines, images, state.selectedObjects, syncSelectionWithMainState]);
 
-  // Updated pointer handlers - now use group bounds for better interaction
+  // Updated pointer handlers - now use group bounds for better interaction and sync with main state
   const handlePointerDown = useCallback((worldX: number, worldY: number, ctrlKey: boolean = false) => {
     const worldPoint = { x: worldX, y: worldY };
     
@@ -210,16 +275,23 @@ export const useSelect2EventHandlers = ({
     if (objectsAtPoint.length > 0) {
       // Clicking on an object
       selectObjectsAtPoint(worldPoint, lines, images, ctrlKey);
+      // Sync with main selection state
+      const newSelection = ctrlKey ? 
+        [...state.selectedObjects, objectsAtPoint[0]] : 
+        [objectsAtPoint[0]];
+      syncSelectionWithMainState(newSelection);
       // Ensure container has focus for keyboard events
       ensureContainerFocus();
     } else {
       // Clicking on empty space - start drag selection
       if (!ctrlKey) {
         clearSelection();
+        clearMainSelection();
       }
       startDragSelection(worldPoint);
+      syncSelectionBoundsWithMainState({ x: worldX, y: worldY, width: 0, height: 0 }, true);
     }
-  }, [isPointOnSelectedObject, startDraggingObjects, findObjectsAtPoint, selectObjectsAtPoint, clearSelection, startDragSelection, lines, images, ensureContainerFocus]);
+  }, [isPointOnSelectedObject, startDraggingObjects, findObjectsAtPoint, selectObjectsAtPoint, clearSelection, startDragSelection, lines, images, ensureContainerFocus, state.selectedObjects, syncSelectionWithMainState, clearMainSelection, syncSelectionBoundsWithMainState]);
 
   const handlePointerMove = useCallback((worldX: number, worldY: number) => {
     const worldPoint = { x: worldX, y: worldY };
@@ -233,6 +305,16 @@ export const useSelect2EventHandlers = ({
       } else if (state.isSelecting) {
         // Update drag selection rectangle
         updateDragSelection(worldPoint);
+        // Sync with main selection bounds
+        if (state.selectionBounds) {
+          const newBounds = {
+            x: Math.min(state.selectionBounds.x, worldX),
+            y: Math.min(state.selectionBounds.y, worldY),
+            width: Math.abs(worldX - state.selectionBounds.x),
+            height: Math.abs(worldY - state.selectionBounds.y)
+          };
+          syncSelectionBoundsWithMainState(newBounds, true);
+        }
       }
     } else {
       // Update hover feedback
@@ -240,7 +322,7 @@ export const useSelect2EventHandlers = ({
       const hoveredId = objectsAtPoint.length > 0 ? objectsAtPoint[0].id : null;
       setHoveredObject(hoveredId);
     }
-  }, [state.isDraggingObjects, state.isSelecting, updateObjectDragging, updateDragSelection, findObjectsAtPoint, setHoveredObject, lines, images]);
+  }, [state.isDraggingObjects, state.isSelecting, state.selectionBounds, updateObjectDragging, updateDragSelection, findObjectsAtPoint, setHoveredObject, lines, images, syncSelectionBoundsWithMainState]);
 
   const handlePointerUp = useCallback(() => {
     if (isDraggingRef.current) {
@@ -250,7 +332,10 @@ export const useSelect2EventHandlers = ({
         endObjectDragging();
       } else if (state.isSelecting && hasMovedRef.current) {
         // Complete drag selection
-        endDragSelection(lines, images);
+        const selectedObjects = endDragSelection(lines, images);
+        // Sync with main selection state
+        syncSelectionWithMainState(selectedObjects);
+        syncSelectionBoundsWithMainState(null, false);
         // Ensure container has focus for keyboard events after drag selection
         ensureContainerFocus();
       }
@@ -258,20 +343,24 @@ export const useSelect2EventHandlers = ({
     
     isDraggingRef.current = false;
     hasMovedRef.current = false;
-  }, [state.isDraggingObjects, state.isSelecting, applyDragOffset, endObjectDragging, endDragSelection, lines, images, ensureContainerFocus]);
+  }, [state.isDraggingObjects, state.isSelecting, applyDragOffset, endObjectDragging, endDragSelection, lines, images, ensureContainerFocus, syncSelectionWithMainState, syncSelectionBoundsWithMainState]);
 
-  // Updated delete functionality - now uses the proper delete function
+  // Updated delete functionality - now uses the main selection state that's synchronized
   const deleteSelectedObjects = useCallback(() => {
-    if (state.selectedObjects.length === 0 || !onDeleteObjects) return;
+    // Use main selection state for deletion if available, fallback to select2 state
+    const selectedObjects = mainSelection?.selectionState?.selectedObjects || state.selectedObjects;
+    
+    if (selectedObjects.length === 0 || !onDeleteObjects) return;
 
-    console.log(`Deleting ${state.selectedObjects.length} selected objects`);
+    console.log(`Deleting ${selectedObjects.length} selected objects via select2`);
     
     // Use the proper delete function
-    onDeleteObjects(state.selectedObjects);
+    onDeleteObjects(selectedObjects);
 
-    // Clear the selection after deletion
+    // Clear both selection states after deletion
     clearSelection();
-  }, [state.selectedObjects, onDeleteObjects, clearSelection]);
+    clearMainSelection();
+  }, [state.selectedObjects, mainSelection?.selectionState?.selectedObjects, onDeleteObjects, clearSelection, clearMainSelection]);
 
   return {
     select2State: state,
@@ -282,7 +371,10 @@ export const useSelect2EventHandlers = ({
     handleMouseDown,
     handleMouseMove,
     handleMouseUp,
-    clearSelection,
+    clearSelection: () => {
+      clearSelection();
+      clearMainSelection();
+    },
     deleteSelectedObjects
   };
 };

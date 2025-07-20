@@ -1,4 +1,3 @@
-
 import { useEffect, useRef } from 'react';
 import Konva from 'konva';
 import { usePalmRejection } from './usePalmRejection';
@@ -42,6 +41,18 @@ interface UseStageEventHandlersProps {
   onUpdateImage?: (imageId: string, updates: any) => void;
   onDeleteObjects?: (selectedObjects: Array<{id: string, type: 'line' | 'image'}>) => void;
   onDeleteObjectsNoParams?: () => void;
+  // Main selection state for select2 integration
+  mainSelection?: {
+    selectObjects: (objects: Array<{id: string, type: 'line' | 'image'}>) => void;
+    clearSelection: () => void;
+    setSelectionBounds: (bounds: any) => void;
+    setIsSelecting: (selecting: boolean) => void;
+    selectionState: {
+      selectedObjects: Array<{id: string, type: 'line' | 'image'}>;
+      isSelecting: boolean;
+      selectionBounds: any;
+    };
+  };
 }
 
 export const useStageEventHandlers = ({
@@ -61,7 +72,8 @@ export const useStageEventHandlers = ({
   onUpdateLine,
   onUpdateImage,
   onDeleteObjects,
-  onDeleteObjectsNoParams
+  onDeleteObjectsNoParams,
+  mainSelection
 }: UseStageEventHandlersProps) => {
   const currentToolRef = useRef<string>(currentTool || 'pencil');
   const { logEventHandling } = useEventDebug(palmRejectionConfig);
@@ -72,10 +84,11 @@ export const useStageEventHandlers = ({
     hasDeleteFunction: !!onDeleteObjects,
     hasDeleteNoParams: !!onDeleteObjectsNoParams,
     deleteFunction: onDeleteObjects ? 'provided' : 'none',
-    deleteNoParamsFunction: onDeleteObjectsNoParams ? 'provided' : 'none'
+    deleteNoParamsFunction: onDeleteObjectsNoParams ? 'provided' : 'none',
+    hasMainSelection: !!mainSelection
   });
 
-  // Select2 event handlers with update functions and delete function
+  // Select2 event handlers with update functions, delete function, and main selection integration
   const select2Handlers = useSelect2EventHandlers({
     stageRef,
     lines,
@@ -84,7 +97,8 @@ export const useStageEventHandlers = ({
     onUpdateLine,
     onUpdateImage,
     onDeleteObjects,
-    containerRef
+    containerRef,
+    mainSelection // Pass main selection state for integration
   });
 
   // Update current tool ref when currentTool prop changes
