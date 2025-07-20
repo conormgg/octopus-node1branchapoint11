@@ -255,9 +255,12 @@ export const useSelect2State = () => {
   }, []);
 
   // End drag selection
-  const endDragSelection = useCallback((lines: LineObject[], images: ImageObject[]) => {
+  const endDragSelection = useCallback((lines: LineObject[], images: ImageObject[]): SelectedObject[] => {
+    let selectedObjects: SelectedObject[] = [];
+    
     setState(prev => {
       if (!prev.selectionBounds) {
+        selectedObjects = [];
         return {
           ...prev,
           isSelecting: false,
@@ -267,6 +270,8 @@ export const useSelect2State = () => {
 
       const objectsInBounds = findObjectsInBounds(prev.selectionBounds, lines, images);
       const groupBounds = calculateGroupBounds(objectsInBounds, lines, images);
+      
+      selectedObjects = objectsInBounds;
 
       return {
         ...prev,
@@ -277,6 +282,8 @@ export const useSelect2State = () => {
         selectionBounds: null
       };
     });
+    
+    return selectedObjects;
   }, [findObjectsInBounds, calculateGroupBounds]);
 
   // Start dragging objects
