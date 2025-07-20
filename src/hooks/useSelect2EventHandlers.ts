@@ -1,4 +1,3 @@
-
 import { useCallback, useRef } from 'react';
 import Konva from 'konva';
 import { LineObject, ImageObject } from '@/types/whiteboard';
@@ -106,7 +105,7 @@ export const useSelect2EventHandlers = ({
     );
   }, [findObjectsAtPoint, lines, images, state.selectedObjects, isPointInGroupBounds]);
 
-  // FIXED: Apply drag offset with proper coordinate handling
+  // FIXED: Apply drag offset with proper coordinate handling - now ensures single application
   const applyDragOffset = useCallback(() => {
     if (!state.dragOffset || (!onUpdateLine && !onUpdateImage)) return;
 
@@ -114,7 +113,7 @@ export const useSelect2EventHandlers = ({
 
     console.log('Select2: Applying drag offset', { dx, dy, selectedCount: state.selectedObjects.length });
 
-    // Apply offset to objects
+    // Apply offset to objects - single application only
     state.selectedObjects.forEach(obj => {
       if (obj.type === 'line' && onUpdateLine) {
         const currentLine = lines.find(l => l.id === obj.id);
@@ -145,27 +144,151 @@ export const useSelect2EventHandlers = ({
       }
     });
 
-    // FIXED: Synchronously update group bounds to match the new object positions
-    setState(prev => {
-      const newGroupBounds = prev.groupBounds ? {
-        x: prev.groupBounds.x + dx,
-        y: prev.groupBounds.y + dy,
-        width: prev.groupBounds.width,
-        height: prev.groupBounds.height
-      } : null;
-      
-      console.log('Select2: Updating group bounds', { 
-        from: prev.groupBounds, 
-        to: newGroupBounds,
-        offset: { dx, dy }
+    // FIXED: Update group bounds synchronously after applying position changes
+    // This ensures the visual feedback matches the actual object positions
+    setTimeout(() => {
+      setState(prev => {
+        const updatedLines = lines.map(line => {
+          const selectedObj = prev.selectedObjects.find(obj => obj.id === line.id && obj.type === 'line');
+          if (selectedObj) {
+            return { ...line, x: line.x + dx, y: line.y + dy };
+          }
+          return line;
+        });
+
+        const updatedImages = images.map(image => {
+          const selectedObj = prev.selectedObjects.find(obj => obj.id === image.id && obj.type === 'image');
+          if (selectedObj) {
+            return { ...image, x: image.x + dx, y: image.y + dy };
+          }
+          return image;
+        });
+
+        const newGroupBounds = calculateGroupBounds(prev.selectedObjects, updatedLines, updatedImages);
+        
+        console.log('Select2: Updated group bounds after position changes', { 
+          oldBounds: prev.groupBounds, 
+          newBounds: newGroupBounds,
+          offset: { dx, dy }
+        });
+        
+        return {
+          ...prev,
+          groupBounds: newGroupBounds
+        };
       });
+    }, 0);
+  }, [state.dragOffset, state.selectedObjects, lines, images, onUpdateLine, onUpdateImage, setState, calculateGroupBounds]);
+
+  // FIXED: Improved pointer handlers with single coordinate transformation
+  const handlePointerDown = useCallback((worldX: number, worldY: number, ctrlKey: boolean = false) => {
+    const worldPoint = { x: worldX, y: worldY };
+    
+    console.log('Select2: Pointer down', { worldPoint, ctrlKey });
+    
+    isDraggingRef.current = true;
+    hasMovedRef.current = false;
+    dragStartPositionRef.current = worldPoint;
+
+    // Check if clicking on a selected object or within group bounds first
+    if (isPointOnSelectedObject(worldPoint)) {
+      // Start dragging selected objects
+      console.log('Select2: Starting drag of selected objects');
+      startDraggingObjects(worldPoint);
+      return;
+    }
+
+    // Check if clicking on an object
+    const objectsAtPoint = findObjectsAtPoint(worldPoint, lines, images);
+    
+    if (objectsAtPoint.length > 0) {
+      // Clicking on an object
+      console.log('Select2: Selecting object at point', { objectsAtPoint });
+      selectObjectsAtPoint(worldPoint, lines, images, ctrlKey);
+      // Sync with main selection state
+      const newSelection = ctrlKey ? 
+        [...state.selectedObjects, objectsAtPoint[0]] : 
+        [objectsAtPoint[0]];
+      syncSelectionWithMainState(newSelection);
+      // Ensure container has focus for keyboard events
+      ensureContainerFocus();
+    } else {
+      // Clicking on empty space - start drag selection
+      console.log('Select2: Starting drag selection');
+      if (!ctrlKey) {
+        clearSelection();
+        clearMainSelection();
+      }
+      startDragSelection(worldPoint);
+      syncSelectionBoundsWithMainState({ x: worldX, y: worldY, width: 0, height: 0 }, true);
+    }
+  }, [isPointOnSelectedObject, startDraggingObjects, findObjectsAtPoint, selectObjectsAtPoint, clearSelection, startDragSelection, lines, images, ensureContainerFocus, state.selectedObjects, syncSelectionWithMainState, clearMainSelection, syncSelectionBoundsWithMainState]);
+
+  const handlePointerMove = useCallback((worldX: number, worldY: number) => {
+    const worldPoint = { x: worldX, y: worldY };
+    
+    if (isDraggingRef.current) {
+      hasMovedRef.current = true;
       
-      return {
-        ...prev,
-        groupBounds: newGroupBounds
-      };
+      if (state.isDraggingObjects) {
+        // Update object dragging with consistent coordinate handling
+        console.log('Select2: Updating object drag', { 
+          worldPoint,
+          dragStartPosition: dragStartPositionRef.current,
+          currentOffset: state.dragOffset 
+        });
+        updateObjectDragging(worldPoint);
+      } else if (state.isSelecting) {
+        // Update drag selection rectangle
+        updateDragSelection(worldPoint);
+        // Sync with main selection bounds
+        if (state.selectionBounds) {
+          const newBounds = {
+            x: Math.min(state.selectionBounds.x, worldX),
+            y: Math.min(state.selectionBounds.y, worldY),
+            width: Math.abs(worldX - state.selectionBounds.x),
+            height: Math.abs(worldY - state.selectionBounds.y)
+          };
+          syncSelectionBoundsWithMainState(newBounds, true);
+        }
+      }
+    } else {
+      // Update hover feedback
+      const objectsAtPoint = findObjectsAtPoint(worldPoint, lines, images);
+      const hoveredId = objectsAtPoint.length > 0 ? objectsAtPoint[0].id : null;
+      setHoveredObject(hoveredId);
+    }
+  }, [state.isDraggingObjects, state.isSelecting, state.selectionBounds, state.dragOffset, updateObjectDragging, updateDragSelection, findObjectsAtPoint, setHoveredObject, lines, images, syncSelectionBoundsWithMainState]);
+
+  const handlePointerUp = useCallback(() => {
+    console.log('Select2: Pointer up', { 
+      wasDragging: isDraggingRef.current,
+      hasMoved: hasMovedRef.current,
+      isDraggingObjects: state.isDraggingObjects,
+      dragOffset: state.dragOffset 
     });
-  }, [state.dragOffset, state.selectedObjects, state.groupBounds, lines, images, onUpdateLine, onUpdateImage, setState]);
+    
+    if (isDraggingRef.current) {
+      if (state.isDraggingObjects && hasMovedRef.current) {
+        // Apply the drag offset to actually move the objects - single application
+        console.log('Select2: Applying final drag offset');
+        applyDragOffset();
+        endObjectDragging();
+      } else if (state.isSelecting && hasMovedRef.current) {
+        // Complete drag selection
+        const selectedObjects = endDragSelection(lines, images);
+        // Sync with main selection state
+        syncSelectionWithMainState(selectedObjects);
+        syncSelectionBoundsWithMainState(null, false);
+        // Ensure container has focus for keyboard events after drag selection
+        ensureContainerFocus();
+      }
+    }
+    
+    isDraggingRef.current = false;
+    hasMovedRef.current = false;
+    dragStartPositionRef.current = null;
+  }, [state.isDraggingObjects, state.isSelecting, state.dragOffset, applyDragOffset, endObjectDragging, endDragSelection, lines, images, ensureContainerFocus, syncSelectionWithMainState, syncSelectionBoundsWithMainState]);
 
   const handleMouseDown = useCallback((e: Konva.KonvaEventObject<MouseEvent>) => {
     const stage = e.target.getStage();
@@ -283,116 +406,6 @@ export const useSelect2EventHandlers = ({
       }
     }
   }, [getRelativePointerPosition, selectObjectsAtPoint, findObjectsAtPoint, lines, images, state.selectedObjects, syncSelectionWithMainState]);
-
-  // FIXED: Updated pointer handlers with better coordinate handling and debug logging
-  const handlePointerDown = useCallback((worldX: number, worldY: number, ctrlKey: boolean = false) => {
-    const worldPoint = { x: worldX, y: worldY };
-    
-    console.log('Select2: Pointer down', { worldPoint, ctrlKey });
-    
-    isDraggingRef.current = true;
-    hasMovedRef.current = false;
-    dragStartPositionRef.current = worldPoint;
-
-    // Check if clicking on a selected object or within group bounds first
-    if (isPointOnSelectedObject(worldPoint)) {
-      // Start dragging selected objects
-      console.log('Select2: Starting drag of selected objects');
-      startDraggingObjects(worldPoint);
-      return;
-    }
-
-    // Check if clicking on an object
-    const objectsAtPoint = findObjectsAtPoint(worldPoint, lines, images);
-    
-    if (objectsAtPoint.length > 0) {
-      // Clicking on an object
-      console.log('Select2: Selecting object at point', { objectsAtPoint });
-      selectObjectsAtPoint(worldPoint, lines, images, ctrlKey);
-      // Sync with main selection state
-      const newSelection = ctrlKey ? 
-        [...state.selectedObjects, objectsAtPoint[0]] : 
-        [objectsAtPoint[0]];
-      syncSelectionWithMainState(newSelection);
-      // Ensure container has focus for keyboard events
-      ensureContainerFocus();
-    } else {
-      // Clicking on empty space - start drag selection
-      console.log('Select2: Starting drag selection');
-      if (!ctrlKey) {
-        clearSelection();
-        clearMainSelection();
-      }
-      startDragSelection(worldPoint);
-      syncSelectionBoundsWithMainState({ x: worldX, y: worldY, width: 0, height: 0 }, true);
-    }
-  }, [isPointOnSelectedObject, startDraggingObjects, findObjectsAtPoint, selectObjectsAtPoint, clearSelection, startDragSelection, lines, images, ensureContainerFocus, state.selectedObjects, syncSelectionWithMainState, clearMainSelection, syncSelectionBoundsWithMainState]);
-
-  const handlePointerMove = useCallback((worldX: number, worldY: number) => {
-    const worldPoint = { x: worldX, y: worldY };
-    
-    if (isDraggingRef.current) {
-      hasMovedRef.current = true;
-      
-      if (state.isDraggingObjects) {
-        // Update object dragging with debug logging
-        console.log('Select2: Updating object drag', { 
-          worldPoint,
-          dragStartPosition: dragStartPositionRef.current,
-          currentOffset: state.dragOffset 
-        });
-        updateObjectDragging(worldPoint);
-      } else if (state.isSelecting) {
-        // Update drag selection rectangle
-        updateDragSelection(worldPoint);
-        // Sync with main selection bounds
-        if (state.selectionBounds) {
-          const newBounds = {
-            x: Math.min(state.selectionBounds.x, worldX),
-            y: Math.min(state.selectionBounds.y, worldY),
-            width: Math.abs(worldX - state.selectionBounds.x),
-            height: Math.abs(worldY - state.selectionBounds.y)
-          };
-          syncSelectionBoundsWithMainState(newBounds, true);
-        }
-      }
-    } else {
-      // Update hover feedback
-      const objectsAtPoint = findObjectsAtPoint(worldPoint, lines, images);
-      const hoveredId = objectsAtPoint.length > 0 ? objectsAtPoint[0].id : null;
-      setHoveredObject(hoveredId);
-    }
-  }, [state.isDraggingObjects, state.isSelecting, state.selectionBounds, state.dragOffset, updateObjectDragging, updateDragSelection, findObjectsAtPoint, setHoveredObject, lines, images, syncSelectionBoundsWithMainState]);
-
-  const handlePointerUp = useCallback(() => {
-    console.log('Select2: Pointer up', { 
-      wasDragging: isDraggingRef.current,
-      hasMoved: hasMovedRef.current,
-      isDraggingObjects: state.isDraggingObjects,
-      dragOffset: state.dragOffset 
-    });
-    
-    if (isDraggingRef.current) {
-      if (state.isDraggingObjects && hasMovedRef.current) {
-        // Apply the drag offset to actually move the objects
-        console.log('Select2: Applying final drag offset');
-        applyDragOffset();
-        endObjectDragging();
-      } else if (state.isSelecting && hasMovedRef.current) {
-        // Complete drag selection
-        const selectedObjects = endDragSelection(lines, images);
-        // Sync with main selection state
-        syncSelectionWithMainState(selectedObjects);
-        syncSelectionBoundsWithMainState(null, false);
-        // Ensure container has focus for keyboard events after drag selection
-        ensureContainerFocus();
-      }
-    }
-    
-    isDraggingRef.current = false;
-    hasMovedRef.current = false;
-    dragStartPositionRef.current = null;
-  }, [state.isDraggingObjects, state.isSelecting, state.dragOffset, applyDragOffset, endObjectDragging, endDragSelection, lines, images, ensureContainerFocus, syncSelectionWithMainState, syncSelectionBoundsWithMainState]);
 
   // Updated delete functionality - now uses the main selection state that's synchronized
   const deleteSelectedObjects = useCallback(() => {

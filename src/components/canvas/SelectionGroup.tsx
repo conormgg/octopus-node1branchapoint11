@@ -46,16 +46,19 @@ const SelectionGroup: React.FC<SelectionGroupProps> = ({
   // Only show group if multiple objects are selected and tool is select or select2
   const shouldShowGroup = selectedObjects.length > 1 && isVisible && (currentTool === 'select' || currentTool === 'select2');
 
+  // FIXED: Disable dragging for select2 tool to prevent double movement
+  const isDraggable = shouldShowGroup && currentTool === 'select';
+
   // Calculate group bounds for the background - recalculate whenever objects change
   const groupBounds = shouldShowGroup ? calculateGroupBounds(selectedObjects, selectedLines, selectedImages) : null;
 
   // Set up transformer when group is created or objects change position
   useEffect(() => {
-    if (shouldShowGroup && groupRef.current && transformerRef.current) {
+    if (shouldShowGroup && groupRef.current && transformerRef.current && currentTool === 'select') {
       transformerRef.current.nodes([groupRef.current]);
       transformerRef.current.getLayer()?.batchDraw();
     }
-  }, [shouldShowGroup, selectedObjects.length, selectedLines, selectedImages]);
+  }, [shouldShowGroup, selectedObjects.length, selectedLines, selectedImages, currentTool]);
 
   // Handle group transformation
   const handleTransformStart = () => {
@@ -173,7 +176,7 @@ const SelectionGroup: React.FC<SelectionGroupProps> = ({
     <>
       <Group
         ref={groupRef}
-        draggable={true}
+        draggable={isDraggable}
         onTransformStart={handleTransformStart}
         onTransformEnd={handleTransformEnd}
         onDragMove={handleDragMove}
@@ -204,21 +207,24 @@ const SelectionGroup: React.FC<SelectionGroupProps> = ({
         ))}
       </Group>
       
-      <Transformer
-        ref={transformerRef}
-        boundBoxFunc={(oldBox, newBox) => {
-          if (newBox.width < 10 || newBox.height < 10) {
-            return oldBox;
-          }
-          return newBox;
-        }}
-        enabledAnchors={[
-          'top-left', 'top-right', 'bottom-left', 'bottom-right',
-          'middle-left', 'middle-right', 'top-center', 'bottom-center'
-        ]}
-        rotateEnabled={true}
-        resizeEnabled={true}
-      />
+      {/* Only show transformer for select tool, not select2 */}
+      {isDraggable && (
+        <Transformer
+          ref={transformerRef}
+          boundBoxFunc={(oldBox, newBox) => {
+            if (newBox.width < 10 || newBox.height < 10) {
+              return oldBox;
+            }
+            return newBox;
+          }}
+          enabledAnchors={[
+            'top-left', 'top-right', 'bottom-left', 'bottom-right',
+            'middle-left', 'middle-right', 'top-center', 'bottom-center'
+          ]}
+          rotateEnabled={true}
+          resizeEnabled={true}
+        />
+      )}
     </>
   );
 };
