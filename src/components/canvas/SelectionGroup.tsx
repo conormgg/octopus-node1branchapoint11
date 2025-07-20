@@ -54,7 +54,7 @@ const SelectionGroup: React.FC<SelectionGroupProps> = ({
 
   // Set up transformer when group is created or objects change position
   useEffect(() => {
-    if (shouldShowGroup && groupRef.current && transformerRef.current && currentTool === 'select') {
+    if (shouldShowGroup && groupRef.current && transformerRef.current) {
       transformerRef.current.nodes([groupRef.current]);
       transformerRef.current.getLayer()?.batchDraw();
     }
@@ -207,10 +207,11 @@ const SelectionGroup: React.FC<SelectionGroupProps> = ({
         ))}
       </Group>
       
-      {/* Only show transformer for select tool, not select2 */}
-      {isDraggable && (
+      {/* Show transformer for both select and select2, but make it non-interactive for select2 */}
+      {shouldShowGroup && (
         <Transformer
           ref={transformerRef}
+          listening={currentTool === 'select'}
           boundBoxFunc={(oldBox, newBox) => {
             if (newBox.width < 10 || newBox.height < 10) {
               return oldBox;
