@@ -1,4 +1,3 @@
-
 import React, { useRef, useEffect } from 'react';
 import Konva from 'konva';
 import { useWhiteboardState } from '@/hooks/useWhiteboardState';
@@ -11,6 +10,7 @@ import KonvaStageCanvas from './KonvaStageCanvas';
 import KonvaImageContextMenuHandler from './KonvaImageContextMenuHandler';
 import KonvaImageOperationsHandler from './KonvaImageOperationsHandler';
 import { Select2Renderer } from './Select2Renderer';
+import SelectionGroup from './SelectionGroup';
 import { createDebugLogger } from '@/utils/debug/debugConfig';
 
 const debugLog = createDebugLogger('toolSync');
@@ -136,7 +136,8 @@ const KonvaStage: React.FC<KonvaStageProps> = ({
     // Pass the select2 delete function (accepts parameters)
     onDeleteObjects: select2DeleteFunction,
     // Pass the original select delete function (wrapper, no parameters)
-    onDeleteObjectsNoParams: originalSelectDeleteFunction
+    onDeleteObjectsNoParams: originalSelectDeleteFunction,
+    mainSelection: selection // Pass main selection state for integration
   });
 
   useKonvaKeyboardHandlers({
@@ -226,6 +227,27 @@ const KonvaStage: React.FC<KonvaStageProps> = ({
                   images={state.images}
                   dragOffset={stageEventHandlers.select2State?.dragOffset || null}
                   isDraggingObjects={stageEventHandlers.select2State?.isDraggingObjects || false}
+                />
+              )}
+              {/* SelectionGroup for select2 - show transform handles when objects are selected and not selecting */}
+              {state.currentTool === 'select2' && stageEventHandlers && stageEventHandlers.select2State && (
+                <SelectionGroup
+                  selectedObjects={stageEventHandlers.select2State.selectedObjects}
+                  lines={state.lines}
+                  images={state.images}
+                  onUpdateLine={updateLine}
+                  onUpdateImage={(imageId, updates) => {
+                    if ('updateImage' in whiteboardState && whiteboardState.updateImage) {
+                      whiteboardState.updateImage(imageId, updates);
+                    }
+                  }}
+                  onTransformEnd={() => {
+                    if ('addToHistory' in whiteboardState && whiteboardState.addToHistory) {
+                      whiteboardState.addToHistory();
+                    }
+                  }}
+                  currentTool={state.currentTool}
+                  isVisible={!stageEventHandlers.select2State.isSelecting}
                 />
               )}
             </>

@@ -143,20 +143,6 @@ export const Select2Renderer: React.FC<Select2RendererProps> = ({
         isVisible={isSelecting}
       />
 
-      {/* Unified group selection bounds */}
-      {selectedObjects.length > 0 && groupBounds && (
-        <Rect
-          x={groupBounds.x}
-          y={groupBounds.y}
-          width={groupBounds.width}
-          height={groupBounds.height}
-          fill="transparent"
-          stroke="rgba(0, 123, 255, 0.8)"
-          strokeWidth={2}
-          listening={false}
-        />
-      )}
-
       {/* Visual feedback for hovered object (only when not selected) */}
       {hoveredObjectId && !selectedObjects.some(obj => obj.id === hoveredObjectId) && (
         (() => {
