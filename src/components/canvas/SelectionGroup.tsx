@@ -46,16 +46,16 @@ const SelectionGroup: React.FC<SelectionGroupProps> = ({
   // Only show group if multiple objects are selected and tool is select or select2
   const shouldShowGroup = selectedObjects.length > 1 && isVisible && (currentTool === 'select' || currentTool === 'select2');
 
-  // Calculate group bounds for the background
+  // Calculate group bounds for the background - recalculate whenever objects change
   const groupBounds = shouldShowGroup ? calculateGroupBounds(selectedObjects, selectedLines, selectedImages) : null;
 
-  // Set up transformer when group is created
+  // Set up transformer when group is created or objects change position
   useEffect(() => {
     if (shouldShowGroup && groupRef.current && transformerRef.current) {
       transformerRef.current.nodes([groupRef.current]);
       transformerRef.current.getLayer()?.batchDraw();
     }
-  }, [shouldShowGroup, selectedObjects.length]);
+  }, [shouldShowGroup, selectedObjects.length, selectedLines, selectedImages]);
 
   // Handle group transformation
   const handleTransformStart = () => {
