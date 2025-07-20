@@ -34,6 +34,7 @@ export const useTouchToSelectionBridge = ({
 }: UseTouchToSelectionBridgeProps) => {
   const { getRelativePointerPosition } = useStageCoordinates(panZoomState);
   const isTouchSelectionActiveRef = useRef(false);
+  const touchStartTimeRef = useRef<number>(0);
   
   // Convert touch event to selection coordinates and route to pointer handlers
   const bridgeTouchToSelection = useCallback((
@@ -57,19 +58,19 @@ export const useTouchToSelectionBridge = ({
       currentTool,
       effectiveTool,
       stageTool: stage?.getAttr('currentTool'),
-      toolIsSelect: effectiveTool === 'select',
+      toolIsSelect: effectiveTool === 'select' || effectiveTool === 'select2',
       isReadOnly,
       touchCount: action === 'up' ? e.changedTouches.length : e.touches.length,
       toolUndefined: effectiveTool === undefined,
       toolType: typeof effectiveTool
     });
 
-    // Only bridge single-finger touches when select tool is active
-    if (effectiveTool !== 'select' || isReadOnly || e.touches.length > 1) {
+    // FIXED: Bridge for both select and select2 tools, only single-finger touches
+    if ((effectiveTool !== 'select' && effectiveTool !== 'select2') || isReadOnly || e.touches.length > 1) {
       debugLog('TouchToSelectionBridge', 'Bridge conditions not met', {
         currentTool,
         effectiveTool,
-        toolNotSelect: effectiveTool !== 'select',
+        toolNotSelect: effectiveTool !== 'select' && effectiveTool !== 'select2',
         isReadOnly,
         multiTouch: e.touches.length > 1,
         touchCount: e.touches.length
@@ -89,7 +90,14 @@ export const useTouchToSelectionBridge = ({
       return false;
     }
     
-    // Convert to stage coordinates
+    // FIXED: Prevent default only for touch events we're handling to avoid conflicts
+    if (action === 'down') {
+      touchStartTimeRef.current = Date.now();
+      // Only prevent default if we're definitely handling this touch
+      e.preventDefault();
+    }
+    
+    // Convert to stage coordinates - FIXED: Use consistent coordinate transformation
     const { x, y } = getRelativePointerPosition(stage, touch.clientX, touch.clientY);
     
     debugLog('TouchToSelectionBridge', `Bridging touch ${action} to selection`, {
@@ -97,7 +105,8 @@ export const useTouchToSelectionBridge = ({
       stage: { x, y },
       currentTool,
       effectiveTool,
-      action
+      action,
+      panZoomState
     });
     
     // Route to appropriate pointer handler
@@ -110,6 +119,8 @@ export const useTouchToSelectionBridge = ({
       case 'move':
         if (isTouchSelectionActiveRef.current) {
           debugLog('TouchToSelectionBridge', 'Calling handlePointerMove', { x, y });
+          // FIXED: Only prevent default on move if we're actively handling the touch
+          e.preventDefault();
           handlePointerMove(x, y);
         } else {
           debugLog('TouchToSelectionBridge', 'Touch selection not active for move');
@@ -123,17 +134,19 @@ export const useTouchToSelectionBridge = ({
         } else {
           debugLog('TouchToSelectionBridge', 'Touch selection not active for up');
         }
+        touchStartTimeRef.current = 0;
         break;
     }
     
     debugLog('TouchToSelectionBridge', `Bridge ${action} completed successfully`);
     return true;
-  }, [currentTool, isReadOnly, stageRef, getRelativePointerPosition, handlePointerDown, handlePointerMove, handlePointerUp]);
+  }, [currentTool, isReadOnly, stageRef, getRelativePointerPosition, handlePointerDown, handlePointerMove, handlePointerUp, panZoomState]);
   
   // Reset state when tool changes
   const resetTouchSelection = useCallback(() => {
     debugLog('TouchToSelectionBridge', 'Resetting touch selection state');
     isTouchSelectionActiveRef.current = false;
+    touchStartTimeRef.current = 0;
   }, []);
   
   return {
