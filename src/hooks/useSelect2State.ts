@@ -10,6 +10,8 @@ interface Select2State {
   isDraggingObjects: boolean;
   dragOffset: { x: number; y: number } | null;
   groupBounds: SelectionBounds | null;
+  contextMenuVisible: boolean;
+  contextMenuPosition: { x: number; y: number } | null;
 }
 
 export const useSelect2State = () => {
@@ -21,7 +23,9 @@ export const useSelect2State = () => {
     dragStartPoint: null,
     isDraggingObjects: false,
     dragOffset: null,
-    groupBounds: null
+    groupBounds: null,
+    contextMenuVisible: false,
+    contextMenuPosition: null
   });
 
   // Calculate group bounds for selected objects
@@ -79,16 +83,40 @@ export const useSelect2State = () => {
     };
   }, []);
 
-  // Update group bounds for currently selected objects
+  // Update group bounds and context menu for currently selected objects
   const updateGroupBounds = useCallback((lines: LineObject[], images: ImageObject[]) => {
     setState(prev => {
       const newGroupBounds = calculateGroupBounds(prev.selectedObjects, lines, images);
+      
+      // Auto-show context menu if objects are selected
+      const shouldShowContextMenu = prev.selectedObjects.length > 0 && newGroupBounds;
+      let contextMenuPosition = null;
+      
+      if (shouldShowContextMenu && newGroupBounds) {
+        // Position context menu at top-right of selection bounds
+        contextMenuPosition = {
+          x: newGroupBounds.x + newGroupBounds.width + 10,
+          y: newGroupBounds.y
+        };
+      }
+      
       return {
         ...prev,
-        groupBounds: newGroupBounds
+        groupBounds: newGroupBounds,
+        contextMenuVisible: shouldShowContextMenu,
+        contextMenuPosition
       };
     });
   }, [calculateGroupBounds]);
+
+  // Hide context menu
+  const hideContextMenu = useCallback(() => {
+    setState(prev => ({
+      ...prev,
+      contextMenuVisible: false,
+      contextMenuPosition: null
+    }));
+  }, []);
 
   // Check if point is within group bounds
   const isPointInGroupBounds = useCallback((point: { x: number; y: number }): boolean => {
@@ -233,7 +261,9 @@ export const useSelect2State = () => {
         y: point.y,
         width: 0,
         height: 0
-      }
+      },
+      contextMenuVisible: false,
+      contextMenuPosition: null
     }));
   }, []);
 
@@ -264,7 +294,9 @@ export const useSelect2State = () => {
         return {
           ...prev,
           isSelecting: false,
-          dragStartPoint: null
+          dragStartPoint: null,
+          contextMenuVisible: false,
+          contextMenuPosition: null
         };
       }
 
@@ -273,13 +305,26 @@ export const useSelect2State = () => {
       
       selectedObjects = objectsInBounds;
 
+      // Auto-show context menu if objects are selected
+      const shouldShowContextMenu = objectsInBounds.length > 0 && groupBounds;
+      let contextMenuPosition = null;
+      
+      if (shouldShowContextMenu && groupBounds) {
+        contextMenuPosition = {
+          x: groupBounds.x + groupBounds.width + 10,
+          y: groupBounds.y
+        };
+      }
+
       return {
         ...prev,
         selectedObjects: objectsInBounds,
         groupBounds,
         isSelecting: false,
         dragStartPoint: null,
-        selectionBounds: null
+        selectionBounds: null,
+        contextMenuVisible: shouldShowContextMenu,
+        contextMenuPosition
       };
     });
     
@@ -292,7 +337,9 @@ export const useSelect2State = () => {
       ...prev,
       isDraggingObjects: true,
       dragStartPoint: point,
-      dragOffset: { x: 0, y: 0 }
+      dragOffset: { x: 0, y: 0 },
+      contextMenuVisible: false,
+      contextMenuPosition: null
     }));
   }, []);
 
@@ -340,7 +387,9 @@ export const useSelect2State = () => {
         return {
           ...prev,
           selectedObjects: newSelectedObjects,
-          groupBounds
+          groupBounds,
+          contextMenuVisible: false,
+          contextMenuPosition: null
         };
       }
 
@@ -354,19 +403,47 @@ export const useSelect2State = () => {
           : [...prev.selectedObjects, firstObject];
         
         const groupBounds = calculateGroupBounds(newSelectedObjects, lines, images);
+        
+        // Auto-show context menu if objects are selected
+        const shouldShowContextMenu = newSelectedObjects.length > 0 && groupBounds;
+        let contextMenuPosition = null;
+        
+        if (shouldShowContextMenu && groupBounds) {
+          contextMenuPosition = {
+            x: groupBounds.x + groupBounds.width + 10,
+            y: groupBounds.y
+          };
+        }
+        
         return {
           ...prev,
           selectedObjects: newSelectedObjects,
-          groupBounds
+          groupBounds,
+          contextMenuVisible: shouldShowContextMenu,
+          contextMenuPosition
         };
       } else {
         // Single select
         const newSelectedObjects = [firstObject];
         const groupBounds = calculateGroupBounds(newSelectedObjects, lines, images);
+        
+        // Auto-show context menu
+        const shouldShowContextMenu = groupBounds !== null;
+        let contextMenuPosition = null;
+        
+        if (shouldShowContextMenu && groupBounds) {
+          contextMenuPosition = {
+            x: groupBounds.x + groupBounds.width + 10,
+            y: groupBounds.y
+          };
+        }
+        
         return {
           ...prev,
           selectedObjects: newSelectedObjects,
-          groupBounds
+          groupBounds,
+          contextMenuVisible: shouldShowContextMenu,
+          contextMenuPosition
         };
       }
     });
@@ -379,7 +456,9 @@ export const useSelect2State = () => {
       selectedObjects: [],
       hoveredObjectId: null,
       selectionBounds: null,
-      groupBounds: null
+      groupBounds: null,
+      contextMenuVisible: false,
+      contextMenuPosition: null
     }));
   }, []);
 
@@ -406,6 +485,7 @@ export const useSelect2State = () => {
     findObjectsAtPoint,
     calculateGroupBounds,
     updateGroupBounds,
-    isPointInGroupBounds
+    isPointInGroupBounds,
+    hideContextMenu
   };
 };
