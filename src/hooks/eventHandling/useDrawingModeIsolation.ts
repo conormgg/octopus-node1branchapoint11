@@ -1,4 +1,3 @@
-
 import { useEffect, useRef } from 'react';
 
 interface UseDrawingModeIsolationProps {
@@ -210,6 +209,9 @@ export const useDrawingModeIsolation = ({
                                        !target.closest('[data-radix-portal]') &&
                                        !target.closest('body > div[data-radix-portal]') &&
                                        !target.closest('body > div[style*="z-index"]') &&
+                                       !target.closest('[data-color-selector-button]') &&
+                                       !target.closest('button[data-color-selector-button]') &&
+                                       !target.closest('[role="slider"]') &&
                                        target.tagName !== 'BUTTON' &&
                                        target.tagName !== 'INPUT' &&
                                        target.tagName !== 'TEXTAREA' &&
