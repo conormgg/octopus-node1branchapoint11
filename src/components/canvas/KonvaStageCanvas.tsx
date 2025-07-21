@@ -1,13 +1,9 @@
-import React, { useRef, useEffect, useCallback } from 'react';
+import React from 'react';
 import { Stage, Layer } from 'react-konva';
 import Konva from 'konva';
 import LinesList from './layers/LinesList';
-import ImagesLayer from './layers/ImagesLayer';
 import SelectionRect from './SelectionRect';
-import { usePalmRejection } from '@/hooks/usePalmRejection';
-import { usePanZoom } from '@/hooks/usePanZoom';
-import { useTouchEvents } from '@/hooks/useTouchEvents';
-import { useMouseEvents } from '@/hooks/useMouseEvents';
+import { Tool } from '@/types/whiteboard';
 
 interface KonvaStageCanvasProps {
   width: number;
@@ -16,7 +12,7 @@ interface KonvaStageCanvasProps {
   layerRef: React.RefObject<Konva.Layer>;
   lines: any[];
   images: any[];
-  currentTool: string;
+  currentTool: Tool;
   panZoomState: { x: number; y: number; scale: number };
   palmRejectionConfig: any;
   panZoom: any;
@@ -62,35 +58,6 @@ const KonvaStageCanvas: React.FC<KonvaStageCanvasProps> = ({
   select2MouseHandlers,
   extraContent
 }) => {
-  const palmRejection = usePalmRejection(palmRejectionConfig);
-  const { handleWheel: handleStageWheel } = usePanZoom(panZoom);
-  const {
-    handleTouchStart: handleStageTouchStart,
-    handleTouchMove: handleStageTouchMove,
-    handleTouchEnd: handleStageTouchEnd,
-  } = useTouchEvents(
-    stageRef,
-    palmRejection,
-    handlePointerDown,
-    handlePointerMove,
-    handlePointerUp
-  );
-
-  const {
-    handleMouseDown: handleStageMouseDown,
-    handleMouseMove: handleStageMouseMove,
-    handleMouseUp: handleStageMouseUp,
-    handleDragStart: handleStageDragStart,
-    handleDragMove: handleStageDragMove,
-    handleDragEnd: handleStageDragEnd,
-    handleContextMenu: handleStageContextMenu
-  } = useMouseEvents(
-    stageRef,
-    handlePointerDown,
-    handlePointerMove,
-    handlePointerUp
-  );
-
   // Extract select2State from select2MouseHandlers if available
   const select2State = select2MouseHandlers?.select2State;
 
@@ -104,17 +71,6 @@ const KonvaStageCanvas: React.FC<KonvaStageCanvasProps> = ({
       x={panZoomState.x}
       y={panZoomState.y}
       listening={!isReadOnly}
-      onMouseDown={handleStageMouseDown}
-      onMouseMove={handleStageMouseMove}
-      onMouseUp={handleStageMouseUp}
-      onTouchStart={handleStageTouchStart}
-      onTouchMove={handleStageTouchMove}
-      onTouchEnd={handleStageTouchEnd}
-      onWheel={handleStageWheel}
-      onDragStart={handleStageDragStart}
-      onDragEnd={handleStageDragEnd}
-      onDragMove={handleStageDragMove}
-      onContentContextMenu={handleStageContextMenu}
       onClick={onStageClick}
     >
       <Layer ref={layerRef}>
@@ -127,18 +83,9 @@ const KonvaStageCanvas: React.FC<KonvaStageCanvasProps> = ({
           onUpdateLine={onUpdateLine}
         />
         
-        {/* Images layer */}
-        <ImagesLayer
-          images={images}
-          currentTool={currentTool}
-          selection={selection}
-          onUpdateImage={onUpdateImage}
-          onTransformEnd={onTransformEnd}
-        />
-        
         {/* Selection rectangle */}
         {selectionBounds && isSelecting && (
-          <SelectionRect bounds={selectionBounds} />
+          <SelectionRect selectionBounds={selectionBounds} isVisible={true} />
         )}
         
         {/* Extra content (Select2Renderer, SelectionGroup, etc.) */}
