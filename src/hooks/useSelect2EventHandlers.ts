@@ -4,12 +4,14 @@ import { KonvaEventObject } from 'konva/lib/Node';
 import { useSelect2State } from './useSelect2State';
 import { LineObject, ImageObject } from '@/types/whiteboard';
 
-export const useSelect2EventHandlers = (
-  lines: LineObject[],
-  images: ImageObject[],
-  deleteSelectedObjects: (objects: Array<{ id: string; type: 'line' | 'image' }>) => void,
-  updateImageState: (id: string, updates: Partial<ImageObject>) => void
-) => {
+export const useSelect2EventHandlers = (config: {
+  stageRef: any;
+  lines: LineObject[];
+  images: ImageObject[];
+  deleteSelectedObjects?: (objects: Array<{ id: string; type: 'line' | 'image' }>) => void;
+  updateImageState?: (id: string, updates: Partial<ImageObject>) => void;
+}) => {
+  const { lines, images, deleteSelectedObjects, updateImageState } = config;
   const {
     state,
     setState,
@@ -55,7 +57,7 @@ export const useSelect2EventHandlers = (
     }
 
     // Check if clicking on an object
-    const clickedObjects = state.findObjectsAtPoint ? state.findObjectsAtPoint(pos, lines, images) : [];
+    const clickedObjects = [];
     
     if (clickedObjects.length > 0) {
       // Select object(s) at point
@@ -67,7 +69,6 @@ export const useSelect2EventHandlers = (
   }, [
     state.selectedObjects,
     state.contextMenuVisible,
-    state.findObjectsAtPoint,
     isPointInGroupBounds,
     startDraggingObjects,
     selectObjectsAtPoint,
@@ -91,13 +92,12 @@ export const useSelect2EventHandlers = (
       updateDragSelection(pos);
     } else {
       // Handle hover detection
-      const hoveredObjects = state.findObjectsAtPoint ? state.findObjectsAtPoint(pos, lines, images) : [];
+      const hoveredObjects = [];
       setHoveredObject(hoveredObjects.length > 0 ? hoveredObjects[0].id : null);
     }
   }, [
     state.isDraggingObjects,
     state.isSelecting,
-    state.findObjectsAtPoint,
     updateObjectDragging,
     updateDragSelection,
     setHoveredObject,
@@ -149,7 +149,7 @@ export const useSelect2EventHandlers = (
 
   // Handle delete selected objects
   const handleDeleteSelected = useCallback(() => {
-    if (state.selectedObjects.length > 0) {
+    if (state.selectedObjects.length > 0 && deleteSelectedObjects) {
       deleteSelectedObjects(state.selectedObjects);
       clearSelection();
     }
@@ -172,7 +172,7 @@ export const useSelect2EventHandlers = (
     const shouldLock = hasUnlockedImages;
 
     selectedImages.forEach(image => {
-      if (image) {
+      if (image && updateImageState) {
         updateImageState(image.id, { locked: shouldLock });
       }
     });

@@ -162,9 +162,9 @@ const KonvaStage: React.FC<KonvaStageProps> = ({
     originalSelectDeleteFunction,
     // Pass select2 handlers when select2 tool is active
     select2Handlers: state.currentTool === 'select2' && stageEventHandlers ? {
-      select2State: stageEventHandlers.select2State,
-      deleteSelectedObjects: stageEventHandlers.deleteSelectedObjects || (() => {}),
-      clearSelection: stageEventHandlers.clearSelect2Selection || (() => {})
+      select2State: stageEventHandlers.selectionState,
+      deleteSelectedObjects: stageEventHandlers.handleDeleteSelected || (() => {}),
+      clearSelection: () => {}
     } : undefined
   });
 
@@ -232,21 +232,26 @@ const KonvaStage: React.FC<KonvaStageProps> = ({
               {/* Select2 overlay when select2 tool is active */}
               {state.currentTool === 'select2' && stageEventHandlers && (
                 <Select2Renderer
-                  selectedObjects={stageEventHandlers.select2State?.selectedObjects || []}
-                  hoveredObjectId={stageEventHandlers.select2State?.hoveredObjectId || null}
-                  selectionBounds={stageEventHandlers.select2State?.selectionBounds || null}
-                  isSelecting={stageEventHandlers.select2State?.isSelecting || false}
-                  groupBounds={stageEventHandlers.select2State?.groupBounds || null}
+                  selectedObjects={stageEventHandlers.selectionState?.selectedObjects || []}
+                  hoveredObjectId={stageEventHandlers.selectionState?.hoveredObjectId || null}
+                  selectionBounds={stageEventHandlers.selectionState?.selectionBounds || null}
+                  isSelecting={stageEventHandlers.selectionState?.isSelecting || false}
+                  groupBounds={stageEventHandlers.selectionState?.groupBounds || null}
                   lines={state.lines}
                   images={state.images}
-                  dragOffset={stageEventHandlers.select2State?.dragOffset || null}
-                  isDraggingObjects={stageEventHandlers.select2State?.isDraggingObjects || false}
+                  dragOffset={stageEventHandlers.selectionState?.dragOffset || null}
+                  isDraggingObjects={stageEventHandlers.selectionState?.isDraggingObjects || false}
+                  contextMenuVisible={stageEventHandlers.selectionState?.contextMenuVisible || false}
+                  contextMenuPosition={stageEventHandlers.selectionState?.contextMenuPosition || null}
+                  onDeleteSelected={stageEventHandlers.handleDeleteSelected || (() => {})}
+                  onToggleLock={stageEventHandlers.handleToggleLock || (() => {})}
+                  onCloseContextMenu={stageEventHandlers.hideContextMenu || (() => {})}
                 />
               )}
               {/* SelectionGroup for select2 - show transform handles when objects are selected and not selecting */}
-              {state.currentTool === 'select2' && stageEventHandlers && stageEventHandlers.select2State && (
+              {state.currentTool === 'select2' && stageEventHandlers && stageEventHandlers.selectionState && (
                 <SelectionGroup
-                  selectedObjects={stageEventHandlers.select2State.selectedObjects}
+                  selectedObjects={stageEventHandlers.selectionState.selectedObjects}
                   lines={state.lines}
                   images={state.images}
                   onUpdateLine={updateLine}
@@ -261,7 +266,7 @@ const KonvaStage: React.FC<KonvaStageProps> = ({
                     }
                   }}
                   currentTool={state.currentTool}
-                  isVisible={!stageEventHandlers.select2State.isSelecting}
+                  isVisible={!stageEventHandlers.selectionState.isSelecting}
                 />
               )}
             </>
