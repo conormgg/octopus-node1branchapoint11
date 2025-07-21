@@ -100,7 +100,12 @@ export const ToolDropdown: React.FC<ToolDropdownProps> = ({
             <ColorSelector
               selectedColor={color}
               colors={colors}
-              onColorChange={onColorChange}
+              onColorChange={(newColor) => {
+                if (!isReadOnly) {
+                  onToolSelect();
+                  onColorChange(newColor);
+                }
+              }}
               isReadOnly={isReadOnly}
             />
           </div>
