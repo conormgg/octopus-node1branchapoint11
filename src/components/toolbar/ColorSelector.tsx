@@ -15,7 +15,7 @@ export const ColorSelector: React.FC<ColorSelectorProps> = ({
   isReadOnly
 }) => {
   return (
-    <div className="flex space-x-2 justify-center">
+    <div className="flex space-x-2 justify-center" data-ui-interactive="true">
       {colors.map((color) => (
         <button
           key={color}
@@ -31,6 +31,8 @@ export const ColorSelector: React.FC<ColorSelectorProps> = ({
             }
           }}
           disabled={isReadOnly}
+          data-ui-interactive="true"
+          data-color-selector-button="true"
         />
       ))}
     </div>

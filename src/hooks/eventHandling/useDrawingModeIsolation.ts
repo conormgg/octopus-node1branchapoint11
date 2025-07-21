@@ -1,4 +1,3 @@
-
 import { useEffect, useRef } from 'react';
 
 interface UseDrawingModeIsolationProps {
@@ -37,12 +36,34 @@ export const useDrawingModeIsolation = ({
     };
 
     const isUIElement = (target: HTMLElement) => {
+      // Enhanced UI element detection with better dropdown and portal support
       return target.closest('[data-ui-interactive]') || 
              target.closest('button') || 
              target.closest('[role="button"]') ||
              target.closest('[role="dialog"]') ||
              target.closest('[role="menu"]') ||
-             target.closest('.interactive-element');
+             target.closest('[role="menuitem"]') ||
+             target.closest('[data-dropdown-content]') ||
+             target.closest('[data-color-selector-button]') ||
+             target.closest('[data-radix-dropdown-menu-content]') ||
+             target.closest('[data-radix-popover-content]') ||
+             target.closest('[data-radix-portal]') ||
+             target.closest('.radix-dropdown-menu-content') ||
+             target.closest('.radix-popover-content') ||
+             target.closest('.interactive-element') ||
+             target.closest('[data-state="open"]') ||
+             // Portal container detection
+             target.closest('body > div[data-radix-portal]') ||
+             target.closest('body > div[style*="z-index"]') ||
+             // Slider and input detection
+             target.closest('[role="slider"]') ||
+             target.closest('input') ||
+             target.closest('textarea') ||
+             target.closest('select') ||
+             // Additional dropdown patterns
+             target.getAttribute('data-ui-interactive') === 'true' ||
+             target.getAttribute('data-dropdown-content') === 'true' ||
+             target.getAttribute('data-color-selector-button') === 'true';
     };
 
     const preventLongPress = (e: TouchEvent) => {
@@ -129,7 +150,7 @@ export const useDrawingModeIsolation = ({
     const handleWindowPointer = (e: PointerEvent) => {
       const target = e.target as HTMLElement;
       
-      // Always allow UI interactions
+      // Always allow UI interactions - this is critical for stylus
       if (isUIElement(target)) {
         return;
       }
@@ -143,18 +164,30 @@ export const useDrawingModeIsolation = ({
         }
       }
       
-      // Special handling for stylus - prioritize drawing flow
+      // Refined stylus handling - less aggressive blocking for UI interactions
       if (e.pointerType === 'pen') {
         // During drawing sequence, allow stylus events within canvas
         if (isInDrawingSequence() && isWithinCanvas(target)) {
           return;
         }
         
-        // Block stylus events outside canvas more aggressively
-        if (!isWithinCanvas(target)) {
-          e.preventDefault();
-          e.stopPropagation();
-          e.stopImmediatePropagation();
+        // Only block stylus events on true background elements (not UI)
+        if (!isWithinCanvas(target) && !isUIElement(target)) {
+          // Check if this is a background element we should block
+          const isBackground = !target.closest('[data-ui-interactive]') && 
+                             !target.closest('button') && 
+                             !target.closest('[role="button"]') &&
+                             !target.closest('[data-dropdown-content]') &&
+                             !target.closest('[data-radix-dropdown-menu-content]') &&
+                             target.tagName !== 'BUTTON' &&
+                             target.tagName !== 'INPUT' &&
+                             target.tagName !== 'TEXTAREA';
+          
+          if (isBackground) {
+            e.preventDefault();
+            e.stopPropagation();
+            e.stopImmediatePropagation();
+          }
           return;
         }
       }

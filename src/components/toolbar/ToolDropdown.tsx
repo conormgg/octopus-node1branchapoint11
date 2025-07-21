@@ -42,13 +42,14 @@ export const ToolDropdown: React.FC<ToolDropdownProps> = ({
   portalContainer
 }) => {
   return (
-    <div className="relative flex">
+    <div className="relative flex" data-ui-interactive="true">
       <Button
         variant="ghost"
         size="icon"
         className={`h-8 w-6 rounded-r-none ${isActive ? 'bg-gray-700' : ''}`}
         onClick={() => !isReadOnly && onToolSelect()}
         disabled={isReadOnly}
+        data-ui-interactive="true"
       >
         {icon}
       </Button>
@@ -59,6 +60,7 @@ export const ToolDropdown: React.FC<ToolDropdownProps> = ({
             size="icon"
             className="h-8 w-4 rounded-l-none border-l border-gray-600 px-1"
             disabled={isReadOnly}
+            data-ui-interactive="true"
           >
             <ChevronDown className="h-3 w-3" />
           </Button>
@@ -71,10 +73,12 @@ export const ToolDropdown: React.FC<ToolDropdownProps> = ({
           avoidCollisions={true}
           style={{ zIndex: 9999 }}
           container={portalContainer}
+          data-ui-interactive="true"
+          data-dropdown-content="true"
         >
-          <div className="space-y-3">
+          <div className="space-y-3" data-ui-interactive="true">
             {/* Thickness slider */}
-            <div>
+            <div data-ui-interactive="true">
               <Slider
                 value={[strokeWidth]}
                 onValueChange={(value) => {
@@ -88,6 +92,7 @@ export const ToolDropdown: React.FC<ToolDropdownProps> = ({
                 step={strokeWidthStep}
                 className="w-full"
                 disabled={isReadOnly}
+                data-ui-interactive="true"
               />
             </div>
 
