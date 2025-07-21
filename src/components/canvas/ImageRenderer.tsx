@@ -115,6 +115,7 @@ const ImageRenderer: React.FC<ImageRendererProps> = React.memo(({
       {isSelected && (currentTool === 'select' || currentTool === 'select2') && !isLocked && (
         <Transformer
           ref={trRef}
+          listening={currentTool === 'select'}
           boundBoxFunc={(oldBox, newBox) => {
             if (newBox.width < 10 || newBox.height < 10) {
               return oldBox;

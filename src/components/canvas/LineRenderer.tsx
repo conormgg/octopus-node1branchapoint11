@@ -130,10 +130,11 @@ const LineRenderer: React.FC<LineRendererProps> = React.memo(({
         hitStrokeWidth={line.strokeWidth + 10}
       />
       
-      {/* Transformer for selected lines */}
+      {/* Transformer for selected lines - show for both select and select2 but make non-interactive for select2 */}
       {isSelected && (currentTool === 'select' || currentTool === 'select2') && (
         <Transformer
           ref={trRef}
+          listening={currentTool === 'select'}
           boundBoxFunc={(oldBox, newBox) => {
             if (newBox.width < 5 || newBox.height < 5) {
               return oldBox;
