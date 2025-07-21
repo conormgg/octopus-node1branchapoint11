@@ -48,10 +48,25 @@ export const usePointerEventHandlers = ({
    */
   const shouldUsePointerEvents = supportsPointerEvents;
 
-  // Get all pointer event handlers - need to pass the required dependencies
-  // For now, we'll need to create the handlers with the current interface
+  // Track the last event to prevent duplicates
+  let lastEventTime = 0;
+  let lastEventType = '';
+  
+  const isDuplicateEvent = (eventType: string, timestamp: number) => {
+    const timeDiff = timestamp - lastEventTime;
+    const isDupe = lastEventType === eventType && timeDiff < 10; // 10ms threshold
+    lastEventTime = timestamp;
+    lastEventType = eventType;
+    return isDupe;
+  };
+
+  // Get all pointer event handlers with deduplication
   const handlers = {
     handlePointerDownEvent: (e: PointerEvent) => {
+      if (isDuplicateEvent('pointerdown', e.timeStamp)) {
+        return;
+      }
+      
       logEventHandling('pointer', 'pointer', { type: 'down' });
       const rect = containerRef.current?.getBoundingClientRect();
       if (!rect) return;
@@ -60,6 +75,10 @@ export const usePointerEventHandlers = ({
       handlePointerDown(x, y);
     },
     handlePointerMoveEvent: (e: PointerEvent) => {
+      if (isDuplicateEvent('pointermove', e.timeStamp)) {
+        return;
+      }
+      
       const rect = containerRef.current?.getBoundingClientRect();
       if (!rect) return;
       const x = e.clientX - rect.left;
@@ -67,10 +86,18 @@ export const usePointerEventHandlers = ({
       handlePointerMove(x, y);
     },
     handlePointerUpEvent: (e: PointerEvent) => {
+      if (isDuplicateEvent('pointerup', e.timeStamp)) {
+        return;
+      }
+      
       logEventHandling('pointer', 'pointer', { type: 'up' });
       handlePointerUp();
     },
     handlePointerLeaveEvent: (e: PointerEvent) => {
+      if (isDuplicateEvent('pointerleave', e.timeStamp)) {
+        return;
+      }
+      
       handlePointerUp();
     },
     handleContextMenu: (e: Event) => {

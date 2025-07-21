@@ -10,8 +10,9 @@ export const useSelect2EventHandlers = (config: {
   images: ImageObject[];
   deleteSelectedObjects?: (objects: Array<{ id: string; type: 'line' | 'image' }>) => void;
   updateImageState?: (id: string, updates: Partial<ImageObject>) => void;
+  updateLineState?: (id: string, updates: Partial<LineObject>) => void;
 }) => {
-  const { lines, images, deleteSelectedObjects, updateImageState } = config;
+  const { lines, images, deleteSelectedObjects, updateImageState, updateLineState } = config;
   const {
     state,
     setState,
@@ -35,7 +36,7 @@ export const useSelect2EventHandlers = (config: {
     updateGroupBounds(lines, images);
   }, [updateGroupBounds, lines, images]);
 
-  // Handle mouse down
+  // Handle mouse down with lock validation
   const handleMouseDown = useCallback((e: KonvaEventObject<MouseEvent>) => {
     const stage = e.target.getStage();
     if (!stage) return;
@@ -55,6 +56,21 @@ export const useSelect2EventHandlers = (config: {
     // Check if clicking within existing selection bounds
     if (state.selectedObjects.length > 0 && isPointInGroupBounds(pos)) {
       console.log('Select2: Clicking within selection bounds, starting drag');
+      
+      // Check if any selected objects are locked before starting drag
+      const hasLockedObjects = state.selectedObjects.some(obj => {
+        if (obj.type === 'image') {
+          const image = images.find(img => img.id === obj.id);
+          return image?.locked === true;
+        }
+        return false; // Lines are never locked
+      });
+      
+      if (hasLockedObjects) {
+        console.log('Select2: Cannot drag selection - contains locked objects');
+        return;
+      }
+      
       // Start dragging selected objects
       startDraggingObjects(pos);
       return;
@@ -113,7 +129,7 @@ export const useSelect2EventHandlers = (config: {
     images
   ]);
 
-  // Handle mouse up
+  // Handle mouse up with proper update function calls
   const handleMouseUp = useCallback((e: KonvaEventObject<MouseEvent>) => {
     console.log('Select2: Mouse up, isDraggingObjects:', state.isDraggingObjects, 'isSelecting:', state.isSelecting);
     
@@ -124,20 +140,23 @@ export const useSelect2EventHandlers = (config: {
         state.selectedObjects.forEach(obj => {
           if (obj.type === 'line') {
             const line = lines.find(l => l.id === obj.id);
-            if (line && state.dragOffset) {
-              // Update line position - this would need to be connected to the actual update function
-              console.log('Update line position:', line.id, {
+            if (line && state.dragOffset && updateLineState) {
+              const newPosition = {
                 x: line.x + state.dragOffset.x,
                 y: line.y + state.dragOffset.y
-              });
+              };
+              console.log('Update line position:', line.id, newPosition);
+              updateLineState(line.id, newPosition);
             }
           } else if (obj.type === 'image') {
             const image = images.find(i => i.id === obj.id);
-            if (image && state.dragOffset && updateImageState) {
-              updateImageState(image.id, {
+            if (image && state.dragOffset && updateImageState && !image.locked) {
+              const newPosition = {
                 x: image.x + state.dragOffset.x,
                 y: image.y + state.dragOffset.y
-              });
+              };
+              console.log('Update image position:', image.id, newPosition);
+              updateImageState(image.id, newPosition);
             }
           }
         });
@@ -155,6 +174,7 @@ export const useSelect2EventHandlers = (config: {
     endObjectDragging,
     endDragSelection,
     updateImageState,
+    updateLineState,
     lines,
     images
   ]);

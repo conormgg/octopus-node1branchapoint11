@@ -85,7 +85,9 @@ export const useStageEventHandlers = ({
     hasDeleteNoParams: !!onDeleteObjectsNoParams,
     deleteFunction: onDeleteObjects ? 'provided' : 'none',
     deleteNoParamsFunction: onDeleteObjectsNoParams ? 'provided' : 'none',
-    hasMainSelection: !!mainSelection
+    hasMainSelection: !!mainSelection,
+    hasUpdateLine: !!onUpdateLine,
+    hasUpdateImage: !!onUpdateImage
   });
 
   // Select2 event handlers with update functions, delete function, and main selection integration
@@ -94,7 +96,8 @@ export const useStageEventHandlers = ({
     lines,
     images,
     deleteSelectedObjects: onDeleteObjects,
-    updateImageState: onUpdateImage
+    updateImageState: onUpdateImage,
+    updateLineState: onUpdateLine
   });
 
   // Update current tool ref when currentTool prop changes

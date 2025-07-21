@@ -87,23 +87,11 @@ export const useSelect2State = () => {
     setState(prev => {
       const newGroupBounds = calculateGroupBounds(prev.selectedObjects, lines, images);
       
-      // Auto-show context menu if objects are selected
-      const shouldShowContextMenu = prev.selectedObjects.length > 0 && !!newGroupBounds;
-      let contextMenuPosition = null;
-      
-      if (shouldShowContextMenu && newGroupBounds) {
-        // Position context menu at top-right of selection bounds
-        contextMenuPosition = {
-          x: newGroupBounds.x + newGroupBounds.width + 10,
-          y: newGroupBounds.y - 10
-        };
-      }
-      
       return {
         ...prev,
         groupBounds: newGroupBounds,
-        contextMenuVisible: shouldShowContextMenu,
-        contextMenuPosition
+        contextMenuVisible: false, // Don't auto-show context menu
+        contextMenuPosition: null
       };
     });
   }, [calculateGroupBounds]);
@@ -215,11 +203,8 @@ export const useSelect2State = () => {
         isSelecting: false,
         dragStartPoint: null,
         selectionBounds: null,
-        contextMenuVisible: intersectingObjects.length > 0 && !!newGroupBounds,
-        contextMenuPosition: newGroupBounds ? {
-          x: newGroupBounds.x + newGroupBounds.width + 10,
-          y: newGroupBounds.y - 10
-        } : null
+        contextMenuVisible: false,
+        contextMenuPosition: null
       };
     });
   }, [objectIntersectsSelectionBounds, calculateGroupBounds]);
@@ -237,17 +222,19 @@ export const useSelect2State = () => {
     }));
   }, []);
 
-  // Update object dragging
+  // Update object dragging with proper offset calculation
   const updateObjectDragging = useCallback((currentPoint: { x: number; y: number }) => {
     setState(prev => {
       if (!prev.dragStartPoint || !prev.isDraggingObjects) return prev;
 
+      const newOffset = {
+        x: currentPoint.x - prev.dragStartPoint.x,
+        y: currentPoint.y - prev.dragStartPoint.y
+      };
+
       return {
         ...prev,
-        dragOffset: {
-          x: currentPoint.x - prev.dragStartPoint.x,
-          y: currentPoint.y - prev.dragStartPoint.y
-        }
+        dragOffset: newOffset
       };
     });
   }, []);
@@ -357,11 +344,8 @@ export const useSelect2State = () => {
         ...prev,
         selectedObjects: newSelection,
         groupBounds: newGroupBounds,
-        contextMenuVisible: newSelection.length > 0 && !!newGroupBounds,
-        contextMenuPosition: newGroupBounds ? {
-          x: newGroupBounds.x + newGroupBounds.width + 10,
-          y: newGroupBounds.y - 10
-        } : null
+        contextMenuVisible: false,
+        contextMenuPosition: null
       };
     });
   }, [createObjectsAtPoint, calculateGroupBounds]);
