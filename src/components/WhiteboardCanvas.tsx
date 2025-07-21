@@ -28,11 +28,17 @@ const WhiteboardCanvas: React.FC<WhiteboardCanvasProps> = ({
   palmRejectionConfig
 }) => {
   return (
-    <div className="relative w-full h-full bg-white rounded-lg overflow-hidden select-none" style={{ 
-      WebkitUserSelect: 'none',
-      WebkitTouchCallout: 'none',
-      touchAction: 'none'
-    }}>
+    <div 
+      className="relative w-full h-full bg-white rounded-lg overflow-hidden select-none touch-none" 
+      style={{ 
+        WebkitUserSelect: 'none',
+        WebkitTouchCallout: 'none',
+        touchAction: 'none',
+        userSelect: 'none',
+        pointerEvents: 'auto'
+      }}
+      data-whiteboard-canvas="true"
+    >
       <KonvaStage
         width={width}
         height={height}
@@ -44,7 +50,7 @@ const WhiteboardCanvas: React.FC<WhiteboardCanvasProps> = ({
       
       {/* Zoom indicator */}
       {whiteboardState.state.panZoomState.scale !== 1 && (
-        <div className="absolute bottom-4 right-4 bg-black/70 text-white px-3 py-1 rounded-lg text-sm">
+        <div className="absolute bottom-4 right-4 bg-black/70 text-white px-3 py-1 rounded-lg text-sm pointer-events-none select-none">
           {Math.round(whiteboardState.state.panZoomState.scale * 100)}%
         </div>
       )}

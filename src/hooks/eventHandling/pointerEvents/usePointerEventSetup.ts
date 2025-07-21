@@ -30,29 +30,69 @@ export const usePointerEventSetup = ({
       handleContextMenu
     } = handlers;
 
+    // Enhanced event listener options for better touch isolation
+    const eventOptions = { passive: false, capture: true };
+
     if (shouldUsePointerEvents) {
-      container.addEventListener('pointerdown', handlePointerDownEvent);
-      container.addEventListener('pointermove', handlePointerMoveEvent);
-      container.addEventListener('pointerup', handlePointerUpEvent);
-      container.addEventListener('pointerleave', handlePointerLeaveEvent);
-      container.addEventListener('pointercancel', handlePointerUpEvent);
+      container.addEventListener('pointerdown', handlePointerDownEvent, eventOptions);
+      container.addEventListener('pointermove', handlePointerMoveEvent, eventOptions);
+      container.addEventListener('pointerup', handlePointerUpEvent, eventOptions);
+      container.addEventListener('pointerleave', handlePointerLeaveEvent, eventOptions);
+      container.addEventListener('pointercancel', handlePointerUpEvent, eventOptions);
+      
+      // Add touch event listeners with aggressive prevention
+      container.addEventListener('touchstart', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+      }, eventOptions);
+      
+      container.addEventListener('touchmove', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+      }, eventOptions);
+      
+      container.addEventListener('touchend', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+      }, eventOptions);
     }
     
-    container.addEventListener('contextmenu', handleContextMenu);
+    container.addEventListener('contextmenu', handleContextMenu, eventOptions);
 
-    // Always set touch-action to none when using pointer events for better control
+    // Always set comprehensive touch-action and user-select prevention
     container.style.touchAction = shouldUsePointerEvents ? 'none' : 'manipulation';
+    container.style.webkitUserSelect = 'none';
+    container.style.userSelect = 'none';
+    container.style.webkitTouchCallout = 'none';
 
     return () => {
       if (shouldUsePointerEvents) {
-        container.removeEventListener('pointerdown', handlePointerDownEvent);
-        container.removeEventListener('pointermove', handlePointerMoveEvent);
-        container.removeEventListener('pointerup', handlePointerUpEvent);
-        container.removeEventListener('pointerleave', handlePointerLeaveEvent);
-        container.removeEventListener('pointercancel', handlePointerUpEvent);
+        container.removeEventListener('pointerdown', handlePointerDownEvent, eventOptions);
+        container.removeEventListener('pointermove', handlePointerMoveEvent, eventOptions);
+        container.removeEventListener('pointerup', handlePointerUpEvent, eventOptions);
+        container.removeEventListener('pointerleave', handlePointerLeaveEvent, eventOptions);
+        container.removeEventListener('pointercancel', handlePointerUpEvent, eventOptions);
+        
+        container.removeEventListener('touchstart', (e) => {
+          e.preventDefault();
+          e.stopPropagation();
+        }, eventOptions);
+        
+        container.removeEventListener('touchmove', (e) => {
+          e.preventDefault();
+          e.stopPropagation();
+        }, eventOptions);
+        
+        container.removeEventListener('touchend', (e) => {
+          e.preventDefault();
+          e.stopPropagation();
+        }, eventOptions);
       }
-      container.removeEventListener('contextmenu', handleContextMenu);
+      container.removeEventListener('contextmenu', handleContextMenu, eventOptions);
       container.style.touchAction = '';
+      container.style.webkitUserSelect = '';
+      container.style.userSelect = '';
+      container.style.webkitTouchCallout = '';
     };
   }, [containerRef, shouldUsePointerEvents, handlers]);
 };

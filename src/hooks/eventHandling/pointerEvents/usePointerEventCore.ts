@@ -6,6 +6,7 @@ import { useStageCoordinates } from '../../useStageCoordinates';
 import { PanZoomState } from '@/types/whiteboard';
 import { useMemoizedEventHandlers } from '@/hooks/performance/useMemoizedEventHandlers';
 import { useTouchToSelectionBridge } from '../useTouchToSelectionBridge';
+import { useDrawingModeIsolation } from '../useDrawingModeIsolation';
 import { createDebugLogger } from '@/utils/debug/debugConfig';
 
 const debugLog = createDebugLogger('touchEvents');
@@ -49,6 +50,18 @@ export const usePointerEventCore = ({
   const stablePalmRejectionEnabled = useMemo(() => palmRejectionConfig.enabled, [palmRejectionConfig.enabled]);
   const stableIsReadOnly = useMemo(() => isReadOnly, [isReadOnly]);
 
+  // Track drawing state for isolation
+  const isDrawing = useMemo(() => {
+    const stage = stageRef.current;
+    return stage?.getAttr('isDrawing') === true;
+  }, [stageRef]);
+
+  // Use drawing mode isolation to prevent UI interference
+  useDrawingModeIsolation({
+    isDrawing,
+    currentTool: currentToolRef.current || 'pencil'
+  });
+
   // Touch-to-Selection Bridge for single-finger selection
   const touchToSelectionBridge = useTouchToSelectionBridge({
     panZoomState,
@@ -77,15 +90,22 @@ export const usePointerEventCore = ({
           isSelectTool: currentToolRef.current === 'select'
         });
 
+        // Aggressively prevent default and stop propagation for touch isolation
+        e.preventDefault();
+        e.stopPropagation();
+        e.stopImmediatePropagation();
+
         logEventHandling('pointerdown', 'pointer', { pointerId: e.pointerId, pointerType: e.pointerType });
         
         // Handle right-click pan - works for everyone, including read-only users
         if (e.button === 2) {
           debugLog('PointerEventCore', 'Right-click pan detected');
-          e.preventDefault();
           panZoom.startPan(e.clientX, e.clientY);
           return;
         }
+        
+        // Set drawing state for isolation
+        stage.setAttr('isDrawing', true);
         
         // For touch pointers, check if we should bridge to selection
         if (e.pointerType === 'touch') {
@@ -116,15 +136,9 @@ export const usePointerEventCore = ({
             debugLog('PointerEventCore', 'Bridge attempt result', { bridged });
             
             if (bridged) {
-              e.preventDefault();
               return;
             }
           }
-        }
-        
-        // Don't prevent default for select tool - let Konva handle dragging
-        if (currentToolRef.current !== 'select') {
-          e.preventDefault();
         }
         
         // Only proceed with drawing if not in read-only mode
@@ -151,11 +165,15 @@ export const usePointerEventCore = ({
         const stage = stageRef.current;
         if (!stage) return;
 
+        // Aggressively prevent default and stop propagation for touch isolation
+        e.preventDefault();
+        e.stopPropagation();
+        e.stopImmediatePropagation();
+
         logEventHandling('pointermove', 'pointer', { pointerId: e.pointerId, pointerType: e.pointerType });
         
         // Handle right-click pan - works for everyone, including read-only users
         if (e.buttons === 2) {
-          e.preventDefault();
           panZoom.continuePan(e.clientX, e.clientY);
           return;
         }
@@ -175,15 +193,9 @@ export const usePointerEventCore = ({
             
             const bridged = touchToSelectionBridge.bridgeTouchToSelection(mockTouchEvent, 'move');
             if (bridged) {
-              e.preventDefault();
               return;
             }
           }
-        }
-        
-        // Don't prevent default for select tool - let Konva handle dragging
-        if (currentToolRef.current !== 'select') {
-          e.preventDefault();
         }
         
         // Only proceed with drawing if not in read-only mode
@@ -200,6 +212,12 @@ export const usePointerEventCore = ({
 
     handlePointerUpEvent: {
       handler: (e: PointerEvent) => {
+        const stage = stageRef.current;
+        if (stage) {
+          // Clear drawing state
+          stage.setAttr('isDrawing', false);
+        }
+
         debugLog('PointerEventCore', 'Pointer up received', {
           pointerId: e.pointerId,
           pointerType: e.pointerType,
@@ -209,12 +227,16 @@ export const usePointerEventCore = ({
           isSelectTool: currentToolRef.current === 'select'
         });
 
+        // Aggressively prevent default and stop propagation for touch isolation
+        e.preventDefault();
+        e.stopPropagation();
+        e.stopImmediatePropagation();
+
         logEventHandling('pointerup', 'pointer', { pointerId: e.pointerId, pointerType: e.pointerType });
         
         // Handle right-click pan end - works for everyone, including read-only users
         if (e.button === 2) {
           debugLog('PointerEventCore', 'Right-click pan end');
-          e.preventDefault();
           panZoom.stopPan();
           return;
         }
@@ -246,15 +268,9 @@ export const usePointerEventCore = ({
             debugLog('PointerEventCore', 'Bridge up result', { bridged });
             
             if (bridged) {
-              e.preventDefault();
               return;
             }
           }
-        }
-        
-        // Don't prevent default for select tool - let Konva handle dragging
-        if (currentToolRef.current !== 'select') {
-          e.preventDefault();
         }
         
         // Always clean up palm rejection state
@@ -271,6 +287,12 @@ export const usePointerEventCore = ({
 
     handlePointerLeaveEvent: {
       handler: (e: PointerEvent) => {
+        const stage = stageRef.current;
+        if (stage) {
+          // Clear drawing state
+          stage.setAttr('isDrawing', false);
+        }
+
         debugLog('PointerEventCore', 'Pointer leave', {
           pointerId: e.pointerId,
           pointerType: e.pointerType
@@ -293,6 +315,8 @@ export const usePointerEventCore = ({
     handleContextMenu: {
       handler: (e: Event) => {
         e.preventDefault(); // Prevent context menu on right-click
+        e.stopPropagation();
+        e.stopImmediatePropagation();
       },
       deps: []
     }
