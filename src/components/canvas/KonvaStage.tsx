@@ -10,6 +10,7 @@ import KonvaStageCanvas from './KonvaStageCanvas';
 import KonvaImageContextMenuHandler from './KonvaImageContextMenuHandler';
 import KonvaImageOperationsHandler from './KonvaImageOperationsHandler';
 import { Select2Renderer } from './Select2Renderer';
+import Select2ContextMenuOverlay from './Select2ContextMenuOverlay';
 import SelectionGroup from './SelectionGroup';
 import { createDebugLogger } from '@/utils/debug/debugConfig';
 
@@ -168,6 +169,15 @@ const KonvaStage: React.FC<KonvaStageProps> = ({
     } : undefined
   });
 
+  // Calculate lock states for context menu
+  const selectedImages = stageEventHandlers?.selectionState?.selectedObjects
+    ?.filter(obj => obj.type === 'image')
+    .map(obj => state.images.find(img => img.id === obj.id))
+    .filter(Boolean) || [];
+
+  const hasLockedImages = selectedImages.some(img => img?.locked);
+  const hasUnlockedImages = selectedImages.some(img => !img?.locked);
+
   return (
     <div 
       ref={containerRef} 
@@ -241,11 +251,11 @@ const KonvaStage: React.FC<KonvaStageProps> = ({
                   images={state.images}
                   dragOffset={stageEventHandlers.selectionState?.dragOffset || null}
                   isDraggingObjects={stageEventHandlers.selectionState?.isDraggingObjects || false}
-                  contextMenuVisible={stageEventHandlers.selectionState?.contextMenuVisible || false}
-                  contextMenuPosition={stageEventHandlers.selectionState?.contextMenuPosition || null}
-                  onDeleteSelected={stageEventHandlers.handleDeleteSelected || (() => {})}
-                  onToggleLock={stageEventHandlers.handleToggleLock || (() => {})}
-                  onCloseContextMenu={stageEventHandlers.hideContextMenu || (() => {})}
+                  contextMenuVisible={false}
+                  contextMenuPosition={null}
+                  onDeleteSelected={() => {}}
+                  onToggleLock={() => {}}
+                  onCloseContextMenu={() => {}}
                 />
               )}
               {/* SelectionGroup for select2 - show transform handles when objects are selected and not selecting */}
@@ -273,6 +283,23 @@ const KonvaStage: React.FC<KonvaStageProps> = ({
           }
         />
       </KonvaImageContextMenuHandler>
+      
+      {/* Context menu overlay - rendered outside the canvas */}
+      {state.currentTool === 'select2' && stageEventHandlers && (
+        <Select2ContextMenuOverlay
+          containerRef={containerRef}
+          stageRef={stageRef}
+          contextMenuVisible={stageEventHandlers.selectionState?.contextMenuVisible || false}
+          contextMenuPosition={stageEventHandlers.selectionState?.contextMenuPosition || null}
+          selectedObjects={stageEventHandlers.selectionState?.selectedObjects || []}
+          onDeleteSelected={stageEventHandlers.handleDeleteSelected || (() => {})}
+          onToggleLock={stageEventHandlers.handleToggleLock || (() => {})}
+          onCloseContextMenu={stageEventHandlers.hideContextMenu || (() => {})}
+          hasLockedImages={hasLockedImages}
+          hasUnlockedImages={hasUnlockedImages}
+          panZoomState={state.panZoomState}
+        />
+      )}
     </div>
   );
 };

@@ -1,8 +1,8 @@
+
 import React from 'react';
 import { Rect, Line, Image } from 'react-konva';
 import { SelectionBounds, SelectedObject, LineObject, ImageObject } from '@/types/whiteboard';
 import SelectionRect from './SelectionRect';
-import SelectionContextMenu from './SelectionContextMenu';
 
 interface Select2RendererProps {
   selectedObjects: SelectedObject[];
@@ -74,15 +74,6 @@ export const Select2Renderer: React.FC<Select2RendererProps> = ({
     }
     return null;
   };
-
-  // Determine lock states for context menu
-  const selectedImages = selectedObjects
-    .filter(obj => obj.type === 'image')
-    .map(obj => images.find(img => img.id === obj.id))
-    .filter(Boolean);
-
-  const hasLockedImages = selectedImages.some(img => img?.locked);
-  const hasUnlockedImages = selectedImages.some(img => !img?.locked);
 
   // Render preview objects during dragging
   const renderPreviewObjects = () => {
@@ -194,20 +185,6 @@ export const Select2Renderer: React.FC<Select2RendererProps> = ({
 
       {/* Preview objects during dragging */}
       {renderPreviewObjects()}
-
-      {/* Context Menu */}
-      {contextMenuVisible && contextMenuPosition && selectedObjects.length > 0 && (
-        <SelectionContextMenu
-          x={contextMenuPosition.x}
-          y={contextMenuPosition.y}
-          selectedObjects={selectedObjects}
-          onDelete={onDeleteSelected}
-          onToggleLock={onToggleLock}
-          onClose={onCloseContextMenu}
-          hasLockedImages={hasLockedImages}
-          hasUnlockedImages={hasUnlockedImages}
-        />
-      )}
     </>
   );
 };
