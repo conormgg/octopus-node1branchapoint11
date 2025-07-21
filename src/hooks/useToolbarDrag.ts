@@ -24,8 +24,16 @@ export const useToolbarDrag = ({
     return externalPortalContainer?.ownerDocument || document;
   }, [externalPortalContainer]);
 
-  const handleMouseDown = useCallback((e: React.MouseEvent) => {
+  const handlePointerDown = useCallback((e: React.PointerEvent) => {
     if (e.button !== 0 || !toolbarRef.current) return; // Only act on left-click
+    
+    // Allow stylus and touch inputs to pass through for color selectors
+    if (e.pointerType === 'pen' || e.pointerType === 'touch') {
+      const target = e.target as HTMLElement;
+      if (target.closest('[data-color-selector-button]')) {
+        return;
+      }
+    }
 
     e.preventDefault();
     e.stopPropagation();
@@ -39,12 +47,12 @@ export const useToolbarDrag = ({
       
     setDragOffset({ x: offsetX, y: offsetY });
     setIsDragging(true);
-  }, []); // Empty deps because it only uses stable setters and refs
+  }, []);
 
   useEffect(() => {
     if (!isDragging) return;
 
-    const handleMouseMove = (e: MouseEvent) => {
+    const handlePointerMove = (e: PointerEvent) => {
       if (!toolbarRef.current) return;
       e.preventDefault();
       
@@ -77,18 +85,18 @@ export const useToolbarDrag = ({
       setPosition({ x: newX, y: newY });
     };
 
-    const handleMouseUp = (e: MouseEvent) => {
+    const handlePointerUp = (e: PointerEvent) => {
       e.preventDefault();
       setIsDragging(false);
     };
 
     // Attach listeners to the correct document (main window or pop-up)
-    targetDocument.addEventListener('mousemove', handleMouseMove);
-    targetDocument.addEventListener('mouseup', handleMouseUp);
+    targetDocument.addEventListener('pointermove', handlePointerMove);
+    targetDocument.addEventListener('pointerup', handlePointerUp);
     
     return () => {
-      targetDocument.removeEventListener('mousemove', handleMouseMove);
-      targetDocument.removeEventListener('mouseup', handleMouseUp);
+      targetDocument.removeEventListener('pointermove', handlePointerMove);
+      targetDocument.removeEventListener('pointerup', handlePointerUp);
     };
   }, [isDragging, dragOffset, targetDocument, externalPortalContainer, containerWidth, containerHeight]);
 
@@ -96,6 +104,6 @@ export const useToolbarDrag = ({
     position,
     isDragging,
     toolbarRef,
-    handleMouseDown
+    handlePointerDown
   };
 };

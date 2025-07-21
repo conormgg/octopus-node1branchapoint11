@@ -48,7 +48,7 @@ const MovableToolbar: React.FC<MovableToolbarProps> = ({
   containerHeight = 0,
   portalContainer
 }) => {
-  const { position, isDragging, toolbarRef, handleMouseDown } = useToolbarDrag({
+  const { position, isDragging, toolbarRef, handlePointerDown } = useToolbarDrag({
     containerWidth,
     containerHeight,
     externalPortalContainer: portalContainer
@@ -81,9 +81,9 @@ const MovableToolbar: React.FC<MovableToolbarProps> = ({
     >
       <div
         className="p-2 flex items-center justify-between"
-        onMouseDown={handleMouseDown}
+        onPointerDown={handlePointerDown}
       >
-        <div className="flex space-x-1" onMouseDown={(e) => e.stopPropagation()}>
+        <div className="flex space-x-1" onPointerDown={(e) => e.stopPropagation()}>
           {/* Pen tool with dropdown */}
           <ToolDropdown
             icon={<Pen className="h-4 w-4" />}
