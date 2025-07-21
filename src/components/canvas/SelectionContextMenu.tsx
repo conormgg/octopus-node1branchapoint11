@@ -3,12 +3,15 @@ import React from 'react';
 import { Button } from '@/components/ui/button';
 import { Trash2, Lock, Unlock } from 'lucide-react';
 import { SelectionBounds, SelectedObject } from '@/types/whiteboard';
+import { createDebugLogger } from '@/utils/debug/debugConfig';
+
+const debugLog = createDebugLogger('contextMenu');
 
 interface SelectionContextMenuProps {
   selectedObjects: SelectedObject[];
   groupBounds: SelectionBounds | null;
   onDelete: () => void;
-  onToggleLock?: (imageIds: string[], lock: boolean) => void;
+  onToggleLock?: (imageIds: string[]) => void;
   isVisible: boolean;
   images?: Array<{ id: string; locked?: boolean }>;
 }
@@ -21,14 +24,22 @@ export const SelectionContextMenu: React.FC<SelectionContextMenuProps> = ({
   isVisible,
   images = []
 }) => {
+  debugLog('SelectionContextMenu', 'Render', {
+    selectedCount: selectedObjects.length,
+    hasGroupBounds: !!groupBounds,
+    isVisible,
+    groupBounds
+  });
+
   if (!isVisible || !groupBounds || selectedObjects.length === 0) {
+    debugLog('SelectionContextMenu', 'Not rendering - missing requirements', {
+      isVisible,
+      hasGroupBounds: !!groupBounds,
+      selectedCount: selectedObjects.length
+    });
     return null;
   }
 
-  // Calculate menu position - position above the selection bounds with some padding
-  const menuX = groupBounds.x + groupBounds.width / 2;
-  const menuY = groupBounds.y - 60; // 60px above the selection
-  
   // Check if any selected objects are images and get their lock status
   const selectedImages = selectedObjects
     .filter(obj => obj.type === 'image')
@@ -43,25 +54,29 @@ export const SelectionContextMenu: React.FC<SelectionContextMenuProps> = ({
     if (!onToggleLock || !hasImages) return;
     
     const imageIds = selectedImages.map(img => img!.id);
-    // If all are locked, unlock them. If none or some are locked, lock all
-    const shouldLock = !allImagesLocked;
-    onToggleLock(imageIds, shouldLock);
+    debugLog('SelectionContextMenu', 'Toggle lock called', { imageIds });
+    onToggleLock(imageIds);
   };
 
+  const handleDelete = () => {
+    debugLog('SelectionContextMenu', 'Delete called', { selectedObjects });
+    onDelete();
+  };
+
+  debugLog('SelectionContextMenu', 'Rendering context menu', {
+    selectedCount: selectedObjects.length,
+    hasImages,
+    allImagesLocked,
+    someImagesLocked
+  });
+
   return (
-    <div
-      className="absolute z-50 flex items-center gap-1 bg-background border border-border rounded-lg shadow-lg p-1"
-      style={{
-        left: menuX,
-        top: menuY,
-        transform: 'translateX(-50%)', // Center horizontally
-      }}
-    >
+    <div className="flex items-center gap-1 bg-background border border-border rounded-lg shadow-lg p-1">
       {/* Delete Button */}
       <Button
         variant="ghost"
         size="sm"
-        onClick={onDelete}
+        onClick={handleDelete}
         className="flex items-center gap-2 text-destructive hover:text-destructive hover:bg-destructive/10 min-h-[40px] px-3"
         title={`Delete ${selectedObjects.length} object${selectedObjects.length === 1 ? '' : 's'}`}
       >

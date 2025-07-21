@@ -1,3 +1,4 @@
+
 import React, { useRef, useEffect } from 'react';
 import Konva from 'konva';
 import { useWhiteboardState } from '@/hooks/useWhiteboardState';
@@ -14,7 +15,7 @@ import { SelectionContextMenu } from './SelectionContextMenu';
 import SelectionGroup from './SelectionGroup';
 import { createDebugLogger } from '@/utils/debug/debugConfig';
 
-const debugLog = createDebugLogger('toolSync');
+const debugLog = createDebugLogger('contextMenu');
 
 interface KonvaStageProps {
   width: number;
@@ -171,36 +172,61 @@ const KonvaStage: React.FC<KonvaStageProps> = ({
 
   // Calculate context menu position relative to the container
   const getContextMenuPosition = (groupBounds: any) => {
-    if (!groupBounds || !containerRef.current) return { x: 0, y: 0 };
+    if (!groupBounds || !containerRef.current || !stageRef.current) {
+      debugLog('KonvaStage', 'Missing refs for context menu positioning', {
+        hasGroupBounds: !!groupBounds,
+        hasContainer: !!containerRef.current,
+        hasStage: !!stageRef.current
+      });
+      return { x: 0, y: 0 };
+    }
     
     const container = containerRef.current;
-    const rect = container.getBoundingClientRect();
     const stage = stageRef.current;
     
-    if (!stage) return { x: 0, y: 0 };
+    // Get stage transform for coordinate conversion
+    const stageTransform = stage.getAbsoluteTransform();
     
-    // Convert world coordinates to screen coordinates
-    const transform = stage.getAbsoluteTransform();
-    const screenPoint = transform.point({
+    // Calculate center of selection in world coordinates
+    const selectionCenterWorld = {
       x: groupBounds.x + groupBounds.width / 2,
-      y: groupBounds.y - 60 // 60px above the selection
+      y: groupBounds.y - 60 // 60px above selection
+    };
+    
+    // Transform world coordinates to screen coordinates
+    const screenPoint = stageTransform.point(selectionCenterWorld);
+    
+    // Get container bounds for boundary checking
+    const containerRect = container.getBoundingClientRect();
+    
+    // Calculate final position, ensuring it stays within container
+    const finalPosition = {
+      x: Math.max(10, Math.min(screenPoint.x, containerRect.width - 200)), // Keep menu within bounds
+      y: Math.max(10, screenPoint.y) // Don't go above container
+    };
+    
+    debugLog('KonvaStage', 'Context menu position calculation', {
+      groupBounds,
+      selectionCenterWorld,
+      screenPoint,
+      containerWidth: containerRect.width,
+      finalPosition
     });
     
-    return {
-      x: screenPoint.x,
-      y: Math.max(screenPoint.y, 10) // Ensure it doesn't go above the container
-    };
+    return finalPosition;
   };
 
   // Handle delete for select2
   const handleSelect2Delete = () => {
+    debugLog('KonvaStage', 'Handle select2 delete called');
     if (stageEventHandlers && stageEventHandlers.select2State && stageEventHandlers.deleteSelectedObjects) {
       stageEventHandlers.deleteSelectedObjects();
     }
   };
 
   // Handle image lock toggle for select2
-  const handleSelect2ToggleLock = (imageIds: string[], lock: boolean) => {
+  const handleSelect2ToggleLock = (imageIds: string[]) => {
+    debugLog('KonvaStage', 'Handle select2 toggle lock called', { imageIds });
     if ('toggleImageLock' in whiteboardState && whiteboardState.toggleImageLock) {
       imageIds.forEach(imageId => {
         whiteboardState.toggleImageLock(imageId);
@@ -263,6 +289,11 @@ const KonvaStage: React.FC<KonvaStageProps> = ({
           }}
           normalizedState={normalizedState}
           select2MouseHandlers={state.currentTool === 'select2' && stageEventHandlers ? stageEventHandlers.select2MouseHandlers : undefined}
+          select2TouchHandlers={state.currentTool === 'select2' && stageEventHandlers ? {
+            onTouchStart: stageEventHandlers.select2TouchHandlers?.onTouchStart || (() => {}),
+            onTouchMove: stageEventHandlers.select2TouchHandlers?.onTouchMove || (() => {}),
+            onTouchEnd: stageEventHandlers.select2TouchHandlers?.onTouchEnd || (() => {})
+          } : undefined}
           extraContent={
             <>
               <KonvaImageOperationsHandler
@@ -314,6 +345,14 @@ const KonvaStage: React.FC<KonvaStageProps> = ({
         (() => {
           const { selectedObjects, groupBounds, isDraggingObjects, isSelecting } = stageEventHandlers.select2State;
           const isVisible = selectedObjects.length > 0 && !isDraggingObjects && !isSelecting;
+          
+          debugLog('KonvaStage', 'Context menu visibility check', {
+            selectedCount: selectedObjects.length,
+            hasGroupBounds: !!groupBounds,
+            isDraggingObjects,
+            isSelecting,
+            isVisible
+          });
           
           if (!isVisible || !groupBounds) return null;
           
