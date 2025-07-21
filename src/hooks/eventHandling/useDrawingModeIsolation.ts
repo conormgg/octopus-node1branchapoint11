@@ -11,6 +11,8 @@ export const useDrawingModeIsolation = ({
   currentTool
 }: UseDrawingModeIsolationProps) => {
   const blockingActiveRef = useRef(false);
+  const drawingSequenceRef = useRef<number>(0);
+  const DRAWING_SEQUENCE_GRACE_PERIOD = 100; // ms
 
   useEffect(() => {
     const shouldBlock = isDrawing && (currentTool === 'pencil' || currentTool === 'highlighter' || currentTool === 'eraser');
@@ -18,83 +20,100 @@ export const useDrawingModeIsolation = ({
     if (shouldBlock === blockingActiveRef.current) return;
     blockingActiveRef.current = shouldBlock;
 
+    // Set drawing sequence timestamp
+    if (shouldBlock) {
+      drawingSequenceRef.current = Date.now();
+    }
+
+    const isInDrawingSequence = () => {
+      return Date.now() - drawingSequenceRef.current < DRAWING_SEQUENCE_GRACE_PERIOD;
+    };
+
+    const isWithinCanvas = (target: HTMLElement) => {
+      const canvasArea = document.querySelector('[data-whiteboard-canvas]');
+      return canvasArea && canvasArea.contains(target);
+    };
+
+    const isUIElement = (target: HTMLElement) => {
+      return target.closest('[data-ui-interactive]') || 
+             target.closest('button') || 
+             target.closest('[role="button"]') ||
+             target.closest('[role="dialog"]') ||
+             target.closest('[role="menu"]') ||
+             target.closest('.interactive-element');
+    };
+
     const handleWindowTouch = (e: TouchEvent) => {
-      if (shouldBlock) {
-        const target = e.target as HTMLElement;
-        const whiteboardUI = document.querySelector('[data-whiteboard-ui]');
-        
-        // Only prevent events that are completely outside the whiteboard UI
-        if (whiteboardUI && !whiteboardUI.contains(target)) {
-          // Check if target is a legitimate UI element that should be interactive
-          const isUIElement = target.closest('[data-ui-interactive]') || 
-                             target.closest('button') || 
-                             target.closest('[role="button"]') ||
-                             target.closest('[role="dialog"]') ||
-                             target.closest('[role="menu"]');
-          
-          if (!isUIElement) {
-            e.preventDefault();
-            e.stopPropagation();
-          }
-        }
+      const target = e.target as HTMLElement;
+      
+      // Always allow UI interactions
+      if (isUIElement(target)) {
+        return;
+      }
+      
+      // During drawing sequence, be less aggressive within canvas
+      if (isInDrawingSequence() && isWithinCanvas(target)) {
+        return;
+      }
+      
+      // Block background interactions during drawing
+      if (shouldBlock && !isWithinCanvas(target)) {
+        e.preventDefault();
+        e.stopPropagation();
       }
     };
 
     const handleWindowPointer = (e: PointerEvent) => {
-      if (shouldBlock) {
-        const target = e.target as HTMLElement;
-        const whiteboardUI = document.querySelector('[data-whiteboard-ui]');
+      const target = e.target as HTMLElement;
+      
+      // Always allow UI interactions
+      if (isUIElement(target)) {
+        return;
+      }
+      
+      // Special handling for stylus - prioritize drawing flow
+      if (e.pointerType === 'pen') {
+        // During drawing sequence, allow stylus events within canvas
+        if (isInDrawingSequence() && isWithinCanvas(target)) {
+          return;
+        }
         
-        // Enhanced stylus handling - be more aggressive with stylus events
-        if (e.pointerType === 'pen' && whiteboardUI && !whiteboardUI.contains(target)) {
-          // Always prevent stylus events outside whiteboard UI
+        // Block stylus events outside canvas more aggressively
+        if (!isWithinCanvas(target)) {
           e.preventDefault();
           e.stopPropagation();
           e.stopImmediatePropagation();
           return;
         }
-        
-        // Only prevent events that are completely outside the whiteboard UI
-        if (whiteboardUI && !whiteboardUI.contains(target)) {
-          // Check if target is a legitimate UI element that should be interactive
-          const isUIElement = target.closest('[data-ui-interactive]') || 
-                             target.closest('button') || 
-                             target.closest('[role="button"]') ||
-                             target.closest('[role="dialog"]') ||
-                             target.closest('[role="menu"]');
-          
-          if (!isUIElement) {
-            e.preventDefault();
-            e.stopPropagation();
-          }
-        }
+      }
+      
+      // Standard blocking for other pointer types
+      if (shouldBlock && !isWithinCanvas(target)) {
+        e.preventDefault();
+        e.stopPropagation();
       }
     };
 
     const handleWindowContextMenu = (e: Event) => {
-      if (shouldBlock) {
-        const target = e.target as HTMLElement;
-        const whiteboardUI = document.querySelector('[data-whiteboard-ui]');
-        
-        // Prevent context menu on background elements during drawing
-        if (whiteboardUI && !whiteboardUI.contains(target)) {
-          const isUIElement = target.closest('[data-ui-interactive]') || 
-                             target.closest('button') || 
-                             target.closest('[role="button"]') ||
-                             target.closest('[role="dialog"]') ||
-                             target.closest('[role="menu"]');
-          
-          if (!isUIElement) {
-            e.preventDefault();
-            e.stopPropagation();
-            e.stopImmediatePropagation();
-          }
+      const target = e.target as HTMLElement;
+      
+      // Always allow UI context menus
+      if (isUIElement(target)) {
+        return;
+      }
+      
+      // Block context menus during drawing or drawing sequence
+      if (shouldBlock || isInDrawingSequence()) {
+        if (!isWithinCanvas(target)) {
+          e.preventDefault();
+          e.stopPropagation();
+          e.stopImmediatePropagation();
         }
       }
     };
 
     if (shouldBlock) {
-      // Add window-level event blocking with enhanced stylus handling
+      // Add adaptive event blocking
       window.addEventListener('touchstart', handleWindowTouch, { passive: false, capture: true });
       window.addEventListener('touchmove', handleWindowTouch, { passive: false, capture: true });
       window.addEventListener('touchend', handleWindowTouch, { passive: false, capture: true });

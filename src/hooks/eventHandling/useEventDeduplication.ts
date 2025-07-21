@@ -1,3 +1,4 @@
+
 import { useCallback, useRef } from 'react';
 import { createDebugLogger } from '@/utils/debug/debugConfig';
 
@@ -11,17 +12,19 @@ interface EventEntry {
   type: string;
   x?: number;
   y?: number;
+  pointerType?: string;
 }
 
 /**
- * Phase 3: Event Deduplication
+ * Phase 3: Smart Event Deduplication
  * 
- * This hook prevents duplicate event processing by tracking recent events
- * and implementing source prioritization (pointer > touch > mouse).
+ * This hook prevents duplicate event processing with adaptive timing
+ * based on pointer type and implements source prioritization.
  */
 export const useEventDeduplication = () => {
   const recentEventsRef = useRef<EventEntry[]>([]);
-  const DEDUPLICATION_WINDOW = 20; // ms
+  const DEDUPLICATION_WINDOW_STYLUS = 5; // ms - reduced for stylus
+  const DEDUPLICATION_WINDOW_TOUCH = 20; // ms - normal for touch/mouse
   const MAX_HISTORY = 10;
   
   // Event source priority (higher number = higher priority)
@@ -34,36 +37,60 @@ export const useEventDeduplication = () => {
     }
   }, []);
   
+  // Get adaptive deduplication window based on pointer type
+  const getDeduplicationWindow = useCallback((pointerType?: string): number => {
+    if (pointerType === 'pen') {
+      return DEDUPLICATION_WINDOW_STYLUS;
+    }
+    return DEDUPLICATION_WINDOW_TOUCH;
+  }, []);
+  
   // Check if an event should be processed or if it's a duplicate
   const shouldProcessEvent = useCallback((
     source: EventSource,
     type: string,
     x?: number,
-    y?: number
+    y?: number,
+    pointerType?: string
   ): boolean => {
     const now = Date.now();
-    const currentEntry: EventEntry = { timestamp: now, source, type, x, y };
+    const window = getDeduplicationWindow(pointerType);
+    const currentEntry: EventEntry = { timestamp: now, source, type, x, y, pointerType };
     
     // Clean up old events
     recentEventsRef.current = recentEventsRef.current.filter(
-      entry => now - entry.timestamp <= DEDUPLICATION_WINDOW
+      entry => now - entry.timestamp <= Math.max(DEDUPLICATION_WINDOW_STYLUS, DEDUPLICATION_WINDOW_TOUCH)
     );
     
     // Check for duplicates or lower-priority events
     const currentPriority = getSourcePriority(source);
     const hasDuplicate = recentEventsRef.current.some(entry => {
       const entryPriority = getSourcePriority(entry.source);
-      const isRecent = now - entry.timestamp <= DEDUPLICATION_WINDOW;
+      const timeDiff = now - entry.timestamp;
+      const isRecent = timeDiff <= window;
       const isSameType = entry.type === type;
       const isSamePosition = entry.x === x && entry.y === y;
       
-      // If there's a higher or equal priority event of the same type recently, suppress this one
+      // For stylus, be more permissive with rapid movements
+      if (pointerType === 'pen' && entry.pointerType === 'pen') {
+        // Only suppress if it's truly the same event (same position within very short time)
+        if (isRecent && isSameType && isSamePosition && timeDiff <= 3) {
+          debugLog('EventDeduplication', `Suppressing duplicate stylus ${type}`, {
+            timeDiff,
+            position: { x, y }
+          });
+          return true;
+        }
+        return false;
+      }
+      
+      // Standard deduplication for other pointer types
       if (isRecent && isSameType && entryPriority >= currentPriority) {
         if (entryPriority > currentPriority || isSamePosition) {
           debugLog('EventDeduplication', `Suppressing ${source} ${type} due to ${entry.source} priority`, {
             current: { source, type, priority: currentPriority },
             existing: { source: entry.source, type: entry.type, priority: entryPriority },
-            gap: now - entry.timestamp
+            gap: timeDiff
           });
           return true;
         }
@@ -82,7 +109,7 @@ export const useEventDeduplication = () => {
     }
     
     return !hasDuplicate;
-  }, [getSourcePriority]);
+  }, [getSourcePriority, getDeduplicationWindow]);
   
   // Reset event history (useful when tool changes)
   const resetEventHistory = useCallback(() => {
