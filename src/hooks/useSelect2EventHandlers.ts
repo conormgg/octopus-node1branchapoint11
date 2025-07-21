@@ -65,6 +65,7 @@ export const useSelect2EventHandlers = ({
   const isDraggingRef = useRef(false);
   const hasMovedRef = useRef(false);
   const dragStartPositionRef = useRef<{ x: number; y: number } | null>(null);
+  const lastInteractionTypeRef = useRef<'mouse' | 'touch' | null>(null);
 
   // Helper function to sync selection with main state
   const syncSelectionWithMainState = useCallback((selectedObjects: Array<{id: string, type: 'line' | 'image'}>) => {
@@ -99,6 +100,40 @@ export const useSelect2EventHandlers = ({
     }
   }, [containerRef]);
 
+  // Reset stuck states with debugging
+  const resetStuckStates = useCallback(() => {
+    debugLog('useSelect2EventHandlers', 'Resetting stuck states', { 
+      currentState: state,
+      isDragging: isDraggingRef.current,
+      hasMoved: hasMovedRef.current
+    });
+    
+    setState(prev => ({
+      ...prev,
+      isSelecting: false,
+      isDraggingObjects: false,
+      dragOffset: null,
+      dragStartPoint: null
+    }));
+    
+    isDraggingRef.current = false;
+    hasMovedRef.current = false;
+    dragStartPositionRef.current = null;
+    
+    // Also clear main selection bounds if stuck in selecting state
+    syncSelectionBoundsWithMainState(null, false);
+  }, [state, setState, syncSelectionBoundsWithMainState]);
+
+  // Auto-reset stuck states after timeout
+  const scheduleStateReset = useCallback(() => {
+    setTimeout(() => {
+      if (isDraggingRef.current || state.isSelecting || state.isDraggingObjects) {
+        debugLog('useSelect2EventHandlers', 'Auto-resetting stuck state after timeout');
+        resetStuckStates();
+      }
+    }, 1000); // 1 second timeout
+  }, [state.isSelecting, state.isDraggingObjects, resetStuckStates]);
+
   // Check if point is on any selected object OR within group bounds
   const isPointOnSelectedObject = useCallback((point: { x: number; y: number }) => {
     // First check if we're within the group bounds (for easy dragging)
@@ -119,7 +154,11 @@ export const useSelect2EventHandlers = ({
 
     const { x: dx, y: dy } = state.dragOffset;
 
-    console.log('Select2: Applying drag offset', { dx, dy, selectedCount: state.selectedObjects.length });
+    debugLog('useSelect2EventHandlers', 'Applying drag offset', { 
+      dx, dy, 
+      selectedCount: state.selectedObjects.length,
+      interactionType: lastInteractionTypeRef.current 
+    });
 
     // Apply offset to objects - single application only
     state.selectedObjects.forEach(obj => {
@@ -128,7 +167,7 @@ export const useSelect2EventHandlers = ({
         if (currentLine) {
           const newX = currentLine.x + dx;
           const newY = currentLine.y + dy;
-          console.log('Select2: Updating line position', { 
+          debugLog('useSelect2EventHandlers', 'Updating line position', { 
             id: obj.id, 
             from: { x: currentLine.x, y: currentLine.y }, 
             to: { x: newX, y: newY },
@@ -141,7 +180,7 @@ export const useSelect2EventHandlers = ({
         if (currentImage) {
           const newX = currentImage.x + dx;
           const newY = currentImage.y + dy;
-          console.log('Select2: Updating image position', { 
+          debugLog('useSelect2EventHandlers', 'Updating image position', { 
             id: obj.id, 
             from: { x: currentImage.x, y: currentImage.y }, 
             to: { x: newX, y: newY },
@@ -174,7 +213,7 @@ export const useSelect2EventHandlers = ({
 
         const newGroupBounds = calculateGroupBounds(prev.selectedObjects, updatedLines, updatedImages);
         
-        console.log('Select2: Updated group bounds after position changes', { 
+        debugLog('useSelect2EventHandlers', 'Updated group bounds after position changes', { 
           oldBounds: prev.groupBounds, 
           newBounds: newGroupBounds,
           offset: { dx, dy }
@@ -189,11 +228,24 @@ export const useSelect2EventHandlers = ({
   }, [state.dragOffset, state.selectedObjects, lines, images, onUpdateLine, onUpdateImage, setState, calculateGroupBounds]);
 
   // Core pointer handling logic - extracted to avoid duplication
-  const handlePointerDown = useCallback((worldX: number, worldY: number, ctrlKey: boolean = false) => {
+  const handlePointerDown = useCallback((worldX: number, worldY: number, ctrlKey: boolean = false, interactionType: 'mouse' | 'touch' = 'mouse') => {
     const worldPoint = { x: worldX, y: worldY };
     
-    debugLog('useSelect2EventHandlers', 'Pointer down', { worldPoint, ctrlKey });
+    debugLog('useSelect2EventHandlers', 'Pointer down', { 
+      worldPoint, 
+      ctrlKey, 
+      interactionType,
+      currentState: {
+        isSelecting: state.isSelecting,
+        isDraggingObjects: state.isDraggingObjects,
+        selectedCount: state.selectedObjects.length
+      }
+    });
     
+    // Reset any stuck states first
+    resetStuckStates();
+    
+    lastInteractionTypeRef.current = interactionType;
     isDraggingRef.current = true;
     hasMovedRef.current = false;
     dragStartPositionRef.current = worldPoint;
@@ -230,7 +282,10 @@ export const useSelect2EventHandlers = ({
       startDragSelection(worldPoint);
       syncSelectionBoundsWithMainState({ x: worldX, y: worldY, width: 0, height: 0 }, true);
     }
-  }, [isPointOnSelectedObject, startDraggingObjects, findObjectsAtPoint, selectObjectsAtPoint, clearSelection, startDragSelection, lines, images, ensureContainerFocus, state.selectedObjects, syncSelectionWithMainState, clearMainSelection, syncSelectionBoundsWithMainState]);
+
+    // Schedule auto-reset as safety net
+    scheduleStateReset();
+  }, [isPointOnSelectedObject, startDraggingObjects, findObjectsAtPoint, selectObjectsAtPoint, clearSelection, startDragSelection, lines, images, ensureContainerFocus, state.selectedObjects, state.isSelecting, state.isDraggingObjects, syncSelectionWithMainState, clearMainSelection, syncSelectionBoundsWithMainState, resetStuckStates, scheduleStateReset]);
 
   const handlePointerMove = useCallback((worldX: number, worldY: number) => {
     const worldPoint = { x: worldX, y: worldY };
@@ -243,7 +298,8 @@ export const useSelect2EventHandlers = ({
         debugLog('useSelect2EventHandlers', 'Updating object drag', { 
           worldPoint,
           dragStartPosition: dragStartPositionRef.current,
-          currentOffset: state.dragOffset 
+          currentOffset: state.dragOffset,
+          interactionType: lastInteractionTypeRef.current
         });
         updateObjectDragging(worldPoint);
       } else if (state.isSelecting) {
@@ -274,7 +330,8 @@ export const useSelect2EventHandlers = ({
       hasMoved: hasMovedRef.current,
       isDraggingObjects: state.isDraggingObjects,
       dragOffset: state.dragOffset,
-      selectedObjects: state.selectedObjects 
+      selectedObjects: state.selectedObjects,
+      interactionType: lastInteractionTypeRef.current
     });
     
     if (isDraggingRef.current) {
@@ -292,13 +349,19 @@ export const useSelect2EventHandlers = ({
         syncSelectionBoundsWithMainState(null, false);
         // Ensure container has focus for keyboard events after drag selection
         ensureContainerFocus();
+      } else {
+        // No movement occurred, ensure states are properly reset
+        debugLog('useSelect2EventHandlers', 'No movement, resetting selection states');
+        syncSelectionBoundsWithMainState(null, false);
+        setState(prev => ({ ...prev, isSelecting: false, isDraggingObjects: false }));
       }
     }
     
     isDraggingRef.current = false;
     hasMovedRef.current = false;
     dragStartPositionRef.current = null;
-  }, [state.isDraggingObjects, state.isSelecting, state.dragOffset, state.selectedObjects, applyDragOffset, endObjectDragging, endDragSelection, lines, images, ensureContainerFocus, syncSelectionWithMainState, syncSelectionBoundsWithMainState]);
+    lastInteractionTypeRef.current = null;
+  }, [state.isDraggingObjects, state.isSelecting, state.dragOffset, state.selectedObjects, applyDragOffset, endObjectDragging, endDragSelection, lines, images, ensureContainerFocus, syncSelectionWithMainState, syncSelectionBoundsWithMainState, setState]);
 
   // Mouse event handlers
   const handleMouseDown = useCallback((e: Konva.KonvaEventObject<MouseEvent>) => {
@@ -306,7 +369,7 @@ export const useSelect2EventHandlers = ({
     if (!stage) return;
 
     const worldPoint = getRelativePointerPosition(stage, e.evt.clientX, e.evt.clientY);
-    handlePointerDown(worldPoint.x, worldPoint.y, e.evt.ctrlKey);
+    handlePointerDown(worldPoint.x, worldPoint.y, e.evt.ctrlKey, 'mouse');
   }, [getRelativePointerPosition, handlePointerDown]);
 
   const handleMouseMove = useCallback((e: Konva.KonvaEventObject<MouseEvent>) => {
@@ -321,7 +384,7 @@ export const useSelect2EventHandlers = ({
     handlePointerUp();
   }, [handlePointerUp]);
 
-  // Touch event handlers
+  // Touch event handlers with improved coordinate handling
   const handleTouchStart = useCallback((e: Konva.KonvaEventObject<TouchEvent>) => {
     const stage = e.target.getStage();
     if (!stage) return;
@@ -329,10 +392,20 @@ export const useSelect2EventHandlers = ({
     const touch = e.evt.touches[0];
     if (!touch) return;
 
-    debugLog('useSelect2EventHandlers', 'Touch start', { clientX: touch.clientX, clientY: touch.clientY });
+    debugLog('useSelect2EventHandlers', 'Touch start', { 
+      clientX: touch.clientX, 
+      clientY: touch.clientY,
+      touches: e.evt.touches.length 
+    });
+    
+    // Prevent multi-touch gestures during selection
+    if (e.evt.touches.length > 1) {
+      debugLog('useSelect2EventHandlers', 'Multi-touch detected, ignoring');
+      return;
+    }
     
     const worldPoint = getRelativePointerPosition(stage, touch.clientX, touch.clientY);
-    handlePointerDown(worldPoint.x, worldPoint.y, false); // No ctrl key for touch
+    handlePointerDown(worldPoint.x, worldPoint.y, false, 'touch'); // No ctrl key for touch
   }, [getRelativePointerPosition, handlePointerDown]);
 
   const handleTouchMove = useCallback((e: Konva.KonvaEventObject<TouchEvent>) => {
@@ -342,13 +415,24 @@ export const useSelect2EventHandlers = ({
     const touch = e.evt.touches[0];
     if (!touch) return;
 
+    // Prevent multi-touch gestures during selection
+    if (e.evt.touches.length > 1) {
+      return;
+    }
+
     const worldPoint = getRelativePointerPosition(stage, touch.clientX, touch.clientY);
     handlePointerMove(worldPoint.x, worldPoint.y);
   }, [getRelativePointerPosition, handlePointerMove]);
 
   const handleTouchEnd = useCallback((e: Konva.KonvaEventObject<TouchEvent>) => {
-    debugLog('useSelect2EventHandlers', 'Touch end');
-    handlePointerUp();
+    debugLog('useSelect2EventHandlers', 'Touch end', {
+      remainingTouches: e.evt.touches.length
+    });
+    
+    // Only handle touch end if no more touches remain
+    if (e.evt.touches.length === 0) {
+      handlePointerUp();
+    }
   }, [handlePointerUp]);
 
   const handleStageClick = useCallback((e: Konva.KonvaEventObject<MouseEvent>) => {
@@ -378,7 +462,7 @@ export const useSelect2EventHandlers = ({
     
     if (selectedObjects.length === 0 || !onDeleteObjects) return;
 
-    console.log(`Deleting ${selectedObjects.length} selected objects via select2`);
+    debugLog('useSelect2EventHandlers', `Deleting ${selectedObjects.length} selected objects via select2`);
     
     // Use the proper delete function
     onDeleteObjects(selectedObjects);
@@ -404,6 +488,7 @@ export const useSelect2EventHandlers = ({
       clearSelection();
       clearMainSelection();
     },
-    deleteSelectedObjects
+    deleteSelectedObjects,
+    resetStuckStates // Expose for external use if needed
   };
 };

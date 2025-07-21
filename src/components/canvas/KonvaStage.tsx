@@ -234,6 +234,48 @@ const KonvaStage: React.FC<KonvaStageProps> = ({
     }
   };
 
+  // Improved context menu visibility logic with debugging
+  const getContextMenuVisibility = () => {
+    if (state.currentTool !== 'select2' || !stageEventHandlers || !stageEventHandlers.select2State) {
+      debugLog('KonvaStage', 'Context menu hidden - not select2 tool or no handlers', {
+        currentTool: state.currentTool,
+        hasHandlers: !!stageEventHandlers,
+        hasSelect2State: !!(stageEventHandlers && stageEventHandlers.select2State)
+      });
+      return { isVisible: false, menuPosition: { x: 0, y: 0 } };
+    }
+
+    const { selectedObjects, groupBounds, isDraggingObjects, isSelecting } = stageEventHandlers.select2State;
+    
+    // Context menu should be visible when:
+    // 1. Objects are selected
+    // 2. Not currently dragging objects
+    // 3. Not currently doing drag selection
+    // 4. Has valid group bounds
+    const isVisible = selectedObjects.length > 0 && 
+                     !isDraggingObjects && 
+                     !isSelecting && 
+                     !!groupBounds;
+    
+    debugLog('KonvaStage', 'Context menu visibility check', {
+      selectedCount: selectedObjects.length,
+      hasGroupBounds: !!groupBounds,
+      isDraggingObjects,
+      isSelecting,
+      isVisible,
+      groupBounds
+    });
+    
+    if (!isVisible || !groupBounds) {
+      return { isVisible: false, menuPosition: { x: 0, y: 0 } };
+    }
+    
+    const menuPosition = getContextMenuPosition(groupBounds);
+    return { isVisible: true, menuPosition };
+  };
+
+  const { isVisible: contextMenuVisible, menuPosition } = getContextMenuVisibility();
+
   return (
     <div 
       ref={containerRef} 
@@ -341,44 +383,25 @@ const KonvaStage: React.FC<KonvaStageProps> = ({
       </KonvaImageContextMenuHandler>
 
       {/* Select2 Context Menu - DOM overlay positioned absolutely */}
-      {state.currentTool === 'select2' && stageEventHandlers && stageEventHandlers.select2State && (
-        (() => {
-          const { selectedObjects, groupBounds, isDraggingObjects, isSelecting } = stageEventHandlers.select2State;
-          const isVisible = selectedObjects.length > 0 && !isDraggingObjects && !isSelecting;
-          
-          debugLog('KonvaStage', 'Context menu visibility check', {
-            selectedCount: selectedObjects.length,
-            hasGroupBounds: !!groupBounds,
-            isDraggingObjects,
-            isSelecting,
-            isVisible
-          });
-          
-          if (!isVisible || !groupBounds) return null;
-          
-          const menuPosition = getContextMenuPosition(groupBounds);
-          
-          return (
-            <div
-              className="absolute z-50"
-              style={{
-                left: menuPosition.x,
-                top: menuPosition.y,
-                transform: 'translateX(-50%)', // Center horizontally
-                pointerEvents: 'auto'
-              }}
-            >
-              <SelectionContextMenu
-                selectedObjects={selectedObjects}
-                groupBounds={groupBounds}
-                onDelete={handleSelect2Delete}
-                onToggleLock={handleSelect2ToggleLock}
-                isVisible={true}
-                images={state.images}
-              />
-            </div>
-          );
-        })()
+      {contextMenuVisible && stageEventHandlers && stageEventHandlers.select2State && (
+        <div
+          className="absolute z-50"
+          style={{
+            left: menuPosition.x,
+            top: menuPosition.y,
+            transform: 'translateX(-50%)', // Center horizontally
+            pointerEvents: 'auto'
+          }}
+        >
+          <SelectionContextMenu
+            selectedObjects={stageEventHandlers.select2State.selectedObjects}
+            groupBounds={stageEventHandlers.select2State.groupBounds}
+            onDelete={handleSelect2Delete}
+            onToggleLock={handleSelect2ToggleLock}
+            isVisible={true}
+            images={state.images}
+          />
+        </div>
       )}
     </div>
   );
