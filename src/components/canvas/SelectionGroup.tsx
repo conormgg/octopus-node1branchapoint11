@@ -1,3 +1,4 @@
+
 import React, { useRef, useEffect, useState } from 'react';
 import { Group, Transformer } from 'react-konva';
 import Konva from 'konva';
@@ -207,21 +208,18 @@ const SelectionGroup: React.FC<SelectionGroupProps> = ({
         ))}
       </Group>
       
-      {/* Show transformer for both select and select2, but make it non-interactive for select2 */}
+      {/* Show transformer for both select and select2, but only interactive for select */}
       {shouldShowGroup && (
         <Transformer
           ref={transformerRef}
-          listening={currentTool === 'select'}
+          listening={true}
+          enabledAnchors={currentTool === 'select' ? undefined : []}
           boundBoxFunc={(oldBox, newBox) => {
             if (newBox.width < 10 || newBox.height < 10) {
               return oldBox;
             }
             return newBox;
           }}
-          enabledAnchors={[
-            'top-left', 'top-right', 'bottom-left', 'bottom-right',
-            'middle-left', 'middle-right', 'top-center', 'bottom-center'
-          ]}
           rotateEnabled={true}
           resizeEnabled={true}
         />
