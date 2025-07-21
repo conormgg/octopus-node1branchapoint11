@@ -71,12 +71,13 @@ const MovableToolbar: React.FC<MovableToolbarProps> = ({
   return (
     <Card
       ref={toolbarRef}
-      className="absolute shadow-md rounded-lg z-40 select-none bg-black text-white"
+      className="absolute shadow-md rounded-lg z-40 select-none bg-black text-white touch-safe"
       style={{
         left: `${position.x}px`,
         top: `${position.y}px`,
         cursor: isDragging ? 'grabbing' : 'grab'
       }}
+      data-ui-interactive="true"
     >
       <div
         className="p-2 flex items-center justify-between"
@@ -131,7 +132,6 @@ const MovableToolbar: React.FC<MovableToolbarProps> = ({
             isReadOnly={isReadOnly}
           />
 
-          {/* Select2 tool (experimental) */}
           <ToolButton
             icon={<MousePointer2 className="h-4 w-4" />}
             isActive={currentTool === 'select2'}
@@ -142,7 +142,6 @@ const MovableToolbar: React.FC<MovableToolbarProps> = ({
           {/* Separator */}
           <div className="w-px h-6 bg-gray-600 mx-1" />
 
-          {/* Undo button */}
           <ToolButton
             icon={<Undo className="h-4 w-4" />}
             isActive={false}
@@ -150,7 +149,6 @@ const MovableToolbar: React.FC<MovableToolbarProps> = ({
             isReadOnly={isReadOnly || !canUndo}
           />
 
-          {/* Redo button */}
           <ToolButton
             icon={<Redo className="h-4 w-4" />}
             isActive={false}

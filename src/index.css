@@ -98,6 +98,18 @@
 
   body {
     @apply bg-background text-foreground;
+    /* Prevent background highlighting on touch devices */
+    -webkit-touch-callout: none;
+    -webkit-user-select: none;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  /* Prevent highlighting on non-interactive background elements */
+  body:not([data-whiteboard-ui]):not([data-ui-interactive]) {
+    user-select: none;
+    -webkit-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
   }
 }
 
@@ -121,6 +133,7 @@
     -moz-user-select: auto;
     -ms-user-select: auto;
     user-select: auto;
+    pointer-events: auto;
   }
 
   /* Prevent text selection during drawing */
@@ -136,5 +149,21 @@
     -webkit-touch-callout: none;
     -webkit-tap-highlight-color: transparent;
     -webkit-focus-ring-color: transparent;
+  }
+
+  /* Prevent background highlighting without blocking interaction */
+  .prevent-highlight {
+    -webkit-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+    user-select: none;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  /* Media query for hover devices to prevent persistent hover states */
+  @media (hover: hover) {
+    .touch-safe:hover {
+      /* Allow hover effects on devices that support true hover */
+    }
   }
 }

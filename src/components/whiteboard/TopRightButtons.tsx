@@ -23,10 +23,10 @@ const TopRightButtons: React.FC<TopRightButtonsProps> = ({
   syncState
 }) => {
   return (
-    <div className="absolute top-3 right-3 z-20 flex items-center gap-2">
-      {/* Sync status indicator - only show if we have sync state */}
+    <div className="absolute top-3 right-3 z-20 flex items-center gap-2" data-ui-interactive="true">
+      {/* Sync status indicator */}
       {syncState && (
-        <div className="flex items-center space-x-2 text-sm bg-white/90 hover:bg-white border border-gray-200 rounded-lg px-2 py-1 shadow-sm">
+        <div className="flex items-center space-x-2 text-sm bg-white/90 hover:bg-white border border-gray-200 rounded-lg px-2 py-1 shadow-sm touch-safe">
           <div 
             className={`w-3 h-3 rounded-full ${syncState.isConnected ? 'bg-green-500' : 'bg-red-500'}`}
           />
@@ -39,11 +39,11 @@ const TopRightButtons: React.FC<TopRightButtonsProps> = ({
         </div>
       )}
 
-      {/* Eye button - only show for teacher-main and student-shared-teacher */}
+      {/* Eye button */}
       {shouldShowEyeButton && (
         <button
           onClick={onEyeClick}
-          className={`p-2 rounded-lg bg-white/90 hover:bg-white border border-gray-200 shadow-sm transition-all duration-150 ${
+          className={`p-2 rounded-lg bg-white/90 hover:bg-white border border-gray-200 shadow-sm transition-all duration-150 touch-safe ${
             hasLastActivity 
               ? 'opacity-100 cursor-pointer' 
               : 'opacity-50 cursor-not-allowed'
@@ -58,7 +58,7 @@ const TopRightButtons: React.FC<TopRightButtonsProps> = ({
       {/* Maximize/Minimize button */}
       <button
         onClick={onMaximizeClick}
-        className="p-2 rounded-lg bg-white/90 hover:bg-white border border-gray-200 shadow-sm transition-all duration-150"
+        className="p-2 rounded-lg bg-white/90 hover:bg-white border border-gray-200 shadow-sm transition-all duration-150 touch-safe"
         title={isMaximized ? "Minimize (Press Esc)" : "Maximize"}
       >
         {isMaximized ? (

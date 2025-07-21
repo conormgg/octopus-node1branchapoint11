@@ -20,32 +20,50 @@ export const useDrawingModeIsolation = ({
 
     const handleWindowTouch = (e: TouchEvent) => {
       if (shouldBlock) {
-        // Only prevent if the touch is not within the canvas area
         const target = e.target as HTMLElement;
-        const canvasContainer = document.querySelector('[data-whiteboard-canvas]');
+        const whiteboardUI = document.querySelector('[data-whiteboard-ui]');
         
-        if (canvasContainer && !canvasContainer.contains(target)) {
-          e.preventDefault();
-          e.stopPropagation();
+        // Only prevent events that are completely outside the whiteboard UI
+        if (whiteboardUI && !whiteboardUI.contains(target)) {
+          // Check if target is a legitimate UI element that should be interactive
+          const isUIElement = target.closest('[data-ui-interactive]') || 
+                             target.closest('button') || 
+                             target.closest('[role="button"]') ||
+                             target.closest('[role="dialog"]') ||
+                             target.closest('[role="menu"]');
+          
+          if (!isUIElement) {
+            e.preventDefault();
+            e.stopPropagation();
+          }
         }
       }
     };
 
     const handleWindowPointer = (e: PointerEvent) => {
       if (shouldBlock) {
-        // Only prevent if the pointer is not within the canvas area
         const target = e.target as HTMLElement;
-        const canvasContainer = document.querySelector('[data-whiteboard-canvas]');
+        const whiteboardUI = document.querySelector('[data-whiteboard-ui]');
         
-        if (canvasContainer && !canvasContainer.contains(target)) {
-          e.preventDefault();
-          e.stopPropagation();
+        // Only prevent events that are completely outside the whiteboard UI
+        if (whiteboardUI && !whiteboardUI.contains(target)) {
+          // Check if target is a legitimate UI element that should be interactive
+          const isUIElement = target.closest('[data-ui-interactive]') || 
+                             target.closest('button') || 
+                             target.closest('[role="button"]') ||
+                             target.closest('[role="dialog"]') ||
+                             target.closest('[role="menu"]');
+          
+          if (!isUIElement) {
+            e.preventDefault();
+            e.stopPropagation();
+          }
         }
       }
     };
 
     if (shouldBlock) {
-      // Add window-level event blocking
+      // Add window-level event blocking with lighter touch
       window.addEventListener('touchstart', handleWindowTouch, { passive: false, capture: true });
       window.addEventListener('touchmove', handleWindowTouch, { passive: false, capture: true });
       window.addEventListener('touchend', handleWindowTouch, { passive: false, capture: true });

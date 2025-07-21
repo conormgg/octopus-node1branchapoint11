@@ -24,7 +24,7 @@ const Whiteboard: React.FC<WhiteboardProps> = ({ isReadOnly = false }) => {
     palmTimeoutMs: 500,
     clusterDistance: 100,
     preferStylus: true,
-    enabled: true // Changed from false to true
+    enabled: true
   });
 
   const updateDimensions = () => {
@@ -47,31 +47,34 @@ const Whiteboard: React.FC<WhiteboardProps> = ({ isReadOnly = false }) => {
   };
 
   return (
-    <div ref={containerRef} className="relative w-full h-full select-none touch-none" style={{ 
-      WebkitUserSelect: 'none',
-      WebkitTouchCallout: 'none',
-      touchAction: 'none',
-      userSelect: 'none',
-      // Add stronger isolation styles
-      pointerEvents: 'auto',
-      position: 'relative',
-      overflow: 'hidden'
-    }}>
-      {/* Palm Rejection Settings Button - moved to bottom-right with pointer-events protection */}
+    <div 
+      ref={containerRef} 
+      className="relative w-full h-full select-none touch-none" 
+      style={{ 
+        WebkitUserSelect: 'none',
+        WebkitTouchCallout: 'none',
+        touchAction: 'none',
+        userSelect: 'none',
+        pointerEvents: 'auto',
+        position: 'relative',
+        overflow: 'hidden'
+      }}
+      data-whiteboard-ui="true"
+    >
+      {/* Palm Rejection Settings Button */}
       {!isReadOnly && (
-        <div className="absolute bottom-2 right-2 z-20 pointer-events-auto">
+        <div className="absolute bottom-2 right-2 z-20" data-ui-interactive="true">
           <Popover>
             <PopoverTrigger asChild>
               <Button 
                 variant="outline" 
                 size="icon" 
-                className="bg-white/80 backdrop-blur-sm touch-none select-none"
-                style={{ pointerEvents: 'auto' }}
+                className="bg-white/80 backdrop-blur-sm touch-safe"
               >
                 <Settings className="h-4 w-4" />
               </Button>
             </PopoverTrigger>
-            <PopoverContent className="w-80 pointer-events-auto" align="end">
+            <PopoverContent className="w-80" align="end">
               <PalmRejectionSettings
                 config={palmRejectionConfig}
                 onChange={setPalmRejectionConfig}
@@ -89,7 +92,7 @@ const Whiteboard: React.FC<WhiteboardProps> = ({ isReadOnly = false }) => {
         palmRejectionConfig={palmRejectionConfig}
       />
       
-      <div className="pointer-events-auto">
+      <div className="pointer-events-auto" data-ui-interactive="true">
         <MovableToolbar
           currentTool={whiteboardState.state.currentTool}
           currentStrokeWidth={whiteboardState.state.currentStrokeWidth}

@@ -167,17 +167,17 @@ const WhiteboardContent: React.FC<WhiteboardContentProps> = ({
     <div 
       className="absolute inset-0 bg-gray-25 overflow-hidden rounded-lg"
       style={{
-        // Account for the maximize button and any padding
         top: '2px',
         left: '2px',
         right: '2px',
         bottom: '2px'
       }}
+      data-ui-interactive="true"
     >
       <div className="w-full h-full">
         {syncConfig ? (
           <SyncWhiteboard 
-            key={`sync-${id}`} // Stable key to prevent remounting
+            key={`sync-${id}`}
             syncConfig={syncConfig}
             width={whiteboardWidth}
             height={whiteboardHeight}
