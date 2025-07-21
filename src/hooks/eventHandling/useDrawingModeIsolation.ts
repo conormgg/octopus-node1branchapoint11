@@ -1,3 +1,4 @@
+
 import { useEffect, useRef } from 'react';
 
 interface UseDrawingModeIsolationProps {
@@ -36,6 +37,31 @@ export const useDrawingModeIsolation = ({
     };
 
     const isUIElement = (target: HTMLElement) => {
+      // Check if element is in a Radix UI portal
+      const isInPortal = () => {
+        // Check if target is within a portal container
+        const portalContainer = target.closest('[data-radix-portal]') || 
+                               target.closest('body > div[data-radix-portal]') ||
+                               target.closest('body > div[style*="z-index"]');
+        
+        if (portalContainer) {
+          return true;
+        }
+
+        // Check if any parent element is a portal
+        let current = target.parentElement;
+        while (current && current !== document.body) {
+          if (current.hasAttribute('data-radix-portal') || 
+              current.classList.contains('radix-dropdown-menu-content') ||
+              current.classList.contains('radix-popover-content')) {
+            return true;
+          }
+          current = current.parentElement;
+        }
+
+        return false;
+      };
+
       // Enhanced UI element detection with better dropdown and portal support
       return target.closest('[data-ui-interactive]') || 
              target.closest('button') || 
@@ -63,7 +89,9 @@ export const useDrawingModeIsolation = ({
              // Additional dropdown patterns
              target.getAttribute('data-ui-interactive') === 'true' ||
              target.getAttribute('data-dropdown-content') === 'true' ||
-             target.getAttribute('data-color-selector-button') === 'true';
+             target.getAttribute('data-color-selector-button') === 'true' ||
+             // Enhanced portal detection
+             isInPortal();
     };
 
     const preventLongPress = (e: TouchEvent) => {
@@ -164,26 +192,37 @@ export const useDrawingModeIsolation = ({
         }
       }
       
-      // Refined stylus handling - less aggressive blocking for UI interactions
+      // Refined stylus handling - much less aggressive for UI interactions
       if (e.pointerType === 'pen') {
         // During drawing sequence, allow stylus events within canvas
         if (isInDrawingSequence() && isWithinCanvas(target)) {
           return;
         }
         
-        // Only block stylus events on true background elements (not UI)
-        if (!isWithinCanvas(target) && !isUIElement(target)) {
-          // Check if this is a background element we should block
-          const isBackground = !target.closest('[data-ui-interactive]') && 
-                             !target.closest('button') && 
-                             !target.closest('[role="button"]') &&
-                             !target.closest('[data-dropdown-content]') &&
-                             !target.closest('[data-radix-dropdown-menu-content]') &&
-                             target.tagName !== 'BUTTON' &&
-                             target.tagName !== 'INPUT' &&
-                             target.tagName !== 'TEXTAREA';
+        // For stylus outside canvas, only block if it's truly a background element
+        if (!isWithinCanvas(target)) {
+          // Much more permissive check for stylus - only block clear background elements
+          const isDefinitelyBackground = !target.closest('[data-ui-interactive]') && 
+                                       !target.closest('button') && 
+                                       !target.closest('[role="button"]') &&
+                                       !target.closest('[data-dropdown-content]') &&
+                                       !target.closest('[data-radix-dropdown-menu-content]') &&
+                                       !target.closest('[data-radix-portal]') &&
+                                       !target.closest('body > div[data-radix-portal]') &&
+                                       !target.closest('body > div[style*="z-index"]') &&
+                                       target.tagName !== 'BUTTON' &&
+                                       target.tagName !== 'INPUT' &&
+                                       target.tagName !== 'TEXTAREA' &&
+                                       target.tagName !== 'SELECT' &&
+                                       !target.closest('.interactive-element') &&
+                                       // Additional safety checks for common UI patterns
+                                       !target.closest('[role="dialog"]') &&
+                                       !target.closest('[role="menu"]') &&
+                                       !target.closest('[role="menuitem"]') &&
+                                       !target.closest('[data-state="open"]');
           
-          if (isBackground) {
+          // Only block if we're very sure it's a background element
+          if (isDefinitelyBackground && (shouldBlock || isInDrawingSequence())) {
             e.preventDefault();
             e.stopPropagation();
             e.stopImmediatePropagation();
