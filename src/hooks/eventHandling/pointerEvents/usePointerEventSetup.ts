@@ -63,7 +63,7 @@ export const usePointerEventSetup = ({
     container.style.touchAction = shouldUsePointerEvents ? 'none' : 'manipulation';
     container.style.webkitUserSelect = 'none';
     container.style.userSelect = 'none';
-    container.style.webkitTouchCallout = 'none';
+    (container.style as any).webkitTouchCallout = 'none';
 
     return () => {
       if (shouldUsePointerEvents) {
@@ -92,7 +92,7 @@ export const usePointerEventSetup = ({
       container.style.touchAction = '';
       container.style.webkitUserSelect = '';
       container.style.userSelect = '';
-      container.style.webkitTouchCallout = '';
+      (container.style as any).webkitTouchCallout = '';
     };
   }, [containerRef, shouldUsePointerEvents, handlers]);
 };
