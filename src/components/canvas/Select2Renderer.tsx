@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Rect, Line, Image } from 'react-konva';
 import { SelectionBounds, SelectedObject, LineObject, ImageObject } from '@/types/whiteboard';
@@ -14,11 +13,6 @@ interface Select2RendererProps {
   groupBounds: SelectionBounds | null;
   dragOffset: { x: number; y: number } | null;
   isDraggingObjects: boolean;
-  contextMenuVisible: boolean;
-  contextMenuPosition: { x: number; y: number } | null;
-  onDeleteSelected: () => void;
-  onToggleLock: () => void;
-  onCloseContextMenu: () => void;
 }
 
 export const Select2Renderer: React.FC<Select2RendererProps> = ({
@@ -30,12 +24,7 @@ export const Select2Renderer: React.FC<Select2RendererProps> = ({
   images,
   groupBounds,
   dragOffset,
-  isDraggingObjects,
-  contextMenuVisible,
-  contextMenuPosition,
-  onDeleteSelected,
-  onToggleLock,
-  onCloseContextMenu
+  isDraggingObjects
 }) => {
   // Helper function to get object bounds for individual hover feedback
   const getObjectBounds = (obj: SelectedObject) => {

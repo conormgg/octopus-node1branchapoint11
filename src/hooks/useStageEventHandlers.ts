@@ -85,9 +85,7 @@ export const useStageEventHandlers = ({
     hasDeleteNoParams: !!onDeleteObjectsNoParams,
     deleteFunction: onDeleteObjects ? 'provided' : 'none',
     deleteNoParamsFunction: onDeleteObjectsNoParams ? 'provided' : 'none',
-    hasMainSelection: !!mainSelection,
-    hasUpdateLine: !!onUpdateLine,
-    hasUpdateImage: !!onUpdateImage
+    hasMainSelection: !!mainSelection
   });
 
   // Select2 event handlers with update functions, delete function, and main selection integration
@@ -95,9 +93,12 @@ export const useStageEventHandlers = ({
     stageRef,
     lines,
     images,
-    deleteSelectedObjects: onDeleteObjects,
-    updateImageState: onUpdateImage,
-    updateLineState: onUpdateLine
+    panZoomState,
+    onUpdateLine,
+    onUpdateImage,
+    onDeleteObjects,
+    containerRef,
+    mainSelection // Pass main selection state for integration
   });
 
   // Update current tool ref when currentTool prop changes
@@ -167,23 +168,14 @@ export const useStageEventHandlers = ({
     panZoom,
     handlePointerDown: currentTool === 'select2' ? 
       (worldX: number, worldY: number) => {
-        // Convert to mouse event for select2
-        const mockEvent = { 
-          target: { getStage: () => stageRef.current }, 
-          evt: { ctrlKey: false, metaKey: false } 
-        };
-        select2Handlers.handleMouseDown(mockEvent as any);
+        select2Handlers.handlePointerDown(worldX, worldY);
       } : handlePointerDown,
     handlePointerMove: currentTool === 'select2' ? 
       (worldX: number, worldY: number) => {
-        const mockEvent = { target: { getStage: () => stageRef.current } };
-        select2Handlers.handleMouseMove(mockEvent as any);
+        select2Handlers.handlePointerMove(worldX, worldY);
       } : handlePointerMove,
     handlePointerUp: currentTool === 'select2' ? 
-      () => {
-        const mockEvent = { target: { getStage: () => stageRef.current } };
-        select2Handlers.handleMouseUp(mockEvent as any);
-      } : handlePointerUp,
+      select2Handlers.handlePointerUp : handlePointerUp,
     isReadOnly,
     currentToolRef,
     logEventHandling,
@@ -193,10 +185,9 @@ export const useStageEventHandlers = ({
   // Return select2 state for rendering when using select2 tool
   if (currentTool === 'select2') {
     return {
-      selectionState: select2Handlers.selectionState,
-      handleDeleteSelected: select2Handlers.handleDeleteSelected,
-      handleToggleLock: select2Handlers.handleToggleLock,
-      hideContextMenu: select2Handlers.hideContextMenu,
+      select2State: select2Handlers.select2State,
+      clearSelect2Selection: select2Handlers.clearSelection,
+      deleteSelectedObjects: select2Handlers.deleteSelectedObjects,
       select2MouseHandlers: {
         onMouseDown: select2Handlers.handleMouseDown,
         onMouseMove: select2Handlers.handleMouseMove,

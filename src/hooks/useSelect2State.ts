@@ -1,4 +1,3 @@
-
 import { useState, useCallback } from 'react';
 import { LineObject, ImageObject, SelectedObject, SelectionBounds } from '@/types/whiteboard';
 
@@ -11,8 +10,6 @@ interface Select2State {
   isDraggingObjects: boolean;
   dragOffset: { x: number; y: number } | null;
   groupBounds: SelectionBounds | null;
-  contextMenuVisible: boolean;
-  contextMenuPosition: { x: number; y: number } | null;
 }
 
 export const useSelect2State = () => {
@@ -24,9 +21,7 @@ export const useSelect2State = () => {
     dragStartPoint: null,
     isDraggingObjects: false,
     dragOffset: null,
-    groupBounds: null,
-    contextMenuVisible: false,
-    contextMenuPosition: null
+    groupBounds: null
   });
 
   // Calculate group bounds for selected objects
@@ -63,17 +58,19 @@ export const useSelect2State = () => {
         const image = images.find(i => i.id === obj.id);
         if (!image) return;
         
+        const width = image.width || 100;
+        const height = image.height || 100;
         minX = Math.min(minX, image.x);
         minY = Math.min(minY, image.y);
-        maxX = Math.max(maxX, image.x + (image.width || 100));
-        maxY = Math.max(maxY, image.y + (image.height || 100));
+        maxX = Math.max(maxX, image.x + width);
+        maxY = Math.max(maxY, image.y + height);
       }
     });
 
     if (minX === Infinity) return null;
 
-    // Add some extra padding around the group bounds for better UX
-    const extraPadding = 8;
+    // Add extra padding for easier interaction
+    const extraPadding = 10;
     return {
       x: minX - extraPadding,
       y: minY - extraPadding,
@@ -82,23 +79,151 @@ export const useSelect2State = () => {
     };
   }, []);
 
-  // Update group bounds and context menu for currently selected objects
+  // Update group bounds for currently selected objects
   const updateGroupBounds = useCallback((lines: LineObject[], images: ImageObject[]) => {
     setState(prev => {
       const newGroupBounds = calculateGroupBounds(prev.selectedObjects, lines, images);
-      
       return {
         ...prev,
-        groupBounds: newGroupBounds,
-        contextMenuVisible: false, // Don't auto-show context menu
-        contextMenuPosition: null
+        groupBounds: newGroupBounds
       };
     });
   }, [calculateGroupBounds]);
 
+  // Check if point is within group bounds
+  const isPointInGroupBounds = useCallback((point: { x: number; y: number }): boolean => {
+    if (!state.groupBounds) return false;
+    
+    return point.x >= state.groupBounds.x && 
+           point.x <= state.groupBounds.x + state.groupBounds.width && 
+           point.y >= state.groupBounds.y && 
+           point.y <= state.groupBounds.y + state.groupBounds.height;
+  }, [state.groupBounds]);
+
+  // Simple hit detection for lines
+  const isPointOnLine = useCallback((point: { x: number; y: number }, line: LineObject): boolean => {
+    const tolerance = 10;
+    const points = line.points;
+    if (points.length < 4) return false;
+
+    // Simplified hit detection - check distance to each line segment
+    for (let i = 0; i < points.length - 2; i += 2) {
+      const x1 = points[i] + line.x;
+      const y1 = points[i + 1] + line.y;
+      const x2 = points[i + 2] + line.x;
+      const y2 = points[i + 3] + line.y;
+
+      const A = point.x - x1;
+      const B = point.y - y1;
+      const C = x2 - x1;
+      const D = y2 - y1;
+
+      const dot = A * C + B * D;
+      const lenSq = C * C + D * D;
+      
+      if (lenSq === 0) continue;
+
+      let param = dot / lenSq;
+      param = Math.max(0, Math.min(1, param));
+
+      const xx = x1 + param * C;
+      const yy = y1 + param * D;
+
+      const dx = point.x - xx;
+      const dy = point.y - yy;
+      const distance = Math.sqrt(dx * dx + dy * dy);
+
+      if (distance <= tolerance + line.strokeWidth / 2) {
+        return true;
+      }
+    }
+
+    return false;
+  }, []);
+
+  // Simple hit detection for images
+  const isPointOnImage = useCallback((point: { x: number; y: number }, image: ImageObject): boolean => {
+    const width = image.width || 100;
+    const height = image.height || 100;
+    
+    return point.x >= image.x && 
+           point.x <= image.x + width && 
+           point.y >= image.y && 
+           point.y <= image.y + height;
+  }, []);
+
+  // Find objects at point
+  const findObjectsAtPoint = useCallback((
+    point: { x: number; y: number }, 
+    lines: LineObject[], 
+    images: ImageObject[]
+  ): SelectedObject[] => {
+    const foundObjects: SelectedObject[] = [];
+
+    // Check images first (they're typically on top)
+    for (const image of images) {
+      if (isPointOnImage(point, image)) {
+        foundObjects.push({ id: image.id, type: 'image' });
+      }
+    }
+
+    // Check lines
+    for (const line of lines) {
+      if (isPointOnLine(point, line)) {
+        foundObjects.push({ id: line.id, type: 'line' });
+      }
+    }
+
+    return foundObjects;
+  }, [isPointOnLine, isPointOnImage]);
+
+  // Find objects within selection bounds
+  const findObjectsInBounds = useCallback((
+    bounds: SelectionBounds,
+    lines: LineObject[],
+    images: ImageObject[]
+  ): SelectedObject[] => {
+    const foundObjects: SelectedObject[] = [];
+
+    // Check images
+    for (const image of images) {
+      const imageWidth = image.width || 100;
+      const imageHeight = image.height || 100;
+      
+      if (image.x < bounds.x + bounds.width &&
+          image.x + imageWidth > bounds.x &&
+          image.y < bounds.y + bounds.height &&
+          image.y + imageHeight > bounds.y) {
+        foundObjects.push({ id: image.id, type: 'image' });
+      }
+    }
+
+    // Check lines - simplified: check if any point is within bounds
+    for (const line of lines) {
+      const points = line.points;
+      let lineInBounds = false;
+      
+      for (let i = 0; i < points.length; i += 2) {
+        const x = points[i] + line.x;
+        const y = points[i + 1] + line.y;
+        
+        if (x >= bounds.x && x <= bounds.x + bounds.width &&
+            y >= bounds.y && y <= bounds.y + bounds.height) {
+          lineInBounds = true;
+          break;
+        }
+      }
+      
+      if (lineInBounds) {
+        foundObjects.push({ id: line.id, type: 'line' });
+      }
+    }
+
+    return foundObjects;
+  }, []);
+
   // Start drag selection
   const startDragSelection = useCallback((point: { x: number; y: number }) => {
-    console.log('Select2State: Starting drag selection at', point);
     setState(prev => ({
       ...prev,
       isSelecting: true,
@@ -108,140 +233,88 @@ export const useSelect2State = () => {
         y: point.y,
         width: 0,
         height: 0
-      },
-      contextMenuVisible: false,
-      contextMenuPosition: null
+      }
     }));
   }, []);
 
-  // Update drag selection bounds
-  const updateDragSelection = useCallback((currentPoint: { x: number; y: number }) => {
+  // Update drag selection
+  const updateDragSelection = useCallback((point: { x: number; y: number }) => {
     setState(prev => {
       if (!prev.dragStartPoint) return prev;
 
-      const bounds = {
-        x: Math.min(prev.dragStartPoint.x, currentPoint.x),
-        y: Math.min(prev.dragStartPoint.y, currentPoint.y),
-        width: Math.abs(currentPoint.x - prev.dragStartPoint.x),
-        height: Math.abs(currentPoint.y - prev.dragStartPoint.y)
-      };
+      const x = Math.min(prev.dragStartPoint.x, point.x);
+      const y = Math.min(prev.dragStartPoint.y, point.y);
+      const width = Math.abs(point.x - prev.dragStartPoint.x);
+      const height = Math.abs(point.y - prev.dragStartPoint.y);
 
       return {
         ...prev,
-        selectionBounds: bounds
+        selectionBounds: { x, y, width, height }
       };
     });
   }, []);
 
-  // Helper function to check if an object intersects with selection bounds
-  const objectIntersectsSelectionBounds = useCallback((
-    obj: SelectedObject,
-    bounds: SelectionBounds,
-    lines: LineObject[],
-    images: ImageObject[]
-  ): boolean => {
-    if (obj.type === 'line') {
-      const line = lines.find(l => l.id === obj.id);
-      if (!line || line.points.length < 4) return false;
-
-      // Check if any point of the line is within selection bounds
-      for (let i = 0; i < line.points.length; i += 2) {
-        const x = line.points[i] + line.x;
-        const y = line.points[i + 1] + line.y;
-        
-        if (x >= bounds.x && x <= bounds.x + bounds.width &&
-            y >= bounds.y && y <= bounds.y + bounds.height) {
-          return true;
-        }
-      }
-      return false;
-    } else if (obj.type === 'image') {
-      const image = images.find(i => i.id === obj.id);
-      if (!image) return false;
-
-      // Check if image bounds intersect with selection bounds
-      return !(image.x > bounds.x + bounds.width ||
-               image.x + (image.width || 100) < bounds.x ||
-               image.y > bounds.y + bounds.height ||
-               image.y + (image.height || 100) < bounds.y);
-    }
-    return false;
-  }, []);
-
-  // End drag selection and select intersecting objects
-  const endDragSelection = useCallback((lines: LineObject[], images: ImageObject[]) => {
-    console.log('Select2State: Ending drag selection');
+  // End drag selection
+  const endDragSelection = useCallback((lines: LineObject[], images: ImageObject[]): SelectedObject[] => {
+    let selectedObjects: SelectedObject[] = [];
+    
     setState(prev => {
-      if (!prev.selectionBounds || !prev.isSelecting) {
-        console.log('Select2State: No selection bounds or not selecting, clearing state');
+      if (!prev.selectionBounds) {
+        selectedObjects = [];
         return {
           ...prev,
           isSelecting: false,
-          dragStartPoint: null,
-          selectionBounds: null
+          dragStartPoint: null
         };
       }
 
-      // Find all objects that intersect with selection bounds
-      const allObjects: SelectedObject[] = [
-        ...lines.map(line => ({ id: line.id, type: 'line' as const })),
-        ...images.map(image => ({ id: image.id, type: 'image' as const }))
-      ];
-
-      const intersectingObjects = allObjects.filter(obj =>
-        objectIntersectsSelectionBounds(obj, prev.selectionBounds!, lines, images)
-      );
-
-      console.log('Select2State: Found intersecting objects:', intersectingObjects);
-
-      const newGroupBounds = calculateGroupBounds(intersectingObjects, lines, images);
+      const objectsInBounds = findObjectsInBounds(prev.selectionBounds, lines, images);
+      const groupBounds = calculateGroupBounds(objectsInBounds, lines, images);
+      
+      selectedObjects = objectsInBounds;
 
       return {
         ...prev,
-        selectedObjects: intersectingObjects,
-        groupBounds: newGroupBounds,
+        selectedObjects: objectsInBounds,
+        groupBounds,
         isSelecting: false,
         dragStartPoint: null,
-        selectionBounds: null,
-        contextMenuVisible: false,
-        contextMenuPosition: null
+        selectionBounds: null
       };
     });
-  }, [objectIntersectsSelectionBounds, calculateGroupBounds]);
+    
+    return selectedObjects;
+  }, [findObjectsInBounds, calculateGroupBounds]);
 
-  // Start dragging selected objects
-  const startDraggingObjects = useCallback((startPoint: { x: number; y: number }) => {
-    console.log('Select2State: Starting object drag at', startPoint);
+  // Start dragging objects
+  const startDraggingObjects = useCallback((point: { x: number; y: number }) => {
     setState(prev => ({
       ...prev,
       isDraggingObjects: true,
-      dragStartPoint: startPoint,
-      dragOffset: { x: 0, y: 0 },
-      contextMenuVisible: false,
-      contextMenuPosition: null
+      dragStartPoint: point,
+      dragOffset: { x: 0, y: 0 }
     }));
   }, []);
 
-  // Update object dragging with proper offset calculation
-  const updateObjectDragging = useCallback((currentPoint: { x: number; y: number }) => {
+  // Update object dragging
+  const updateObjectDragging = useCallback((point: { x: number; y: number }) => {
     setState(prev => {
       if (!prev.dragStartPoint || !prev.isDraggingObjects) return prev;
 
-      const newOffset = {
-        x: currentPoint.x - prev.dragStartPoint.x,
-        y: currentPoint.y - prev.dragStartPoint.y
+      const dragOffset = {
+        x: point.x - prev.dragStartPoint.x,
+        y: point.y - prev.dragStartPoint.y
       };
 
       return {
         ...prev,
-        dragOffset: newOffset
+        dragOffset
       };
     });
   }, []);
 
   // End object dragging
   const endObjectDragging = useCallback(() => {
-    console.log('Select2State: Ending object drag');
     setState(prev => ({
       ...prev,
       isDraggingObjects: false,
@@ -250,120 +323,63 @@ export const useSelect2State = () => {
     }));
   }, []);
 
-  // Create objects at point helper
-  const createObjectsAtPoint = useCallback((
-    point: { x: number; y: number },
-    lines: LineObject[],
-    images: ImageObject[]
-  ): SelectedObject[] => {
-    const objects: SelectedObject[] = [];
-    
-    // Check lines
-    lines.forEach(line => {
-      if (line.points.length < 4) return;
-      
-      // Simple point-in-stroke detection
-      for (let i = 0; i < line.points.length - 2; i += 2) {
-        const x1 = line.points[i] + line.x;
-        const y1 = line.points[i + 1] + line.y;
-        const x2 = line.points[i + 2] + line.x;
-        const y2 = line.points[i + 3] + line.y;
-        
-        // Distance from point to line segment
-        const distance = Math.abs((y2 - y1) * point.x - (x2 - x1) * point.y + x2 * y1 - y2 * x1) /
-                        Math.sqrt((y2 - y1) ** 2 + (x2 - x1) ** 2);
-        
-        if (distance <= line.strokeWidth / 2 + 5) { // 5px tolerance
-          objects.push({ id: line.id, type: 'line' });
-          break;
-        }
-      }
-    });
-    
-    // Check images
-    images.forEach(image => {
-      if (point.x >= image.x && point.x <= image.x + (image.width || 100) &&
-          point.y >= image.y && point.y <= image.y + (image.height || 100)) {
-        objects.push({ id: image.id, type: 'image' });
-      }
-    });
-    
-    return objects;
-  }, []);
-
-  // Select objects at a specific point
+  // Select objects at point
   const selectObjectsAtPoint = useCallback((
     point: { x: number; y: number },
     lines: LineObject[],
     images: ImageObject[],
-    isCtrlPressed: boolean = false
+    multiSelect: boolean = false
   ) => {
-    console.log('Select2State: Selecting objects at point', point);
+    const objectsAtPoint = findObjectsAtPoint(point, lines, images);
+    
     setState(prev => {
-      const objectsAtPoint = createObjectsAtPoint(point, lines, images);
-      
       if (objectsAtPoint.length === 0) {
-        console.log('Select2State: No objects at point, clearing selection');
-        // No objects at point, clear selection
+        // Clicked on empty space
+        const newSelectedObjects = multiSelect ? prev.selectedObjects : [];
+        const groupBounds = calculateGroupBounds(newSelectedObjects, lines, images);
         return {
           ...prev,
-          selectedObjects: [],
-          groupBounds: null,
-          contextMenuVisible: false,
-          contextMenuPosition: null
+          selectedObjects: newSelectedObjects,
+          groupBounds
         };
       }
-      
-      let newSelection: SelectedObject[];
-      
-      if (isCtrlPressed) {
-        // Multi-select mode
-        const clickedObject = objectsAtPoint[0];
-        const isAlreadySelected = prev.selectedObjects.some(obj => 
-          obj.id === clickedObject.id && obj.type === clickedObject.type
-        );
+
+      const firstObject = objectsAtPoint[0];
+
+      if (multiSelect) {
+        // Toggle selection for multi-select
+        const isAlreadySelected = prev.selectedObjects.some(obj => obj.id === firstObject.id);
+        const newSelectedObjects = isAlreadySelected
+          ? prev.selectedObjects.filter(obj => obj.id !== firstObject.id)
+          : [...prev.selectedObjects, firstObject];
         
-        if (isAlreadySelected) {
-          // Remove from selection
-          newSelection = prev.selectedObjects.filter(obj => 
-            !(obj.id === clickedObject.id && obj.type === clickedObject.type)
-          );
-        } else {
-          // Add to selection
-          newSelection = [...prev.selectedObjects, clickedObject];
-        }
+        const groupBounds = calculateGroupBounds(newSelectedObjects, lines, images);
+        return {
+          ...prev,
+          selectedObjects: newSelectedObjects,
+          groupBounds
+        };
       } else {
-        // Single select mode - select the top-most object
-        newSelection = [objectsAtPoint[0]];
+        // Single select
+        const newSelectedObjects = [firstObject];
+        const groupBounds = calculateGroupBounds(newSelectedObjects, lines, images);
+        return {
+          ...prev,
+          selectedObjects: newSelectedObjects,
+          groupBounds
+        };
       }
-      
-      console.log('Select2State: New selection:', newSelection);
-      const newGroupBounds = calculateGroupBounds(newSelection, lines, images);
-      
-      return {
-        ...prev,
-        selectedObjects: newSelection,
-        groupBounds: newGroupBounds,
-        contextMenuVisible: false,
-        contextMenuPosition: null
-      };
     });
-  }, [createObjectsAtPoint, calculateGroupBounds]);
+  }, [findObjectsAtPoint, calculateGroupBounds]);
 
   // Clear selection
   const clearSelection = useCallback(() => {
-    console.log('Select2State: Clearing selection');
     setState(prev => ({
       ...prev,
       selectedObjects: [],
-      groupBounds: null,
-      isSelecting: false,
+      hoveredObjectId: null,
       selectionBounds: null,
-      isDraggingObjects: false,
-      dragOffset: null,
-      dragStartPoint: null,
-      contextMenuVisible: false,
-      contextMenuPosition: null
+      groupBounds: null
     }));
   }, []);
 
@@ -372,25 +388,6 @@ export const useSelect2State = () => {
     setState(prev => ({
       ...prev,
       hoveredObjectId: objectId
-    }));
-  }, []);
-
-  // Check if point is within group bounds
-  const isPointInGroupBounds = useCallback((point: { x: number; y: number }): boolean => {
-    if (!state.groupBounds) return false;
-    
-    return point.x >= state.groupBounds.x &&
-           point.x <= state.groupBounds.x + state.groupBounds.width &&
-           point.y >= state.groupBounds.y &&
-           point.y <= state.groupBounds.y + state.groupBounds.height;
-  }, [state.groupBounds]);
-
-  // Hide context menu
-  const hideContextMenu = useCallback(() => {
-    setState(prev => ({
-      ...prev,
-      contextMenuVisible: false,
-      contextMenuPosition: null
     }));
   }, []);
 
@@ -406,9 +403,9 @@ export const useSelect2State = () => {
     selectObjectsAtPoint,
     clearSelection,
     setHoveredObject,
+    findObjectsAtPoint,
+    calculateGroupBounds,
     updateGroupBounds,
-    isPointInGroupBounds,
-    hideContextMenu,
-    createObjectsAtPoint
+    isPointInGroupBounds
   };
 };
