@@ -203,7 +203,7 @@ const KonvaStage: React.FC<KonvaStageProps> = ({
   const handleSelect2ToggleLock = (imageIds: string[], lock: boolean) => {
     if ('toggleImageLock' in whiteboardState && whiteboardState.toggleImageLock) {
       imageIds.forEach(imageId => {
-        whiteboardState.toggleImageLock(imageId, lock);
+        whiteboardState.toggleImageLock(imageId);
       });
     }
   };
