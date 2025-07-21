@@ -1,4 +1,3 @@
-
 import React, { useRef, useEffect } from 'react';
 import { Line, Transformer } from 'react-konva';
 import { LineObject } from '@/types/whiteboard';
@@ -131,18 +130,17 @@ const LineRenderer: React.FC<LineRendererProps> = React.memo(({
         hitStrokeWidth={line.strokeWidth + 10}
       />
       
-      {/* Transformer for selected lines - always visible but only interactive for select tool */}
+      {/* Transformer for selected lines */}
       {isSelected && (currentTool === 'select' || currentTool === 'select2') && (
         <Transformer
           ref={trRef}
-          listening={true}
-          enabledAnchors={currentTool === 'select' ? ['top-left', 'top-right', 'bottom-left', 'bottom-right', 'middle-left', 'middle-right', 'top-center', 'bottom-center'] : []}
           boundBoxFunc={(oldBox, newBox) => {
             if (newBox.width < 5 || newBox.height < 5) {
               return oldBox;
             }
             return newBox;
           }}
+          enabledAnchors={['top-left', 'top-right', 'bottom-left', 'bottom-right', 'middle-left', 'middle-right', 'top-center', 'bottom-center']}
         />
       )}
     </>
