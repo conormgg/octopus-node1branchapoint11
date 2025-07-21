@@ -1,4 +1,3 @@
-
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -98,21 +97,5 @@
 
   body {
     @apply bg-background text-foreground;
-  }
-}
-
-@layer utilities {
-  /* Touch-friendly hover states that only apply on hover-capable devices */
-  @media (hover: hover) {
-    .hover-on-capable:hover {
-      @apply bg-accent;
-    }
-  }
-  
-  /* Prevent text selection on touch devices */
-  .touch-none {
-    -webkit-user-select: none;
-    -webkit-touch-callout: none;
-    user-select: none;
   }
 }
