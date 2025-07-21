@@ -41,6 +41,20 @@ export const useTouchToSelectionBridge = ({
     e: TouchEvent, 
     action: 'down' | 'move' | 'up'
   ) => {
+    // CRITICAL: Never bridge multi-touch events - they should be handled by pan/zoom
+    const touchCount = action === 'up' ? e.changedTouches.length : e.touches.length;
+    const totalTouches = e.touches.length + (action === 'up' ? e.changedTouches.length : 0);
+    
+    if (totalTouches >= 2) {
+      debugLog('TouchToSelectionBridge', 'Multi-touch detected - NOT bridging to selection', {
+        touchCount,
+        totalTouches,
+        action,
+        currentTool
+      });
+      return false;
+    }
+
     // Get stage reference early for tool checking
     const stage = stageRef.current;
     let effectiveTool = currentTool;
@@ -60,20 +74,21 @@ export const useTouchToSelectionBridge = ({
       stageTool: stage?.getAttr('currentTool'),
       toolIsSelect: effectiveTool === 'select' || effectiveTool === 'select2',
       isReadOnly,
-      touchCount: action === 'up' ? e.changedTouches.length : e.touches.length,
+      touchCount,
+      totalTouches,
       toolUndefined: effectiveTool === undefined,
       toolType: typeof effectiveTool
     });
 
     // FIXED: Bridge for both select and select2 tools, only single-finger touches
-    if ((effectiveTool !== 'select' && effectiveTool !== 'select2') || isReadOnly || e.touches.length > 1) {
+    if ((effectiveTool !== 'select' && effectiveTool !== 'select2') || isReadOnly) {
       debugLog('TouchToSelectionBridge', 'Bridge conditions not met', {
         currentTool,
         effectiveTool,
         toolNotSelect: effectiveTool !== 'select' && effectiveTool !== 'select2',
         isReadOnly,
-        multiTouch: e.touches.length > 1,
-        touchCount: e.touches.length
+        touchCount,
+        totalTouches
       });
       return false;
     }

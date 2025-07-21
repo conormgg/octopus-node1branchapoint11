@@ -1,6 +1,7 @@
 
 import { useEffect } from 'react';
 import { useEventDeduplication } from './useEventDeduplication';
+import { useMultiTouchDetection } from './useMultiTouchDetection';
 import { createDebugLogger } from '@/utils/debug/debugConfig';
 
 const debugLog = createDebugLogger('touchEvents');
@@ -27,80 +28,117 @@ export const useTouchEventHandlers = ({
   currentTool
 }: UseTouchEventHandlersProps) => {
   const { shouldProcessEvent, resetEventHistory } = useEventDeduplication();
+  const multiTouchDetection = useMultiTouchDetection();
   
-  // Touch events for multi-touch gestures - ALWAYS enabled for pan/zoom functionality
+  // Touch events for multi-touch gestures - ALWAYS enabled and PRIORITIZED
   useEffect(() => {
     const container = containerRef.current;
     if (!container) return;
 
-    /**
-     * CRITICAL FIX: Always enable touch events for multi-touch gestures
-     * This allows pan/zoom to work on tablets regardless of pointer event support.
-     * Touch events will ONLY handle multi-touch (2+ fingers) to avoid conflicts.
-     */
-    const shouldUseTouchEvents = true; // Always enable for multi-touch
-
     const handleTouchStart = (e: TouchEvent) => {
+      // Update multi-touch detection immediately
+      multiTouchDetection.setActiveTouches(e.touches.length);
+
       debugLog('TouchEventHandlers', 'Touch start received', {
         touches: e.touches.length,
         currentTool,
         toolUndefined: currentTool === undefined,
         supportsPointerEvents,
-        willProcessMultiTouch: e.touches.length >= 2
+        isMultiTouch: e.touches.length >= 2
       });
 
-      // Only handle multi-touch gestures (2+ fingers)
-      if (e.touches.length < 2) {
-        debugLog('TouchEventHandlers', 'Single touch - letting pointer events handle', {
-          touches: e.touches.length,
-          currentTool,
-          shouldBeSelection: currentTool === 'select'
+      // CRITICAL: Handle multi-touch gestures with highest priority
+      if (e.touches.length >= 2) {
+        debugLog('TouchEventHandlers', 'Multi-touch gesture detected - preventing pointer interference');
+        
+        // Aggressively prevent default and stop propagation for multi-touch
+        e.preventDefault();
+        e.stopPropagation();
+        e.stopImmediatePropagation();
+        
+        if (!shouldProcessEvent('touch', 'touchstart')) {
+          debugLog('TouchEventHandlers', 'Event deduplication blocked touchstart');
+          return;
+        }
+        
+        logEventHandling('touchstart', 'touch', { 
+          touches: e.touches.length, 
+          tool: currentTool 
         });
-        return; // Let pointer events handle single-touch
-      }
-
-      if (!shouldProcessEvent('touch', 'touchstart')) {
-        debugLog('TouchEventHandlers', 'Event deduplication blocked touchstart');
+        
+        panZoom.handleTouchStart(e);
         return;
       }
-      
-      logEventHandling('touchstart', 'touch', { 
-        touches: e.touches.length, 
-        tool: currentTool 
-      });
-      
-      // Prevent default for multi-touch to ensure pinch-to-zoom works
-      e.preventDefault();
-      
-      panZoom.handleTouchStart(e);
+
+      // For single-touch, let pointer events handle it unless they're not supported
+      if (!supportsPointerEvents) {
+        debugLog('TouchEventHandlers', 'No pointer events support - handling single touch');
+        
+        if (!shouldProcessEvent('touch', 'touchstart')) {
+          debugLog('TouchEventHandlers', 'Event deduplication blocked touchstart');
+          return;
+        }
+        
+        logEventHandling('touchstart', 'touch', { 
+          touches: e.touches.length, 
+          tool: currentTool 
+        });
+        
+        panZoom.handleTouchStart(e);
+      } else {
+        debugLog('TouchEventHandlers', 'Single touch - deferring to pointer events');
+      }
     };
 
     const handleTouchMove = (e: TouchEvent) => {
-      // Only handle multi-touch gestures (2+ fingers)  
-      if (e.touches.length < 2) {
-        debugLog('TouchEventHandlers', 'Single touch move - ignoring', {
-          touches: e.touches.length,
-          currentTool
-        });
-        return; // Let pointer events handle single-touch
-      }
+      // Update multi-touch detection
+      multiTouchDetection.setActiveTouches(e.touches.length);
 
-      if (!shouldProcessEvent('touch', 'touchmove')) {
+      // CRITICAL: Handle multi-touch gestures with highest priority
+      if (e.touches.length >= 2) {
+        debugLog('TouchEventHandlers', 'Multi-touch move - preventing pointer interference');
+        
+        // Aggressively prevent default and stop propagation for multi-touch
+        e.preventDefault();
+        e.stopPropagation();
+        e.stopImmediatePropagation();
+        
+        if (!shouldProcessEvent('touch', 'touchmove')) {
+          return;
+        }
+        
+        logEventHandling('touchmove', 'touch', { 
+          touches: e.touches.length, 
+          tool: currentTool 
+        });
+        
+        panZoom.handleTouchMove(e);
         return;
       }
-      
-      logEventHandling('touchmove', 'touch', { 
-        touches: e.touches.length, 
-        tool: currentTool 
-      });
-      
-      // Prevent default for multi-touch gestures
-      e.preventDefault();
-      
-      panZoom.handleTouchMove(e);
+
+      // For single-touch, let pointer events handle it unless they're not supported
+      if (!supportsPointerEvents) {
+        debugLog('TouchEventHandlers', 'No pointer events support - handling single touch move');
+        
+        if (!shouldProcessEvent('touch', 'touchmove')) {
+          return;
+        }
+        
+        logEventHandling('touchmove', 'touch', { 
+          touches: e.touches.length, 
+          tool: currentTool 
+        });
+        
+        panZoom.handleTouchMove(e);
+      } else {
+        debugLog('TouchEventHandlers', 'Single touch move - deferring to pointer events');
+      }
     };
 
     const handleTouchEnd = (e: TouchEvent) => {
+      // Update multi-touch detection
+      multiTouchDetection.setActiveTouches(e.touches.length);
+
       debugLog('TouchEventHandlers', 'Touch end received', {
         remainingTouches: e.touches.length,
         changedTouches: e.changedTouches.length,
@@ -108,9 +146,9 @@ export const useTouchEventHandlers = ({
         wasMultiTouch: e.touches.length + e.changedTouches.length >= 2
       });
 
-      // Handle end of multi-touch gestures
-      if (e.touches.length === 0 || (e.touches.length === 1 && e.changedTouches.length >= 1)) {
-        // End of multi-touch gesture - let pan zoom handle cleanup
+      // Handle end of multi-touch gestures or fallback when no pointer events
+      if (e.touches.length + e.changedTouches.length >= 2 || !supportsPointerEvents) {
+        debugLog('TouchEventHandlers', 'Handling touch end');
         
         if (!shouldProcessEvent('touch', 'touchend')) {
           return;
@@ -122,28 +160,28 @@ export const useTouchEventHandlers = ({
         });
         
         panZoom.handleTouchEnd(e);
+      } else {
+        debugLog('TouchEventHandlers', 'Single touch end - deferring to pointer events');
       }
     };
 
-    if (shouldUseTouchEvents) {
-      debugLog('TouchEventHandlers', 'Setting up touch event listeners', {
-        currentTool,
-        supportsPointerEvents
-      });
-      container.addEventListener('touchstart', handleTouchStart, { passive: false });
-      container.addEventListener('touchmove', handleTouchMove, { passive: false });
-      container.addEventListener('touchend', handleTouchEnd, { passive: false });
-    }
+    debugLog('TouchEventHandlers', 'Setting up touch event listeners with capture', {
+      currentTool,
+      supportsPointerEvents
+    });
+
+    // Use capture phase to intercept touch events before they reach pointer events
+    container.addEventListener('touchstart', handleTouchStart, { passive: false, capture: true });
+    container.addEventListener('touchmove', handleTouchMove, { passive: false, capture: true });
+    container.addEventListener('touchend', handleTouchEnd, { passive: false, capture: true });
 
     return () => {
-      if (shouldUseTouchEvents) {
-        debugLog('TouchEventHandlers', 'Cleaning up touch event listeners');
-        container.removeEventListener('touchstart', handleTouchStart);
-        container.removeEventListener('touchmove', handleTouchMove);
-        container.removeEventListener('touchend', handleTouchEnd);
-      }
+      debugLog('TouchEventHandlers', 'Cleaning up touch event listeners');
+      container.removeEventListener('touchstart', handleTouchStart, { passive: false, capture: true } as any);
+      container.removeEventListener('touchmove', handleTouchMove, { passive: false, capture: true } as any);
+      container.removeEventListener('touchend', handleTouchEnd, { passive: false, capture: true } as any);
     };
-  }, [panZoom.handleTouchStart, panZoom.handleTouchMove, panZoom.handleTouchEnd, logEventHandling, currentTool, shouldProcessEvent]);
+  }, [panZoom.handleTouchStart, panZoom.handleTouchMove, panZoom.handleTouchEnd, logEventHandling, currentTool, shouldProcessEvent, supportsPointerEvents, multiTouchDetection]);
   
   // Reset event history when tool changes
   useEffect(() => {
@@ -152,5 +190,6 @@ export const useTouchEventHandlers = ({
       toolUndefined: currentTool === undefined
     });
     resetEventHistory();
-  }, [currentTool, resetEventHistory]);
+    multiTouchDetection.reset();
+  }, [currentTool, resetEventHistory, multiTouchDetection]);
 };

@@ -7,6 +7,7 @@ import { PanZoomState } from '@/types/whiteboard';
 import { useMemoizedEventHandlers } from '@/hooks/performance/useMemoizedEventHandlers';
 import { useTouchToSelectionBridge } from '../useTouchToSelectionBridge';
 import { useDrawingModeIsolation } from '../useDrawingModeIsolation';
+import { useMultiTouchDetection } from '../useMultiTouchDetection';
 import { createDebugLogger } from '@/utils/debug/debugConfig';
 
 const debugLog = createDebugLogger('touchEvents');
@@ -45,6 +46,7 @@ export const usePointerEventCore = ({
   logEventHandling
 }: UsePointerEventCoreProps) => {
   const { getRelativePointerPosition } = useStageCoordinates(panZoomState);
+  const multiTouchDetection = useMultiTouchDetection();
 
   // Memoize stable values to prevent unnecessary re-renders
   const stablePalmRejectionEnabled = useMemo(() => palmRejectionConfig.enabled, [palmRejectionConfig.enabled]);
@@ -80,6 +82,9 @@ export const usePointerEventCore = ({
         const stage = stageRef.current;
         if (!stage) return;
 
+        // Track this pointer
+        multiTouchDetection.addPointer(e.pointerId);
+
         debugLog('PointerEventCore', 'Pointer down received', {
           pointerId: e.pointerId,
           pointerType: e.pointerType,
@@ -87,13 +92,23 @@ export const usePointerEventCore = ({
           toolUndefined: currentToolRef.current === undefined,
           button: e.button,
           isTouch: e.pointerType === 'touch',
-          isSelectTool: currentToolRef.current === 'select'
+          isSelectTool: currentToolRef.current === 'select',
+          isMultiTouch: multiTouchDetection.isMultiTouch(),
+          activePointers: multiTouchDetection.getActivePointerCount()
         });
 
-        // Aggressively prevent default and stop propagation for touch isolation
-        e.preventDefault();
-        e.stopPropagation();
-        e.stopImmediatePropagation();
+        // CRITICAL: Skip pointer processing if multi-touch is active
+        if (multiTouchDetection.isMultiTouch()) {
+          debugLog('PointerEventCore', 'Multi-touch detected - skipping pointer processing');
+          // Don't prevent default - let touch handlers manage multi-touch
+          return;
+        }
+
+        // Only prevent default for single-touch interactions we want to handle
+        if (e.pointerType === 'touch' || e.button === 0) {
+          e.preventDefault();
+          e.stopPropagation();
+        }
 
         logEventHandling('pointerdown', 'pointer', { pointerId: e.pointerId, pointerType: e.pointerType });
         
@@ -157,7 +172,7 @@ export const usePointerEventCore = ({
         debugLog('PointerEventCore', 'Calling handlePointerDown', { x, y });
         handlePointerDown(x, y);
       },
-      deps: [stageRef, logEventHandling, currentToolRef, panZoom, stableIsReadOnly, stablePalmRejectionEnabled, palmRejection, getRelativePointerPosition, handlePointerDown, touchToSelectionBridge]
+      deps: [stageRef, logEventHandling, currentToolRef, panZoom, stableIsReadOnly, stablePalmRejectionEnabled, palmRejection, getRelativePointerPosition, handlePointerDown, touchToSelectionBridge, multiTouchDetection]
     },
 
     handlePointerMoveEvent: {
@@ -165,10 +180,23 @@ export const usePointerEventCore = ({
         const stage = stageRef.current;
         if (!stage) return;
 
-        // Aggressively prevent default and stop propagation for touch isolation
-        e.preventDefault();
-        e.stopPropagation();
-        e.stopImmediatePropagation();
+        debugLog('PointerEventCore', 'Pointer move received', {
+          pointerId: e.pointerId,
+          isMultiTouch: multiTouchDetection.isMultiTouch(),
+          activePointers: multiTouchDetection.getActivePointerCount()
+        });
+
+        // CRITICAL: Skip pointer processing if multi-touch is active
+        if (multiTouchDetection.isMultiTouch()) {
+          debugLog('PointerEventCore', 'Multi-touch detected - skipping pointer move processing');
+          return;
+        }
+
+        // Only prevent default for single-touch interactions we want to handle
+        if (e.pointerType === 'touch' || e.button === 0) {
+          e.preventDefault();
+          e.stopPropagation();
+        }
 
         logEventHandling('pointermove', 'pointer', { pointerId: e.pointerId, pointerType: e.pointerType });
         
@@ -207,7 +235,7 @@ export const usePointerEventCore = ({
         const { x, y } = getRelativePointerPosition(stage, e.clientX, e.clientY);
         handlePointerMove(x, y);
       },
-      deps: [stageRef, logEventHandling, currentToolRef, panZoom, stableIsReadOnly, stablePalmRejectionEnabled, palmRejection, getRelativePointerPosition, handlePointerMove, touchToSelectionBridge]
+      deps: [stageRef, logEventHandling, currentToolRef, panZoom, stableIsReadOnly, stablePalmRejectionEnabled, palmRejection, getRelativePointerPosition, handlePointerMove, touchToSelectionBridge, multiTouchDetection]
     },
 
     handlePointerUpEvent: {
@@ -218,19 +246,24 @@ export const usePointerEventCore = ({
           stage.setAttr('isDrawing', false);
         }
 
+        // Remove this pointer from tracking
+        multiTouchDetection.removePointer(e.pointerId);
+
         debugLog('PointerEventCore', 'Pointer up received', {
           pointerId: e.pointerId,
           pointerType: e.pointerType,
           currentTool: currentToolRef.current,
           button: e.button,
           isTouch: e.pointerType === 'touch',
-          isSelectTool: currentToolRef.current === 'select'
+          isSelectTool: currentToolRef.current === 'select',
+          remainingPointers: multiTouchDetection.getActivePointerCount()
         });
 
-        // Aggressively prevent default and stop propagation for touch isolation
-        e.preventDefault();
-        e.stopPropagation();
-        e.stopImmediatePropagation();
+        // Only prevent default for single-touch interactions we handled
+        if ((e.pointerType === 'touch' || e.button === 0) && !multiTouchDetection.isMultiTouch()) {
+          e.preventDefault();
+          e.stopPropagation();
+        }
 
         logEventHandling('pointerup', 'pointer', { pointerId: e.pointerId, pointerType: e.pointerType });
         
@@ -282,7 +315,7 @@ export const usePointerEventCore = ({
           handlePointerUp();
         }
       },
-      deps: [logEventHandling, currentToolRef, panZoom, palmRejection, stableIsReadOnly, handlePointerUp, touchToSelectionBridge]
+      deps: [logEventHandling, currentToolRef, panZoom, palmRejection, stableIsReadOnly, handlePointerUp, touchToSelectionBridge, multiTouchDetection]
     },
 
     handlePointerLeaveEvent: {
@@ -292,6 +325,9 @@ export const usePointerEventCore = ({
           // Clear drawing state
           stage.setAttr('isDrawing', false);
         }
+
+        // Remove this pointer from tracking
+        multiTouchDetection.removePointer(e.pointerId);
 
         debugLog('PointerEventCore', 'Pointer leave', {
           pointerId: e.pointerId,
@@ -309,7 +345,7 @@ export const usePointerEventCore = ({
           handlePointerUp();
         }
       },
-      deps: [logEventHandling, palmRejection, panZoom, stableIsReadOnly, handlePointerUp]
+      deps: [logEventHandling, palmRejection, panZoom, stableIsReadOnly, handlePointerUp, multiTouchDetection]
     },
 
     handleContextMenu: {

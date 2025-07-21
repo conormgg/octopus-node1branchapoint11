@@ -30,8 +30,8 @@ export const usePointerEventSetup = ({
       handleContextMenu
     } = handlers;
 
-    // Enhanced event listener options for better touch isolation
-    const eventOptions = { passive: false, capture: true };
+    // Use normal event listener options - don't use capture to avoid conflicts
+    const eventOptions = { passive: false };
 
     if (shouldUsePointerEvents) {
       container.addEventListener('pointerdown', handlePointerDownEvent, eventOptions);
@@ -40,26 +40,13 @@ export const usePointerEventSetup = ({
       container.addEventListener('pointerleave', handlePointerLeaveEvent, eventOptions);
       container.addEventListener('pointercancel', handlePointerUpEvent, eventOptions);
       
-      // Add touch event listeners with aggressive prevention
-      container.addEventListener('touchstart', (e) => {
-        e.preventDefault();
-        e.stopPropagation();
-      }, eventOptions);
-      
-      container.addEventListener('touchmove', (e) => {
-        e.preventDefault();
-        e.stopPropagation();
-      }, eventOptions);
-      
-      container.addEventListener('touchend', (e) => {
-        e.preventDefault();
-        e.stopPropagation();
-      }, eventOptions);
+      // REMOVED: Aggressive touch event blocking that was preventing pan/zoom
+      // Touch events are now handled by the dedicated touch handlers with proper coordination
     }
     
     container.addEventListener('contextmenu', handleContextMenu, eventOptions);
 
-    // Always set comprehensive touch-action and user-select prevention
+    // Set appropriate touch-action based on use case
     container.style.touchAction = shouldUsePointerEvents ? 'none' : 'manipulation';
     container.style.webkitUserSelect = 'none';
     container.style.userSelect = 'none';
@@ -72,21 +59,6 @@ export const usePointerEventSetup = ({
         container.removeEventListener('pointerup', handlePointerUpEvent, eventOptions);
         container.removeEventListener('pointerleave', handlePointerLeaveEvent, eventOptions);
         container.removeEventListener('pointercancel', handlePointerUpEvent, eventOptions);
-        
-        container.removeEventListener('touchstart', (e) => {
-          e.preventDefault();
-          e.stopPropagation();
-        }, eventOptions);
-        
-        container.removeEventListener('touchmove', (e) => {
-          e.preventDefault();
-          e.stopPropagation();
-        }, eventOptions);
-        
-        container.removeEventListener('touchend', (e) => {
-          e.preventDefault();
-          e.stopPropagation();
-        }, eventOptions);
       }
       container.removeEventListener('contextmenu', handleContextMenu, eventOptions);
       container.style.touchAction = '';
