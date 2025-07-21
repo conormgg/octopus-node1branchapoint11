@@ -2,6 +2,7 @@ import React from 'react';
 import { Rect, Line, Image } from 'react-konva';
 import { SelectionBounds, SelectedObject, LineObject, ImageObject } from '@/types/whiteboard';
 import SelectionRect from './SelectionRect';
+import { SelectionContextMenu } from './SelectionContextMenu';
 
 interface Select2RendererProps {
   selectedObjects: SelectedObject[];
@@ -13,6 +14,9 @@ interface Select2RendererProps {
   groupBounds: SelectionBounds | null;
   dragOffset: { x: number; y: number } | null;
   isDraggingObjects: boolean;
+  // Context menu props
+  onDelete?: () => void;
+  onToggleLock?: (imageIds: string[], lock: boolean) => void;
 }
 
 export const Select2Renderer: React.FC<Select2RendererProps> = ({
@@ -24,7 +28,9 @@ export const Select2Renderer: React.FC<Select2RendererProps> = ({
   images,
   groupBounds,
   dragOffset,
-  isDraggingObjects
+  isDraggingObjects,
+  onDelete,
+  onToggleLock
 }) => {
   // Helper function to get object bounds for individual hover feedback
   const getObjectBounds = (obj: SelectedObject) => {
@@ -174,6 +180,16 @@ export const Select2Renderer: React.FC<Select2RendererProps> = ({
 
       {/* Preview objects during dragging */}
       {renderPreviewObjects()}
+
+      {/* Context Menu - positioned outside Konva layer */}
+      <SelectionContextMenu
+        selectedObjects={selectedObjects}
+        groupBounds={groupBounds}
+        onDelete={onDelete}
+        onToggleLock={onToggleLock}
+        isVisible={selectedObjects.length > 0 && !isDraggingObjects && !isSelecting}
+        images={images}
+      />
     </>
   );
 };
