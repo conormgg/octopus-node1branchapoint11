@@ -1,5 +1,6 @@
 
 import React from 'react';
+import { Button } from '@/components/ui/button';
 
 interface ColorSelectorProps {
   selectedColor: string;
@@ -17,12 +18,14 @@ export const ColorSelector: React.FC<ColorSelectorProps> = ({
   return (
     <div className="flex space-x-2 justify-center" data-ui-interactive="true">
       {colors.map((color) => (
-        <button
+        <Button
           key={color}
-          className={`w-8 h-8 rounded-full border-2 ${
+          variant="ghost"
+          size="icon"
+          className={`w-8 h-8 rounded-full p-0 border-2 transition-all hover:scale-105 ${
             selectedColor === color 
-              ? 'border-white border-4' 
-              : 'border-gray-500'
+              ? 'border-white border-4 shadow-lg' 
+              : 'border-gray-500 hover:border-gray-400'
           }`}
           style={{ backgroundColor: color }}
           onClick={() => {
