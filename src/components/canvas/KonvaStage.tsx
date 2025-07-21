@@ -214,6 +214,7 @@ const KonvaStage: React.FC<KonvaStageProps> = ({
               <KonvaImageOperationsHandler
                 whiteboardState={whiteboardState}
                 whiteboardId={whiteboardId}
+                select2State={stageEventHandlers?.select2State}
               />
               {/* Select2 overlay when select2 tool is active */}
               {state.currentTool === 'select2' && stageEventHandlers && (

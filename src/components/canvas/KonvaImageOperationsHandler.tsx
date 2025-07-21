@@ -1,17 +1,23 @@
-
 import React from 'react';
 import ImageRenderer from './ImageRenderer';
 import { useWhiteboardState } from '@/hooks/useWhiteboardState';
+import { SelectedObject } from '@/types/whiteboard';
 
 interface KonvaImageOperationsHandlerProps {
   whiteboardState: ReturnType<typeof useWhiteboardState>;
   whiteboardId?: string;
+  select2State?: {
+    selectedObjects: SelectedObject[];
+    hoveredObjectId: string | null;
+    // ... other select2 state properties
+  };
   onImageContextMenu?: (imageId: string, x: number, y: number) => void;
 }
 
 const KonvaImageOperationsHandler: React.FC<KonvaImageOperationsHandlerProps> = ({
   whiteboardState,
   whiteboardId,
+  select2State,
   onImageContextMenu
 }) => {
   const { state, selection, updateImage, addToHistory } = whiteboardState;
@@ -36,8 +42,13 @@ const KonvaImageOperationsHandler: React.FC<KonvaImageOperationsHandlerProps> = 
   return (
     <>
       {state.images?.map((image) => {
-        const isSelected = selection?.isObjectSelected(image.id) || false;
-        const isInGroup = selection?.selectionState?.selectedObjects?.length > 1 && isSelected;
+        // Check selection state for both select and select2 tools
+        const isSelectedInSelect = selection?.isObjectSelected(image.id) || false;
+        const isSelectedInSelect2 = select2State?.selectedObjects?.some(obj => obj.id === image.id) || false;
+        const isSelected = (state.currentTool === 'select' && isSelectedInSelect) || 
+                          (state.currentTool === 'select2' && isSelectedInSelect2);
+        
+        const isInGroup = selection?.selectionState?.selectedObjects?.length > 1 && isSelectedInSelect;
         
         return (
           <ImageRenderer

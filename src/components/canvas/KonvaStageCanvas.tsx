@@ -1,14 +1,13 @@
-
-import React from 'react';
-import { Stage } from 'react-konva';
+import React, { useRef, useEffect, useCallback } from 'react';
+import { Stage, Layer } from 'react-konva';
 import Konva from 'konva';
-import { PanZoomState, Tool, SelectionBounds } from '@/types/whiteboard';
-import { useNormalizedWhiteboardState } from '@/hooks/performance/useNormalizedWhiteboardState';
-import { useMouseEventHandlers } from './hooks/useMouseEventHandlers';
-import { useTouchEventHandlers } from './hooks/useTouchEventHandlers';
-import { useStageCursor } from './hooks/useStageCursor';
+import LinesList from './layers/LinesList';
 import ImagesLayer from './layers/ImagesLayer';
-import LinesLayer from './layers/LinesLayer';
+import SelectionRect from './SelectionRect';
+import { usePalmRejection } from '@/hooks/usePalmRejection';
+import { usePanZoom } from '@/hooks/usePanZoom';
+import { useTouchEvents } from '@/hooks/useTouchEvents';
+import { useMouseEvents } from '@/hooks/useMouseEvents';
 
 interface KonvaStageCanvasProps {
   width: number;
@@ -16,35 +15,25 @@ interface KonvaStageCanvasProps {
   stageRef: React.RefObject<Konva.Stage>;
   layerRef: React.RefObject<Konva.Layer>;
   lines: any[];
-  images?: any[];
-  currentTool: Tool;
-  panZoomState: PanZoomState;
-  palmRejectionConfig: {
-    enabled: boolean;
-  };
-  panZoom: {
-    startPan: (x: number, y: number) => void;
-    continuePan: (x: number, y: number) => void;
-    stopPan: () => void;
-  };
-  handlePointerDown: (x: number, y: number) => void;
-  handlePointerMove: (x: number, y: number) => void;
+  images: any[];
+  currentTool: string;
+  panZoomState: { x: number; y: number; scale: number };
+  palmRejectionConfig: any;
+  panZoom: any;
+  handlePointerDown: (x: number, y: number, pressure: number) => void;
+  handlePointerMove: (x: number, y: number, pressure: number) => void;
   handlePointerUp: () => void;
-  isReadOnly: boolean;
-  onStageClick?: (e: Konva.KonvaEventObject<MouseEvent | TouchEvent>) => void;
-  extraContent?: React.ReactNode;
-  selectionBounds?: SelectionBounds | null;
-  isSelecting?: boolean;
-  selection?: any;
+  isReadOnly?: boolean;
+  onStageClick?: (e: any) => void;
+  selectionBounds: any;
+  isSelecting: boolean;
+  selection: any;
   onUpdateLine?: (lineId: string, updates: any) => void;
   onUpdateImage?: (imageId: string, updates: any) => void;
   onTransformEnd?: () => void;
-  normalizedState?: ReturnType<typeof useNormalizedWhiteboardState>;
-  select2MouseHandlers?: {
-    onMouseDown: (e: Konva.KonvaEventObject<MouseEvent>) => void;
-    onMouseMove: (e: Konva.KonvaEventObject<MouseEvent>) => void;
-    onMouseUp: (e: Konva.KonvaEventObject<MouseEvent>) => void;
-  };
+  normalizedState?: any;
+  select2MouseHandlers?: any;
+  extraContent?: React.ReactNode;
 }
 
 const KonvaStageCanvas: React.FC<KonvaStageCanvasProps> = ({
@@ -53,7 +42,7 @@ const KonvaStageCanvas: React.FC<KonvaStageCanvasProps> = ({
   stageRef,
   layerRef,
   lines,
-  images = [],
+  images,
   currentTool,
   panZoomState,
   palmRejectionConfig,
@@ -63,77 +52,98 @@ const KonvaStageCanvas: React.FC<KonvaStageCanvasProps> = ({
   handlePointerUp,
   isReadOnly,
   onStageClick,
-  extraContent,
   selectionBounds,
-  isSelecting = false,
+  isSelecting,
   selection,
   onUpdateLine,
   onUpdateImage,
   onTransformEnd,
   normalizedState,
-  select2MouseHandlers
+  select2MouseHandlers,
+  extraContent
 }) => {
-  const { handleMouseDown, handleMouseMove, handleMouseUp } = useMouseEventHandlers({
-    currentTool,
-    panZoomState,
-    palmRejectionConfig,
-    panZoom,
+  const palmRejection = usePalmRejection(palmRejectionConfig);
+  const { handleWheel: handleStageWheel } = usePanZoom(panZoom);
+  const {
+    handleTouchStart: handleStageTouchStart,
+    handleTouchMove: handleStageTouchMove,
+    handleTouchEnd: handleStageTouchEnd,
+  } = useTouchEvents(
+    stageRef,
+    palmRejection,
     handlePointerDown,
     handlePointerMove,
-    handlePointerUp,
-    isReadOnly,
-    onStageClick,
-    selection
-  });
+    handlePointerUp
+  );
 
-  const { handleTouchStart } = useTouchEventHandlers({
-    currentTool,
-    palmRejectionConfig,
-    onStageClick
-  });
+  const {
+    handleMouseDown: handleStageMouseDown,
+    handleMouseMove: handleStageMouseMove,
+    handleMouseUp: handleStageMouseUp,
+    handleDragStart: handleStageDragStart,
+    handleDragMove: handleStageDragMove,
+    handleDragEnd: handleStageDragEnd,
+    handleContextMenu: handleStageContextMenu
+  } = useMouseEvents(
+    stageRef,
+    handlePointerDown,
+    handlePointerMove,
+    handlePointerUp
+  );
 
-  const cursor = useStageCursor({ currentTool, selection });
-
-  // Use select2 mouse handlers when select2 tool is active, otherwise use default handlers
-  const stageMouseHandlers = currentTool === 'select2' && select2MouseHandlers ? {
-    onMouseDown: select2MouseHandlers.onMouseDown,
-    onMouseMove: select2MouseHandlers.onMouseMove,
-    onMouseUp: select2MouseHandlers.onMouseUp,
-    onMouseLeave: select2MouseHandlers.onMouseUp
-  } : {
-    onMouseDown: handleMouseDown,
-    onMouseMove: handleMouseMove,
-    onMouseUp: handleMouseUp,
-    onMouseLeave: handleMouseUp
-  };
+  // Extract select2State from select2MouseHandlers if available
+  const select2State = select2MouseHandlers?.select2State;
 
   return (
     <Stage
       width={width}
       height={height}
       ref={stageRef}
-      {...stageMouseHandlers}
-      onTouchStart={handleTouchStart}
-      style={{ cursor }}
+      scaleX={panZoomState.scale}
+      scaleY={panZoomState.scale}
+      x={panZoomState.x}
+      y={panZoomState.y}
+      listening={!isReadOnly}
+      onMouseDown={handleStageMouseDown}
+      onMouseMove={handleStageMouseMove}
+      onMouseUp={handleStageMouseUp}
+      onTouchStart={handleStageTouchStart}
+      onTouchMove={handleStageTouchMove}
+      onTouchEnd={handleStageTouchEnd}
+      onWheel={handleStageWheel}
+      onDragStart={handleStageDragStart}
+      onDragEnd={handleStageDragEnd}
+      onDragMove={handleStageDragMove}
+      onContentContextMenu={handleStageContextMenu}
+      onClick={onStageClick}
     >
-      {/* Images layer - rendered first (behind) */}
-      <ImagesLayer extraContent={extraContent} />
-      
-      {/* Lines layer - rendered second (on top) */}
-      <LinesLayer
-        layerRef={layerRef}
-        lines={lines}
-        images={images}
-        currentTool={currentTool}
-        selectionBounds={selectionBounds}
-        isSelecting={isSelecting}
-        selection={selection}
-        normalizedState={normalizedState}
-        onUpdateLine={onUpdateLine}
-        onUpdateImage={onUpdateImage}
-        onTransformEnd={onTransformEnd}
-        stageRef={stageRef} // Pass stageRef for viewport calculations
-      />
+      <Layer ref={layerRef}>
+        {/* Lines layer */}
+        <LinesList
+          lines={lines}
+          currentTool={currentTool}
+          selection={selection}
+          select2State={select2State}
+          onUpdateLine={onUpdateLine}
+        />
+        
+        {/* Images layer */}
+        <ImagesLayer
+          images={images}
+          currentTool={currentTool}
+          selection={selection}
+          onUpdateImage={onUpdateImage}
+          onTransformEnd={onTransformEnd}
+        />
+        
+        {/* Selection rectangle */}
+        {selectionBounds && isSelecting && (
+          <SelectionRect bounds={selectionBounds} />
+        )}
+        
+        {/* Extra content (Select2Renderer, SelectionGroup, etc.) */}
+        {extraContent}
+      </Layer>
     </Stage>
   );
 };
