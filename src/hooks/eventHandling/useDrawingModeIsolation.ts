@@ -12,7 +12,9 @@ export const useDrawingModeIsolation = ({
 }: UseDrawingModeIsolationProps) => {
   const blockingActiveRef = useRef(false);
   const drawingSequenceRef = useRef<number>(0);
+  const longPressTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const DRAWING_SEQUENCE_GRACE_PERIOD = 100; // ms
+  const LONG_PRESS_DELAY = 300; // ms
 
   useEffect(() => {
     const shouldBlock = isDrawing && (currentTool === 'pencil' || currentTool === 'highlighter' || currentTool === 'eraser');
@@ -43,6 +45,26 @@ export const useDrawingModeIsolation = ({
              target.closest('.interactive-element');
     };
 
+    const preventLongPress = (e: TouchEvent) => {
+      if (longPressTimeoutRef.current) {
+        clearTimeout(longPressTimeoutRef.current);
+      }
+      
+      longPressTimeoutRef.current = setTimeout(() => {
+        // Cancel the touch event to prevent long press
+        e.preventDefault();
+        e.stopPropagation();
+        e.stopImmediatePropagation();
+      }, LONG_PRESS_DELAY);
+    };
+
+    const clearLongPressTimeout = () => {
+      if (longPressTimeoutRef.current) {
+        clearTimeout(longPressTimeoutRef.current);
+        longPressTimeoutRef.current = null;
+      }
+    };
+
     const handleWindowTouch = (e: TouchEvent) => {
       const target = e.target as HTMLElement;
       
@@ -51,15 +73,56 @@ export const useDrawingModeIsolation = ({
         return;
       }
       
-      // During drawing sequence, be less aggressive within canvas
-      if (isInDrawingSequence() && isWithinCanvas(target)) {
+      // Within canvas area during drawing - apply strict control
+      if (isWithinCanvas(target)) {
+        if (shouldBlock) {
+          // Prevent long press and magnifier for drawing tools
+          preventLongPress(e);
+          
+          // Set strict touch-action on the canvas element
+          const canvas = document.querySelector('[data-whiteboard-canvas]') as HTMLElement;
+          if (canvas) {
+            canvas.style.touchAction = 'none';
+            canvas.style.webkitUserSelect = 'none';
+            canvas.style.webkitTouchCallout = 'none';
+          }
+        }
         return;
       }
       
-      // Block background interactions during drawing
-      if (shouldBlock && !isWithinCanvas(target)) {
+      // Block background interactions more aggressively during drawing
+      if (shouldBlock || isInDrawingSequence()) {
         e.preventDefault();
         e.stopPropagation();
+        e.stopImmediatePropagation();
+      }
+    };
+
+    const handleWindowTouchEnd = (e: TouchEvent) => {
+      clearLongPressTimeout();
+      
+      const target = e.target as HTMLElement;
+      
+      // Always allow UI interactions
+      if (isUIElement(target)) {
+        return;
+      }
+      
+      // Restore touch-action when drawing ends
+      if (!shouldBlock) {
+        const canvas = document.querySelector('[data-whiteboard-canvas]') as HTMLElement;
+        if (canvas) {
+          canvas.style.touchAction = 'manipulation';
+        }
+      }
+      
+      // Block background interactions
+      if (shouldBlock || isInDrawingSequence()) {
+        if (!isWithinCanvas(target)) {
+          e.preventDefault();
+          e.stopPropagation();
+          e.stopImmediatePropagation();
+        }
       }
     };
 
@@ -69,6 +132,15 @@ export const useDrawingModeIsolation = ({
       // Always allow UI interactions
       if (isUIElement(target)) {
         return;
+      }
+      
+      // Special handling for touch pointers (finger input)
+      if (e.pointerType === 'touch') {
+        if (isWithinCanvas(target) && shouldBlock) {
+          // Prevent magnifier and text selection for touch input
+          e.preventDefault();
+          return;
+        }
       }
       
       // Special handling for stylus - prioritize drawing flow
@@ -104,34 +176,52 @@ export const useDrawingModeIsolation = ({
       
       // Block context menus during drawing or drawing sequence
       if (shouldBlock || isInDrawingSequence()) {
-        if (!isWithinCanvas(target)) {
-          e.preventDefault();
-          e.stopPropagation();
-          e.stopImmediatePropagation();
-        }
+        e.preventDefault();
+        e.stopPropagation();
+        e.stopImmediatePropagation();
+      }
+    };
+
+    const handleWindowSelectStart = (e: Event) => {
+      const target = e.target as HTMLElement;
+      
+      // Always allow UI text selection
+      if (isUIElement(target)) {
+        return;
+      }
+      
+      // Block text selection during drawing
+      if (shouldBlock || isInDrawingSequence()) {
+        e.preventDefault();
+        e.stopPropagation();
+        e.stopImmediatePropagation();
       }
     };
 
     if (shouldBlock) {
-      // Add adaptive event blocking
+      // Add adaptive event blocking with enhanced touch handling
       window.addEventListener('touchstart', handleWindowTouch, { passive: false, capture: true });
       window.addEventListener('touchmove', handleWindowTouch, { passive: false, capture: true });
-      window.addEventListener('touchend', handleWindowTouch, { passive: false, capture: true });
+      window.addEventListener('touchend', handleWindowTouchEnd, { passive: false, capture: true });
       window.addEventListener('pointerdown', handleWindowPointer, { passive: false, capture: true });
       window.addEventListener('pointermove', handleWindowPointer, { passive: false, capture: true });
       window.addEventListener('pointerup', handleWindowPointer, { passive: false, capture: true });
       window.addEventListener('contextmenu', handleWindowContextMenu, { passive: false, capture: true });
+      window.addEventListener('selectstart', handleWindowSelectStart, { passive: false, capture: true });
     }
 
     return () => {
+      clearLongPressTimeout();
+      
       if (shouldBlock) {
         window.removeEventListener('touchstart', handleWindowTouch, { passive: false, capture: true } as any);
         window.removeEventListener('touchmove', handleWindowTouch, { passive: false, capture: true } as any);
-        window.removeEventListener('touchend', handleWindowTouch, { passive: false, capture: true } as any);
+        window.removeEventListener('touchend', handleWindowTouchEnd, { passive: false, capture: true } as any);
         window.removeEventListener('pointerdown', handleWindowPointer, { passive: false, capture: true } as any);
         window.removeEventListener('pointermove', handleWindowPointer, { passive: false, capture: true } as any);
         window.removeEventListener('pointerup', handleWindowPointer, { passive: false, capture: true } as any);
         window.removeEventListener('contextmenu', handleWindowContextMenu, { passive: false, capture: true } as any);
+        window.removeEventListener('selectstart', handleWindowSelectStart, { passive: false, capture: true } as any);
       }
     };
   }, [isDrawing, currentTool]);

@@ -68,6 +68,18 @@ const KonvaStage: React.FC<KonvaStageProps> = ({
 
   const palmRejection = usePalmRejection(palmRejectionConfig);
 
+  // Check if currently drawing
+  const isDrawing = state.isDrawing || false;
+  const isDrawingTool = state.currentTool === 'pencil' || state.currentTool === 'highlighter' || state.currentTool === 'eraser';
+
+  // Dynamic touch-action based on drawing state
+  const touchAction = React.useMemo(() => {
+    if (isDrawing && isDrawingTool) {
+      return 'none'; // Strict control during drawing
+    }
+    return palmRejectionConfig.enabled ? 'manipulation' : 'auto';
+  }, [isDrawing, isDrawingTool, palmRejectionConfig.enabled]);
+
   // Debug tool state flow in KonvaStage
   useEffect(() => {
     debugLog('KonvaStage', 'Tool state in KonvaStage', {
@@ -159,11 +171,13 @@ const KonvaStage: React.FC<KonvaStageProps> = ({
   return (
     <div 
       ref={containerRef} 
-      className="w-full h-full select-none outline-none" 
+      className="w-full h-full select-none outline-none drawing-background" 
       style={{ 
         WebkitUserSelect: 'none',
         WebkitTouchCallout: 'none',
-        touchAction: palmRejectionConfig.enabled ? 'manipulation' : 'auto'
+        touchAction,
+        userSelect: 'none',
+        pointerEvents: 'auto'
       }}
       tabIndex={0}
       data-whiteboard-id={whiteboardId}

@@ -124,6 +124,28 @@
     -webkit-touch-callout: none;
     -webkit-tap-highlight-color: transparent;
   }
+
+  /* Aggressive magnifier prevention for iOS/Safari */
+  [data-whiteboard-canvas] {
+    -webkit-user-select: none !important;
+    -moz-user-select: none !important;
+    -ms-user-select: none !important;
+    user-select: none !important;
+    -webkit-touch-callout: none !important;
+    -webkit-tap-highlight-color: transparent !important;
+    -webkit-text-size-adjust: none !important;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  /* Prevent text selection and magnifier on canvas elements */
+  [data-whiteboard-canvas] * {
+    -webkit-user-select: none !important;
+    -moz-user-select: none !important;
+    -ms-user-select: none !important;
+    user-select: none !important;
+    -webkit-touch-callout: none !important;
+    -webkit-tap-highlight-color: transparent !important;
+  }
 }
 
 @layer utilities {
@@ -182,7 +204,20 @@
     user-select: none !important;
     -webkit-tap-highlight-color: transparent !important;
     -webkit-touch-callout: none !important;
+    -webkit-text-size-adjust: none !important;
     pointer-events: none;
+  }
+
+  /* Enhanced magnifier prevention */
+  .prevent-magnifier {
+    -webkit-user-select: none !important;
+    -moz-user-select: none !important;
+    -ms-user-select: none !important;
+    user-select: none !important;
+    -webkit-touch-callout: none !important;
+    -webkit-tap-highlight-color: transparent !important;
+    -webkit-text-size-adjust: none !important;
+    touch-action: none !important;
   }
 
   /* Override for interactive elements */
@@ -193,7 +228,9 @@
     user-select: auto !important;
     -webkit-tap-highlight-color: initial !important;
     -webkit-touch-callout: default !important;
+    -webkit-text-size-adjust: auto !important;
     pointer-events: auto !important;
+    touch-action: manipulation !important;
   }
 
   /* Media query for hover devices to prevent persistent hover states */

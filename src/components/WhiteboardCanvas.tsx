@@ -27,13 +27,23 @@ const WhiteboardCanvas: React.FC<WhiteboardCanvasProps> = ({
   isReadOnly = false,
   palmRejectionConfig
 }) => {
+  const isDrawing = whiteboardState.state.isDrawing || false;
+  const isDrawingTool = whiteboardState.state.currentTool === 'pencil' || 
+                       whiteboardState.state.currentTool === 'highlighter' || 
+                       whiteboardState.state.currentTool === 'eraser';
+
+  // Apply stricter CSS classes during drawing
+  const canvasClasses = `relative w-full h-full bg-white rounded-lg overflow-hidden select-none ${
+    isDrawing && isDrawingTool ? 'prevent-magnifier' : 'drawing-background'
+  }`;
+
   return (
     <div 
-      className="relative w-full h-full bg-white rounded-lg overflow-hidden select-none touch-none" 
+      className={canvasClasses}
       style={{ 
         WebkitUserSelect: 'none',
         WebkitTouchCallout: 'none',
-        touchAction: 'none',
+        touchAction: isDrawing && isDrawingTool ? 'none' : 'auto',
         userSelect: 'none',
         pointerEvents: 'auto'
       }}
