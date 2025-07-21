@@ -5,7 +5,7 @@ import { Trash2, Lock, Unlock } from 'lucide-react';
 import { SelectionBounds, SelectedObject } from '@/types/whiteboard';
 import { createDebugLogger } from '@/utils/debug/debugConfig';
 
-const debugLog = createDebugLogger('contextMenu');
+const debugLog = createDebugLogger('events');
 
 interface SelectionContextMenuProps {
   selectedObjects: SelectedObject[];

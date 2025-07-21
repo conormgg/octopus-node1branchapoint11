@@ -15,7 +15,7 @@ import { SelectionContextMenu } from './SelectionContextMenu';
 import SelectionGroup from './SelectionGroup';
 import { createDebugLogger } from '@/utils/debug/debugConfig';
 
-const debugLog = createDebugLogger('contextMenu');
+const debugLog = createDebugLogger('events');
 
 interface KonvaStageProps {
   width: number;

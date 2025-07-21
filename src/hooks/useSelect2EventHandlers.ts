@@ -6,7 +6,7 @@ import { useSelect2State } from './useSelect2State';
 import { useStageCoordinates } from './useStageCoordinates';
 import { createDebugLogger } from '@/utils/debug/debugConfig';
 
-const debugLog = createDebugLogger('contextMenu');
+const debugLog = createDebugLogger('events');
 
 interface UseSelect2EventHandlersProps {
   stageRef: React.RefObject<Konva.Stage>;

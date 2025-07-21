@@ -11,7 +11,7 @@ import ImagesLayer from './layers/ImagesLayer';
 import LinesLayer from './layers/LinesLayer';
 import { createDebugLogger } from '@/utils/debug/debugConfig';
 
-const debugLog = createDebugLogger('contextMenu');
+const debugLog = createDebugLogger('events');
 
 interface KonvaStageCanvasProps {
   width: number;
