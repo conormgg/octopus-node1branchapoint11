@@ -17,14 +17,14 @@ const Whiteboard: React.FC<WhiteboardProps> = ({ isReadOnly = false }) => {
   const containerRef = React.useRef<HTMLDivElement>(null);
   const whiteboardState = useWhiteboardState();
 
-  // Palm rejection configuration
+  // Palm rejection configuration - now enabled by default
   const [palmRejectionConfig, setPalmRejectionConfig] = useState({
     maxContactSize: 40,
     minPressure: 0.1,
     palmTimeoutMs: 500,
     clusterDistance: 100,
     preferStylus: true,
-    enabled: false
+    enabled: true // Changed from false to true
   });
 
   const updateDimensions = () => {
@@ -47,17 +47,25 @@ const Whiteboard: React.FC<WhiteboardProps> = ({ isReadOnly = false }) => {
   };
 
   return (
-    <div ref={containerRef} className="relative w-full h-full select-none" style={{ 
-      WebkitUserSelect: 'none',
-      WebkitTouchCallout: 'none',
-      touchAction: 'none'
-    }}>
-      {/* Palm Rejection Settings Button - moved to bottom-right */}
+    <div 
+      ref={containerRef} 
+      className="relative w-full h-full select-none" 
+      style={{ 
+        WebkitUserSelect: 'none',
+        WebkitTouchCallout: 'none',
+        touchAction: 'none'
+      }}
+    >
+      {/* Palm Rejection Settings Button - moved to bottom-right with better touch spacing */}
       {!isReadOnly && (
-        <div className="absolute bottom-2 right-2 z-20">
+        <div className="absolute bottom-4 right-4 z-20">
           <Popover>
             <PopoverTrigger asChild>
-              <Button variant="outline" size="icon" className="bg-white/80 backdrop-blur-sm">
+              <Button 
+                variant="outline" 
+                size="icon" 
+                className="bg-white/80 backdrop-blur-sm min-w-[44px] min-h-[44px] @media(hover:hover):hover:bg-white"
+              >
                 <Settings className="h-4 w-4" />
               </Button>
             </PopoverTrigger>

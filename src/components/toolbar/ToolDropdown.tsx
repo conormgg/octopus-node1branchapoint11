@@ -46,7 +46,9 @@ export const ToolDropdown: React.FC<ToolDropdownProps> = ({
       <Button
         variant="ghost"
         size="icon"
-        className={`h-8 w-6 rounded-r-none ${isActive ? 'bg-gray-700' : ''}`}
+        className={`h-10 w-8 min-h-[44px] rounded-r-none flex items-center justify-center transition-colors duration-150 ${
+          isActive ? 'bg-gray-700' : ''
+        } @media(hover:hover):hover:bg-gray-600`}
         onClick={() => !isReadOnly && onToolSelect()}
         disabled={isReadOnly}
       >
@@ -57,7 +59,7 @@ export const ToolDropdown: React.FC<ToolDropdownProps> = ({
           <Button
             variant="ghost"
             size="icon"
-            className="h-8 w-4 rounded-l-none border-l border-gray-600 px-1"
+            className="h-10 w-6 min-h-[44px] rounded-l-none border-l border-gray-600 px-1 transition-colors duration-150 @media(hover:hover):hover:bg-gray-600"
             disabled={isReadOnly}
           >
             <ChevronDown className="h-3 w-3" />
