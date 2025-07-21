@@ -41,6 +41,23 @@ export const ToolDropdown: React.FC<ToolDropdownProps> = ({
   isReadOnly,
   portalContainer
 }) => {
+  const handleColorChange = (newColor: string) => {
+    console.log('[ToolDropdown] Color change requested:', newColor);
+    if (!isReadOnly) {
+      onToolSelect();
+      onColorChange(newColor);
+    }
+  };
+
+  const handleDropdownPointerDown = (e: React.PointerEvent) => {
+    // Allow pointer events to propagate within dropdown content
+    console.log('[ToolDropdown] Dropdown pointer down:', {
+      pointerType: e.pointerType,
+      target: e.target
+    });
+    e.stopPropagation();
+  };
+
   return (
     <div className="relative flex" data-ui-interactive="true">
       <Button
@@ -75,6 +92,7 @@ export const ToolDropdown: React.FC<ToolDropdownProps> = ({
           container={portalContainer}
           data-ui-interactive="true"
           data-dropdown-content="true"
+          onPointerDown={handleDropdownPointerDown}
         >
           <div className="space-y-3" data-ui-interactive="true">
             {/* Thickness slider */}
@@ -100,12 +118,7 @@ export const ToolDropdown: React.FC<ToolDropdownProps> = ({
             <ColorSelector
               selectedColor={color}
               colors={colors}
-              onColorChange={(newColor) => {
-                if (!isReadOnly) {
-                  onToolSelect();
-                  onColorChange(newColor);
-                }
-              }}
+              onColorChange={handleColorChange}
               isReadOnly={isReadOnly}
             />
           </div>

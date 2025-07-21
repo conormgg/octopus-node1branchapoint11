@@ -15,6 +15,30 @@ export const ColorSelector: React.FC<ColorSelectorProps> = ({
   onColorChange,
   isReadOnly
 }) => {
+  const handleColorSelect = (color: string) => {
+    if (!isReadOnly) {
+      console.log('[ColorSelector] Color selected:', color, 'via onClick');
+      onColorChange(color);
+    }
+  };
+
+  const handlePointerDown = (e: React.PointerEvent, color: string) => {
+    if (!isReadOnly) {
+      console.log('[ColorSelector] Pointer down:', {
+        pointerType: e.pointerType,
+        color,
+        currentSelected: selectedColor
+      });
+      
+      // Ensure stylus clicks trigger color change
+      if (e.pointerType === 'pen' || e.pointerType === 'touch') {
+        e.preventDefault();
+        e.stopPropagation();
+        onColorChange(color);
+      }
+    }
+  };
+
   return (
     <div className="flex space-x-2 justify-center" data-ui-interactive="true">
       {colors.map((color) => (
@@ -28,11 +52,8 @@ export const ColorSelector: React.FC<ColorSelectorProps> = ({
               : 'border-gray-500 hover:border-gray-400'
           }`}
           style={{ backgroundColor: color }}
-          onClick={() => {
-            if (!isReadOnly) {
-              onColorChange(color);
-            }
-          }}
+          onClick={() => handleColorSelect(color)}
+          onPointerDown={(e) => handlePointerDown(e, color)}
           disabled={isReadOnly}
           data-ui-interactive="true"
           data-color-selector-button="true"
