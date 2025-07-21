@@ -30,8 +30,8 @@ export const usePointerEventSetup = ({
       handleContextMenu
     } = handlers;
 
-    // Use normal event listener options - don't use capture to avoid conflicts
-    const eventOptions = { passive: false };
+    // Use proper EventListenerOptions type
+    const eventOptions: AddEventListenerOptions = { passive: false };
 
     if (shouldUsePointerEvents) {
       container.addEventListener('pointerdown', handlePointerDownEvent, eventOptions);
@@ -39,9 +39,6 @@ export const usePointerEventSetup = ({
       container.addEventListener('pointerup', handlePointerUpEvent, eventOptions);
       container.addEventListener('pointerleave', handlePointerLeaveEvent, eventOptions);
       container.addEventListener('pointercancel', handlePointerUpEvent, eventOptions);
-      
-      // REMOVED: Aggressive touch event blocking that was preventing pan/zoom
-      // Touch events are now handled by the dedicated touch handlers with proper coordination
     }
     
     container.addEventListener('contextmenu', handleContextMenu, eventOptions);

@@ -98,10 +98,13 @@
 
   body {
     @apply bg-background text-foreground;
-    /* Prevent background highlighting on touch devices */
+    /* Enhanced background highlighting prevention */
     -webkit-touch-callout: none;
     -webkit-user-select: none;
     -webkit-tap-highlight-color: transparent;
+    -moz-user-select: none;
+    -ms-user-select: none;
+    user-select: none;
   }
 
   /* Prevent highlighting on non-interactive background elements */
@@ -110,6 +113,16 @@
     -webkit-user-select: none;
     -moz-user-select: none;
     -ms-user-select: none;
+  }
+
+  /* Enhanced background element protection */
+  body *:not([data-whiteboard-ui]):not([data-ui-interactive]):not(button):not([role="button"]):not(input):not(textarea):not([contenteditable]) {
+    user-select: none;
+    -webkit-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+    -webkit-touch-callout: none;
+    -webkit-tap-highlight-color: transparent;
   }
 }
 
@@ -151,13 +164,36 @@
     -webkit-focus-ring-color: transparent;
   }
 
-  /* Prevent background highlighting without blocking interaction */
+  /* Enhanced background highlighting prevention */
   .prevent-highlight {
     -webkit-user-select: none;
     -moz-user-select: none;
     -ms-user-select: none;
     user-select: none;
     -webkit-tap-highlight-color: transparent;
+    -webkit-touch-callout: none;
+  }
+
+  /* Strong background protection for drawing areas */
+  .drawing-background {
+    -webkit-user-select: none !important;
+    -moz-user-select: none !important;
+    -ms-user-select: none !important;
+    user-select: none !important;
+    -webkit-tap-highlight-color: transparent !important;
+    -webkit-touch-callout: none !important;
+    pointer-events: none;
+  }
+
+  /* Override for interactive elements */
+  .interactive-element {
+    -webkit-user-select: auto !important;
+    -moz-user-select: auto !important;
+    -ms-user-select: auto !important;
+    user-select: auto !important;
+    -webkit-tap-highlight-color: initial !important;
+    -webkit-touch-callout: default !important;
+    pointer-events: auto !important;
   }
 
   /* Media query for hover devices to prevent persistent hover states */

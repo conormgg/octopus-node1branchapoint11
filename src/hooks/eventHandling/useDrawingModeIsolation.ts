@@ -45,6 +45,15 @@ export const useDrawingModeIsolation = ({
         const target = e.target as HTMLElement;
         const whiteboardUI = document.querySelector('[data-whiteboard-ui]');
         
+        // Enhanced stylus handling - be more aggressive with stylus events
+        if (e.pointerType === 'pen' && whiteboardUI && !whiteboardUI.contains(target)) {
+          // Always prevent stylus events outside whiteboard UI
+          e.preventDefault();
+          e.stopPropagation();
+          e.stopImmediatePropagation();
+          return;
+        }
+        
         // Only prevent events that are completely outside the whiteboard UI
         if (whiteboardUI && !whiteboardUI.contains(target)) {
           // Check if target is a legitimate UI element that should be interactive
@@ -62,14 +71,37 @@ export const useDrawingModeIsolation = ({
       }
     };
 
+    const handleWindowContextMenu = (e: Event) => {
+      if (shouldBlock) {
+        const target = e.target as HTMLElement;
+        const whiteboardUI = document.querySelector('[data-whiteboard-ui]');
+        
+        // Prevent context menu on background elements during drawing
+        if (whiteboardUI && !whiteboardUI.contains(target)) {
+          const isUIElement = target.closest('[data-ui-interactive]') || 
+                             target.closest('button') || 
+                             target.closest('[role="button"]') ||
+                             target.closest('[role="dialog"]') ||
+                             target.closest('[role="menu"]');
+          
+          if (!isUIElement) {
+            e.preventDefault();
+            e.stopPropagation();
+            e.stopImmediatePropagation();
+          }
+        }
+      }
+    };
+
     if (shouldBlock) {
-      // Add window-level event blocking with lighter touch
+      // Add window-level event blocking with enhanced stylus handling
       window.addEventListener('touchstart', handleWindowTouch, { passive: false, capture: true });
       window.addEventListener('touchmove', handleWindowTouch, { passive: false, capture: true });
       window.addEventListener('touchend', handleWindowTouch, { passive: false, capture: true });
       window.addEventListener('pointerdown', handleWindowPointer, { passive: false, capture: true });
       window.addEventListener('pointermove', handleWindowPointer, { passive: false, capture: true });
       window.addEventListener('pointerup', handleWindowPointer, { passive: false, capture: true });
+      window.addEventListener('contextmenu', handleWindowContextMenu, { passive: false, capture: true });
     }
 
     return () => {
@@ -80,6 +112,7 @@ export const useDrawingModeIsolation = ({
         window.removeEventListener('pointerdown', handleWindowPointer, { passive: false, capture: true } as any);
         window.removeEventListener('pointermove', handleWindowPointer, { passive: false, capture: true } as any);
         window.removeEventListener('pointerup', handleWindowPointer, { passive: false, capture: true } as any);
+        window.removeEventListener('contextmenu', handleWindowContextMenu, { passive: false, capture: true } as any);
       }
     };
   }, [isDrawing, currentTool]);

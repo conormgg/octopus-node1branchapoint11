@@ -49,7 +49,7 @@ const Whiteboard: React.FC<WhiteboardProps> = ({ isReadOnly = false }) => {
   return (
     <div 
       ref={containerRef} 
-      className="relative w-full h-full select-none touch-none" 
+      className="relative w-full h-full select-none touch-none drawing-background" 
       style={{ 
         WebkitUserSelect: 'none',
         WebkitTouchCallout: 'none',
@@ -63,18 +63,18 @@ const Whiteboard: React.FC<WhiteboardProps> = ({ isReadOnly = false }) => {
     >
       {/* Palm Rejection Settings Button */}
       {!isReadOnly && (
-        <div className="absolute bottom-2 right-2 z-20" data-ui-interactive="true">
+        <div className="absolute bottom-2 right-2 z-20 interactive-element" data-ui-interactive="true">
           <Popover>
             <PopoverTrigger asChild>
               <Button 
                 variant="outline" 
                 size="icon" 
-                className="bg-white/80 backdrop-blur-sm touch-safe"
+                className="bg-white/80 backdrop-blur-sm touch-safe interactive-element"
               >
                 <Settings className="h-4 w-4" />
               </Button>
             </PopoverTrigger>
-            <PopoverContent className="w-80" align="end">
+            <PopoverContent className="w-80 interactive-element" align="end">
               <PalmRejectionSettings
                 config={palmRejectionConfig}
                 onChange={setPalmRejectionConfig}
@@ -92,7 +92,7 @@ const Whiteboard: React.FC<WhiteboardProps> = ({ isReadOnly = false }) => {
         palmRejectionConfig={palmRejectionConfig}
       />
       
-      <div className="pointer-events-auto" data-ui-interactive="true">
+      <div className="pointer-events-auto interactive-element" data-ui-interactive="true">
         <MovableToolbar
           currentTool={whiteboardState.state.currentTool}
           currentStrokeWidth={whiteboardState.state.currentStrokeWidth}
