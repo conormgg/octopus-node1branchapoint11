@@ -84,7 +84,7 @@ export const useTouchEventHandlers = ({
         // Set strict touch-action on container
         container.style.touchAction = 'none';
         container.style.webkitUserSelect = 'none';
-        container.style.webkitTouchCallout = 'none';
+        (container.style as any).webkitTouchCallout = 'none';
         
         if (!shouldProcessEvent('touch', 'touchstart')) {
           debugLog('TouchEventHandlers', 'Event deduplication blocked touchstart');

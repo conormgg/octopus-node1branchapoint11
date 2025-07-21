@@ -84,7 +84,7 @@ export const useDrawingModeIsolation = ({
           if (canvas) {
             canvas.style.touchAction = 'none';
             canvas.style.webkitUserSelect = 'none';
-            canvas.style.webkitTouchCallout = 'none';
+            (canvas.style as any).webkitTouchCallout = 'none';
           }
         }
         return;
