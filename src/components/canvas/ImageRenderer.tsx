@@ -1,3 +1,4 @@
+
 import React, { useRef, useEffect } from 'react';
 import { Image, Transformer } from 'react-konva';
 import Konva from 'konva';
@@ -115,6 +116,7 @@ const ImageRenderer: React.FC<ImageRendererProps> = React.memo(({
       {isSelected && (currentTool === 'select' || currentTool === 'select2') && !isLocked && (
         <Transformer
           ref={trRef}
+          listening={currentTool === 'select'}
           boundBoxFunc={(oldBox, newBox) => {
             if (newBox.width < 10 || newBox.height < 10) {
               return oldBox;

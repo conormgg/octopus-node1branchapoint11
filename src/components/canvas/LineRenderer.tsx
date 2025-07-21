@@ -1,3 +1,4 @@
+
 import React, { useRef, useEffect } from 'react';
 import { Line, Transformer } from 'react-konva';
 import { LineObject } from '@/types/whiteboard';
@@ -134,6 +135,7 @@ const LineRenderer: React.FC<LineRendererProps> = React.memo(({
       {isSelected && (currentTool === 'select' || currentTool === 'select2') && (
         <Transformer
           ref={trRef}
+          listening={currentTool === 'select'}
           boundBoxFunc={(oldBox, newBox) => {
             if (newBox.width < 5 || newBox.height < 5) {
               return oldBox;
