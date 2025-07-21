@@ -24,11 +24,12 @@ export const SelectionContextMenu: React.FC<SelectionContextMenuProps> = ({
   isVisible,
   images = []
 }) => {
-  debugLog('SelectionContextMenu', 'Render', {
+  debugLog('SelectionContextMenu', 'Render with improved mobile support', {
     selectedCount: selectedObjects.length,
     hasGroupBounds: !!groupBounds,
     isVisible,
-    groupBounds
+    groupBounds,
+    isMobile: window.innerWidth < 768
   });
 
   if (!isVisible || !groupBounds || selectedObjects.length === 0) {
@@ -63,25 +64,33 @@ export const SelectionContextMenu: React.FC<SelectionContextMenuProps> = ({
     onDelete();
   };
 
-  debugLog('SelectionContextMenu', 'Rendering context menu', {
+  // Mobile-friendly styling
+  const isMobile = window.innerWidth < 768;
+  const buttonSize = isMobile ? "default" : "sm";
+  const buttonClass = isMobile 
+    ? "flex items-center gap-2 min-h-[48px] px-4 touch-manipulation" 
+    : "flex items-center gap-2 min-h-[40px] px-3";
+
+  debugLog('SelectionContextMenu', 'Rendering context menu with mobile optimizations', {
     selectedCount: selectedObjects.length,
     hasImages,
     allImagesLocked,
-    someImagesLocked
+    someImagesLocked,
+    isMobile
   });
 
   return (
-    <div className="flex items-center gap-1 bg-background border border-border rounded-lg shadow-lg p-1">
+    <div className={`flex items-center gap-1 bg-background border border-border rounded-lg shadow-lg p-1 ${isMobile ? 'shadow-xl' : 'shadow-lg'}`}>
       {/* Delete Button */}
       <Button
         variant="ghost"
-        size="sm"
+        size={buttonSize}
         onClick={handleDelete}
-        className="flex items-center gap-2 text-destructive hover:text-destructive hover:bg-destructive/10 min-h-[40px] px-3"
+        className={`${buttonClass} text-destructive hover:text-destructive hover:bg-destructive/10`}
         title={`Delete ${selectedObjects.length} object${selectedObjects.length === 1 ? '' : 's'}`}
       >
-        <Trash2 size={16} />
-        <span className="text-sm font-medium">
+        <Trash2 size={isMobile ? 18 : 16} />
+        <span className={`font-medium ${isMobile ? 'text-base' : 'text-sm'}`}>
           Delete {selectedObjects.length}
         </span>
       </Button>
@@ -90,13 +99,13 @@ export const SelectionContextMenu: React.FC<SelectionContextMenuProps> = ({
       {hasImages && onToggleLock && (
         <Button
           variant="ghost"
-          size="sm"
+          size={buttonSize}
           onClick={handleToggleLock}
-          className="flex items-center gap-2 hover:bg-accent hover:text-accent-foreground min-h-[40px] px-3"
+          className={`${buttonClass} hover:bg-accent hover:text-accent-foreground`}
           title={allImagesLocked ? 'Unlock images' : 'Lock images'}
         >
-          {allImagesLocked ? <Unlock size={16} /> : <Lock size={16} />}
-          <span className="text-sm font-medium">
+          {allImagesLocked ? <Unlock size={isMobile ? 18 : 16} /> : <Lock size={isMobile ? 18 : 16} />}
+          <span className={`font-medium ${isMobile ? 'text-base' : 'text-sm'}`}>
             {allImagesLocked ? 'Unlock' : 'Lock'}
             {someImagesLocked && !allImagesLocked ? ' All' : ''}
           </span>

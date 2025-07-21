@@ -1,4 +1,3 @@
-
 import React, { useRef, useEffect } from 'react';
 import Konva from 'konva';
 import { useWhiteboardState } from '@/hooks/useWhiteboardState';
@@ -170,7 +169,7 @@ const KonvaStage: React.FC<KonvaStageProps> = ({
     } : undefined
   });
 
-  // Calculate context menu position relative to the container
+  // Calculate context menu position relative to the container with mobile support
   const getContextMenuPosition = (groupBounds: any) => {
     if (!groupBounds || !containerRef.current || !stageRef.current) {
       debugLog('KonvaStage', 'Missing refs for context menu positioning', {
@@ -199,10 +198,15 @@ const KonvaStage: React.FC<KonvaStageProps> = ({
     // Get container bounds for boundary checking
     const containerRect = container.getBoundingClientRect();
     
-    // Calculate final position, ensuring it stays within container
+    // Mobile-friendly positioning adjustments
+    const isMobile = window.innerWidth < 768;
+    const menuWidth = isMobile ? 250 : 200;
+    const menuHeight = 60;
+    
+    // Calculate final position, ensuring it stays within container and viewport
     const finalPosition = {
-      x: Math.max(10, Math.min(screenPoint.x, containerRect.width - 200)), // Keep menu within bounds
-      y: Math.max(10, screenPoint.y) // Don't go above container
+      x: Math.max(10, Math.min(screenPoint.x - menuWidth / 2, containerRect.width - menuWidth - 10)),
+      y: Math.max(10, Math.min(screenPoint.y, containerRect.height - menuHeight - 10))
     };
     
     debugLog('KonvaStage', 'Context menu position calculation', {
@@ -210,6 +214,8 @@ const KonvaStage: React.FC<KonvaStageProps> = ({
       selectionCenterWorld,
       screenPoint,
       containerWidth: containerRect.width,
+      containerHeight: containerRect.height,
+      isMobile,
       finalPosition
     });
     
@@ -234,7 +240,7 @@ const KonvaStage: React.FC<KonvaStageProps> = ({
     }
   };
 
-  // Improved context menu visibility logic with debugging
+  // SIMPLIFIED: Context menu visibility logic - only depends on selected objects and not dragging
   const getContextMenuVisibility = () => {
     if (state.currentTool !== 'select2' || !stageEventHandlers || !stageEventHandlers.select2State) {
       debugLog('KonvaStage', 'Context menu hidden - not select2 tool or no handlers', {
@@ -245,23 +251,21 @@ const KonvaStage: React.FC<KonvaStageProps> = ({
       return { isVisible: false, menuPosition: { x: 0, y: 0 } };
     }
 
-    const { selectedObjects, groupBounds, isDraggingObjects, isSelecting } = stageEventHandlers.select2State;
+    const { selectedObjects, groupBounds, isDraggingObjects } = stageEventHandlers.select2State;
     
-    // Context menu should be visible when:
+    // SIMPLIFIED: Context menu should be visible when:
     // 1. Objects are selected
     // 2. Not currently dragging objects
-    // 3. Not currently doing drag selection
-    // 4. Has valid group bounds
+    // 3. Has valid group bounds
+    // REMOVED: dependency on isSelecting flag
     const isVisible = selectedObjects.length > 0 && 
                      !isDraggingObjects && 
-                     !isSelecting && 
                      !!groupBounds;
     
-    debugLog('KonvaStage', 'Context menu visibility check', {
+    debugLog('KonvaStage', 'SIMPLIFIED context menu visibility check', {
       selectedCount: selectedObjects.length,
       hasGroupBounds: !!groupBounds,
       isDraggingObjects,
-      isSelecting,
       isVisible,
       groupBounds
     });

@@ -1,4 +1,3 @@
-
 import { useCallback, useRef } from 'react';
 import Konva from 'konva';
 import { LineObject, ImageObject } from '@/types/whiteboard';
@@ -100,9 +99,9 @@ export const useSelect2EventHandlers = ({
     }
   }, [containerRef]);
 
-  // Reset stuck states with debugging
+  // IMPROVED: Immediate state reset without timeouts
   const resetStuckStates = useCallback(() => {
-    debugLog('useSelect2EventHandlers', 'Resetting stuck states', { 
+    debugLog('useSelect2EventHandlers', 'Resetting stuck states immediately', { 
       currentState: state,
       isDragging: isDraggingRef.current,
       hasMoved: hasMovedRef.current
@@ -120,7 +119,7 @@ export const useSelect2EventHandlers = ({
     hasMovedRef.current = false;
     dragStartPositionRef.current = null;
     
-    // Also clear main selection bounds if stuck in selecting state
+    // Clear main selection bounds immediately
     syncSelectionBoundsWithMainState(null, false);
   }, [state, setState, syncSelectionBoundsWithMainState]);
 
@@ -324,8 +323,9 @@ export const useSelect2EventHandlers = ({
     }
   }, [state.isDraggingObjects, state.isSelecting, state.selectionBounds, state.dragOffset, updateObjectDragging, updateDragSelection, findObjectsAtPoint, setHoveredObject, lines, images, syncSelectionBoundsWithMainState]);
 
+  // IMPROVED: Immediate state updates for touch selection
   const handlePointerUp = useCallback(() => {
-    debugLog('useSelect2EventHandlers', 'Pointer up', { 
+    debugLog('useSelect2EventHandlers', 'Pointer up with immediate state updates', { 
       wasDragging: isDraggingRef.current,
       hasMoved: hasMovedRef.current,
       isDraggingObjects: state.isDraggingObjects,
@@ -336,27 +336,33 @@ export const useSelect2EventHandlers = ({
     
     if (isDraggingRef.current) {
       if (state.isDraggingObjects && hasMovedRef.current) {
-        // Apply the drag offset to actually move the objects - single application
+        // Apply the drag offset to actually move the objects
         debugLog('useSelect2EventHandlers', 'Applying final drag offset');
         applyDragOffset();
         endObjectDragging();
       } else if (state.isSelecting && hasMovedRef.current) {
-        // Complete drag selection
+        // Complete drag selection with IMMEDIATE state updates
         const selectedObjects = endDragSelection(lines, images);
-        debugLog('useSelect2EventHandlers', 'Drag selection completed', { selectedObjects });
-        // Sync with main selection state
+        debugLog('useSelect2EventHandlers', 'Drag selection completed - immediate sync', { selectedObjects });
+        
+        // IMMEDIATE: Sync with main selection state
         syncSelectionWithMainState(selectedObjects);
+        
+        // IMMEDIATE: Reset selection bounds and isSelecting flag
         syncSelectionBoundsWithMainState(null, false);
+        setState(prev => ({ ...prev, isSelecting: false }));
+        
         // Ensure container has focus for keyboard events after drag selection
         ensureContainerFocus();
       } else {
-        // No movement occurred, ensure states are properly reset
-        debugLog('useSelect2EventHandlers', 'No movement, resetting selection states');
+        // No movement occurred, ensure states are properly reset IMMEDIATELY
+        debugLog('useSelect2EventHandlers', 'No movement - immediate state reset');
         syncSelectionBoundsWithMainState(null, false);
         setState(prev => ({ ...prev, isSelecting: false, isDraggingObjects: false }));
       }
     }
     
+    // IMMEDIATE: Reset all tracking variables
     isDraggingRef.current = false;
     hasMovedRef.current = false;
     dragStartPositionRef.current = null;
@@ -392,7 +398,7 @@ export const useSelect2EventHandlers = ({
     const touch = e.evt.touches[0];
     if (!touch) return;
 
-    debugLog('useSelect2EventHandlers', 'Touch start', { 
+    debugLog('useSelect2EventHandlers', 'Touch start with improved handling', { 
       clientX: touch.clientX, 
       clientY: touch.clientY,
       touches: e.evt.touches.length 
@@ -404,9 +410,12 @@ export const useSelect2EventHandlers = ({
       return;
     }
     
+    // Ensure immediate state reset before new interaction
+    resetStuckStates();
+    
     const worldPoint = getRelativePointerPosition(stage, touch.clientX, touch.clientY);
-    handlePointerDown(worldPoint.x, worldPoint.y, false, 'touch'); // No ctrl key for touch
-  }, [getRelativePointerPosition, handlePointerDown]);
+    handlePointerDown(worldPoint.x, worldPoint.y, false, 'touch');
+  }, [getRelativePointerPosition, handlePointerDown, resetStuckStates]);
 
   const handleTouchMove = useCallback((e: Konva.KonvaEventObject<TouchEvent>) => {
     const stage = e.target.getStage();
@@ -425,7 +434,7 @@ export const useSelect2EventHandlers = ({
   }, [getRelativePointerPosition, handlePointerMove]);
 
   const handleTouchEnd = useCallback((e: Konva.KonvaEventObject<TouchEvent>) => {
-    debugLog('useSelect2EventHandlers', 'Touch end', {
+    debugLog('useSelect2EventHandlers', 'Touch end with immediate state updates', {
       remainingTouches: e.evt.touches.length
     });
     
@@ -489,6 +498,6 @@ export const useSelect2EventHandlers = ({
       clearMainSelection();
     },
     deleteSelectedObjects,
-    resetStuckStates // Expose for external use if needed
+    resetStuckStates
   };
 };
