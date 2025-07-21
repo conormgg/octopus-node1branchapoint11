@@ -26,7 +26,8 @@ export const useSelect2EventHandlers = (config: {
     setHoveredObject,
     updateGroupBounds,
     isPointInGroupBounds,
-    hideContextMenu
+    hideContextMenu,
+    createObjectsAtPoint
   } = useSelect2State();
 
   // Update group bounds when lines or images change
@@ -42,6 +43,8 @@ export const useSelect2EventHandlers = (config: {
     const pos = stage.getPointerPosition();
     if (!pos) return;
 
+    console.log('Select2: Mouse down at', pos);
+
     const isCtrlPressed = e.evt.ctrlKey || e.evt.metaKey;
     
     // Hide context menu on any click
@@ -51,19 +54,22 @@ export const useSelect2EventHandlers = (config: {
 
     // Check if clicking within existing selection bounds
     if (state.selectedObjects.length > 0 && isPointInGroupBounds(pos)) {
+      console.log('Select2: Clicking within selection bounds, starting drag');
       // Start dragging selected objects
       startDraggingObjects(pos);
       return;
     }
 
-    // Check if clicking on an object
-    const clickedObjects = [];
+    // Check if clicking on an object using the createObjectsAtPoint function
+    const clickedObjects = createObjectsAtPoint(pos, lines, images);
+    console.log('Select2: Found objects at point:', clickedObjects);
     
     if (clickedObjects.length > 0) {
       // Select object(s) at point
       selectObjectsAtPoint(pos, lines, images, isCtrlPressed);
     } else {
       // Start drag selection
+      console.log('Select2: Starting drag selection');
       startDragSelection(pos);
     }
   }, [
@@ -74,6 +80,7 @@ export const useSelect2EventHandlers = (config: {
     selectObjectsAtPoint,
     startDragSelection,
     hideContextMenu,
+    createObjectsAtPoint,
     lines,
     images
   ]);
@@ -91,8 +98,8 @@ export const useSelect2EventHandlers = (config: {
     } else if (state.isSelecting) {
       updateDragSelection(pos);
     } else {
-      // Handle hover detection
-      const hoveredObjects = [];
+      // Handle hover detection using createObjectsAtPoint
+      const hoveredObjects = createObjectsAtPoint(pos, lines, images);
       setHoveredObject(hoveredObjects.length > 0 ? hoveredObjects[0].id : null);
     }
   }, [
@@ -101,15 +108,19 @@ export const useSelect2EventHandlers = (config: {
     updateObjectDragging,
     updateDragSelection,
     setHoveredObject,
+    createObjectsAtPoint,
     lines,
     images
   ]);
 
   // Handle mouse up
   const handleMouseUp = useCallback((e: KonvaEventObject<MouseEvent>) => {
+    console.log('Select2: Mouse up, isDraggingObjects:', state.isDraggingObjects, 'isSelecting:', state.isSelecting);
+    
     if (state.isDraggingObjects) {
       // Apply drag offset to selected objects
       if (state.dragOffset) {
+        console.log('Select2: Applying drag offset:', state.dragOffset);
         state.selectedObjects.forEach(obj => {
           if (obj.type === 'line') {
             const line = lines.find(l => l.id === obj.id);
@@ -122,7 +133,7 @@ export const useSelect2EventHandlers = (config: {
             }
           } else if (obj.type === 'image') {
             const image = images.find(i => i.id === obj.id);
-            if (image && state.dragOffset) {
+            if (image && state.dragOffset && updateImageState) {
               updateImageState(image.id, {
                 x: image.x + state.dragOffset.x,
                 y: image.y + state.dragOffset.y
@@ -133,6 +144,7 @@ export const useSelect2EventHandlers = (config: {
       }
       endObjectDragging();
     } else if (state.isSelecting) {
+      console.log('Select2: Ending drag selection');
       endDragSelection(lines, images);
     }
   }, [
@@ -149,6 +161,7 @@ export const useSelect2EventHandlers = (config: {
 
   // Handle delete selected objects
   const handleDeleteSelected = useCallback(() => {
+    console.log('Select2: Deleting selected objects:', state.selectedObjects);
     if (state.selectedObjects.length > 0 && deleteSelectedObjects) {
       deleteSelectedObjects(state.selectedObjects);
       clearSelection();

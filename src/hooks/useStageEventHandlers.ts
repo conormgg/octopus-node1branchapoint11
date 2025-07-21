@@ -165,7 +165,10 @@ export const useStageEventHandlers = ({
     handlePointerDown: currentTool === 'select2' ? 
       (worldX: number, worldY: number) => {
         // Convert to mouse event for select2
-        const mockEvent = { target: { getStage: () => stageRef.current }, evt: { ctrlKey: false, metaKey: false } };
+        const mockEvent = { 
+          target: { getStage: () => stageRef.current }, 
+          evt: { ctrlKey: false, metaKey: false } 
+        };
         select2Handlers.handleMouseDown(mockEvent as any);
       } : handlePointerDown,
     handlePointerMove: currentTool === 'select2' ? 

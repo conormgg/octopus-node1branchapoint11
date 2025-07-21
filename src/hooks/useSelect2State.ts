@@ -1,3 +1,4 @@
+
 import { useState, useCallback } from 'react';
 import { LineObject, ImageObject, SelectedObject, SelectionBounds } from '@/types/whiteboard';
 
@@ -109,6 +110,7 @@ export const useSelect2State = () => {
 
   // Start drag selection
   const startDragSelection = useCallback((point: { x: number; y: number }) => {
+    console.log('Select2State: Starting drag selection at', point);
     setState(prev => ({
       ...prev,
       isSelecting: true,
@@ -180,8 +182,10 @@ export const useSelect2State = () => {
 
   // End drag selection and select intersecting objects
   const endDragSelection = useCallback((lines: LineObject[], images: ImageObject[]) => {
+    console.log('Select2State: Ending drag selection');
     setState(prev => {
       if (!prev.selectionBounds || !prev.isSelecting) {
+        console.log('Select2State: No selection bounds or not selecting, clearing state');
         return {
           ...prev,
           isSelecting: false,
@@ -200,6 +204,8 @@ export const useSelect2State = () => {
         objectIntersectsSelectionBounds(obj, prev.selectionBounds!, lines, images)
       );
 
+      console.log('Select2State: Found intersecting objects:', intersectingObjects);
+
       const newGroupBounds = calculateGroupBounds(intersectingObjects, lines, images);
 
       return {
@@ -209,7 +215,7 @@ export const useSelect2State = () => {
         isSelecting: false,
         dragStartPoint: null,
         selectionBounds: null,
-        contextMenuVisible: !!newGroupBounds,
+        contextMenuVisible: intersectingObjects.length > 0 && !!newGroupBounds,
         contextMenuPosition: newGroupBounds ? {
           x: newGroupBounds.x + newGroupBounds.width + 10,
           y: newGroupBounds.y - 10
@@ -220,6 +226,7 @@ export const useSelect2State = () => {
 
   // Start dragging selected objects
   const startDraggingObjects = useCallback((startPoint: { x: number; y: number }) => {
+    console.log('Select2State: Starting object drag at', startPoint);
     setState(prev => ({
       ...prev,
       isDraggingObjects: true,
@@ -247,6 +254,7 @@ export const useSelect2State = () => {
 
   // End object dragging
   const endObjectDragging = useCallback(() => {
+    console.log('Select2State: Ending object drag');
     setState(prev => ({
       ...prev,
       isDraggingObjects: false,
@@ -303,10 +311,12 @@ export const useSelect2State = () => {
     images: ImageObject[],
     isCtrlPressed: boolean = false
   ) => {
+    console.log('Select2State: Selecting objects at point', point);
     setState(prev => {
       const objectsAtPoint = createObjectsAtPoint(point, lines, images);
       
       if (objectsAtPoint.length === 0) {
+        console.log('Select2State: No objects at point, clearing selection');
         // No objects at point, clear selection
         return {
           ...prev,
@@ -340,13 +350,14 @@ export const useSelect2State = () => {
         newSelection = [objectsAtPoint[0]];
       }
       
+      console.log('Select2State: New selection:', newSelection);
       const newGroupBounds = calculateGroupBounds(newSelection, lines, images);
       
       return {
         ...prev,
         selectedObjects: newSelection,
         groupBounds: newGroupBounds,
-        contextMenuVisible: !!newGroupBounds,
+        contextMenuVisible: newSelection.length > 0 && !!newGroupBounds,
         contextMenuPosition: newGroupBounds ? {
           x: newGroupBounds.x + newGroupBounds.width + 10,
           y: newGroupBounds.y - 10
@@ -357,6 +368,7 @@ export const useSelect2State = () => {
 
   // Clear selection
   const clearSelection = useCallback(() => {
+    console.log('Select2State: Clearing selection');
     setState(prev => ({
       ...prev,
       selectedObjects: [],
@@ -412,6 +424,7 @@ export const useSelect2State = () => {
     setHoveredObject,
     updateGroupBounds,
     isPointInGroupBounds,
-    hideContextMenu
+    hideContextMenu,
+    createObjectsAtPoint
   };
 };
