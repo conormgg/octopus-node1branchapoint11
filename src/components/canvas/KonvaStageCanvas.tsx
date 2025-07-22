@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { Stage } from 'react-konva';
 import Konva from 'konva';
@@ -28,9 +29,6 @@ interface KonvaStageCanvasProps {
     startPan: (x: number, y: number) => void;
     continuePan: (x: number, y: number) => void;
     stopPan: () => void;
-    handleTouchStart: (e: any) => void;
-    handleTouchMove: (e: any) => void;
-    handleTouchEnd: (e: any) => void;
   };
   handlePointerDown: (x: number, y: number) => void;
   handlePointerMove: (x: number, y: number) => void;
@@ -54,14 +52,6 @@ interface KonvaStageCanvasProps {
     onTouchStart: (e: Konva.KonvaEventObject<TouchEvent>) => void;
     onTouchMove: (e: Konva.KonvaEventObject<TouchEvent>) => void;
     onTouchEnd: (e: Konva.KonvaEventObject<TouchEvent>) => void;
-  };
-  unifiedSelectionHandlers?: {
-    onMouseDown: (e: any) => void;
-    onMouseMove: (e: any) => void;
-    onMouseUp: (e: any) => void;
-    onTouchStart: (e: any) => void;
-    onTouchMove: (e: any) => void;
-    onTouchEnd: (e: any) => void;
   };
 }
 
@@ -90,8 +80,7 @@ const KonvaStageCanvas: React.FC<KonvaStageCanvasProps> = ({
   onTransformEnd,
   normalizedState,
   select2MouseHandlers,
-  select2TouchHandlers,
-  unifiedSelectionHandlers
+  select2TouchHandlers
 }) => {
   const { handleMouseDown, handleMouseMove, handleMouseUp } = useMouseEventHandlers({
     currentTool,
@@ -114,70 +103,35 @@ const KonvaStageCanvas: React.FC<KonvaStageCanvasProps> = ({
 
   const cursor = useStageCursor({ currentTool, selection });
 
-  debugLog('KonvaStageCanvas', 'Rendering with unified selection support', {
+  debugLog('KonvaStageCanvas', 'Rendering with handlers', {
     currentTool,
-    hasUnifiedHandlers: !!unifiedSelectionHandlers,
-    isSelectTool: currentTool === 'select' || currentTool === 'select2'
+    hasSelect2MouseHandlers: !!select2MouseHandlers,
+    hasSelect2TouchHandlers: !!select2TouchHandlers,
+    isSelect2Tool: currentTool === 'select2'
   });
 
-  // Use unified selection handlers when available (for select/select2 tools)
-  const stageEventHandlers = unifiedSelectionHandlers ? {
-    onMouseDown: (e: any) => {
-      // For select tools, let unified selection handle it, but allow fallback for other interactions
-      if (currentTool === 'select' || currentTool === 'select2') {
-        unifiedSelectionHandlers.onMouseDown(e);
-      } else {
-        handleMouseDown(e);
-      }
-    },
-    onMouseMove: (e: any) => {
-      if (currentTool === 'select' || currentTool === 'select2') {
-        unifiedSelectionHandlers.onMouseMove(e);
-      } else {
-        handleMouseMove(e);
-      }
-    },
-    onMouseUp: (e: any) => {
-      if (currentTool === 'select' || currentTool === 'select2') {
-        unifiedSelectionHandlers.onMouseUp(e);
-      } else {
-        handleMouseUp(e);
-      }
-    },
-    onMouseLeave: (e: any) => {
-      if (currentTool === 'select' || currentTool === 'select2') {
-        unifiedSelectionHandlers.onMouseUp(e);
-      } else {
-        handleMouseUp(e);
-      }
-    },
-    onTouchStart: (e: any) => {
-      // Check for multi-touch gestures (pan/zoom)
-      if (e.evt.touches.length > 1) {
-        // Let pan/zoom handle multi-touch
-        panZoom.handleTouchStart(e);
-      } else if (currentTool === 'select' || currentTool === 'select2') {
-        unifiedSelectionHandlers.onTouchStart(e);
-      } else {
-        handleTouchStart(e);
-      }
-    },
-    onTouchMove: (e: any) => {
-      if (e.evt.touches.length > 1) {
-        // Let pan/zoom handle multi-touch
-        panZoom.handleTouchMove(e);
-      } else if (currentTool === 'select' || currentTool === 'select2') {
-        unifiedSelectionHandlers.onTouchMove(e);
-      }
-    },
-    onTouchEnd: (e: any) => {
-      if (e.evt.touches.length === 0 || e.evt.touches.length > 1) {
-        // Let pan/zoom handle end of multi-touch
-        panZoom.handleTouchEnd(e);
-      } else if (currentTool === 'select' || currentTool === 'select2') {
-        unifiedSelectionHandlers.onTouchEnd(e);
-      }
-    }
+  // Use select2 handlers when select2 tool is active, otherwise use default handlers
+  const stageEventHandlers = currentTool === 'select2' ? {
+    // Mouse handlers for select2
+    ...(select2MouseHandlers ? {
+      onMouseDown: select2MouseHandlers.onMouseDown,
+      onMouseMove: select2MouseHandlers.onMouseMove,
+      onMouseUp: select2MouseHandlers.onMouseUp,
+      onMouseLeave: select2MouseHandlers.onMouseUp
+    } : {
+      onMouseDown: handleMouseDown,
+      onMouseMove: handleMouseMove,
+      onMouseUp: handleMouseUp,
+      onMouseLeave: handleMouseUp
+    }),
+    // Touch handlers for select2
+    ...(select2TouchHandlers ? {
+      onTouchStart: select2TouchHandlers.onTouchStart,
+      onTouchMove: select2TouchHandlers.onTouchMove,
+      onTouchEnd: select2TouchHandlers.onTouchEnd
+    } : {
+      onTouchStart: handleTouchStart
+    })
   } : {
     // Default handlers for other tools
     onMouseDown: handleMouseDown,
