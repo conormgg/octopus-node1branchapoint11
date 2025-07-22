@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Stage } from 'react-konva';
 import Konva from 'konva';
@@ -53,6 +52,14 @@ interface KonvaStageCanvasProps {
     onTouchMove: (e: Konva.KonvaEventObject<TouchEvent>) => void;
     onTouchEnd: (e: Konva.KonvaEventObject<TouchEvent>) => void;
   };
+  unifiedSelectionHandlers?: {
+    onMouseDown: (e: any) => void;
+    onMouseMove: (e: any) => void;
+    onMouseUp: (e: any) => void;
+    onTouchStart: (e: any) => void;
+    onTouchMove: (e: any) => void;
+    onTouchEnd: (e: any) => void;
+  };
 }
 
 const KonvaStageCanvas: React.FC<KonvaStageCanvasProps> = ({
@@ -80,7 +87,8 @@ const KonvaStageCanvas: React.FC<KonvaStageCanvasProps> = ({
   onTransformEnd,
   normalizedState,
   select2MouseHandlers,
-  select2TouchHandlers
+  select2TouchHandlers,
+  unifiedSelectionHandlers
 }) => {
   const { handleMouseDown, handleMouseMove, handleMouseUp } = useMouseEventHandlers({
     currentTool,
@@ -103,35 +111,21 @@ const KonvaStageCanvas: React.FC<KonvaStageCanvasProps> = ({
 
   const cursor = useStageCursor({ currentTool, selection });
 
-  debugLog('KonvaStageCanvas', 'Rendering with handlers', {
+  debugLog('KonvaStageCanvas', 'Rendering with unified selection support', {
     currentTool,
-    hasSelect2MouseHandlers: !!select2MouseHandlers,
-    hasSelect2TouchHandlers: !!select2TouchHandlers,
-    isSelect2Tool: currentTool === 'select2'
+    hasUnifiedHandlers: !!unifiedSelectionHandlers,
+    isSelectTool: currentTool === 'select' || currentTool === 'select2'
   });
 
-  // Use select2 handlers when select2 tool is active, otherwise use default handlers
-  const stageEventHandlers = currentTool === 'select2' ? {
-    // Mouse handlers for select2
-    ...(select2MouseHandlers ? {
-      onMouseDown: select2MouseHandlers.onMouseDown,
-      onMouseMove: select2MouseHandlers.onMouseMove,
-      onMouseUp: select2MouseHandlers.onMouseUp,
-      onMouseLeave: select2MouseHandlers.onMouseUp
-    } : {
-      onMouseDown: handleMouseDown,
-      onMouseMove: handleMouseMove,
-      onMouseUp: handleMouseUp,
-      onMouseLeave: handleMouseUp
-    }),
-    // Touch handlers for select2
-    ...(select2TouchHandlers ? {
-      onTouchStart: select2TouchHandlers.onTouchStart,
-      onTouchMove: select2TouchHandlers.onTouchMove,
-      onTouchEnd: select2TouchHandlers.onTouchEnd
-    } : {
-      onTouchStart: handleTouchStart
-    })
+  // Use unified selection handlers when available (for select/select2 tools)
+  const stageEventHandlers = unifiedSelectionHandlers ? {
+    onMouseDown: unifiedSelectionHandlers.onMouseDown,
+    onMouseMove: unifiedSelectionHandlers.onMouseMove,
+    onMouseUp: unifiedSelectionHandlers.onMouseUp,
+    onMouseLeave: unifiedSelectionHandlers.onMouseUp,
+    onTouchStart: unifiedSelectionHandlers.onTouchStart,
+    onTouchMove: unifiedSelectionHandlers.onTouchMove,
+    onTouchEnd: unifiedSelectionHandlers.onTouchEnd
   } : {
     // Default handlers for other tools
     onMouseDown: handleMouseDown,
