@@ -28,6 +28,9 @@ interface KonvaStageCanvasProps {
     startPan: (x: number, y: number) => void;
     continuePan: (x: number, y: number) => void;
     stopPan: () => void;
+    handleTouchStart: (e: any) => void;
+    handleTouchMove: (e: any) => void;
+    handleTouchEnd: (e: any) => void;
   };
   handlePointerDown: (x: number, y: number) => void;
   handlePointerMove: (x: number, y: number) => void;
@@ -119,13 +122,62 @@ const KonvaStageCanvas: React.FC<KonvaStageCanvasProps> = ({
 
   // Use unified selection handlers when available (for select/select2 tools)
   const stageEventHandlers = unifiedSelectionHandlers ? {
-    onMouseDown: unifiedSelectionHandlers.onMouseDown,
-    onMouseMove: unifiedSelectionHandlers.onMouseMove,
-    onMouseUp: unifiedSelectionHandlers.onMouseUp,
-    onMouseLeave: unifiedSelectionHandlers.onMouseUp,
-    onTouchStart: unifiedSelectionHandlers.onTouchStart,
-    onTouchMove: unifiedSelectionHandlers.onTouchMove,
-    onTouchEnd: unifiedSelectionHandlers.onTouchEnd
+    onMouseDown: (e: any) => {
+      // For select tools, let unified selection handle it, but allow fallback for other interactions
+      if (currentTool === 'select' || currentTool === 'select2') {
+        unifiedSelectionHandlers.onMouseDown(e);
+      } else {
+        handleMouseDown(e);
+      }
+    },
+    onMouseMove: (e: any) => {
+      if (currentTool === 'select' || currentTool === 'select2') {
+        unifiedSelectionHandlers.onMouseMove(e);
+      } else {
+        handleMouseMove(e);
+      }
+    },
+    onMouseUp: (e: any) => {
+      if (currentTool === 'select' || currentTool === 'select2') {
+        unifiedSelectionHandlers.onMouseUp(e);
+      } else {
+        handleMouseUp(e);
+      }
+    },
+    onMouseLeave: (e: any) => {
+      if (currentTool === 'select' || currentTool === 'select2') {
+        unifiedSelectionHandlers.onMouseUp(e);
+      } else {
+        handleMouseUp(e);
+      }
+    },
+    onTouchStart: (e: any) => {
+      // Check for multi-touch gestures (pan/zoom)
+      if (e.evt.touches.length > 1) {
+        // Let pan/zoom handle multi-touch
+        panZoom.handleTouchStart(e);
+      } else if (currentTool === 'select' || currentTool === 'select2') {
+        unifiedSelectionHandlers.onTouchStart(e);
+      } else {
+        handleTouchStart(e);
+      }
+    },
+    onTouchMove: (e: any) => {
+      if (e.evt.touches.length > 1) {
+        // Let pan/zoom handle multi-touch
+        panZoom.handleTouchMove(e);
+      } else if (currentTool === 'select' || currentTool === 'select2') {
+        unifiedSelectionHandlers.onTouchMove(e);
+      }
+    },
+    onTouchEnd: (e: any) => {
+      if (e.evt.touches.length === 0 || e.evt.touches.length > 1) {
+        // Let pan/zoom handle end of multi-touch
+        panZoom.handleTouchEnd(e);
+      } else if (currentTool === 'select' || currentTool === 'select2') {
+        unifiedSelectionHandlers.onTouchEnd(e);
+      }
+    }
   } : {
     // Default handlers for other tools
     onMouseDown: handleMouseDown,

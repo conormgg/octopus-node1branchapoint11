@@ -114,6 +114,43 @@ export const useUnifiedSelection = ({
     ensureContainerFocus();
   }, [selectionState.selectionBounds, findObjectsInBounds, lines, images, selectObjects, resetInteractionStates, ensureContainerFocus]);
 
+  // Helper to check if point is within selection bounds
+  const isPointInSelectedObjectsBounds = useCallback((worldPoint: { x: number; y: number }) => {
+    if (selectionState.selectedObjects.length === 0) return false;
+    
+    // Check if point is within any selected object's bounds
+    for (const selectedObj of selectionState.selectedObjects) {
+      if (selectedObj.type === 'line') {
+        const line = lines.find(l => l.id === selectedObj.id);
+        if (line && line.points.length >= 4) {
+          let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+          for (let i = 0; i < line.points.length; i += 2) {
+            const x = line.points[i] + line.x;
+            const y = line.points[i + 1] + line.y;
+            minX = Math.min(minX, x);
+            minY = Math.min(minY, y);
+            maxX = Math.max(maxX, x);
+            maxY = Math.max(maxY, y);
+          }
+          const padding = line.strokeWidth / 2 + 5;
+          if (worldPoint.x >= minX - padding && worldPoint.x <= maxX + padding &&
+              worldPoint.y >= minY - padding && worldPoint.y <= maxY + padding) {
+            return true;
+          }
+        }
+      } else if (selectedObj.type === 'image') {
+        const image = images.find(i => i.id === selectedObj.id);
+        if (image) {
+          if (worldPoint.x >= image.x && worldPoint.x <= image.x + (image.width || 100) &&
+              worldPoint.y >= image.y && worldPoint.y <= image.y + (image.height || 100)) {
+            return true;
+          }
+        }
+      }
+    }
+    return false;
+  }, [selectionState.selectedObjects, lines, images]);
+
   // Core pointer handling logic
   const handlePointerDown = useCallback((worldX: number, worldY: number, ctrlKey: boolean = false, interactionType: 'mouse' | 'touch' = 'mouse') => {
     const worldPoint = { x: worldX, y: worldY };
@@ -124,6 +161,17 @@ export const useUnifiedSelection = ({
       interactionType,
       selectedCount: selectionState.selectedObjects.length
     });
+    
+    // Check if clicking within already selected objects (for dragging/transforming)
+    const clickingWithinSelection = isPointInSelectedObjectsBounds(worldPoint);
+    
+    if (clickingWithinSelection && !ctrlKey) {
+      // Allow SelectionGroup to handle this - don't intercept
+      debugLog('useUnifiedSelection', 'Clicking within selection bounds - allowing passthrough');
+      setIsDraggingObjects(true);
+      ensureContainerFocus();
+      return;
+    }
     
     // Reset any stuck states first
     resetInteractionStates();
@@ -162,7 +210,7 @@ export const useUnifiedSelection = ({
       }
       startDragSelection(worldPoint);
     }
-  }, [selectionState.selectedObjects, findObjectsAtPoint, lines, images, selectObjects, clearSelection, startDragSelection, resetInteractionStates, ensureContainerFocus]);
+  }, [selectionState.selectedObjects, findObjectsAtPoint, lines, images, selectObjects, clearSelection, startDragSelection, resetInteractionStates, ensureContainerFocus, isPointInSelectedObjectsBounds]);
 
   const handlePointerMove = useCallback((worldX: number, worldY: number) => {
     const worldPoint = { x: worldX, y: worldY };

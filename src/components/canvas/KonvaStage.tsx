@@ -6,6 +6,7 @@ import { useNormalizedWhiteboardState } from '@/hooks/performance/useNormalizedW
 import { usePalmRejection } from '@/hooks/usePalmRejection';
 import { useKonvaKeyboardHandlers } from '@/hooks/canvas/useKonvaKeyboardHandlers';
 import { useKonvaPanZoomSync } from '@/hooks/canvas/useKonvaPanZoomSync';
+import { useWheelEventHandlers } from '@/hooks/eventHandling/useWheelEventHandlers';
 import { useUnifiedSelection } from '@/hooks/useUnifiedSelection';
 import KonvaStageCanvas from './KonvaStageCanvas';
 import KonvaImageContextMenuHandler from './KonvaImageContextMenuHandler';
@@ -104,6 +105,14 @@ const KonvaStage: React.FC<KonvaStageProps> = ({
     stageRef,
     panZoomState: state.panZoomState,
     currentTool: state.currentTool
+  });
+
+  // Add wheel event handling for zoom (works regardless of tool)
+  useWheelEventHandlers({
+    containerRef,
+    panZoom: {
+      handleWheel: panZoom.handleWheel
+    }
   });
 
   // Determine the correct delete functions to use
@@ -231,6 +240,13 @@ const KonvaStage: React.FC<KonvaStageProps> = ({
         pointerEvents: 'auto'
       }}
       tabIndex={0}
+      onKeyDown={(e) => {
+        // Ensure keyboard events work for clipboard operations
+        if (e.key === 'v' && (e.ctrlKey || e.metaKey)) {
+          e.preventDefault();
+          // Let the keyboard handler deal with paste
+        }
+      }}
       data-whiteboard-id={whiteboardId}
     >
       <KonvaImageContextMenuHandler
