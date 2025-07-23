@@ -160,8 +160,8 @@ const KonvaStage: React.FC<KonvaStageProps> = ({
     // Pass both delete functions
     select2DeleteFunction,
     originalSelectDeleteFunction,
-    // Pass select2 handlers when select2 tool is active
-    select2Handlers: state.currentTool === 'select2' && stageEventHandlers ? {
+    // Pass select2 handlers when selection tools are active
+    select2Handlers: (state.currentTool === 'select2' || state.currentTool === 'select') && stageEventHandlers ? {
       select2State: stageEventHandlers.select2State,
       deleteSelectedObjects: stageEventHandlers.deleteSelectedObjects || (() => {}),
       clearSelection: stageEventHandlers.clearSelect2Selection || (() => {})
@@ -222,15 +222,15 @@ const KonvaStage: React.FC<KonvaStageProps> = ({
             }
           }}
           normalizedState={normalizedState}
-          select2MouseHandlers={state.currentTool === 'select2' && stageEventHandlers ? stageEventHandlers.select2MouseHandlers : undefined}
+          select2MouseHandlers={(state.currentTool === 'select2' || state.currentTool === 'select') && stageEventHandlers ? stageEventHandlers.select2MouseHandlers : undefined}
           extraContent={
             <>
               <KonvaImageOperationsHandler
                 whiteboardState={whiteboardState}
                 whiteboardId={whiteboardId}
               />
-              {/* Select2 overlay when select2 tool is active */}
-              {state.currentTool === 'select2' && stageEventHandlers && (
+              {/* Unified Selection overlay when selection tools are active */}
+              {(state.currentTool === 'select2' || state.currentTool === 'select') && stageEventHandlers && (
                 <Select2Renderer
                   selectedObjects={stageEventHandlers.select2State?.selectedObjects || []}
                   hoveredObjectId={stageEventHandlers.select2State?.hoveredObjectId || null}
@@ -243,8 +243,8 @@ const KonvaStage: React.FC<KonvaStageProps> = ({
                   isDraggingObjects={stageEventHandlers.select2State?.isDraggingObjects || false}
                 />
               )}
-              {/* SelectionGroup for select2 - show transform handles when objects are selected and not selecting */}
-              {state.currentTool === 'select2' && stageEventHandlers && stageEventHandlers.select2State && (
+              {/* SelectionGroup for unified selection - show transform handles when objects are selected and not selecting */}
+              {(state.currentTool === 'select2' || state.currentTool === 'select') && stageEventHandlers && stageEventHandlers.select2State && (
                 <SelectionGroup
                   selectedObjects={stageEventHandlers.select2State.selectedObjects}
                   lines={state.lines}

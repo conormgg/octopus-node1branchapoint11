@@ -74,6 +74,14 @@ export { useEraserState } from './useEraserState';
 export { useSelectionState } from './useSelectionState';
 
 /**
+ * Tool migration utilities for transitioning from select to select2
+ * Provides compatibility layer during migration period
+ */
+export { useToolMigration } from './useToolMigration';
+export { useEventHandlerRouter } from './useEventHandlerRouter';
+export { useUnifiedSelection } from './useUnifiedSelection';
+
+/**
  * Group transformation operations for multiple selected objects
  * Provides unified transformation controls for object groups
  */

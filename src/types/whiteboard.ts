@@ -1,5 +1,5 @@
 
-export type Tool = 'pencil' | 'eraser' | 'select' | 'highlighter' | 'select2';
+export type Tool = 'pencil' | 'eraser' | 'select' | 'highlighter' | 'select2' | 'legacy-select';
 
 export interface LineObject {
   id: string;
