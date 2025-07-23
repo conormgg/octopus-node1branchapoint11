@@ -127,11 +127,17 @@ const MovableToolbar: React.FC<MovableToolbarProps> = ({
           
           <ToolButton
             icon={<MousePointer className="h-4 w-4" />}
-            isActive={currentTool === 'select' || currentTool === 'select2'}
-            onClick={() => onToolChange('select2')}
+            isActive={currentTool === 'select'}
+            onClick={() => onToolChange('select')}
             isReadOnly={isReadOnly}
           />
 
+          <ToolButton
+            icon={<MousePointer2 className="h-4 w-4" />}
+            isActive={currentTool === 'select2'}
+            onClick={() => onToolChange('select2')}
+            isReadOnly={isReadOnly}
+          />
 
           {/* Separator */}
           <div className="w-px h-6 bg-gray-600 mx-1" />

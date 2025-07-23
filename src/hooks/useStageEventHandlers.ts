@@ -115,7 +115,7 @@ export const useStageEventHandlers = ({
       const container = containerRef.current;
       if (container) {
         // For select tool, allow native touch behavior; for others, prevent it
-        container.style.touchAction = (currentTool === 'select' || currentTool === 'select2') ? 'manipulation' : 'none';
+        container.style.touchAction = currentTool === 'select' ? 'manipulation' : 'none';
         debugLog('StageEventHandlers', 'Updated touch-action via prop', {
           tool: currentTool,
           touchAction: container.style.touchAction
@@ -166,15 +166,15 @@ export const useStageEventHandlers = ({
     palmRejection,
     palmRejectionConfig,
     panZoom,
-    handlePointerDown: (currentTool === 'select2' || currentTool === 'select') ? 
+    handlePointerDown: currentTool === 'select2' ? 
       (worldX: number, worldY: number) => {
         select2Handlers.handlePointerDown(worldX, worldY);
       } : handlePointerDown,
-    handlePointerMove: (currentTool === 'select2' || currentTool === 'select') ? 
+    handlePointerMove: currentTool === 'select2' ? 
       (worldX: number, worldY: number) => {
         select2Handlers.handlePointerMove(worldX, worldY);
       } : handlePointerMove,
-    handlePointerUp: (currentTool === 'select2' || currentTool === 'select') ? 
+    handlePointerUp: currentTool === 'select2' ? 
       select2Handlers.handlePointerUp : handlePointerUp,
     isReadOnly,
     currentToolRef,
@@ -182,8 +182,8 @@ export const useStageEventHandlers = ({
     supportsPointerEvents
   });
 
-  // Return select2 state for rendering when using selection tools (including migrated legacy select)
-  if (currentTool === 'select2' || currentTool === 'select') {
+  // Return select2 state for rendering when using select2 tool
+  if (currentTool === 'select2') {
     return {
       select2State: select2Handlers.select2State,
       clearSelect2Selection: select2Handlers.clearSelection,
