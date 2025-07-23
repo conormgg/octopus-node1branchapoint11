@@ -1,8 +1,10 @@
+
 import { useCallback, useRef } from 'react';
 import Konva from 'konva';
 import { LineObject, ImageObject } from '@/types/whiteboard';
 import { useSelect2State } from './useSelect2State';
 import { useStageCoordinates } from './useStageCoordinates';
+import { useMultiTouchDetection } from './eventHandling/useMultiTouchDetection';
 
 interface UseSelect2EventHandlersProps {
   stageRef: React.RefObject<Konva.Stage>;
@@ -57,6 +59,7 @@ export const useSelect2EventHandlers = ({
   } = useSelect2State();
 
   const { getRelativePointerPosition } = useStageCoordinates(panZoomState);
+  const { isMultiTouch, setActiveTouches } = useMultiTouchDetection();
 
   const isDraggingRef = useRef(false);
   const hasMovedRef = useRef(false);
@@ -180,8 +183,14 @@ export const useSelect2EventHandlers = ({
     }, 0);
   }, [state.dragOffset, state.selectedObjects, lines, images, onUpdateLine, onUpdateImage, setState, calculateGroupBounds]);
 
-  // FIXED: Improved pointer handlers with single coordinate transformation
+  // UPDATED: Improved pointer handlers with multi-touch detection
   const handlePointerDown = useCallback((worldX: number, worldY: number, ctrlKey: boolean = false) => {
+    // Ignore pointer events during multi-touch gestures
+    if (isMultiTouch()) {
+      console.log('Select2: Ignoring pointer down during multi-touch gesture');
+      return;
+    }
+
     const worldPoint = { x: worldX, y: worldY };
     
     console.log('Select2: Pointer down', { worldPoint, ctrlKey });
@@ -222,9 +231,14 @@ export const useSelect2EventHandlers = ({
       startDragSelection(worldPoint);
       syncSelectionBoundsWithMainState({ x: worldX, y: worldY, width: 0, height: 0 }, true);
     }
-  }, [isPointOnSelectedObject, startDraggingObjects, findObjectsAtPoint, selectObjectsAtPoint, clearSelection, startDragSelection, lines, images, ensureContainerFocus, state.selectedObjects, syncSelectionWithMainState, clearMainSelection, syncSelectionBoundsWithMainState]);
+  }, [isMultiTouch, isPointOnSelectedObject, startDraggingObjects, findObjectsAtPoint, selectObjectsAtPoint, clearSelection, startDragSelection, lines, images, ensureContainerFocus, state.selectedObjects, syncSelectionWithMainState, clearMainSelection, syncSelectionBoundsWithMainState]);
 
   const handlePointerMove = useCallback((worldX: number, worldY: number) => {
+    // Ignore pointer events during multi-touch gestures
+    if (isMultiTouch()) {
+      return;
+    }
+
     const worldPoint = { x: worldX, y: worldY };
     
     if (isDraggingRef.current) {
@@ -258,9 +272,14 @@ export const useSelect2EventHandlers = ({
       const hoveredId = objectsAtPoint.length > 0 ? objectsAtPoint[0].id : null;
       setHoveredObject(hoveredId);
     }
-  }, [state.isDraggingObjects, state.isSelecting, state.selectionBounds, state.dragOffset, updateObjectDragging, updateDragSelection, findObjectsAtPoint, setHoveredObject, lines, images, syncSelectionBoundsWithMainState]);
+  }, [isMultiTouch, state.isDraggingObjects, state.isSelecting, state.selectionBounds, state.dragOffset, updateObjectDragging, updateDragSelection, findObjectsAtPoint, setHoveredObject, lines, images, syncSelectionBoundsWithMainState]);
 
   const handlePointerUp = useCallback(() => {
+    // Ignore pointer events during multi-touch gestures
+    if (isMultiTouch()) {
+      return;
+    }
+
     console.log('Select2: Pointer up', { 
       wasDragging: isDraggingRef.current,
       hasMoved: hasMovedRef.current,
@@ -288,7 +307,7 @@ export const useSelect2EventHandlers = ({
     isDraggingRef.current = false;
     hasMovedRef.current = false;
     dragStartPositionRef.current = null;
-  }, [state.isDraggingObjects, state.isSelecting, state.dragOffset, applyDragOffset, endObjectDragging, endDragSelection, lines, images, ensureContainerFocus, syncSelectionWithMainState, syncSelectionBoundsWithMainState]);
+  }, [isMultiTouch, state.isDraggingObjects, state.isSelecting, state.dragOffset, applyDragOffset, endObjectDragging, endDragSelection, lines, images, ensureContainerFocus, syncSelectionWithMainState, syncSelectionBoundsWithMainState]);
 
   const handleMouseDown = useCallback((e: Konva.KonvaEventObject<MouseEvent>) => {
     const stage = e.target.getStage();

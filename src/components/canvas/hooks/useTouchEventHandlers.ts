@@ -3,6 +3,7 @@ import { useCallback } from 'react';
 import Konva from 'konva';
 import { Tool } from '@/types/whiteboard';
 import { createDebugLogger } from '@/utils/debug/debugConfig';
+import { useMultiTouchDetection } from '@/hooks/eventHandling/useMultiTouchDetection';
 
 const debugLog = createDebugLogger('touchEvents');
 
@@ -17,7 +18,12 @@ export const useTouchEventHandlers = ({
   palmRejectionConfig,
   onStageClick
 }: UseTouchEventHandlersProps) => {
+  const { setActiveTouches } = useMultiTouchDetection();
+
   const handleTouchStart = useCallback((e: Konva.KonvaEventObject<TouchEvent>) => {
+    // Update multi-touch detection state
+    setActiveTouches(e.evt.touches.length);
+    
     debugLog('TouchEvents', 'touchstart from konva', {
       touches: e.evt.touches.length,
       currentTool,
@@ -25,7 +31,7 @@ export const useTouchEventHandlers = ({
     });
     
     if (onStageClick) onStageClick(e);
-  }, [currentTool, palmRejectionConfig.enabled, onStageClick]);
+  }, [currentTool, palmRejectionConfig.enabled, onStageClick, setActiveTouches]);
 
   return {
     handleTouchStart
