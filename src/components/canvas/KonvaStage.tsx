@@ -223,6 +223,13 @@ const KonvaStage: React.FC<KonvaStageProps> = ({
           }}
           normalizedState={normalizedState}
           select2MouseHandlers={(state.currentTool === 'select2' || state.currentTool === 'select') && stageEventHandlers ? stageEventHandlers.select2MouseHandlers : undefined}
+          select2State={stageEventHandlers ? {
+            selectedObjects: stageEventHandlers.select2State?.selectedObjects || [],
+            hoveredObjectId: stageEventHandlers.select2State?.hoveredObjectId || null,
+            isObjectSelected: (id: string) => stageEventHandlers.select2State?.selectedObjects.some(obj => obj.id === id) || false,
+            selectObjects: stageEventHandlers.selectObjectsAtPoint || (() => {}),
+            setHoveredObjectId: stageEventHandlers.setHoveredObject || (() => {})
+          } : undefined}
           extraContent={
             <>
               <KonvaImageOperationsHandler
@@ -241,9 +248,14 @@ const KonvaStage: React.FC<KonvaStageProps> = ({
                   images={state.images}
                   dragOffset={stageEventHandlers.select2State?.dragOffset || null}
                   isDraggingObjects={stageEventHandlers.select2State?.isDraggingObjects || false}
+                  onGroupTransformEnd={(updates) => {
+                    // Handle group transform end
+                    if ('addToHistory' in whiteboardState && whiteboardState.addToHistory) {
+                      whiteboardState.addToHistory();
+                    }
+                  }}
                 />
               )}
-              {/* Legacy SelectionGroup removed - now using integrated unified selection */}
             </>
           }
         />

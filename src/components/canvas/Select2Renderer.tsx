@@ -1,7 +1,8 @@
+
 import React from 'react';
 import { Rect, Line, Image } from 'react-konva';
 import { SelectionBounds, SelectedObject, LineObject, ImageObject } from '@/types/whiteboard';
-// Removed legacy SelectionRect - using integrated selection rendering
+import GroupTransformer from './GroupTransformer';
 
 interface Select2RendererProps {
   selectedObjects: SelectedObject[];
@@ -13,6 +14,7 @@ interface Select2RendererProps {
   groupBounds: SelectionBounds | null;
   dragOffset: { x: number; y: number } | null;
   isDraggingObjects: boolean;
+  onGroupTransformEnd?: (updates: { x: number; y: number; scaleX: number; scaleY: number; rotation: number }) => void;
 }
 
 export const Select2Renderer: React.FC<Select2RendererProps> = ({
@@ -24,7 +26,8 @@ export const Select2Renderer: React.FC<Select2RendererProps> = ({
   images,
   groupBounds,
   dragOffset,
-  isDraggingObjects
+  isDraggingObjects,
+  onGroupTransformEnd
 }) => {
   // Helper function to get object bounds for individual hover feedback
   const getObjectBounds = (obj: SelectedObject) => {
@@ -176,6 +179,17 @@ export const Select2Renderer: React.FC<Select2RendererProps> = ({
             />
           );
         })()
+      )}
+
+      {/* Group transformer for multiple selected objects */}
+      {selectedObjects.length > 1 && groupBounds && onGroupTransformEnd && (
+        <GroupTransformer
+          selectedObjects={selectedObjects}
+          lines={lines}
+          images={images}
+          groupBounds={groupBounds}
+          onTransformEnd={onGroupTransformEnd}
+        />
       )}
 
       {/* Dimming overlay for original objects during drag */}

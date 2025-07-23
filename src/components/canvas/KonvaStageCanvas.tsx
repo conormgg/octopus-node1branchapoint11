@@ -45,6 +45,14 @@ interface KonvaStageCanvasProps {
     onMouseMove: (e: Konva.KonvaEventObject<MouseEvent>) => void;
     onMouseUp: (e: Konva.KonvaEventObject<MouseEvent>) => void;
   };
+  // Add select2 state props
+  select2State?: {
+    selectedObjects: Array<{id: string, type: 'line' | 'image'}>;
+    hoveredObjectId: string | null;
+    isObjectSelected: (id: string) => boolean;
+    selectObjects: (objects: Array<{id: string, type: 'line' | 'image'}>) => void;
+    setHoveredObjectId: (id: string | null) => void;
+  };
 }
 
 const KonvaStageCanvas: React.FC<KonvaStageCanvasProps> = ({
@@ -71,7 +79,8 @@ const KonvaStageCanvas: React.FC<KonvaStageCanvasProps> = ({
   onUpdateImage,
   onTransformEnd,
   normalizedState,
-  select2MouseHandlers
+  select2MouseHandlers,
+  select2State
 }) => {
   const { handleMouseDown, handleMouseMove, handleMouseUp } = useMouseEventHandlers({
     currentTool,
@@ -107,6 +116,14 @@ const KonvaStageCanvas: React.FC<KonvaStageCanvasProps> = ({
     onMouseLeave: handleMouseUp
   };
 
+  // Create a unified selection interface that works for both select and select2
+  const unifiedSelection = select2State ? {
+    isObjectSelected: select2State.isObjectSelected,
+    hoveredObjectId: select2State.hoveredObjectId,
+    selectObjects: select2State.selectObjects,
+    setHoveredObjectId: select2State.setHoveredObjectId
+  } : selection;
+
   return (
     <Stage
       width={width}
@@ -117,7 +134,14 @@ const KonvaStageCanvas: React.FC<KonvaStageCanvasProps> = ({
       style={{ cursor }}
     >
       {/* Images layer - rendered first (behind) */}
-      <ImagesLayer extraContent={extraContent} />
+      <ImagesLayer 
+        images={images}
+        currentTool={currentTool}
+        selection={unifiedSelection}
+        onUpdateImage={onUpdateImage}
+        onUpdateState={onTransformEnd}
+        extraContent={extraContent}
+      />
       
       {/* Lines layer - rendered second (on top) */}
       <LinesLayer
@@ -127,7 +151,7 @@ const KonvaStageCanvas: React.FC<KonvaStageCanvasProps> = ({
         currentTool={currentTool}
         selectionBounds={selectionBounds}
         isSelecting={isSelecting}
-        selection={selection}
+        selection={unifiedSelection}
         normalizedState={normalizedState}
         onUpdateLine={onUpdateLine}
         onUpdateImage={onUpdateImage}
