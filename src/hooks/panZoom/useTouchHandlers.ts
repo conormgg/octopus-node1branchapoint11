@@ -13,9 +13,11 @@ export const useTouchHandlers = (
   const touchStateRef = useRef<{
     lastDistance: number;
     lastCenter: { x: number; y: number };
+    isProcessingGesture: boolean;
   }>({
     lastDistance: 0,
-    lastCenter: { x: 0, y: 0 }
+    lastCenter: { x: 0, y: 0 },
+    isProcessingGesture: false
   });
 
   const getTouchDistance = useCallback((touches: TouchList) => {
@@ -43,14 +45,21 @@ export const useTouchHandlers = (
       toolType: typeof currentTool
     });
     
-    // ONLY handle multi-touch gestures (2+ fingers)
-    // Single-touch is now handled by pointer events
+    // PRIORITIZE multi-touch gestures (2+ fingers)
     if (e.touches.length >= 2) {
-      debugLog('TouchHandlers', 'Processing multi-touch gesture', {
+      debugLog('TouchHandlers', 'Processing multi-touch gesture with priority', {
         touches: e.touches.length,
         currentTool
       });
+      
+      // Prevent any other event processing
+      e.preventDefault();
+      e.stopPropagation();
+      e.stopImmediatePropagation();
+      
+      touchStateRef.current.isProcessingGesture = true;
       panHandlers.setIsGestureActiveState(true);
+      
       // Initialize pinch-to-zoom
       touchStateRef.current.lastDistance = getTouchDistance(e.touches);
       touchStateRef.current.lastCenter = getTouchCenter(e.touches);
@@ -61,26 +70,34 @@ export const useTouchHandlers = (
         panHandlers.startPan(center.x, center.y);
       }
     } else {
-      debugLog('TouchHandlers', 'Single touch - should be handled by pointer events', {
+      debugLog('TouchHandlers', 'Single touch - deferring to pointer events', {
         touches: e.touches.length,
-        currentTool,
-        shouldBeSelection: currentTool === 'select'
+        currentTool
       });
+      touchStateRef.current.isProcessingGesture = false;
     }
-    // Single touches are completely ignored - handled by pointer events
   }, [getTouchDistance, getTouchCenter, panHandlers, currentTool]);
 
   const handleTouchMove = useCallback((e: TouchEvent) => {
     debugLog('TouchHandlers', 'Touch move', {
       touches: e.touches.length,
-      currentTool
+      currentTool,
+      isProcessingGesture: touchStateRef.current.isProcessingGesture
     });
     
-    // ONLY handle multi-touch gestures (2+ fingers)
+    // PRIORITIZE multi-touch gestures (2+ fingers)
     if (e.touches.length >= 2) {
-      debugLog('TouchHandlers', 'Processing multi-touch move', {
+      debugLog('TouchHandlers', 'Processing multi-touch move with priority', {
         touches: e.touches.length
       });
+      
+      // Prevent any other event processing
+      e.preventDefault();
+      e.stopPropagation();
+      e.stopImmediatePropagation();
+      
+      touchStateRef.current.isProcessingGesture = true;
+      
       // Multi-touch: handle pinch-to-zoom and 2-finger pan
       const currentDistance = getTouchDistance(e.touches);
       const currentCenter = getTouchCenter(e.touches);
@@ -120,15 +137,16 @@ export const useTouchHandlers = (
         touches: e.touches.length,
         currentTool
       });
+      touchStateRef.current.isProcessingGesture = false;
     }
-    // Single touches are ignored - handled by pointer events
   }, [getTouchDistance, getTouchCenter, zoom, panHandlers, currentTool]);
 
   const handleTouchEnd = useCallback((e: TouchEvent) => {
     debugLog('TouchHandlers', 'Touch end', {
       remainingTouches: e.touches.length,
       changedTouches: e.changedTouches.length,
-      currentTool
+      currentTool,
+      wasProcessingGesture: touchStateRef.current.isProcessingGesture
     });
     
     // Reset gesture state when no touches remain or going from multi to single touch
@@ -136,6 +154,7 @@ export const useTouchHandlers = (
       debugLog('TouchHandlers', 'All touches ended - stopping pan', {
         currentTool
       });
+      touchStateRef.current.isProcessingGesture = false;
       panHandlers.setIsGestureActiveState(false);
       panHandlers.stopPan();
       touchStateRef.current.lastDistance = 0;
@@ -144,6 +163,7 @@ export const useTouchHandlers = (
       debugLog('TouchHandlers', 'Multi-touch to single touch - stopping pan', {
         currentTool
       });
+      touchStateRef.current.isProcessingGesture = false;
       panHandlers.setIsGestureActiveState(false);
       panHandlers.stopPan();
       touchStateRef.current.lastDistance = 0;

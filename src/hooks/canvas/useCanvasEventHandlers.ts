@@ -1,4 +1,3 @@
-
 import { useCallback, useRef } from 'react';
 import { useMultiTouchDetection } from '@/hooks/eventHandling/useMultiTouchDetection';
 import { useStageCoordinates } from '@/hooks/useStageCoordinates';
@@ -30,7 +29,7 @@ export const useCanvasEventHandlers = ({
   isReadOnly
 }: UseCanvasEventHandlersProps) => {
   const { getRelativePointerPosition } = useStageCoordinates(panZoomState);
-  const { isMultiTouch, addPointer, removePointer, setActiveTouches, reset } = useMultiTouchDetection();
+  const multiTouchDetection = useMultiTouchDetection();
   const isDraggingRef = useRef(false);
   const isRightClickPanRef = useRef(false);
   const isMiddleClickPanRef = useRef(false);
@@ -45,7 +44,7 @@ export const useCanvasEventHandlers = ({
       setIsGestureActiveState: (active: boolean) => {
         isDraggingRef.current = active;
       },
-      isGestureActive: () => isDraggingRef.current
+      isGestureActive: () => isDraggingRef.current || multiTouchDetection.isGestureActive()
     },
     panZoom.zoom,
     currentTool
@@ -59,8 +58,8 @@ export const useCanvasEventHandlers = ({
     isMiddleClickPanRef.current = false;
     isSpacePanRef.current = false;
     panZoom.stopPan();
-    reset();
-  }, [panZoom, reset]);
+    multiTouchDetection.reset();
+  }, [panZoom, multiTouchDetection]);
 
   // Handle mouse down events (for better right-click detection)
   const onMouseDown = useCallback((e: Konva.KonvaEventObject<MouseEvent>) => {
@@ -175,10 +174,16 @@ export const useCanvasEventHandlers = ({
     if (isReadOnly) return;
     
     // Track pointer for multi-touch detection
-    addPointer(pointerId, pointerType);
+    multiTouchDetection.addPointer(pointerId, pointerType);
+    
+    // CRITICAL: If multi-touch is active, don't process single pointer events
+    if (multiTouchDetection.isGestureActive()) {
+      debugLog('Canvas', 'Multi-touch gesture active, blocking pointer event');
+      return;
+    }
     
     // Check if this is a multi-touch gesture
-    if (isMultiTouch()) {
+    if (multiTouchDetection.isMultiTouch()) {
       debugLog('Canvas', 'Multi-touch detected, starting pan');
       const pos = stage.getPointerPosition();
       if (pos) {
@@ -196,7 +201,7 @@ export const useCanvasEventHandlers = ({
         handlePointerDown(x, y);
       }
     }
-  }, [stageRef, addPointer, isMultiTouch, panZoom, getRelativePointerPosition, currentTool, handlePointerDown, isReadOnly]);
+  }, [stageRef, multiTouchDetection, panZoom, getRelativePointerPosition, currentTool, handlePointerDown, isReadOnly]);
 
   // Handle pointer move events
   const onPointerMove = useCallback((e: Konva.KonvaEventObject<PointerEvent>) => {
@@ -215,10 +220,15 @@ export const useCanvasEventHandlers = ({
     if (isReadOnly) return;
     
     // Track pointer
-    addPointer(pointerId, pointerType);
+    multiTouchDetection.addPointer(pointerId, pointerType);
+    
+    // CRITICAL: If multi-touch is active, don't process single pointer events
+    if (multiTouchDetection.isGestureActive()) {
+      return;
+    }
     
     // Handle multi-touch pan
-    if (isMultiTouch() && isDraggingRef.current) {
+    if (multiTouchDetection.isMultiTouch() && isDraggingRef.current) {
       const pos = stage.getPointerPosition();
       if (pos) {
         panZoom.continuePan(pos.x, pos.y);
@@ -232,7 +242,7 @@ export const useCanvasEventHandlers = ({
     if (currentTool === 'select' || currentTool === 'pencil' || currentTool === 'highlighter' || currentTool === 'eraser') {
       handlePointerMove(x, y);
     }
-  }, [stageRef, addPointer, isMultiTouch, panZoom, getRelativePointerPosition, currentTool, handlePointerMove, isReadOnly]);
+  }, [stageRef, multiTouchDetection, panZoom, getRelativePointerPosition, currentTool, handlePointerMove, isReadOnly]);
 
   // Handle pointer up events
   const onPointerUp = useCallback((e: Konva.KonvaEventObject<PointerEvent>) => {
@@ -250,7 +260,7 @@ export const useCanvasEventHandlers = ({
     if (isReadOnly) return;
     
     // Remove pointer from tracking
-    removePointer(pointerId);
+    multiTouchDetection.removePointer(pointerId);
     
     // End pan if we were panning
     if (isDraggingRef.current) {
@@ -258,11 +268,16 @@ export const useCanvasEventHandlers = ({
       isDraggingRef.current = false;
     }
     
+    // CRITICAL: If multi-touch is still active, don't process single pointer events
+    if (multiTouchDetection.isGestureActive()) {
+      return;
+    }
+    
     // Route to tool handler for left button
     if (button === 0 && (currentTool === 'select' || currentTool === 'pencil' || currentTool === 'highlighter' || currentTool === 'eraser')) {
       handlePointerUp();
     }
-  }, [removePointer, panZoom, currentTool, handlePointerUp, isReadOnly]);
+  }, [multiTouchDetection, panZoom, currentTool, handlePointerUp, isReadOnly]);
 
   // Handle context menu (right-click menu)
   const onContextMenu = useCallback((e: Konva.KonvaEventObject<MouseEvent>) => {
@@ -287,31 +302,44 @@ export const useCanvasEventHandlers = ({
     const touches = e.evt.touches.length;
     debugLog('Canvas', 'Touch start', { touches, currentTool });
     
-    setActiveTouches(touches);
+    multiTouchDetection.setActiveTouches(touches);
+    
+    // PRIORITIZE touch events for multi-touch
+    if (touches >= 2) {
+      debugLog('Canvas', 'Multi-touch detected via touch events - taking priority');
+      e.evt.preventDefault();
+      e.evt.stopPropagation();
+    }
     
     // Use advanced touch handlers
     touchHandlers.handleTouchStart(e.evt);
-  }, [setActiveTouches, touchHandlers, currentTool, isReadOnly]);
+  }, [multiTouchDetection, touchHandlers, currentTool, isReadOnly]);
 
   const onTouchMove = useCallback((e: Konva.KonvaEventObject<TouchEvent>) => {
     if (isReadOnly && e.evt.touches.length === 1) return;
     
     const touches = e.evt.touches.length;
-    setActiveTouches(touches);
+    multiTouchDetection.setActiveTouches(touches);
+    
+    // PRIORITIZE touch events for multi-touch
+    if (touches >= 2) {
+      e.evt.preventDefault();
+      e.evt.stopPropagation();
+    }
     
     // Use advanced touch handlers
     touchHandlers.handleTouchMove(e.evt);
-  }, [setActiveTouches, touchHandlers, isReadOnly]);
+  }, [multiTouchDetection, touchHandlers, isReadOnly]);
 
   const onTouchEnd = useCallback((e: Konva.KonvaEventObject<TouchEvent>) => {
     if (isReadOnly && e.evt.touches.length === 0) return;
     
     const touches = e.evt.touches.length;
-    setActiveTouches(touches);
+    multiTouchDetection.setActiveTouches(touches);
     
     // Use advanced touch handlers
     touchHandlers.handleTouchEnd(e.evt);
-  }, [setActiveTouches, touchHandlers, isReadOnly]);
+  }, [multiTouchDetection, touchHandlers, isReadOnly]);
 
   // Space pan handlers
   const startSpacePan = useCallback((x: number, y: number) => {
