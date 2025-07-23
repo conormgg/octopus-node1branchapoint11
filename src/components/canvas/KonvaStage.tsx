@@ -6,7 +6,6 @@ import { useSharedWhiteboardState } from '@/hooks/useSharedWhiteboardState';
 import { useCanvasEventHandlers } from '@/hooks/canvas/useCanvasEventHandlers';
 import { useSelectEventHandlers } from '@/hooks/useSelectEventHandlers';
 import { useCanvasKeyboardShortcuts } from '@/hooks/canvas/useCanvasKeyboardShortcuts';
-import { useMouseEventHandlers } from './hooks/useMouseEventHandlers';
 import LinesList from './layers/LinesList';
 import { SelectRenderer } from './SelectRenderer';
 
@@ -59,19 +58,6 @@ const KonvaStage: React.FC<KonvaStageProps> = ({
     handlePointerMove: currentTool === 'select' ? selectHandlers.handlePointerMove : whiteboardState.handlePointerMove,
     handlePointerUp: currentTool === 'select' ? selectHandlers.handlePointerUp : whiteboardState.handlePointerUp,
     isReadOnly
-  });
-
-  // Mouse event handlers for right-click pan fallback
-  const mouseHandlers = useMouseEventHandlers({
-    currentTool,
-    panZoomState: state.panZoomState,
-    palmRejectionConfig: palmRejectionConfig || { enabled: false },
-    panZoom: whiteboardState.panZoom,
-    handlePointerDown: currentTool === 'select' ? selectHandlers.handlePointerDown : whiteboardState.handlePointerDown,
-    handlePointerMove: currentTool === 'select' ? selectHandlers.handlePointerMove : whiteboardState.handlePointerMove,
-    handlePointerUp: currentTool === 'select' ? selectHandlers.handlePointerUp : whiteboardState.handlePointerUp,
-    isReadOnly,
-    selection
   });
 
   // Keyboard shortcuts for selection operations
@@ -137,9 +123,6 @@ const KonvaStage: React.FC<KonvaStageProps> = ({
       onTouchStart={canvasHandlers.onTouchStart}
       onTouchMove={canvasHandlers.onTouchMove}
       onTouchEnd={canvasHandlers.onTouchEnd}
-      onMouseDown={mouseHandlers.handleMouseDown}
-      onMouseMove={mouseHandlers.handleMouseMove}
-      onMouseUp={mouseHandlers.handleMouseUp}
     >
       <Layer>
         {renderLines()}
