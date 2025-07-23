@@ -36,15 +36,12 @@ const ImageRenderer: React.FC<ImageRendererProps> = React.memo(({
   const imageRef = useRef<Konva.Image>(null);
   const trRef = useRef<Konva.Transformer>(null);
 
-  // Check if current tool is a selection tool
-  const isSelectionTool = currentTool === 'select' || currentTool === 'select2';
-
   useEffect(() => {
-    if (isSelected && isSelectionTool) {
+    if (isSelected && (currentTool === 'select' || currentTool === 'select2')) {
       trRef.current?.nodes([imageRef.current!]);
       trRef.current?.getLayer()?.batchDraw();
     }
-  }, [isSelected, isSelectionTool]);
+  }, [isSelected, currentTool]);
 
   const handleDragEnd = (e: Konva.KonvaEventObject<DragEvent>) => {
     onChange({
@@ -106,7 +103,7 @@ const ImageRenderer: React.FC<ImageRendererProps> = React.memo(({
         x={imageObject.x}
         y={imageObject.y}
         rotation={imageObject.rotation || 0}
-        draggable={isSelectionTool && isSelected && !isLocked}
+        draggable={(currentTool === 'select' || currentTool === 'select2') && isSelected && !isLocked}
         onDragStart={onSelect}
         onDragEnd={handleDragEnd}
         onTransformEnd={handleTransformEnd}
@@ -116,7 +113,7 @@ const ImageRenderer: React.FC<ImageRendererProps> = React.memo(({
         {...(imageObject.width && { width: imageObject.width })}
         {...(imageObject.height && { height: imageObject.height })}
       />
-      {isSelected && isSelectionTool && !isLocked && (
+      {isSelected && (currentTool === 'select' || currentTool === 'select2') && !isLocked && (
         <Transformer
           ref={trRef}
           listening={currentTool === 'select'}
