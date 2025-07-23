@@ -1,4 +1,3 @@
-
 /**
  * Component exports with categorization and usage documentation
  * 
@@ -72,6 +71,16 @@ export { default as SelectionGroup } from './canvas/SelectionGroup';
  * Provides lock/unlock and other image-specific actions
  */
 export { default as ImageContextMenu } from './canvas/ImageContextMenu';
+
+// ============================================================================
+// ENHANCED SELECTION COMPONENTS
+// ============================================================================
+
+/**
+ * Enhanced select renderer with drag preview and hover feedback
+ * Provides visual feedback during selection operations
+ */
+export { SelectRenderer } from './canvas/SelectRenderer';
 
 // ============================================================================
 // SESSION MANAGEMENT COMPONENTS
@@ -166,11 +175,6 @@ export { default as AuthForm } from './auth/AuthForm';
  * Provides access to pencil, eraser, colors, and other tools
  */
 export { default as MovableToolbar } from './MovableToolbar';
-
-/**
- * Select2 renderer for experimental selection tool
- */
-export { Select2Renderer } from './canvas/Select2Renderer';
 
 /**
  * Layout selector for student board arrangements

@@ -1,140 +1,244 @@
-
-import React from 'react';
-import { Stage } from 'react-konva';
+import React, { useCallback, useEffect, useRef } from 'react';
 import Konva from 'konva';
-import { PanZoomState, Tool, SelectionBounds } from '@/types/whiteboard';
-import { useNormalizedWhiteboardState } from '@/hooks/performance/useNormalizedWhiteboardState';
-import { useMouseEventHandlers } from './hooks/useMouseEventHandlers';
-import { useTouchEventHandlers } from './hooks/useTouchEventHandlers';
-import { useStageCursor } from './hooks/useStageCursor';
-import ImagesLayer from './layers/ImagesLayer';
-import LinesLayer from './layers/LinesLayer';
+import { Stage } from 'react-konva';
+import { LineObject, ImageObject } from '@/types/whiteboard';
+import { usePanZoom } from '@/hooks/usePanZoom';
+import { useDrawingState } from '@/hooks/useDrawingState';
+import { useEraserState } from '@/hooks/useEraserState';
+import { useStageEventHandlers } from '@/hooks/useStageEventHandlers';
+import { usePalmRejection } from '@/hooks/usePalmRejection';
+import { useHistoryState } from '@/hooks/useHistoryState';
+import { useSelectionState } from '@/hooks/useSelectionState';
+import { useGroupTransform } from '@/hooks/useGroupTransform';
+import { useIsMobile } from '@/hooks/use-mobile';
+import { useKonvaKeyboardHandlers } from '@/hooks/canvas/useKonvaKeyboardHandlers';
+import { SelectRenderer } from './SelectRenderer';
+import { useSelectEventHandlers } from '@/hooks/useSelectEventHandlers';
 
 interface KonvaStageCanvasProps {
-  width: number;
-  height: number;
-  stageRef: React.RefObject<Konva.Stage>;
-  layerRef: React.RefObject<Konva.Layer>;
-  lines: any[];
-  images?: any[];
-  currentTool: Tool;
-  panZoomState: PanZoomState;
-  palmRejectionConfig: {
-    enabled: boolean;
-  };
-  panZoom: {
-    startPan: (x: number, y: number) => void;
-    continuePan: (x: number, y: number) => void;
-    stopPan: () => void;
-  };
-  handlePointerDown: (x: number, y: number) => void;
-  handlePointerMove: (x: number, y: number) => void;
-  handlePointerUp: () => void;
+  lines: LineObject[];
+  images: ImageObject[];
+  onAddLine: (line: Omit<LineObject, 'id'>) => string;
+  onUpdateLine: (lineId: string, updates: Partial<LineObject>) => void;
+  onRemoveLine: (lineId: string) => void;
+  onAddImage: (image: Omit<ImageObject, 'id'>) => string;
+  onUpdateImage: (imageId: string, updates: Partial<ImageObject>) => void;
+  onRemoveImage: (imageId: string) => void;
+  onDeleteObjects: (selectedObjects: Array<{id: string, type: 'line' | 'image'}>) => void;
+  stageWidth: number;
+  stageHeight: number;
+  currentTool: string;
   isReadOnly: boolean;
-  onStageClick?: (e: Konva.KonvaEventObject<MouseEvent | TouchEvent>) => void;
-  extraContent?: React.ReactNode;
-  selectionBounds?: SelectionBounds | null;
-  isSelecting?: boolean;
-  selection?: any;
-  onUpdateLine?: (lineId: string, updates: any) => void;
-  onUpdateImage?: (imageId: string, updates: any) => void;
-  onTransformEnd?: () => void;
-  normalizedState?: ReturnType<typeof useNormalizedWhiteboardState>;
-  select2MouseHandlers?: {
-    onMouseDown: (e: Konva.KonvaEventObject<MouseEvent>) => void;
-    onMouseMove: (e: Konva.KonvaEventObject<MouseEvent>) => void;
-    onMouseUp: (e: Konva.KonvaEventObject<MouseEvent>) => void;
-  };
+  setContainer: React.Dispatch<React.SetStateAction<HTMLDivElement | null>>;
 }
 
 const KonvaStageCanvas: React.FC<KonvaStageCanvasProps> = ({
-  width,
-  height,
-  stageRef,
-  layerRef,
   lines,
-  images = [],
-  currentTool,
-  panZoomState,
-  palmRejectionConfig,
-  panZoom,
-  handlePointerDown,
-  handlePointerMove,
-  handlePointerUp,
-  isReadOnly,
-  onStageClick,
-  extraContent,
-  selectionBounds,
-  isSelecting = false,
-  selection,
+  images,
+  onAddLine,
   onUpdateLine,
+  onRemoveLine,
+  onAddImage,
   onUpdateImage,
-  onTransformEnd,
-  normalizedState,
-  select2MouseHandlers
+  onRemoveImage,
+  onDeleteObjects,
+  stageWidth,
+  stageHeight,
+  currentTool,
+  isReadOnly,
+  setContainer
 }) => {
-  const { handleMouseDown, handleMouseMove, handleMouseUp } = useMouseEventHandlers({
+  const stageRef = useRef<Konva.Stage>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const isMobile = useIsMobile();
+
+  // History state for undo/redo
+  const { addHistoryEntry } = useHistoryState();
+
+  // Main selection state
+  const {
+    selectionState: { selectedObjects, isSelecting, selectionBounds },
+    selectObjects,
+    clearSelection,
+    setSelectionBounds,
+    setIsSelecting
+  } = useSelectionState();
+
+  // Pan and zoom functionality
+  const { panZoom, panZoomState } = usePanZoom({ stageRef });
+
+  // Drawing tool functionality
+  const {
+    drawingState,
+    startDrawing,
+    updateDrawing,
+    endDrawing,
+    clearDrawing
+  } = useDrawingState({
+    onAddLine,
     currentTool,
+    isReadOnly,
+    addHistoryEntry
+  });
+
+  // Eraser tool functionality
+  const {
+    eraserState,
+    startErasing,
+    updateErasing,
+    endErasing
+  } = useEraserState({
+    lines,
+    onUpdateLine,
+    currentTool,
+    isReadOnly,
+    addHistoryEntry
+  });
+
+  // Group transformation
+  useGroupTransform({
+    stageRef,
+    selectedObjects,
+    lines,
+    images,
+    onUpdateLine,
+    onUpdateImage,
     panZoomState,
-    palmRejectionConfig,
+    addHistoryEntry
+  });
+
+  // Palm rejection for touch devices
+  const { isPalmTouching } = usePalmRejection({ stageRef });
+
+  // Select tool handlers
+  const selectHandlers = useSelectEventHandlers({
+    stageRef,
+    lines,
+    images,
+    panZoomState,
     panZoom,
+    onUpdateLine,
+    onUpdateImage,
+    onDeleteObjects,
+    containerRef,
+    mainSelection: {
+      selectObjects,
+      clearSelection,
+      setSelectionBounds,
+      setIsSelecting,
+      selectionState: {
+        selectedObjects,
+        isSelecting,
+        selectionBounds
+      }
+    }
+  });
+
+  // Keyboard event handlers (delete)
+  useKonvaKeyboardHandlers({
+    stageRef,
+    lines,
+    images,
+    panZoomState,
+    panZoom,
+    onUpdateLine,
+    onUpdateImage,
+    onDeleteObjects,
+    containerRef,
+    mainSelection: {
+      selectObjects,
+      clearSelection,
+      setSelectionBounds,
+      setIsSelecting,
+      selectionState: {
+        selectedObjects,
+        isSelecting,
+        selectionBounds
+      }
+    }
+  });
+
+  // Set container ref for focus management
+  useEffect(() => {
+    if (containerRef.current) {
+      setContainer(containerRef.current);
+    }
+  }, [setContainer]);
+
+  // Event handlers for the Konva stage
+  const {
     handlePointerDown,
     handlePointerMove,
-    handlePointerUp,
-    isReadOnly,
-    onStageClick,
-    selection
-  });
-
-  const { handleTouchStart } = useTouchEventHandlers({
+    handlePointerUp
+  } = useStageEventHandlers({
+    stageRef,
+    lines,
+    images,
+    panZoomState,
+    panZoom,
+    onUpdateLine,
+    onUpdateImage,
+    onDeleteObjects,
     currentTool,
-    palmRejectionConfig,
-    onStageClick
+    isReadOnly,
+    isPalmTouching,
+    drawingState,
+    startDrawing,
+    updateDrawing,
+    endDrawing,
+    eraserState,
+    startErasing,
+    updateErasing,
+    endErasing,
+    selectObjects,
+    clearSelection,
+    setSelectionBounds,
+    setIsSelecting,
+    containerRef
   });
 
-  const cursor = useStageCursor({ currentTool, selection });
+  const renderSelectVisuals = () => {
+    if (currentTool !== 'select') return null;
 
-  // Use select mouse handlers when select tool is active, otherwise use default handlers
-  const stageMouseHandlers = currentTool === 'select' && select2MouseHandlers ? {
-    onMouseDown: select2MouseHandlers.onMouseDown,
-    onMouseMove: select2MouseHandlers.onMouseMove,
-    onMouseUp: select2MouseHandlers.onMouseUp,
-    onMouseLeave: select2MouseHandlers.onMouseUp
-  } : {
-    onMouseDown: handleMouseDown,
-    onMouseMove: handleMouseMove,
-    onMouseUp: handleMouseUp,
-    onMouseLeave: handleMouseUp
+    return (
+      <SelectRenderer
+        selectedObjects={selectHandlers.selectState.selectedObjects}
+        hoveredObjectId={selectHandlers.selectState.hoveredObjectId}
+        selectionBounds={selectHandlers.selectState.selectionBounds}
+        isSelecting={selectHandlers.selectState.isSelecting}
+        lines={lines}
+        images={images}
+        groupBounds={selectHandlers.selectState.groupBounds}
+        dragOffset={selectHandlers.selectState.dragOffset}
+        isDraggingObjects={selectHandlers.selectState.isDraggingObjects}
+      />
+    );
   };
 
   return (
-    <Stage
-      width={width}
-      height={height}
-      ref={stageRef}
-      {...stageMouseHandlers}
-      onTouchStart={handleTouchStart}
-      style={{ cursor }}
+    <div
+      style={{ width: '100%', height: '100%', overflow: 'hidden' }}
+      ref={containerRef}
+      tabIndex={0}
     >
-      {/* Images layer - rendered first (behind) */}
-      <ImagesLayer extraContent={extraContent} />
-      
-      {/* Lines layer - rendered second (on top) */}
-      <LinesLayer
-        layerRef={layerRef}
-        lines={lines}
-        images={images}
+      <Stage
+        width={stageWidth}
+        height={stageHeight}
+        style={{
+          backgroundColor: '#fff',
+          cursor: drawingState.isDrawing ? 'crosshair' : 'default'
+        }}
+        ref={stageRef}
+        {...panZoom.getEventHandlers()}
+        onPointerDown={handlePointerDown}
+        onPointerMove={handlePointerMove}
+        onPointerUp={handlePointerUp}
         currentTool={currentTool}
-        selectionBounds={selectionBounds}
-        isSelecting={isSelecting}
-        selection={selection}
-        normalizedState={normalizedState}
-        onUpdateLine={onUpdateLine}
-        onUpdateImage={onUpdateImage}
-        onTransformEnd={onTransformEnd}
-        stageRef={stageRef} // Pass stageRef for viewport calculations
-      />
-    </Stage>
+      >
+        {/* Render whiteboard content here (lines, images, etc.) */}
+        {renderSelectVisuals()}
+      </Stage>
+    </div>
   );
 };
 

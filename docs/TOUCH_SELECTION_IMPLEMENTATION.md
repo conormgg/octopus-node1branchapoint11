@@ -1,3 +1,4 @@
+
 # Touch Selection Implementation
 
 This document describes the implementation of touch-based selection rectangles for tablets, specifically addressing the issue where single-finger touches couldn't create selection rectangles when using the select tool.

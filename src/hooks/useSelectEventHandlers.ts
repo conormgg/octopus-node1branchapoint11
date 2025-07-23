@@ -2,10 +2,10 @@
 import { useCallback, useRef } from 'react';
 import Konva from 'konva';
 import { LineObject, ImageObject } from '@/types/whiteboard';
-import { useSelect2State } from './useSelect2State';
+import { useSelectState } from './useSelectState';
 import { useStageCoordinates } from './useStageCoordinates';
 
-interface UseSelect2EventHandlersProps {
+interface UseSelectEventHandlersProps {
   stageRef: React.RefObject<Konva.Stage>;
   lines: LineObject[];
   images: ImageObject[];
@@ -29,7 +29,7 @@ interface UseSelect2EventHandlersProps {
   };
 }
 
-export const useSelect2EventHandlers = ({ 
+export const useSelectEventHandlers = ({ 
   stageRef,
   lines, 
   images, 
@@ -40,7 +40,7 @@ export const useSelect2EventHandlers = ({
   onDeleteObjects,
   containerRef,
   mainSelection
-}: UseSelect2EventHandlersProps) => {
+}: UseSelectEventHandlersProps) => {
   const {
     state,
     startDragSelection,
@@ -57,7 +57,7 @@ export const useSelect2EventHandlers = ({
     updateGroupBounds,
     isPointInGroupBounds,
     setState
-  } = useSelect2State();
+  } = useSelectState();
 
   const { getRelativePointerPosition } = useStageCoordinates(panZoomState);
 
@@ -114,7 +114,7 @@ export const useSelect2EventHandlers = ({
 
     const { x: dx, y: dy } = state.dragOffset;
 
-    console.log('Select2: Applying drag offset', { dx, dy, selectedCount: state.selectedObjects.length });
+    console.log('Select: Applying drag offset', { dx, dy, selectedCount: state.selectedObjects.length });
 
     // Apply offset to objects - single application only
     state.selectedObjects.forEach(obj => {
@@ -123,7 +123,7 @@ export const useSelect2EventHandlers = ({
         if (currentLine) {
           const newX = currentLine.x + dx;
           const newY = currentLine.y + dy;
-          console.log('Select2: Updating line position', { 
+          console.log('Select: Updating line position', { 
             id: obj.id, 
             from: { x: currentLine.x, y: currentLine.y }, 
             to: { x: newX, y: newY },
@@ -136,7 +136,7 @@ export const useSelect2EventHandlers = ({
         if (currentImage) {
           const newX = currentImage.x + dx;
           const newY = currentImage.y + dy;
-          console.log('Select2: Updating image position', { 
+          console.log('Select: Updating image position', { 
             id: obj.id, 
             from: { x: currentImage.x, y: currentImage.y }, 
             to: { x: newX, y: newY },
@@ -169,7 +169,7 @@ export const useSelect2EventHandlers = ({
 
         const newGroupBounds = calculateGroupBounds(prev.selectedObjects, updatedLines, updatedImages);
         
-        console.log('Select2: Updated group bounds after position changes', { 
+        console.log('Select: Updated group bounds after position changes', { 
           oldBounds: prev.groupBounds, 
           newBounds: newGroupBounds,
           offset: { dx, dy }
@@ -187,13 +187,13 @@ export const useSelect2EventHandlers = ({
   const handlePointerDown = useCallback((worldX: number, worldY: number, ctrlKey: boolean = false) => {
     // Ignore pointer events during pan/zoom gestures
     if (panZoom.isGestureActive()) {
-      console.log('Select2: Ignoring pointer down during pan/zoom gesture');
+      console.log('Select: Ignoring pointer down during pan/zoom gesture');
       return;
     }
 
     const worldPoint = { x: worldX, y: worldY };
     
-    console.log('Select2: Pointer down', { worldPoint, ctrlKey });
+    console.log('Select: Pointer down', { worldPoint, ctrlKey });
     
     isDraggingRef.current = true;
     hasMovedRef.current = false;
@@ -202,7 +202,7 @@ export const useSelect2EventHandlers = ({
     // Check if clicking on a selected object or within group bounds first
     if (isPointOnSelectedObject(worldPoint)) {
       // Start dragging selected objects
-      console.log('Select2: Starting drag of selected objects');
+      console.log('Select: Starting drag of selected objects');
       startDraggingObjects(worldPoint);
       return;
     }
@@ -212,7 +212,7 @@ export const useSelect2EventHandlers = ({
     
     if (objectsAtPoint.length > 0) {
       // Clicking on an object
-      console.log('Select2: Selecting object at point', { objectsAtPoint });
+      console.log('Select: Selecting object at point', { objectsAtPoint });
       selectObjectsAtPoint(worldPoint, lines, images, ctrlKey);
       // Sync with main selection state
       const newSelection = ctrlKey ? 
@@ -223,7 +223,7 @@ export const useSelect2EventHandlers = ({
       ensureContainerFocus();
     } else {
       // Clicking on empty space - start drag selection
-      console.log('Select2: Starting drag selection');
+      console.log('Select: Starting drag selection');
       if (!ctrlKey) {
         clearSelection();
         clearMainSelection();
@@ -246,7 +246,7 @@ export const useSelect2EventHandlers = ({
       
       if (state.isDraggingObjects) {
         // Update object dragging with consistent coordinate handling
-        console.log('Select2: Updating object drag', { 
+        console.log('Select: Updating object drag', { 
           worldPoint,
           dragStartPosition: dragStartPositionRef.current,
           currentOffset: state.dragOffset 
@@ -280,7 +280,7 @@ export const useSelect2EventHandlers = ({
       return;
     }
 
-    console.log('Select2: Pointer up', { 
+    console.log('Select: Pointer up', { 
       wasDragging: isDraggingRef.current,
       hasMoved: hasMovedRef.current,
       isDraggingObjects: state.isDraggingObjects,
@@ -290,7 +290,7 @@ export const useSelect2EventHandlers = ({
     if (isDraggingRef.current) {
       if (state.isDraggingObjects && hasMovedRef.current) {
         // Apply the drag offset to actually move the objects - single application
-        console.log('Select2: Applying final drag offset');
+        console.log('Select: Applying final drag offset');
         applyDragOffset();
         endObjectDragging();
       } else if (state.isSelecting && hasMovedRef.current) {
@@ -428,12 +428,12 @@ export const useSelect2EventHandlers = ({
 
   // Updated delete functionality - now uses the main selection state that's synchronized
   const deleteSelectedObjects = useCallback(() => {
-    // Use main selection state for deletion if available, fallback to select2 state
+    // Use main selection state for deletion if available, fallback to select state
     const selectedObjects = mainSelection?.selectionState?.selectedObjects || state.selectedObjects;
     
     if (selectedObjects.length === 0 || !onDeleteObjects) return;
 
-    console.log(`Deleting ${selectedObjects.length} selected objects via select2`);
+    console.log(`Deleting ${selectedObjects.length} selected objects via select`);
     
     // Use the proper delete function
     onDeleteObjects(selectedObjects);
@@ -444,7 +444,7 @@ export const useSelect2EventHandlers = ({
   }, [state.selectedObjects, mainSelection?.selectionState?.selectedObjects, onDeleteObjects, clearSelection, clearMainSelection]);
 
   return {
-    select2State: state,
+    selectState: state,
     handlePointerDown,
     handlePointerMove,
     handlePointerUp,

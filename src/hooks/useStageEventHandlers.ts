@@ -1,95 +1,67 @@
-import { useEffect, useRef } from 'react';
+import { useCallback, useRef } from 'react';
 import Konva from 'konva';
-import { usePalmRejection } from './usePalmRejection';
-import { useStageCoordinates } from './useStageCoordinates';
+import { LineObject, ImageObject } from '@/types/whiteboard';
+import { usePanZoom } from './usePanZoom';
+import { useDrawingState } from './useDrawingState';
+import { useEraser } from './useEraser';
+import { useHistory } from './useHistory';
+import { useSelectionState } from './useSelectionState';
 import { PanZoomState } from '@/types/whiteboard';
-import { useEventDebug } from './eventHandling/useEventDebug';
-import { useWheelEventHandlers } from './eventHandling/useWheelEventHandlers';
+import { useSelectEventHandlers } from './useSelectEventHandlers';
+import { useTouchToSelectionBridge } from './eventHandling/useTouchToSelectionBridge';
 import { useTouchEventHandlers } from './eventHandling/useTouchEventHandlers';
-import { usePointerEventHandlers } from './eventHandling/usePointerEventHandlers';
-import { usePointerEventDetection } from './eventHandling/usePointerEventDetection';
-import { useSelect2EventHandlers } from './useSelect2EventHandlers';
+import { useEventDeduplication } from './eventHandling/useEventDeduplication';
 import { createDebugLogger } from '@/utils/debug/debugConfig';
 
-const debugLog = createDebugLogger('touchEvents');
+const debugLog = createDebugLogger('events');
 
 interface UseStageEventHandlersProps {
-  containerRef: React.RefObject<HTMLDivElement>;
   stageRef: React.RefObject<Konva.Stage>;
+  lines: LineObject[];
+  images: ImageObject[];
   panZoomState: PanZoomState;
-  palmRejection: ReturnType<typeof usePalmRejection>;
-  palmRejectionConfig: {
-    enabled: boolean;
-  };
-  panZoom: {
-    handleWheel: (e: WheelEvent) => void;
-    handleTouchStart: (e: TouchEvent) => void;
-    handleTouchMove: (e: TouchEvent) => void;
-    handleTouchEnd: (e: TouchEvent) => void;
-    startPan: (x: number, y: number) => void;
-    continuePan: (x: number, y: number) => void;
-    stopPan: () => void;
-  };
-  handlePointerDown: (x: number, y: number) => void;
-  handlePointerMove: (x: number, y: number) => void;
-  handlePointerUp: () => void;
-  isReadOnly: boolean;
+  onUpdateLine: (lineId: string, updates: any) => void;
+  onUpdateImage: (imageId: string, updates: any) => void;
+  onDeleteObjects: (selectedObjects: Array<{id: string, type: 'line' | 'image'}>) => void;
+  containerRef: React.RefObject<HTMLDivElement>;
   currentTool: string;
-  lines?: any[];
-  images?: any[];
-  onUpdateLine?: (lineId: string, updates: any) => void;
-  onUpdateImage?: (imageId: string, updates: any) => void;
-  onDeleteObjects?: (selectedObjects: Array<{id: string, type: 'line' | 'image'}>) => void;
-  onDeleteObjectsNoParams?: () => void;
-  // Main selection state for select2 integration
-  mainSelection?: {
-    selectObjects: (objects: Array<{id: string, type: 'line' | 'image'}>) => void;
-    clearSelection: () => void;
-    setSelectionBounds: (bounds: any) => void;
-    setIsSelecting: (selecting: boolean) => void;
-    selectionState: {
-      selectedObjects: Array<{id: string, type: 'line' | 'image'}>;
-      isSelecting: boolean;
-      selectionBounds: any;
-    };
-  };
+  isReadOnly: boolean;
+  selectObjects: (objects: Array<{id: string, type: 'line' | 'image'}>) => void;
+  clearSelection: () => void;
+  setSelectionBounds: (bounds: any) => void;
+  setIsSelecting: (selecting: boolean) => void;
+  selectedObjects: Array<{id: string, type: 'line' | 'image'}>;
+  isSelecting: boolean;
+  selectionBounds: any;
+  panZoom: any; // panZoom object with isGestureActive method
 }
 
 export const useStageEventHandlers = ({
-  containerRef,
   stageRef,
+  lines,
+  images,
   panZoomState,
-  palmRejection,
-  palmRejectionConfig,
-  panZoom,
-  handlePointerDown,
-  handlePointerMove,
-  handlePointerUp,
-  isReadOnly,
-  currentTool,
-  lines = [],
-  images = [],
   onUpdateLine,
   onUpdateImage,
   onDeleteObjects,
-  onDeleteObjectsNoParams,
-  mainSelection
+  containerRef,
+  currentTool,
+  isReadOnly,
+  selectObjects,
+  clearSelection,
+  setSelectionBounds,
+  setIsSelecting,
+  selectedObjects,
+  isSelecting,
+  selectionBounds,
+  panZoom
 }: UseStageEventHandlersProps) => {
-  const currentToolRef = useRef<string>(currentTool || 'pencil');
-  const { logEventHandling } = useEventDebug(palmRejectionConfig);
-  const { supportsPointerEvents } = usePointerEventDetection();
+  const { addLine } = useDrawingState();
+  const { handlePointerDown: handleEraserPointerDown, handlePointerMove: handleEraserPointerMove } = useEraser({ lines, onUpdateLine, onDeleteObjects });
+  const { recordOperation } = useHistory();
 
-  debugLog('StageEventHandlers', 'Initializing with delete functions', {
-    currentTool,
-    hasDeleteFunction: !!onDeleteObjects,
-    hasDeleteNoParams: !!onDeleteObjectsNoParams,
-    deleteFunction: onDeleteObjects ? 'provided' : 'none',
-    deleteNoParamsFunction: onDeleteObjectsNoParams ? 'provided' : 'none',
-    hasMainSelection: !!mainSelection
-  });
-
-  // Select2 event handlers with update functions, delete function, and main selection integration
-  const select2Handlers = useSelect2EventHandlers({
+  // Select tool handlers
+  const selectHandlers = useSelectEventHandlers({
     stageRef,
     lines,
     images,
@@ -99,103 +71,145 @@ export const useStageEventHandlers = ({
     onUpdateImage,
     onDeleteObjects,
     containerRef,
-    mainSelection // Pass main selection state for integration
-  });
-
-  // Update current tool ref when currentTool prop changes
-  useEffect(() => {
-    if (currentTool && currentTool !== currentToolRef.current) {
-      debugLog('StageEventHandlers', 'Tool changed via prop', {
-        previousTool: currentToolRef.current,
-        newTool: currentTool
-      });
-      
-      currentToolRef.current = currentTool;
-      
-      // Update touch-action when tool changes
-      const container = containerRef.current;
-      if (container) {
-        // For select tool, allow native touch behavior; for others, prevent it
-        container.style.touchAction = currentTool === 'select' ? 'manipulation' : 'none';
-        debugLog('StageEventHandlers', 'Updated touch-action via prop', {
-          tool: currentTool,
-          touchAction: container.style.touchAction
-        });
+    mainSelection: {
+      selectObjects,
+      clearSelection,
+      setSelectionBounds,
+      setIsSelecting,
+      selectionState: {
+        selectedObjects,
+        isSelecting,
+        selectionBounds
       }
     }
-  }, [currentTool, containerRef]);
+  });
 
-  // Log current tool state periodically for debugging
-  useEffect(() => {
-    const logToolState = () => {
-      const stage = stageRef.current;
-      const stageAttr = stage?.getAttr('currentTool');
-      debugLog('StageEventHandlers', 'Tool state check', {
-        refTool: currentToolRef.current,
-        stageAttr,
-        refUndefined: currentToolRef.current === undefined,
-        stageUndefined: stageAttr === undefined,
-        match: currentToolRef.current === stageAttr
-      });
-    };
-    
-    const interval = setInterval(logToolState, 2000);
-    return () => clearInterval(interval);
-  }, [stageRef]);
+  // Deduplication hook
+  const { deduplicateEvent } = useEventDeduplication();
 
-  // Wheel event handlers - always active for pan/zoom
-  useWheelEventHandlers({
-    containerRef,
+  // Touch event handlers
+  const { handleTouchStart, handleTouchMove, handleTouchEnd, handleTouchCancel } = useTouchEventHandlers({
+    panZoomState,
+    stageRef,
+    currentTool,
+    isReadOnly,
+    selectHandlers,
     panZoom
   });
 
-  // Touch events for multi-touch gestures - ALWAYS enabled now
-  useTouchEventHandlers({
-    containerRef,
-    panZoom,
-    logEventHandling,
-    supportsPointerEvents,
-    palmRejectionEnabled: palmRejectionConfig.enabled,
-    currentTool: currentToolRef.current
-  });
-
-  // Pointer event handlers - handles single-touch interactions with proper coordinate transformation
-  usePointerEventHandlers({
-    containerRef,
-    stageRef,
+  // Touch-to-selection bridge for select tool
+  const touchToSelectionBridge = useTouchToSelectionBridge({
     panZoomState,
-    palmRejection,
-    palmRejectionConfig,
-    panZoom,
-    handlePointerDown: currentTool === 'select' ? 
-      (worldX: number, worldY: number) => {
-        select2Handlers.handlePointerDown(worldX, worldY);
-      } : handlePointerDown,
-    handlePointerMove: currentTool === 'select' ? 
-      (worldX: number, worldY: number) => {
-        select2Handlers.handlePointerMove(worldX, worldY);
-      } : handlePointerMove,
-    handlePointerUp: currentTool === 'select' ? 
-      select2Handlers.handlePointerUp : handlePointerUp,
+    handlePointerDown: selectHandlers.handlePointerDown,
+    handlePointerMove: selectHandlers.handlePointerMove,
+    handlePointerUp: selectHandlers.handlePointerUp,
+    currentTool,
     isReadOnly,
-    currentToolRef,
-    logEventHandling,
-    supportsPointerEvents
+    stageRef
   });
 
-  // Return select2 state for rendering when using select tool
-  if (currentTool === 'select') {
-    return {
-      select2State: select2Handlers.select2State,
-      clearSelect2Selection: select2Handlers.clearSelection,
-      deleteSelectedObjects: select2Handlers.deleteSelectedObjects,
-      select2MouseHandlers: {
-        onMouseDown: select2Handlers.handleMouseDown,
-        onMouseMove: select2Handlers.handleMouseMove,
-        onMouseUp: select2Handlers.handleMouseUp
-      }
-    };
-  }
+  const handlePointerDown = useCallback((e: Konva.KonvaEventObject<PointerEvent>) => {
+    if (isReadOnly) return;
 
-  return {};
+    // Deduplicate event
+    if (deduplicateEvent(e.evt)) {
+      debugLog('Events', 'handlePointerDown: Duplicate event, ignoring', { event: e.evt });
+      return;
+    }
+
+    const stage = stageRef.current;
+    if (!stage) return;
+
+    // Route event based on current tool
+    switch (currentTool) {
+      case 'pencil':
+      case 'highlighter':
+        // Start drawing
+        const newLine = addLine({ stage, event: e.evt, panZoomState });
+        if (newLine) {
+          recordOperation({
+            type: 'add',
+            objectId: newLine.id,
+            objectType: 'line',
+            object: newLine
+          });
+        }
+        break;
+      case 'eraser':
+        handleEraserPointerDown(e);
+        break;
+      case 'select':
+        selectHandlers?.handlePointerDown(e.evt.clientX, e.evt.clientY, e.evt.ctrlKey);
+        break;
+      default:
+        console.warn(`Unknown tool: ${currentTool}`);
+    }
+  }, [addLine, currentTool, handleEraserPointerDown, isReadOnly, panZoomState, recordOperation, stageRef, deduplicateEvent, selectHandlers]);
+
+  const handlePointerMove = useCallback((e: Konva.KonvaEventObject<PointerEvent>) => {
+    if (isReadOnly) return;
+
+    // Deduplicate event
+    if (deduplicateEvent(e.evt)) {
+      debugLog('Events', 'handlePointerMove: Duplicate event, ignoring', { event: e.evt });
+      return;
+    }
+
+    switch (currentTool) {
+      case 'pencil':
+      case 'highlighter':
+        // Continue drawing
+        break;
+      case 'eraser':
+        handleEraserPointerMove(e);
+        break;
+      case 'select':
+        selectHandlers?.handlePointerMove(e.evt.clientX, e.evt.clientY);
+        break;
+      default:
+        console.warn(`Unknown tool: ${currentTool}`);
+    }
+  }, [currentTool, handleEraserPointerMove, isReadOnly, addLine, deduplicateEvent, selectHandlers]);
+
+  const handlePointerUp = useCallback((e: Konva.KonvaEventObject<PointerEvent>) => {
+    if (isReadOnly) return;
+
+    // Deduplicate event
+    if (deduplicateEvent(e.evt)) {
+      debugLog('Events', 'handlePointerUp: Duplicate event, ignoring', { event: e.evt });
+      return;
+    }
+
+    switch (currentTool) {
+      case 'pencil':
+      case 'highlighter':
+        // End drawing - handled by drawing state
+        break;
+      case 'eraser':
+        // End erasing - handled by eraser state
+        break;
+      case 'select':
+        selectHandlers?.handlePointerUp();
+        break;
+      default:
+        console.warn(`Unknown tool: ${currentTool}`);
+    }
+  }, [currentTool, isReadOnly, deduplicateEvent, selectHandlers]);
+
+  const handleWheel = useCallback((e: Konva.KonvaEventObject<WheelEvent>) => {
+    e.evt.preventDefault();
+    if (panZoom.isGestureActive()) return;
+    panZoom.handleWheel(e);
+  }, [panZoom]);
+
+  return {
+    handlePointerDown,
+    handlePointerMove,
+    handlePointerUp,
+    handleTouchStart,
+    handleTouchMove,
+    handleTouchEnd,
+    handleTouchCancel,
+    handleWheel
+  };
 };

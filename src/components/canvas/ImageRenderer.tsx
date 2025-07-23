@@ -1,124 +1,135 @@
-
-import React, { useRef, useEffect } from 'react';
-import { Image, Transformer } from 'react-konva';
-import Konva from 'konva';
-import { ImageObject } from '@/types/whiteboard';
+import React, { useState, useRef, useEffect } from 'react';
+import { Image as KonvaImage, Transformer } from 'react-konva';
 import useImage from 'use-image';
+import { ImageObject } from '@/types/whiteboard';
+import { useObjectLocking } from '@/hooks/useObjectLocking';
+import { useSelectEventHandlers } from '@/hooks/useSelectEventHandlers';
 
 interface ImageRendererProps {
-  imageObject: ImageObject;
+  image: ImageObject;
   isSelected: boolean;
-  isHovered?: boolean;
-  onSelect: () => void;
-  onChange: (newAttrs: Partial<ImageObject>) => void;
-  onUpdateState: () => void;
-  currentTool?: string;
-  onMouseEnter?: () => void;
-  onMouseLeave?: () => void;
-  onToggleLock?: (imageId: string) => void;
-  onContextMenu?: (imageId: string, x: number, y: number) => void;
+  stageRef: React.RefObject<any>;
+  onTransform: (id: string, transform: any) => void;
+  onDelete: (id: string) => void;
+  lines: any[];
+  images: any[];
+  panZoomState: { x: number; y: number; scale: number };
+  panZoom: any;
+  onUpdateLine?: (lineId: string, updates: any) => void;
+  onUpdateImage?: (imageId: string, updates: any) => void;
+  onDeleteObjects?: (selectedObjects: Array<{id: string, type: 'line' | 'image'}>) => void;
+  containerRef?: React.RefObject<HTMLDivElement>;
+  selectObjects: (objects: Array<{id: string, type: 'line' | 'image'}>) => void;
+  clearSelection: () => void;
+  setSelectionBounds: (bounds: any) => void;
+  setIsSelecting: (selecting: boolean) => void;
+  selectedObjects: Array<{id: string, type: 'line' | 'image'}>;
+  isSelecting: boolean;
+  selectionBounds: any;
 }
 
-const ImageRenderer: React.FC<ImageRendererProps> = React.memo(({
-  imageObject,
+const ImageRenderer: React.FC<ImageRendererProps> = ({
+  image,
   isSelected,
-  isHovered = false,
-  onSelect,
-  onChange,
-  onUpdateState,
-  currentTool = 'pencil',
-  onMouseEnter,
-  onMouseLeave,
-  onToggleLock,
-  onContextMenu,
+  stageRef,
+  onTransform,
+  onDelete,
+  lines,
+  images,
+  panZoomState,
+  panZoom,
+  onUpdateLine,
+  onUpdateImage,
+  onDeleteObjects,
+  containerRef,
+  selectObjects,
+  clearSelection,
+  setSelectionBounds,
+  setIsSelecting,
+  selectedObjects,
+  isSelecting,
+  selectionBounds
 }) => {
-  const [image] = useImage(imageObject.src);
-  const imageRef = useRef<Konva.Image>(null);
-  const trRef = useRef<Konva.Transformer>(null);
+  const [img] = useImage(image.src);
+  const imageRef = useRef<any>(null);
+  const transformerRef = useRef<any>(null);
+  const [isContextMenuVisible, setIsContextMenuVisible] = useState(false);
+  const { isObjectLocked, toggleObjectLock } = useObjectLocking(image.id);
 
   useEffect(() => {
-    if (isSelected && currentTool === 'select') {
-      trRef.current?.nodes([imageRef.current!]);
-      trRef.current?.getLayer()?.batchDraw();
+    if (isSelected && transformerRef.current) {
+      transformerRef.current.nodes([imageRef.current]);
+      transformerRef.current.getLayer().batchDraw();
     }
-  }, [isSelected, currentTool]);
+  }, [isSelected]);
 
-  const handleDragEnd = (e: Konva.KonvaEventObject<DragEvent>) => {
-    onChange({
-      x: e.target.x(),
-      y: e.target.y(),
-    });
-    onUpdateState();
-  };
-
-  const handleTransformEnd = () => {
-    const node = imageRef.current;
-    if (node) {
-      const scaleX = node.scaleX();
-      const scaleY = node.scaleY();
-      node.scaleX(1);
-      node.scaleY(1);
-      onChange({
-        x: node.x(),
-        y: node.y(),
-        width: Math.max(5, node.width() * scaleX),
-        height: Math.max(node.height() * scaleY),
-        rotation: node.rotation(),
-      });
-      onUpdateState();
-    }
-  };
-
-  const handleRightClick = (e: Konva.KonvaEventObject<PointerEvent>) => {
-    e.evt.preventDefault();
-    if (onContextMenu) {
-      const stage = e.target.getStage();
-      if (stage) {
-        const pointerPosition = stage.getPointerPosition();
-        if (pointerPosition) {
-          onContextMenu(imageObject.id, pointerPosition.x, pointerPosition.y);
-        }
+  // Select handlers for interaction
+  const selectHandlers = useSelectEventHandlers({
+    stageRef,
+    lines,
+    images,
+    panZoomState,
+    panZoom,
+    onUpdateLine,
+    onUpdateImage,
+    onDeleteObjects,
+    containerRef,
+    mainSelection: {
+      selectObjects,
+      clearSelection,
+      setSelectionBounds,
+      setIsSelecting,
+      selectionState: {
+        selectedObjects,
+        isSelecting,
+        selectionBounds
       }
     }
-  };
+  });
 
-  const handleToggleLock = () => {
-    if (onToggleLock) {
-      onToggleLock(imageObject.id);
-    }
-  };
+  const handleTransform = () => {
+    if (!imageRef.current) return;
 
-  const isLocked = imageObject.locked || false;
+    const node = imageRef.current;
+    const scaleX = node.scaleX();
+    const scaleY = node.scaleY();
+    const rotation = node.rotation();
+
+    // Reset scaling to 1 for accurate width/height
+    node.scaleX(1);
+    node.scaleY(1);
+
+    onTransform(image.id, {
+      x: node.x(),
+      y: node.y(),
+      width: Math.max(5, node.width() * scaleX),
+      height: Math.max(5, node.height() * scaleY),
+      rotation: rotation
+    });
+  };
 
   return (
     <>
-      <Image
-        onClick={onSelect}
-        onTap={onSelect}
-        onMouseEnter={onMouseEnter}
-        onMouseLeave={onMouseLeave}
-        onContextMenu={handleRightClick}
+      <KonvaImage
+        image={img}
+        x={image.x}
+        y={image.y}
+        width={image.width}
+        height={image.height}
+        rotation={(image as any).rotation || 0}
+        draggable={isSelected && !isObjectLocked}
         ref={imageRef}
-        image={image}
-        x={imageObject.x}
-        y={imageObject.y}
-        rotation={imageObject.rotation || 0}
-        draggable={currentTool === 'select' && isSelected && !isLocked}
-        onDragStart={onSelect}
-        onDragEnd={handleDragEnd}
-        onTransformEnd={handleTransformEnd}
-        stroke={isHovered && !isSelected ? 'rgba(0, 123, 255, 0.3)' : isLocked ? 'rgba(255, 165, 0, 0.5)' : undefined}
-        strokeWidth={isHovered && !isSelected ? 2 : isLocked ? 3 : 0}
-        opacity={isLocked ? 0.8 : 1}
-        {...(imageObject.width && { width: imageObject.width })}
-        {...(imageObject.height && { height: imageObject.height })}
+        onDblClick={() => toggleObjectLock(image.id)}
+        onTap={() => toggleObjectLock(image.id)}
+        onTransformEnd={handleTransform}
+        onDragEnd={handleTransform}
       />
-      {isSelected && (currentTool === 'select' || currentTool === 'select2') && !isLocked && (
+      {isSelected && (
         <Transformer
-          ref={trRef}
-          listening={currentTool === 'select'}
+          ref={transformerRef}
           boundBoxFunc={(oldBox, newBox) => {
-            if (newBox.width < 10 || newBox.height < 10) {
+            // limit resize
+            if (newBox.width < 5 || newBox.height < 5) {
               return oldBox;
             }
             return newBox;
@@ -127,20 +138,6 @@ const ImageRenderer: React.FC<ImageRendererProps> = React.memo(({
       )}
     </>
   );
-}, (prevProps, nextProps) => {
-  return (
-    prevProps.imageObject.id === nextProps.imageObject.id &&
-    prevProps.imageObject.src === nextProps.imageObject.src &&
-    prevProps.imageObject.x === nextProps.imageObject.x &&
-    prevProps.imageObject.y === nextProps.imageObject.y &&
-    prevProps.imageObject.width === nextProps.imageObject.width &&
-    prevProps.imageObject.height === nextProps.imageObject.height &&
-    prevProps.imageObject.rotation === nextProps.imageObject.rotation &&
-    prevProps.imageObject.locked === nextProps.imageObject.locked &&
-    prevProps.isSelected === nextProps.isSelected &&
-    prevProps.isHovered === nextProps.isHovered &&
-    prevProps.currentTool === nextProps.currentTool
-  );
-});
+};
 
 export default ImageRenderer;
