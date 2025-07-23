@@ -223,12 +223,12 @@ const KonvaStage: React.FC<KonvaStageProps> = ({
           }}
           normalizedState={normalizedState}
           select2MouseHandlers={(state.currentTool === 'select2' || state.currentTool === 'select') && stageEventHandlers ? stageEventHandlers.select2MouseHandlers : undefined}
-          select2State={stageEventHandlers ? {
-            selectedObjects: stageEventHandlers.select2State?.selectedObjects || [],
-            hoveredObjectId: stageEventHandlers.select2State?.hoveredObjectId || null,
+          select2State={stageEventHandlers?.select2State ? {
+            selectedObjects: stageEventHandlers.select2State.selectedObjects || [],
+            hoveredObjectId: stageEventHandlers.select2State.hoveredObjectId || null,
             isObjectSelected: (id: string) => stageEventHandlers.select2State?.selectedObjects.some(obj => obj.id === id) || false,
-            selectObjects: stageEventHandlers.selectObjectsAtPoint || (() => {}),
-            setHoveredObjectId: stageEventHandlers.setHoveredObject || (() => {})
+            selectObjects: (() => {}),
+            setHoveredObjectId: (() => {})
           } : undefined}
           extraContent={
             <>
