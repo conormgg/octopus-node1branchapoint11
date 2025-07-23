@@ -10,11 +10,10 @@ import KonvaStageCanvas from './KonvaStageCanvas';
 import KonvaImageContextMenuHandler from './KonvaImageContextMenuHandler';
 import KonvaImageOperationsHandler from './KonvaImageOperationsHandler';
 import { Select2Renderer } from './Select2Renderer';
-import { SelectionContextMenu } from './SelectionContextMenu';
 import SelectionGroup from './SelectionGroup';
 import { createDebugLogger } from '@/utils/debug/debugConfig';
 
-const debugLog = createDebugLogger('events');
+const debugLog = createDebugLogger('toolSync');
 
 interface KonvaStageProps {
   width: number;
@@ -169,121 +168,10 @@ const KonvaStage: React.FC<KonvaStageProps> = ({
     } : undefined
   });
 
-  // Calculate context menu position relative to the container with mobile support
-  const getContextMenuPosition = (groupBounds: any) => {
-    if (!groupBounds || !containerRef.current || !stageRef.current) {
-      debugLog('KonvaStage', 'Missing refs for context menu positioning', {
-        hasGroupBounds: !!groupBounds,
-        hasContainer: !!containerRef.current,
-        hasStage: !!stageRef.current
-      });
-      return { x: 0, y: 0 };
-    }
-    
-    const container = containerRef.current;
-    const stage = stageRef.current;
-    
-    // Get stage transform for coordinate conversion
-    const stageTransform = stage.getAbsoluteTransform();
-    
-    // Calculate center of selection in world coordinates
-    const selectionCenterWorld = {
-      x: groupBounds.x + groupBounds.width / 2,
-      y: groupBounds.y - 60 // 60px above selection
-    };
-    
-    // Transform world coordinates to screen coordinates
-    const screenPoint = stageTransform.point(selectionCenterWorld);
-    
-    // Get container bounds for boundary checking
-    const containerRect = container.getBoundingClientRect();
-    
-    // Mobile-friendly positioning adjustments
-    const isMobile = window.innerWidth < 768;
-    const menuWidth = isMobile ? 250 : 200;
-    const menuHeight = 60;
-    
-    // Calculate final position, ensuring it stays within container and viewport
-    const finalPosition = {
-      x: Math.max(10, Math.min(screenPoint.x - menuWidth / 2, containerRect.width - menuWidth - 10)),
-      y: Math.max(10, Math.min(screenPoint.y, containerRect.height - menuHeight - 10))
-    };
-    
-    debugLog('KonvaStage', 'Context menu position calculation', {
-      groupBounds,
-      selectionCenterWorld,
-      screenPoint,
-      containerWidth: containerRect.width,
-      containerHeight: containerRect.height,
-      isMobile,
-      finalPosition
-    });
-    
-    return finalPosition;
-  };
-
-  // Handle delete for select2
-  const handleSelect2Delete = () => {
-    debugLog('KonvaStage', 'Handle select2 delete called');
-    if (stageEventHandlers && stageEventHandlers.select2State && stageEventHandlers.deleteSelectedObjects) {
-      stageEventHandlers.deleteSelectedObjects();
-    }
-  };
-
-  // Handle image lock toggle for select2
-  const handleSelect2ToggleLock = (imageIds: string[]) => {
-    debugLog('KonvaStage', 'Handle select2 toggle lock called', { imageIds });
-    if ('toggleImageLock' in whiteboardState && whiteboardState.toggleImageLock) {
-      imageIds.forEach(imageId => {
-        whiteboardState.toggleImageLock(imageId);
-      });
-    }
-  };
-
-  // SIMPLIFIED: Context menu visibility logic - only depends on selected objects and not dragging
-  const getContextMenuVisibility = () => {
-    if (state.currentTool !== 'select2' || !stageEventHandlers || !stageEventHandlers.select2State) {
-      debugLog('KonvaStage', 'Context menu hidden - not select2 tool or no handlers', {
-        currentTool: state.currentTool,
-        hasHandlers: !!stageEventHandlers,
-        hasSelect2State: !!(stageEventHandlers && stageEventHandlers.select2State)
-      });
-      return { isVisible: false, menuPosition: { x: 0, y: 0 } };
-    }
-
-    const { selectedObjects, groupBounds, isDraggingObjects } = stageEventHandlers.select2State;
-    
-    // SIMPLIFIED: Context menu should be visible when:
-    // 1. Objects are selected
-    // 2. Not currently dragging objects
-    // 3. Has valid group bounds
-    // REMOVED: dependency on isSelecting flag
-    const isVisible = selectedObjects.length > 0 && 
-                     !isDraggingObjects && 
-                     !!groupBounds;
-    
-    debugLog('KonvaStage', 'SIMPLIFIED context menu visibility check', {
-      selectedCount: selectedObjects.length,
-      hasGroupBounds: !!groupBounds,
-      isDraggingObjects,
-      isVisible,
-      groupBounds
-    });
-    
-    if (!isVisible || !groupBounds) {
-      return { isVisible: false, menuPosition: { x: 0, y: 0 } };
-    }
-    
-    const menuPosition = getContextMenuPosition(groupBounds);
-    return { isVisible: true, menuPosition };
-  };
-
-  const { isVisible: contextMenuVisible, menuPosition } = getContextMenuVisibility();
-
   return (
     <div 
       ref={containerRef} 
-      className="w-full h-full select-none outline-none drawing-background relative" 
+      className="w-full h-full select-none outline-none drawing-background" 
       style={{ 
         WebkitUserSelect: 'none',
         WebkitTouchCallout: 'none',
@@ -335,11 +223,6 @@ const KonvaStage: React.FC<KonvaStageProps> = ({
           }}
           normalizedState={normalizedState}
           select2MouseHandlers={state.currentTool === 'select2' && stageEventHandlers ? stageEventHandlers.select2MouseHandlers : undefined}
-          select2TouchHandlers={state.currentTool === 'select2' && stageEventHandlers ? {
-            onTouchStart: stageEventHandlers.select2TouchHandlers?.onTouchStart || (() => {}),
-            onTouchMove: stageEventHandlers.select2TouchHandlers?.onTouchMove || (() => {}),
-            onTouchEnd: stageEventHandlers.select2TouchHandlers?.onTouchEnd || (() => {})
-          } : undefined}
           extraContent={
             <>
               <KonvaImageOperationsHandler
@@ -385,28 +268,6 @@ const KonvaStage: React.FC<KonvaStageProps> = ({
           }
         />
       </KonvaImageContextMenuHandler>
-
-      {/* Select2 Context Menu - DOM overlay positioned absolutely */}
-      {contextMenuVisible && stageEventHandlers && stageEventHandlers.select2State && (
-        <div
-          className="absolute z-50"
-          style={{
-            left: menuPosition.x,
-            top: menuPosition.y,
-            transform: 'translateX(-50%)', // Center horizontally
-            pointerEvents: 'auto'
-          }}
-        >
-          <SelectionContextMenu
-            selectedObjects={stageEventHandlers.select2State.selectedObjects}
-            groupBounds={stageEventHandlers.select2State.groupBounds}
-            onDelete={handleSelect2Delete}
-            onToggleLock={handleSelect2ToggleLock}
-            isVisible={true}
-            images={state.images}
-          />
-        </div>
-      )}
     </div>
   );
 };

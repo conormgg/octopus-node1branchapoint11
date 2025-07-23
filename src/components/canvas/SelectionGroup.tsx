@@ -44,7 +44,7 @@ const SelectionGroup: React.FC<SelectionGroupProps> = ({
     .filter(Boolean) as ImageObject[];
 
   // Only show group if multiple objects are selected and tool is select or select2
-  const shouldShowGroup = isVisible && ((currentTool === 'select2' && selectedObjects.length > 1) || (currentTool === 'select' && selectedObjects.length > 1));
+  const shouldShowGroup = isVisible && ((currentTool === 'select2' && selectedObjects.length > 0) || (currentTool === 'select' && selectedObjects.length > 1));
 
   // FIXED: Disable dragging for select2 tool to prevent double movement
   const isDraggable = shouldShowGroup && currentTool === 'select';
