@@ -1,4 +1,4 @@
-import React, { useCallback, useRef } from 'react';
+import { useCallback, useRef } from 'react';
 import Konva from 'konva';
 import { LineObject, ImageObject } from '@/types/whiteboard';
 import { useSelect2State } from './useSelect2State';
@@ -434,39 +434,15 @@ export const useSelect2EventHandlers = ({
   }, [getRelativePointerPosition, handlePointerMove]);
 
   const handleTouchEnd = useCallback((e: Konva.KonvaEventObject<TouchEvent>) => {
-    const stage = e.target.getStage();
-    if (!stage) return;
-
     debugLog('useSelect2EventHandlers', 'Touch end with immediate state updates', {
-      remainingTouches: e.evt.changedTouches.length
+      remainingTouches: e.evt.touches.length
     });
-
-    // Only handle touch end if no more touches remain and it was a single touch
-    if (e.evt.touches.length === 0 && e.evt.changedTouches.length === 1) {
-      if (!hasMovedRef.current) {
-        // This was a tap, not a drag
-        const touch = e.evt.changedTouches[0];
-        const worldPoint = getRelativePointerPosition(stage, touch.clientX, touch.clientY);
-        
-        debugLog('useSelect2EventHandlers', 'Tap detected', { worldPoint });
-        
-        // Use existing logic to select objects at the tapped point
-        selectObjectsAtPoint(worldPoint, lines, images, false);
-        
-        // Sync tap selection with main state
-        const objectsAtPoint = findObjectsAtPoint(worldPoint, lines, images);
-        if (objectsAtPoint.length > 0) {
-          syncSelectionWithMainState([objectsAtPoint[0]]);
-        }
-        
-        // Ensure container has focus for keyboard events
-        ensureContainerFocus();
-      }
-      
-      // Finalize the interaction
+    
+    // Only handle touch end if no more touches remain
+    if (e.evt.touches.length === 0) {
       handlePointerUp();
     }
-  }, [handlePointerUp, getRelativePointerPosition, selectObjectsAtPoint, findObjectsAtPoint, lines, images, syncSelectionWithMainState, ensureContainerFocus]);
+  }, [handlePointerUp]);
 
   const handleStageClick = useCallback((e: Konva.KonvaEventObject<MouseEvent>) => {
     if (!hasMovedRef.current) {
