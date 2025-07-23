@@ -10,7 +10,6 @@ import KonvaStageCanvas from './KonvaStageCanvas';
 import KonvaImageContextMenuHandler from './KonvaImageContextMenuHandler';
 import KonvaImageOperationsHandler from './KonvaImageOperationsHandler';
 import { Select2Renderer } from './Select2Renderer';
-import { SelectionContextMenu } from './SelectionContextMenu';
 import SelectionGroup from './SelectionGroup';
 import { createDebugLogger } from '@/utils/debug/debugConfig';
 
@@ -169,49 +168,10 @@ const KonvaStage: React.FC<KonvaStageProps> = ({
     } : undefined
   });
 
-  // Calculate context menu position relative to the container
-  const getContextMenuPosition = (groupBounds: any) => {
-    if (!groupBounds || !containerRef.current) return { x: 0, y: 0 };
-    
-    const container = containerRef.current;
-    const rect = container.getBoundingClientRect();
-    const stage = stageRef.current;
-    
-    if (!stage) return { x: 0, y: 0 };
-    
-    // Convert world coordinates to screen coordinates
-    const transform = stage.getAbsoluteTransform();
-    const screenPoint = transform.point({
-      x: groupBounds.x + groupBounds.width / 2,
-      y: groupBounds.y - 60 // 60px above the selection
-    });
-    
-    return {
-      x: screenPoint.x,
-      y: Math.max(screenPoint.y, 10) // Ensure it doesn't go above the container
-    };
-  };
-
-  // Handle delete for select2
-  const handleSelect2Delete = () => {
-    if (stageEventHandlers && stageEventHandlers.select2State && stageEventHandlers.deleteSelectedObjects) {
-      stageEventHandlers.deleteSelectedObjects();
-    }
-  };
-
-  // Handle image lock toggle for select2
-  const handleSelect2ToggleLock = (imageIds: string[], lock: boolean) => {
-    if ('toggleImageLock' in whiteboardState && whiteboardState.toggleImageLock) {
-      imageIds.forEach(imageId => {
-        whiteboardState.toggleImageLock(imageId);
-      });
-    }
-  };
-
   return (
     <div 
       ref={containerRef} 
-      className="w-full h-full select-none outline-none drawing-background relative" 
+      className="w-full h-full select-none outline-none drawing-background" 
       style={{ 
         WebkitUserSelect: 'none',
         WebkitTouchCallout: 'none',
@@ -308,39 +268,6 @@ const KonvaStage: React.FC<KonvaStageProps> = ({
           }
         />
       </KonvaImageContextMenuHandler>
-
-      {/* Select2 Context Menu - DOM overlay positioned absolutely */}
-      {state.currentTool === 'select2' && stageEventHandlers && stageEventHandlers.select2State && (
-        (() => {
-          const { selectedObjects, groupBounds, isDraggingObjects, isSelecting } = stageEventHandlers.select2State;
-          const isVisible = selectedObjects.length > 0 && !isDraggingObjects && !isSelecting;
-          
-          if (!isVisible || !groupBounds) return null;
-          
-          const menuPosition = getContextMenuPosition(groupBounds);
-          
-          return (
-            <div
-              className="absolute z-50"
-              style={{
-                left: menuPosition.x,
-                top: menuPosition.y,
-                transform: 'translateX(-50%)', // Center horizontally
-                pointerEvents: 'auto'
-              }}
-            >
-              <SelectionContextMenu
-                selectedObjects={selectedObjects}
-                groupBounds={groupBounds}
-                onDelete={handleSelect2Delete}
-                onToggleLock={handleSelect2ToggleLock}
-                isVisible={true}
-                images={state.images}
-              />
-            </div>
-          );
-        })()
-      )}
     </div>
   );
 };
