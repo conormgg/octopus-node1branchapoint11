@@ -1,5 +1,8 @@
 
 import { useCallback, useRef, useState } from 'react';
+import { createDebugLogger } from '@/utils/debug/debugConfig';
+
+const debugLog = createDebugLogger('panZoom');
 
 export const usePanState = (
   panZoomState: any,
@@ -20,7 +23,14 @@ export const usePanState = (
   });
 
   const startPan = useCallback((x: number, y: number) => {
-    console.log('[PanZoom] Starting pan at:', { x, y });
+    debugLog('PanState', 'Starting pan at:', { x, y });
+    
+    // Prevent multiple simultaneous pan operations
+    if (panStateRef.current.isPanning) {
+      debugLog('PanState', 'Pan already active, ignoring new start');
+      return;
+    }
+    
     panStateRef.current = {
       isPanning: true,
       lastX: x,
@@ -31,25 +41,29 @@ export const usePanState = (
 
   const continuePan = useCallback((x: number, y: number) => {
     const { isPanning, lastX, lastY } = panStateRef.current;
-    if (!isPanning) return;
+    if (!isPanning) {
+      debugLog('PanState', 'Not panning, ignoring continue');
+      return;
+    }
 
     const deltaX = x - lastX;
     const deltaY = y - lastY;
 
-    console.log('[PanZoom] Continuing pan with delta:', { deltaX, deltaY });
+    debugLog('PanState', 'Continuing pan with delta:', { deltaX, deltaY, from: { lastX, lastY }, to: { x, y } });
 
-    setPanZoomState({
-      ...panZoomState,
-      x: panZoomState.x + deltaX,
-      y: panZoomState.y + deltaY
-    });
+    // Use functional setState to avoid stale closure issue
+    setPanZoomState((currentState: any) => ({
+      ...currentState,
+      x: currentState.x + deltaX,
+      y: currentState.y + deltaY
+    }));
 
     panStateRef.current.lastX = x;
     panStateRef.current.lastY = y;
-  }, [panZoomState, setPanZoomState]);
+  }, [setPanZoomState]); // Remove panZoomState from dependencies to fix stale closure
 
   const stopPan = useCallback(() => {
-    console.log('[PanZoom] Stopping pan');
+    debugLog('PanState', 'Stopping pan');
     panStateRef.current.isPanning = false;
     setIsGestureActiveState(false);
   }, []);
