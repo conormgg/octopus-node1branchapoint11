@@ -20,7 +20,7 @@ interface Select2RendererProps {
   onTransformEnd?: () => void;
 }
 
-export const Select2Renderer: React.FC<Select2RendererProps> = ({
+const Select2Renderer: React.FC<Select2RendererProps> = ({
   selectedObjects,
   hoveredObjectId,
   selectionBounds,
@@ -222,3 +222,5 @@ export const Select2Renderer: React.FC<Select2RendererProps> = ({
     </>
   );
 };
+
+export { Select2Renderer };

@@ -7,12 +7,15 @@ import { useUnifiedSelection } from '@/hooks/useUnifiedSelection';
 import LinesLayer from './layers/LinesLayer';
 import ImagesLayer from './layers/ImagesLayer';
 import KonvaImageOperationsHandler from './KonvaImageOperationsHandler';
-import Select2Renderer from './Select2Renderer';
+import { Select2Renderer } from './Select2Renderer';
 
 interface KonvaStageProps {
   width: number;
   height: number;
   whiteboardState: any;
+  isReadOnly?: boolean;
+  palmRejectionConfig?: any;
+  normalizedState?: any;
   onCanvasMount?: (stage: Konva.Stage) => void;
   onLineUpdate?: (lineId: string, updates: Partial<LineObject>) => void;
   onImagePaste?: (image: ImageObject) => void;
@@ -94,8 +97,8 @@ const KonvaStage: React.FC<KonvaStageProps> = ({
   }, [whiteboardState.panZoom]);
 
   const handleTouchStart = useCallback((e: Konva.KonvaEventObject<TouchEvent>) => {
-    if (e.touches.length === 1) {
-      const touch = e.touches[0];
+    if (e.evt.touches.length === 1) {
+      const touch = e.evt.touches[0];
       const stage = e.target.getStage();
       if (stage) {
         const pointerPosition = stage.getPointerPosition();
@@ -107,8 +110,8 @@ const KonvaStage: React.FC<KonvaStageProps> = ({
   }, [handlePointerDown]);
 
   const handleTouchMove = useCallback((e: Konva.KonvaEventObject<TouchEvent>) => {
-    if (e.touches.length === 1) {
-      const touch = e.touches[0];
+    if (e.evt.touches.length === 1) {
+      const touch = e.evt.touches[0];
       const stage = e.target.getStage();
       if (stage) {
         const pointerPosition = stage.getPointerPosition();
@@ -182,26 +185,28 @@ const KonvaStage: React.FC<KonvaStageProps> = ({
         />
 
         {/* Images Layer */}
-        <ImagesLayer>
-          <KonvaImageOperationsHandler
-            whiteboardState={whiteboardState}
-            onImageContextMenu={onImageContextMenu}
-          />
-        </ImagesLayer>
+        <ImagesLayer
+          extraContent={
+            <KonvaImageOperationsHandler
+              whiteboardState={whiteboardState}
+              onImageContextMenu={onImageContextMenu}
+            />
+          }
+        />
 
         {/* Unified Selection Layer */}
         <Layer>
           {shouldRenderUnifiedSelection && (
             <Select2Renderer
-              selectedObjects={select2State.select2State.selectedObjects}
-              hoveredObjectId={select2State.select2State.hoveredObjectId}
-              selectionBounds={select2State.select2State.selectionBounds}
-              isSelecting={select2State.select2State.isSelecting}
+              selectedObjects={select2State.selectedObjects}
+              hoveredObjectId={select2State.hoveredObjectId}
+              selectionBounds={select2State.selectionBounds}
+              isSelecting={select2State.isSelecting}
               lines={whiteboardState.state.lines}
               images={whiteboardState.state.images}
-              groupBounds={select2State.select2State.groupBounds}
-              dragOffset={select2State.select2State.dragOffset}
-              isDraggingObjects={select2State.select2State.isDraggingObjects}
+              groupBounds={select2State.groupBounds}
+              dragOffset={select2State.dragOffset}
+              isDraggingObjects={select2State.isDraggingObjects}
               currentTool={whiteboardState.state.currentTool}
               onUpdateLine={onUpdateLine}
               onUpdateImage={onUpdateImage}
