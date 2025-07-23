@@ -1,6 +1,7 @@
 
-import React from 'react';
+import React, { useRef } from 'react';
 import { useWhiteboardState } from '@/hooks/useWhiteboardState';
+import { useWheelEventHandlers } from '@/hooks/eventHandling/useWheelEventHandlers';
 import KonvaStage from './canvas/KonvaStage';
 
 interface PalmRejectionConfig {
@@ -27,10 +28,17 @@ const WhiteboardCanvas: React.FC<WhiteboardCanvasProps> = ({
   isReadOnly = false,
   palmRejectionConfig
 }) => {
+  const containerRef = useRef<HTMLDivElement>(null);
   const isDrawing = whiteboardState.state.isDrawing || false;
   const isDrawingTool = whiteboardState.state.currentTool === 'pencil' || 
                        whiteboardState.state.currentTool === 'highlighter' || 
                        whiteboardState.state.currentTool === 'eraser';
+
+  // Add wheel event handling for zoom
+  useWheelEventHandlers({
+    containerRef,
+    panZoom: whiteboardState.panZoom
+  });
 
   // Apply stricter CSS classes during drawing
   const canvasClasses = `relative w-full h-full bg-white rounded-lg overflow-hidden select-none ${
@@ -39,6 +47,7 @@ const WhiteboardCanvas: React.FC<WhiteboardCanvasProps> = ({
 
   return (
     <div 
+      ref={containerRef}
       className={canvasClasses}
       style={{ 
         WebkitUserSelect: 'none',
@@ -48,6 +57,7 @@ const WhiteboardCanvas: React.FC<WhiteboardCanvasProps> = ({
         pointerEvents: 'auto'
       }}
       data-whiteboard-canvas="true"
+      tabIndex={0} // Make focusable for keyboard events
     >
       <KonvaStage
         width={width}
@@ -56,6 +66,7 @@ const WhiteboardCanvas: React.FC<WhiteboardCanvasProps> = ({
         isReadOnly={isReadOnly}
         palmRejectionConfig={palmRejectionConfig}
         normalizedState={whiteboardState.normalizedState}
+        containerRef={containerRef}
       />
       
       {/* Zoom indicator */}
