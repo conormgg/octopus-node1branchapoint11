@@ -31,22 +31,9 @@ export { SyncWhiteboard } from './SyncWhiteboard';
  */
 export { default as KonvaStage } from './canvas/KonvaStage';
 
-/**
- * Raw Konva stage canvas without container logic
- * 
- * @usage For custom canvas implementations
- */
-export { default as KonvaStageCanvas } from './canvas/KonvaStageCanvas';
-
 // ============================================================================
 // CANVAS RENDERING COMPONENTS
 // ============================================================================
-
-/**
- * Renders individual line objects (strokes) on the canvas
- * Handles selection, transformation, and visual feedback
- */
-export { default as LineRenderer } from './canvas/LineRenderer';
 
 /**
  * Renders individual image objects on the canvas
@@ -59,12 +46,6 @@ export { default as ImageRenderer } from './canvas/ImageRenderer';
  * Shows visual feedback during selection operations
  */
 export { default as SelectionRect } from './canvas/SelectionRect';
-
-/**
- * Group selection and transformation component
- * Handles multiple selected objects as a unified group
- */
-export { default as SelectionGroup } from './canvas/SelectionGroup';
 
 /**
  * Context menu for image operations
