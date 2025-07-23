@@ -76,6 +76,11 @@ export const useCanvasEventHandlers = ({
       e.evt.preventDefault();
       const pos = stage.getPointerPosition();
       if (pos) {
+        // Clear any existing pan state first
+        if (isRightClickPanRef.current) {
+          debugLog('Canvas', 'Already right-click panning, ignoring');
+          return;
+        }
         panZoom.startPan(pos.x, pos.y);
         isRightClickPanRef.current = true;
         isDraggingRef.current = true;
@@ -102,8 +107,18 @@ export const useCanvasEventHandlers = ({
     const stage = stageRef.current;
     if (!stage) return;
 
-    // Handle right-click or middle-click pan
-    if (isRightClickPanRef.current || isMiddleClickPanRef.current) {
+    // Handle right-click pan
+    if (isRightClickPanRef.current) {
+      e.evt.preventDefault();
+      const pos = stage.getPointerPosition();
+      if (pos) {
+        panZoom.continuePan(pos.x, pos.y);
+      }
+      return;
+    }
+
+    // Handle middle-click pan
+    if (isMiddleClickPanRef.current) {
       e.evt.preventDefault();
       const pos = stage.getPointerPosition();
       if (pos) {
@@ -118,12 +133,21 @@ export const useCanvasEventHandlers = ({
     const button = e.evt.button;
     debugLog('Canvas', 'Mouse up', { button, wasRightClickPan: isRightClickPanRef.current });
 
-    // Handle right-click or middle-click pan end
-    if ((button === 2 && isRightClickPanRef.current) || (button === 1 && isMiddleClickPanRef.current)) {
+    // Handle right-click pan end
+    if (button === 2 && isRightClickPanRef.current) {
       e.evt.preventDefault();
-      debugLog('Canvas', 'Ending right/middle-click pan');
+      debugLog('Canvas', 'Ending right-click pan');
       panZoom.stopPan();
       isRightClickPanRef.current = false;
+      isDraggingRef.current = false;
+      return;
+    }
+
+    // Handle middle-click pan end
+    if (button === 1 && isMiddleClickPanRef.current) {
+      e.evt.preventDefault();
+      debugLog('Canvas', 'Ending middle-click pan');
+      panZoom.stopPan();
       isMiddleClickPanRef.current = false;
       isDraggingRef.current = false;
       return;

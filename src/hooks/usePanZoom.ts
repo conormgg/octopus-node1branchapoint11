@@ -13,10 +13,10 @@ export const usePanZoom = (
   // Core zoom and centering functionality
   const { zoom, handleWheel, centerOnBounds } = usePanZoomCore(panZoomState, setPanZoomState);
   
-  // Pan state management
+  // Pan state management - now with stabilized callbacks
   const panHandlers = usePanState(panZoomState, setPanZoomState);
   
-  // Touch event handlers with current tool awareness (Phase 1 implementation)
+  // Touch event handlers with current tool awareness
   const touchHandlers = useTouchHandlers(panHandlers, zoom, currentTool);
 
   // Wrap the return object in useMemo to stabilize its reference
