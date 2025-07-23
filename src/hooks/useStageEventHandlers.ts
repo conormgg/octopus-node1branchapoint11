@@ -192,11 +192,6 @@ export const useStageEventHandlers = ({
         onMouseDown: select2Handlers.handleMouseDown,
         onMouseMove: select2Handlers.handleMouseMove,
         onMouseUp: select2Handlers.handleMouseUp
-      },
-      select2TouchHandlers: {
-        onTouchStart: select2Handlers.handleTouchStart,
-        onTouchMove: select2Handlers.handleTouchMove,
-        onTouchEnd: select2Handlers.handleTouchEnd
       }
     };
   }

@@ -1,21 +1,19 @@
-
 import React, { useRef, useEffect } from 'react';
 import Konva from 'konva';
 import { useWhiteboardState } from '@/hooks/useWhiteboardState';
 import { useNormalizedWhiteboardState } from '@/hooks/performance/useNormalizedWhiteboardState';
 import { usePalmRejection } from '@/hooks/usePalmRejection';
+import { useStageEventHandlers } from '@/hooks/useStageEventHandlers';
 import { useKonvaKeyboardHandlers } from '@/hooks/canvas/useKonvaKeyboardHandlers';
 import { useKonvaPanZoomSync } from '@/hooks/canvas/useKonvaPanZoomSync';
-import { useWheelEventHandlers } from '@/hooks/eventHandling/useWheelEventHandlers';
-import { useUnifiedSelection } from '@/hooks/useUnifiedSelection';
 import KonvaStageCanvas from './KonvaStageCanvas';
 import KonvaImageContextMenuHandler from './KonvaImageContextMenuHandler';
 import KonvaImageOperationsHandler from './KonvaImageOperationsHandler';
-import { UnifiedSelectionRenderer } from './UnifiedSelectionRenderer';
-import { SelectionContextMenu } from './SelectionContextMenu';
+import { Select2Renderer } from './Select2Renderer';
+import SelectionGroup from './SelectionGroup';
 import { createDebugLogger } from '@/utils/debug/debugConfig';
 
-const debugLog = createDebugLogger('events');
+const debugLog = createDebugLogger('toolSync');
 
 interface KonvaStageProps {
   width: number;
@@ -82,15 +80,6 @@ const KonvaStage: React.FC<KonvaStageProps> = ({
     return palmRejectionConfig.enabled ? 'manipulation' : 'auto';
   }, [isDrawing, isDrawingTool, palmRejectionConfig.enabled]);
 
-  // Use unified selection for select and select2 tools
-  const unifiedSelection = useUnifiedSelection({
-    stageRef,
-    lines: state.lines,
-    images: state.images,
-    panZoomState: state.panZoomState,
-    containerRef
-  });
-
   // Debug tool state flow in KonvaStage
   useEffect(() => {
     debugLog('KonvaStage', 'Tool state in KonvaStage', {
@@ -107,131 +96,82 @@ const KonvaStage: React.FC<KonvaStageProps> = ({
     currentTool: state.currentTool
   });
 
-  // Add wheel event handling for zoom (works regardless of tool)
-  useWheelEventHandlers({
-    containerRef,
-    panZoom: {
-      handleWheel: panZoom.handleWheel
-    }
-  });
-
   // Determine the correct delete functions to use
+  // Check if this is a shared whiteboard (has operations property) vs regular whiteboard
   const hasSharedOperations = 'operations' in whiteboardState && 
     whiteboardState.operations && 
     typeof whiteboardState.operations === 'object' && 
     'deleteSelectedObjects' in whiteboardState.operations &&
     typeof (whiteboardState.operations as any).deleteSelectedObjects === 'function';
 
-  const deleteFunction = hasSharedOperations 
+  // For select2: use the real implementation that accepts parameters
+  const select2DeleteFunction = hasSharedOperations 
     ? (whiteboardState.operations as any).deleteSelectedObjects 
+    : ('deleteSelectedObjects' in whiteboardState && typeof whiteboardState.deleteSelectedObjects === 'function' 
+       ? (selectedObjects: Array<{id: string, type: 'line' | 'image'}>) => whiteboardState.deleteSelectedObjects(selectedObjects)
+       : deleteSelectedObjects);
+
+  // For original select: use the wrapper that reads from selection state
+  const originalSelectDeleteFunction = hasSharedOperations 
+    ? deleteSelectedObjects  // This is the wrapper in shared whiteboards
     : ('deleteSelectedObjects' in whiteboardState && typeof whiteboardState.deleteSelectedObjects === 'function' 
        ? whiteboardState.deleteSelectedObjects 
        : deleteSelectedObjects);
+
+  debugLog('KonvaStage', 'Delete function selection', {
+    whiteboardId,
+    hasOperations: 'operations' in whiteboardState,
+    hasSharedDelete: hasSharedOperations,
+    usingSharedDelete: hasSharedOperations,
+    select2DeleteFunction: select2DeleteFunction ? 'available' : 'none',
+    originalSelectDeleteFunction: originalSelectDeleteFunction ? 'available' : 'none'
+  });
+
+  // Set up all event handlers with proper update functions for select2
+  const stageEventHandlers = useStageEventHandlers({
+    containerRef,
+    stageRef,
+    panZoomState: state.panZoomState,
+    palmRejection,
+    palmRejectionConfig,
+    panZoom,
+    handlePointerDown,
+    handlePointerMove,
+    handlePointerUp,
+    isReadOnly,
+    currentTool: state.currentTool,
+    lines: state.lines,
+    images: state.images,
+    // Pass update functions for select2 object movement
+    onUpdateLine: updateLine,
+    onUpdateImage: 'updateImage' in whiteboardState && whiteboardState.updateImage ? whiteboardState.updateImage : undefined,
+    // Pass the select2 delete function (accepts parameters)
+    onDeleteObjects: select2DeleteFunction,
+    // Pass the original select delete function (wrapper, no parameters)
+    onDeleteObjectsNoParams: originalSelectDeleteFunction,
+    mainSelection: selection // Pass main selection state for integration
+  });
 
   useKonvaKeyboardHandlers({
     containerRef,
     whiteboardState,
     isReadOnly,
     whiteboardId,
-    // Pass unified selection handlers
-    unifiedSelectionHandlers: (state.currentTool === 'select' || state.currentTool === 'select2') ? {
-      selectionState: unifiedSelection.selectionState,
-      deleteSelectedObjects: () => {
-        if (unifiedSelection.selectionState.selectedObjects.length > 0 && deleteFunction) {
-          deleteFunction(unifiedSelection.selectionState.selectedObjects);
-          unifiedSelection.clearSelection();
-        }
-      },
-      clearSelection: unifiedSelection.clearSelection
+    // Pass both delete functions
+    select2DeleteFunction,
+    originalSelectDeleteFunction,
+    // Pass select2 handlers when select2 tool is active
+    select2Handlers: state.currentTool === 'select2' && stageEventHandlers ? {
+      select2State: stageEventHandlers.select2State,
+      deleteSelectedObjects: stageEventHandlers.deleteSelectedObjects || (() => {}),
+      clearSelection: stageEventHandlers.clearSelect2Selection || (() => {})
     } : undefined
   });
-
-  // Calculate context menu position relative to the container with mobile support
-  const getContextMenuPosition = (groupBounds: any) => {
-    if (!groupBounds || !containerRef.current || !stageRef.current) {
-      return { x: 0, y: 0 };
-    }
-    
-    const container = containerRef.current;
-    const stage = stageRef.current;
-    
-    // Get stage transform for coordinate conversion
-    const stageTransform = stage.getAbsoluteTransform();
-    
-    // Calculate center of selection in world coordinates
-    const selectionCenterWorld = {
-      x: groupBounds.x + groupBounds.width / 2,
-      y: groupBounds.y - 60 // 60px above selection
-    };
-    
-    // Transform world coordinates to screen coordinates
-    const screenPoint = stageTransform.point(selectionCenterWorld);
-    
-    // Get container bounds for boundary checking
-    const containerRect = container.getBoundingClientRect();
-    
-    // Mobile-friendly positioning adjustments
-    const isMobile = window.innerWidth < 768;
-    const menuWidth = isMobile ? 250 : 200;
-    const menuHeight = 60;
-    
-    // Calculate final position, ensuring it stays within container and viewport
-    const finalPosition = {
-      x: Math.max(10, Math.min(screenPoint.x - menuWidth / 2, containerRect.width - menuWidth - 10)),
-      y: Math.max(10, Math.min(screenPoint.y, containerRect.height - menuHeight - 10))
-    };
-    
-    return finalPosition;
-  };
-
-  // Handle delete for unified selection
-  const handleUnifiedDelete = () => {
-    debugLog('KonvaStage', 'Handle unified delete called');
-    if (unifiedSelection.selectionState.selectedObjects.length > 0 && deleteFunction) {
-      deleteFunction(unifiedSelection.selectionState.selectedObjects);
-      unifiedSelection.clearSelection();
-    }
-  };
-
-  // Handle image lock toggle for unified selection
-  const handleUnifiedToggleLock = (imageIds: string[]) => {
-    debugLog('KonvaStage', 'Handle unified toggle lock called', { imageIds });
-    if ('toggleImageLock' in whiteboardState && whiteboardState.toggleImageLock) {
-      imageIds.forEach(imageId => {
-        whiteboardState.toggleImageLock(imageId);
-      });
-    }
-  };
-
-  // Context menu visibility logic - simplified
-  const getContextMenuVisibility = () => {
-    if ((state.currentTool !== 'select' && state.currentTool !== 'select2') || 
-        unifiedSelection.selectionState.selectedObjects.length === 0 ||
-        unifiedSelection.isDraggingObjects) {
-      return { isVisible: false, menuPosition: { x: 0, y: 0 } };
-    }
-
-    // Calculate group bounds for context menu positioning
-    const groupBounds = selection?.calculateSelectionBounds?.(
-      unifiedSelection.selectionState.selectedObjects,
-      state.lines,
-      state.images
-    );
-    
-    if (!groupBounds) {
-      return { isVisible: false, menuPosition: { x: 0, y: 0 } };
-    }
-    
-    const menuPosition = getContextMenuPosition(groupBounds);
-    return { isVisible: true, menuPosition };
-  };
-
-  const { isVisible: contextMenuVisible, menuPosition } = getContextMenuVisibility();
 
   return (
     <div 
       ref={containerRef} 
-      className="w-full h-full select-none outline-none drawing-background relative" 
+      className="w-full h-full select-none outline-none drawing-background" 
       style={{ 
         WebkitUserSelect: 'none',
         WebkitTouchCallout: 'none',
@@ -240,13 +180,6 @@ const KonvaStage: React.FC<KonvaStageProps> = ({
         pointerEvents: 'auto'
       }}
       tabIndex={0}
-      onKeyDown={(e) => {
-        // Ensure keyboard events work for clipboard operations
-        if (e.key === 'v' && (e.ctrlKey || e.metaKey)) {
-          e.preventDefault();
-          // Let the keyboard handler deal with paste
-        }
-      }}
       data-whiteboard-id={whiteboardId}
     >
       <KonvaImageContextMenuHandler
@@ -270,16 +203,12 @@ const KonvaStage: React.FC<KonvaStageProps> = ({
           isReadOnly={isReadOnly}
           onStageClick={(e) => {
             const clickedOnEmpty = e.target === e.target.getStage();
-            if (clickedOnEmpty) {
-              if (state.currentTool === 'select' || state.currentTool === 'select2') {
-                unifiedSelection.clearSelection();
-              } else if (selection) {
-                selection.clearSelection();
-              }
+            if (clickedOnEmpty && selection) {
+              selection.clearSelection();
             }
           }}
-          selectionBounds={unifiedSelection.selectionState.selectionBounds}
-          isSelecting={unifiedSelection.selectionState.isSelecting}
+          selectionBounds={selection?.selectionState?.selectionBounds || null}
+          isSelecting={selection?.selectionState?.isSelecting || false}
           selection={selection}
           onUpdateLine={updateLine}
           onUpdateImage={(imageId, updates) => {
@@ -293,26 +222,31 @@ const KonvaStage: React.FC<KonvaStageProps> = ({
             }
           }}
           normalizedState={normalizedState}
-          // Use unified selection handlers when select tools are active
-          unifiedSelectionHandlers={(state.currentTool === 'select' || state.currentTool === 'select2') ? {
-            onMouseDown: unifiedSelection.handleMouseDown,
-            onMouseMove: unifiedSelection.handleMouseMove,
-            onMouseUp: unifiedSelection.handleMouseUp,
-            onTouchStart: unifiedSelection.handleTouchStart,
-            onTouchMove: unifiedSelection.handleTouchMove,
-            onTouchEnd: unifiedSelection.handleTouchEnd
-          } : undefined}
+          select2MouseHandlers={state.currentTool === 'select2' && stageEventHandlers ? stageEventHandlers.select2MouseHandlers : undefined}
           extraContent={
             <>
               <KonvaImageOperationsHandler
                 whiteboardState={whiteboardState}
                 whiteboardId={whiteboardId}
               />
-              {/* Unified selection renderer when select tools are active */}
-              {(state.currentTool === 'select' || state.currentTool === 'select2') && (
-                <UnifiedSelectionRenderer
-                  selectionState={unifiedSelection.selectionState}
-                  hoveredObjectId={unifiedSelection.hoveredObjectId}
+              {/* Select2 overlay when select2 tool is active */}
+              {state.currentTool === 'select2' && stageEventHandlers && (
+                <Select2Renderer
+                  selectedObjects={stageEventHandlers.select2State?.selectedObjects || []}
+                  hoveredObjectId={stageEventHandlers.select2State?.hoveredObjectId || null}
+                  selectionBounds={stageEventHandlers.select2State?.selectionBounds || null}
+                  isSelecting={stageEventHandlers.select2State?.isSelecting || false}
+                  groupBounds={stageEventHandlers.select2State?.groupBounds || null}
+                  lines={state.lines}
+                  images={state.images}
+                  dragOffset={stageEventHandlers.select2State?.dragOffset || null}
+                  isDraggingObjects={stageEventHandlers.select2State?.isDraggingObjects || false}
+                />
+              )}
+              {/* SelectionGroup for select2 - show transform handles when objects are selected and not selecting */}
+              {state.currentTool === 'select2' && stageEventHandlers && stageEventHandlers.select2State && (
+                <SelectionGroup
+                  selectedObjects={stageEventHandlers.select2State.selectedObjects}
                   lines={state.lines}
                   images={state.images}
                   onUpdateLine={updateLine}
@@ -327,38 +261,13 @@ const KonvaStage: React.FC<KonvaStageProps> = ({
                     }
                   }}
                   currentTool={state.currentTool}
+                  isVisible={!stageEventHandlers.select2State.isSelecting}
                 />
               )}
             </>
           }
         />
       </KonvaImageContextMenuHandler>
-
-      {/* Unified Context Menu - DOM overlay positioned absolutely */}
-      {contextMenuVisible && (
-        <div
-          className="absolute z-50"
-          style={{
-            left: menuPosition.x,
-            top: menuPosition.y,
-            transform: 'translateX(-50%)', // Center horizontally
-            pointerEvents: 'auto'
-          }}
-        >
-          <SelectionContextMenu
-            selectedObjects={unifiedSelection.selectionState.selectedObjects}
-            groupBounds={selection?.calculateSelectionBounds?.(
-              unifiedSelection.selectionState.selectedObjects,
-              state.lines,
-              state.images
-            )}
-            onDelete={handleUnifiedDelete}
-            onToggleLock={handleUnifiedToggleLock}
-            isVisible={true}
-            images={state.images}
-          />
-        </div>
-      )}
     </div>
   );
 };
