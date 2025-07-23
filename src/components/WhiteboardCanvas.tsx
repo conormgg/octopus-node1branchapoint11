@@ -39,7 +39,7 @@ const WhiteboardCanvas: React.FC<WhiteboardCanvasProps> = ({
 
   // Event handling setup
   const { supportsPointerEvents } = usePointerEventDetection();
-  const { logEventHandling } = useEventDebug();
+  const { logEventHandling } = useEventDebug({ enabled: palmRejectionConfig?.enabled || false });
 
   // Add wheel event handling for zoom
   useWheelEventHandlers({
