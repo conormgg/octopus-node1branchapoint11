@@ -8,6 +8,7 @@ import { useWhiteboardDrawingCoordination } from './useWhiteboardDrawingCoordina
 import { useWhiteboardImageOperations } from './useWhiteboardImageOperations';
 import { useWhiteboardPointerHandlers } from './useWhiteboardPointerHandlers';
 import { useNormalizedWhiteboardState } from './performance/useNormalizedWhiteboardState';
+import { useFeatureFlags } from '@/utils/featureFlags';
 import { createDebugLogger } from '@/utils/debug/debugConfig';
 
 const USE_NORMALIZED_STATE = true; // Feature flag for gradual rollout
@@ -18,12 +19,13 @@ const debugLog = createDebugLogger('state');
  * @description Main hook for managing whiteboard state and operations
  */
 export const useWhiteboardState = () => {
-  debugLog('Hook', 'Initializing useWhiteboardState');
+  const featureFlags = useFeatureFlags();
+  debugLog('Hook', 'Initializing useWhiteboardState', { featureFlags });
 
   // Tool management
   const toolManagement = useWhiteboardToolManagement();
 
-  // Selection operations - initialize first so we can use its state
+  // Legacy selection operations - temporarily kept for compatibility
   const selection = useSelectionState();
 
   const [state, setState] = useState<WhiteboardState>({

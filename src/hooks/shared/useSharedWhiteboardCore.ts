@@ -6,7 +6,8 @@
 
 import { useCallback } from 'react';
 import { SyncConfig } from '@/types/sync';
-import { useSelectionState } from '../useSelectionState';
+// Legacy selection disabled - now using unified selection
+// import { useSelectionState } from '../useSelectionState';
 import { usePanZoom } from '../usePanZoom';
 import { useSharedStateManagement } from './useSharedStateManagement';
 import { useSharedStateInitialization } from './useSharedStateInitialization';
@@ -24,8 +25,8 @@ export const useSharedWhiteboardCore = (whiteboardId?: string) => {
   // Initialize state
   const { state, setState } = useSharedStateInitialization(whiteboardId);
 
-  // Selection state management
-  const selection = useSelectionState();
+  // Legacy selection state management - disabled in favor of unified selection
+  // const selection = useSelectionState();
 
   // State management functions
   const { setPanZoomState, setTool, setColor, setPencilColor, setHighlighterColor, setStrokeWidth } = useSharedStateManagement(setState);
@@ -38,7 +39,7 @@ export const useSharedWhiteboardCore = (whiteboardId?: string) => {
   return {
     state,
     setState,
-    selection,
+    // selection: null, // Legacy selection disabled
     setTool,
     setColor,
     setPencilColor,

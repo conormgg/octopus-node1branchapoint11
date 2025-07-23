@@ -1,12 +1,11 @@
-
 import React from 'react';
 import { Layer } from 'react-konva';
 import Konva from 'konva';
 import { Tool, SelectionBounds, LineObject, ImageObject } from '@/types/whiteboard';
 import { useNormalizedWhiteboardState } from '@/hooks/performance/useNormalizedWhiteboardState';
-import { useViewportCulling } from '@/hooks/canvas/useViewportCulling';
-import SelectionRect from '../SelectionRect';
-import SelectionGroup from '../SelectionGroup';
+// Removed legacy selection components - now using unified selection
+// Legacy: import SelectionRect from '../SelectionRect';
+// Legacy: import SelectionGroup from '../SelectionGroup';
 import LinesList from './LinesList';
 import LayerOptimizationHandler from './LayerOptimizationHandler';
 
@@ -17,23 +16,12 @@ interface LinesLayerProps {
   currentTool: Tool;
   selectionBounds?: SelectionBounds | null;
   isSelecting?: boolean;
-  selection?: any;
-  // Optional normalized state for performance optimization
-  normalizedState?: ReturnType<typeof useNormalizedWhiteboardState>;
-  onUpdateLine?: (lineId: string, updates: any) => void;
-  onUpdateImage?: (imageId: string, updates: any) => void;
+  selection?: any; // Legacy prop - no longer used
+  onUpdateLine?: (lineId: string, updates: Partial<LineObject>) => void;
+  onUpdateImage?: (imageId: string, updates: Partial<ImageObject>) => void;
   onTransformEnd?: () => void;
-  // Viewport props for culling
-  stageRef?: React.RefObject<Konva.Stage>;
+  normalizedState?: ReturnType<typeof useNormalizedWhiteboardState>;
 }
-
-const DEBUG_ENABLED = process.env.NODE_ENV === 'development';
-
-const debugLog = (context: string, action: string, data?: any) => {
-  if (DEBUG_ENABLED) {
-    console.log(`[LinesLayer:${context}] ${action}`, data || '');
-  }
-};
 
 const LinesLayer: React.FC<LinesLayerProps> = ({
   layerRef,
@@ -42,78 +30,36 @@ const LinesLayer: React.FC<LinesLayerProps> = ({
   currentTool,
   selectionBounds,
   isSelecting = false,
-  selection,
-  normalizedState,
+  selection, // Legacy prop - no longer used
   onUpdateLine,
   onUpdateImage,
   onTransformEnd,
-  stageRef
+  normalizedState
 }) => {
-  const { cullLines } = useViewportCulling(stageRef);
-
-  // Use normalized state if available, otherwise fall back to array-based approach
-  const useNormalized = normalizedState && normalizedState.lineCount > 0;
-  
-  if (DEBUG_ENABLED && useNormalized) {
-    debugLog('Performance', 'Using normalized state for rendering', {
-      lineCount: normalizedState.lineCount,
-      imageCount: normalizedState.imageCount
-    });
-  }
-
-  // Get lines to render - either from normalized state or direct array
-  const allLinesToRender = useNormalized 
-    ? normalizedState.lineIds.map(id => normalizedState.getLineById(id)).filter(Boolean)
-    : lines;
-
-  // Apply viewport culling to lines
-  const linesToRender = React.useMemo(() => {
-    return cullLines(allLinesToRender);
-  }, [allLinesToRender, cullLines]);
-
-  // Get images for selection group - either from normalized state or direct array
-  const imagesToUse = useNormalized && normalizedState.imageCount > 0
-    ? normalizedState.imageIds.map(id => normalizedState.getImageById(id)).filter(Boolean)
-    : images;
+  // Use the lines directly, no longer using complex viewport culling
+  const linesToUse = lines;
+  const imagesToUse = images;
 
   return (
-    <Layer ref={layerRef}>
-      {/* Layer optimization handler */}
-      <LayerOptimizationHandler
+    <Layer ref={layerRef} listening={true}>
+      {/* LayerOptimizationHandler for performance */}
+      <LayerOptimizationHandler 
         layerRef={layerRef}
-        lineCount={linesToRender.length}
-        imageCount={imagesToUse.length}
         currentTool={currentTool}
+        lineCount={lines.length}
+        imageCount={images.length}
         isSelecting={isSelecting}
       />
-
-      {/* Individual lines - hide transformers when part of a group */}
+      
+      {/* Render all lines through LinesList component */}
       <LinesList
-        lines={linesToRender}
+        lines={linesToUse}
         currentTool={currentTool}
-        selection={selection}
         onUpdateLine={onUpdateLine}
       />
       
-      {/* Selection Group - handles multiple selected objects as one entity */}
-      {selection?.selectionState?.selectedObjects && (
-        <SelectionGroup
-          selectedObjects={selection.selectionState.selectedObjects}
-          lines={allLinesToRender} // Use all lines for selection, not culled ones
-          images={imagesToUse}
-          onUpdateLine={onUpdateLine}
-          onUpdateImage={onUpdateImage}
-          onTransformEnd={onTransformEnd}
-          currentTool={currentTool}
-          isVisible={!isSelecting} // Hide during drag-to-select
-        />
-      )}
-      
-      {/* Selection rectangle - rendered on top of everything */}
-      <SelectionRect
-        selectionBounds={selectionBounds}
-        isVisible={isSelecting}
-      />
+      {/* Legacy selection components removed - now using unified selection */}
+      {/* SelectionGroup and SelectionRect functionality moved to Select2Renderer */}
     </Layer>
   );
 };

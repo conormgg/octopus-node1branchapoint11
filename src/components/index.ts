@@ -58,14 +58,14 @@ export { default as ImageRenderer } from './canvas/ImageRenderer';
 /**
  * Selection rectangle for drag-to-select functionality
  * Shows visual feedback during selection operations
- */
-export { default as SelectionRect } from './canvas/SelectionRect';
+// Legacy SelectionRect component removed - replaced by unified selection
+// export { default as SelectionRect } from './canvas/SelectionRect';
 
 /**
  * Group selection and transformation component
  * Handles multiple selected objects as a unified group
- */
-export { default as SelectionGroup } from './canvas/SelectionGroup';
+// Legacy SelectionGroup component removed - replaced by unified selection
+// export { default as SelectionGroup } from './canvas/SelectionGroup';
 
 /**
  * Context menu for image operations
