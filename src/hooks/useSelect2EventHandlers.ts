@@ -4,13 +4,13 @@ import Konva from 'konva';
 import { LineObject, ImageObject } from '@/types/whiteboard';
 import { useSelect2State } from './useSelect2State';
 import { useStageCoordinates } from './useStageCoordinates';
-import { useMultiTouchDetection } from './eventHandling/useMultiTouchDetection';
 
 interface UseSelect2EventHandlersProps {
   stageRef: React.RefObject<Konva.Stage>;
   lines: LineObject[];
   images: ImageObject[];
   panZoomState: { x: number; y: number; scale: number };
+  panZoom: any; // panZoom object with isGestureActive method
   onUpdateLine?: (lineId: string, updates: any) => void;
   onUpdateImage?: (imageId: string, updates: any) => void;
   onDeleteObjects?: (selectedObjects: Array<{id: string, type: 'line' | 'image'}>) => void;
@@ -34,6 +34,7 @@ export const useSelect2EventHandlers = ({
   lines, 
   images, 
   panZoomState,
+  panZoom,
   onUpdateLine,
   onUpdateImage,
   onDeleteObjects,
@@ -59,7 +60,6 @@ export const useSelect2EventHandlers = ({
   } = useSelect2State();
 
   const { getRelativePointerPosition } = useStageCoordinates(panZoomState);
-  const { isMultiTouch, setActiveTouches } = useMultiTouchDetection();
 
   const isDraggingRef = useRef(false);
   const hasMovedRef = useRef(false);
@@ -183,11 +183,11 @@ export const useSelect2EventHandlers = ({
     }, 0);
   }, [state.dragOffset, state.selectedObjects, lines, images, onUpdateLine, onUpdateImage, setState, calculateGroupBounds]);
 
-  // UPDATED: Improved pointer handlers with multi-touch detection
+  // UPDATED: Improved pointer handlers with pan/zoom gesture detection
   const handlePointerDown = useCallback((worldX: number, worldY: number, ctrlKey: boolean = false) => {
-    // Ignore pointer events during multi-touch gestures
-    if (isMultiTouch()) {
-      console.log('Select2: Ignoring pointer down during multi-touch gesture');
+    // Ignore pointer events during pan/zoom gestures
+    if (panZoom.isGestureActive()) {
+      console.log('Select2: Ignoring pointer down during pan/zoom gesture');
       return;
     }
 
@@ -231,11 +231,11 @@ export const useSelect2EventHandlers = ({
       startDragSelection(worldPoint);
       syncSelectionBoundsWithMainState({ x: worldX, y: worldY, width: 0, height: 0 }, true);
     }
-  }, [isMultiTouch, isPointOnSelectedObject, startDraggingObjects, findObjectsAtPoint, selectObjectsAtPoint, clearSelection, startDragSelection, lines, images, ensureContainerFocus, state.selectedObjects, syncSelectionWithMainState, clearMainSelection, syncSelectionBoundsWithMainState]);
+  }, [panZoom, isPointOnSelectedObject, startDraggingObjects, findObjectsAtPoint, selectObjectsAtPoint, clearSelection, startDragSelection, lines, images, ensureContainerFocus, state.selectedObjects, syncSelectionWithMainState, clearMainSelection, syncSelectionBoundsWithMainState]);
 
   const handlePointerMove = useCallback((worldX: number, worldY: number) => {
-    // Ignore pointer events during multi-touch gestures
-    if (isMultiTouch()) {
+    // Ignore pointer events during pan/zoom gestures
+    if (panZoom.isGestureActive()) {
       return;
     }
 
@@ -272,11 +272,11 @@ export const useSelect2EventHandlers = ({
       const hoveredId = objectsAtPoint.length > 0 ? objectsAtPoint[0].id : null;
       setHoveredObject(hoveredId);
     }
-  }, [isMultiTouch, state.isDraggingObjects, state.isSelecting, state.selectionBounds, state.dragOffset, updateObjectDragging, updateDragSelection, findObjectsAtPoint, setHoveredObject, lines, images, syncSelectionBoundsWithMainState]);
+  }, [panZoom, state.isDraggingObjects, state.isSelecting, state.selectionBounds, state.dragOffset, updateObjectDragging, updateDragSelection, findObjectsAtPoint, setHoveredObject, lines, images, syncSelectionBoundsWithMainState]);
 
   const handlePointerUp = useCallback(() => {
-    // Ignore pointer events during multi-touch gestures
-    if (isMultiTouch()) {
+    // Ignore pointer events during pan/zoom gestures
+    if (panZoom.isGestureActive()) {
       return;
     }
 
@@ -307,7 +307,7 @@ export const useSelect2EventHandlers = ({
     isDraggingRef.current = false;
     hasMovedRef.current = false;
     dragStartPositionRef.current = null;
-  }, [isMultiTouch, state.isDraggingObjects, state.isSelecting, state.dragOffset, applyDragOffset, endObjectDragging, endDragSelection, lines, images, ensureContainerFocus, syncSelectionWithMainState, syncSelectionBoundsWithMainState]);
+  }, [panZoom, state.isDraggingObjects, state.isSelecting, state.dragOffset, applyDragOffset, endObjectDragging, endDragSelection, lines, images, ensureContainerFocus, syncSelectionWithMainState, syncSelectionBoundsWithMainState]);
 
   const handleMouseDown = useCallback((e: Konva.KonvaEventObject<MouseEvent>) => {
     const stage = e.target.getStage();

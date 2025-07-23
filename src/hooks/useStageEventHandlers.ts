@@ -94,6 +94,7 @@ export const useStageEventHandlers = ({
     lines,
     images,
     panZoomState,
+    panZoom,
     onUpdateLine,
     onUpdateImage,
     onDeleteObjects,
