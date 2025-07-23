@@ -1,8 +1,7 @@
-
 import React from 'react';
 import { Rect, Line, Image } from 'react-konva';
 import { SelectionBounds, SelectedObject, LineObject, ImageObject } from '@/types/whiteboard';
-import GroupTransformer from './GroupTransformer';
+import SelectionRect from './SelectionRect';
 
 interface Select2RendererProps {
   selectedObjects: SelectedObject[];
@@ -14,7 +13,6 @@ interface Select2RendererProps {
   groupBounds: SelectionBounds | null;
   dragOffset: { x: number; y: number } | null;
   isDraggingObjects: boolean;
-  onGroupTransformEnd?: (updates: { x: number; y: number; scaleX: number; scaleY: number; rotation: number }) => void;
 }
 
 export const Select2Renderer: React.FC<Select2RendererProps> = ({
@@ -26,8 +24,7 @@ export const Select2Renderer: React.FC<Select2RendererProps> = ({
   images,
   groupBounds,
   dragOffset,
-  isDraggingObjects,
-  onGroupTransformEnd
+  isDraggingObjects
 }) => {
   // Helper function to get object bounds for individual hover feedback
   const getObjectBounds = (obj: SelectedObject) => {
@@ -140,20 +137,11 @@ export const Select2Renderer: React.FC<Select2RendererProps> = ({
 
   return (
     <>
-      {/* Integrated selection rectangle rendering */}
-      {isSelecting && selectionBounds && (
-        <Rect
-          x={selectionBounds.x}
-          y={selectionBounds.y}
-          width={selectionBounds.width}
-          height={selectionBounds.height}
-          fill="rgba(0, 123, 255, 0.1)"
-          stroke="rgba(0, 123, 255, 0.8)"
-          strokeWidth={1}
-          dash={[5, 5]}
-          listening={false}
-        />
-      )}
+      {/* Use the same SelectionRect component as the original select tool */}
+      <SelectionRect
+        selectionBounds={selectionBounds}
+        isVisible={isSelecting}
+      />
 
       {/* Visual feedback for hovered object (only when not selected) */}
       {hoveredObjectId && !selectedObjects.some(obj => obj.id === hoveredObjectId) && (
@@ -179,17 +167,6 @@ export const Select2Renderer: React.FC<Select2RendererProps> = ({
             />
           );
         })()
-      )}
-
-      {/* Group transformer for multiple selected objects */}
-      {selectedObjects.length > 1 && groupBounds && onGroupTransformEnd && (
-        <GroupTransformer
-          selectedObjects={selectedObjects}
-          lines={lines}
-          images={images}
-          groupBounds={groupBounds}
-          onTransformEnd={onGroupTransformEnd}
-        />
       )}
 
       {/* Dimming overlay for original objects during drag */}

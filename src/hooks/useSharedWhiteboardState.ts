@@ -55,13 +55,13 @@ export const useSharedWhiteboardState = (syncConfig?: SyncConfig, whiteboardId?:
 
   // Core state management
   const coreState = useSharedWhiteboardCore(whiteboardId);
-  const { state, setState, setTool, setColor, setPencilColor, setHighlighterColor, setStrokeWidth, panZoom } = coreState;
+  const { state, setState, selection, setTool, setColor, setPencilColor, setHighlighterColor, setStrokeWidth, panZoom } = coreState;
 
   // Normalized state for performance optimization
   const normalizedState = useSharedNormalizedState(state.lines, state.images, whiteboardId);
 
   // Operations handling
-  const operationsHandler = useSharedOperationsHandler(syncConfig, state, setState, panZoom, null, whiteboardId);
+  const operationsHandler = useSharedOperationsHandler(syncConfig, state, setState, panZoom, selection, whiteboardId);
   const { operations, handlePointerDown, handlePointerMove, handlePointerUp, deleteSelectedObjects } = operationsHandler;
 
   // Use sync config to determine read-only status, with proper fallback
@@ -129,7 +129,7 @@ export const useSharedWhiteboardState = (syncConfig?: SyncConfig, whiteboardId?:
     updateImage: operations.updateImage,
     toggleImageLock: operations.toggleImageLock,
     deleteSelectedObjects,
-    selection: null, // Legacy selection disabled - using unified selection
+    selection,
     isReadOnly,
     whiteboardId // Expose whiteboard ID for component identification
   };

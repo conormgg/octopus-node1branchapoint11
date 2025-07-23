@@ -10,7 +10,7 @@ import KonvaStageCanvas from './KonvaStageCanvas';
 import KonvaImageContextMenuHandler from './KonvaImageContextMenuHandler';
 import KonvaImageOperationsHandler from './KonvaImageOperationsHandler';
 import { Select2Renderer } from './Select2Renderer';
-// Removed legacy SelectionGroup - now using unified selection
+import SelectionGroup from './SelectionGroup';
 import { createDebugLogger } from '@/utils/debug/debugConfig';
 
 const debugLog = createDebugLogger('toolSync');
@@ -223,13 +223,6 @@ const KonvaStage: React.FC<KonvaStageProps> = ({
           }}
           normalizedState={normalizedState}
           select2MouseHandlers={(state.currentTool === 'select2' || state.currentTool === 'select') && stageEventHandlers ? stageEventHandlers.select2MouseHandlers : undefined}
-          select2State={stageEventHandlers?.select2State ? {
-            selectedObjects: stageEventHandlers.select2State.selectedObjects || [],
-            hoveredObjectId: stageEventHandlers.select2State.hoveredObjectId || null,
-            isObjectSelected: (id: string) => stageEventHandlers.select2State?.selectedObjects.some(obj => obj.id === id) || false,
-            selectObjects: (() => {}),
-            setHoveredObjectId: (() => {})
-          } : undefined}
           extraContent={
             <>
               <KonvaImageOperationsHandler
@@ -248,12 +241,27 @@ const KonvaStage: React.FC<KonvaStageProps> = ({
                   images={state.images}
                   dragOffset={stageEventHandlers.select2State?.dragOffset || null}
                   isDraggingObjects={stageEventHandlers.select2State?.isDraggingObjects || false}
-                  onGroupTransformEnd={(updates) => {
-                    // Handle group transform end
+                />
+              )}
+              {/* SelectionGroup for unified selection - show transform handles when objects are selected and not selecting */}
+              {(state.currentTool === 'select2' || state.currentTool === 'select') && stageEventHandlers && stageEventHandlers.select2State && (
+                <SelectionGroup
+                  selectedObjects={stageEventHandlers.select2State.selectedObjects}
+                  lines={state.lines}
+                  images={state.images}
+                  onUpdateLine={updateLine}
+                  onUpdateImage={(imageId, updates) => {
+                    if ('updateImage' in whiteboardState && whiteboardState.updateImage) {
+                      whiteboardState.updateImage(imageId, updates);
+                    }
+                  }}
+                  onTransformEnd={() => {
                     if ('addToHistory' in whiteboardState && whiteboardState.addToHistory) {
                       whiteboardState.addToHistory();
                     }
                   }}
+                  currentTool={state.currentTool}
+                  isVisible={!stageEventHandlers.select2State.isSelecting}
                 />
               )}
             </>
