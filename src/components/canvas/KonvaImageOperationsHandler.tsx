@@ -14,7 +14,7 @@ const KonvaImageOperationsHandler: React.FC<KonvaImageOperationsHandlerProps> = 
   whiteboardId,
   onImageContextMenu
 }) => {
-  const { state, selection, updateImage, addToHistory } = whiteboardState;
+  const { state } = whiteboardState; // selection now handled by select2 system
 
   // Helper function to update image state
   const updateImageState = (imageId: string, newAttrs: any) => {
@@ -36,43 +36,28 @@ const KonvaImageOperationsHandler: React.FC<KonvaImageOperationsHandlerProps> = 
   return (
     <>
       {state.images?.map((image) => {
-        const isSelected = selection?.isObjectSelected(image.id) || false;
-        const isInGroup = selection?.selectionState?.selectedObjects?.length > 1 && isSelected;
-        
         return (
           <ImageRenderer
             key={image.id}
             imageObject={image}
-            isSelected={isSelected && !isInGroup}
-            isHovered={selection?.hoveredObjectId === image.id}
+            isSelected={false} // Selection now handled by select2 system
+            isHovered={false}
             onSelect={() => {
-              if (selection && state.currentTool === 'select') {
-                selection.selectObjects([{ id: image.id, type: 'image' }]);
-              }
+              // Image selection now handled by select2 system
             }}
             onChange={(newAttrs) => {
-              if (updateImage) {
-                updateImage(image.id, newAttrs);
+              if ('updateImage' in whiteboardState && whiteboardState.updateImage) {
+                whiteboardState.updateImage(image.id, newAttrs);
               } else {
                 updateImageState(image.id, newAttrs);
               }
             }}
             onUpdateState={() => {
-              if (addToHistory) {
-                addToHistory();
+              if ('addToHistory' in whiteboardState && whiteboardState.addToHistory) {
+                whiteboardState.addToHistory();
               }
             }}
             currentTool={state.currentTool}
-            onMouseEnter={state.currentTool === 'select' ? () => {
-              if (selection?.setHoveredObjectId) {
-                selection.setHoveredObjectId(image.id);
-              }
-            } : undefined}
-            onMouseLeave={state.currentTool === 'select' ? () => {
-              if (selection?.setHoveredObjectId) {
-                selection.setHoveredObjectId(null);
-              }
-            } : undefined}
             onToggleLock={() => handleToggleLock(image.id)}
             onContextMenu={onImageContextMenu}
           />

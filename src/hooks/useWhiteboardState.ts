@@ -2,7 +2,7 @@ import { useState, useCallback, useEffect } from 'react';
 import { WhiteboardState, PanZoomState, LineObject } from '@/types/whiteboard';
 import { useHistoryState } from './useHistoryState';
 import { usePanZoom } from './usePanZoom';
-import { useSelectionState } from './useSelectionState';
+// import { useSelectionState } from './useSelectionState'; // Removed - now using select2 system
 import { useWhiteboardToolManagement } from './useWhiteboardToolManagement';
 import { useWhiteboardDrawingCoordination } from './useWhiteboardDrawingCoordination';
 import { useWhiteboardImageOperations } from './useWhiteboardImageOperations';
@@ -23,8 +23,7 @@ export const useWhiteboardState = () => {
   // Tool management
   const toolManagement = useWhiteboardToolManagement();
 
-  // Selection operations - initialize first so we can use its state
-  const selection = useSelectionState();
+  // Note: Selection now handled by select2 system integrated in stage event handlers
 
   const [state, setState] = useState<WhiteboardState>({
     lines: [],
@@ -36,7 +35,12 @@ export const useWhiteboardState = () => {
     highlighterSettings: toolManagement.highlighterSettings,
     isDrawing: false,
     panZoomState: { x: 0, y: 0, scale: 1 },
-    selectionState: selection.selectionState,
+    selectionState: { // Default empty selection state
+      selectedObjects: [],
+      selectionBounds: null,
+      isSelecting: false,
+      transformationData: {}
+    },
     history: [{
       lines: [],
       images: [],
@@ -77,22 +81,7 @@ export const useWhiteboardState = () => {
     toolManagement.highlighterSettings
   ]);
 
-  // Update state when selection state changes
-  useEffect(() => {
-    setState(prev => {
-      if (JSON.stringify(prev.selectionState) !== JSON.stringify(selection.selectionState)) {
-        debugLog('Selection', 'Selection state updated', {
-          selectedCount: selection.selectionState.selectedObjects?.length || 0,
-          isSelecting: selection.selectionState.isSelecting
-        });
-        return {
-          ...prev,
-          selectionState: selection.selectionState
-        };
-      }
-      return prev;
-    });
-  }, [selection.selectionState]);
+  // Note: Selection state now managed by select2 system
 
   // Pan/zoom state management
   const setPanZoomState = useCallback((panZoomState: PanZoomState) => {
@@ -112,7 +101,7 @@ export const useWhiteboardState = () => {
     redo,
     canUndo,
     canRedo
-  } = useHistoryState(state, setState, selection.updateSelectionState);
+  } = useHistoryState(state, setState, () => {}); // Empty function since selection handled by select2
 
   const addToHistory = useCallback(() => {
     baseAddToHistory({
@@ -128,8 +117,8 @@ export const useWhiteboardState = () => {
   // Image operations
   const imageOperations = useWhiteboardImageOperations(state, setState, addToHistory);
 
-  // Pointer handlers
-  const pointerHandlers = useWhiteboardPointerHandlers(state, panZoom, selection, drawingCoordination);
+  // Pointer handlers for drawing tools (selection now handled by select2 system)
+  const pointerHandlers = useWhiteboardPointerHandlers(state, panZoom, null, drawingCoordination);
 
   // Update line position
   const updateLine = useCallback((lineId: string, updates: Partial<LineObject>) => {
@@ -145,16 +134,14 @@ export const useWhiteboardState = () => {
 
   // Generic delete function that can accept optional selected objects
   const deleteSelectedObjects = useCallback((customSelectedObjects?: Array<{id: string, type: 'line' | 'image'}>) => {
-    // Use custom selected objects if provided, otherwise use selection state
-    const selectedObjects = customSelectedObjects || selection.selectionState.selectedObjects;
-    
-    if (!selectedObjects || selectedObjects.length === 0) return;
+    // Must provide selected objects since we no longer have selection state
+    if (!customSelectedObjects || customSelectedObjects.length === 0) return;
 
     setState(prev => {
-      const selectedLineIds = selectedObjects
+      const selectedLineIds = customSelectedObjects
         .filter(obj => obj.type === 'line')
         .map(obj => obj.id);
-      const selectedImageIds = selectedObjects
+      const selectedImageIds = customSelectedObjects
         .filter(obj => obj.type === 'image')
         .map(obj => obj.id);
 
@@ -164,15 +151,10 @@ export const useWhiteboardState = () => {
         images: prev.images.filter(image => !selectedImageIds.includes(image.id))
       };
     });
-
-    // Clear selection after deletion (only if using default selection state)
-    if (!customSelectedObjects) {
-      selection.clearSelection();
-    }
     
     // Add to history
     addToHistory();
-  }, [selection.selectionState.selectedObjects, selection, addToHistory]);
+  }, [addToHistory]);
 
   return {
     state,
@@ -193,7 +175,7 @@ export const useWhiteboardState = () => {
     canUndo,
     canRedo,
     panZoom,
-    selection,
+    // selection: null, // Now handled by select2 system
     updateLine,
     updateImage: imageOperations.updateImage,
     toggleImageLock: imageOperations.toggleImageLock,
