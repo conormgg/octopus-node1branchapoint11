@@ -28,12 +28,15 @@ const LineRenderer: React.FC<LineRendererProps> = React.memo(({
   const lineRef = useRef<Konva.Line>(null);
   const trRef = useRef<Konva.Transformer>(null);
 
+  // Check if current tool is a selection tool
+  const isSelectionTool = currentTool === 'select' || currentTool === 'select2';
+
   useEffect(() => {
-    if (isSelected && (currentTool === 'select' || currentTool === 'select2')) {
+    if (isSelected && isSelectionTool) {
       trRef.current?.nodes([lineRef.current!]);
       trRef.current?.getLayer()?.batchDraw();
     }
-  }, [isSelected, currentTool]);
+  }, [isSelected, isSelectionTool]);
 
   // Don't render eraser strokes - they are used for stroke deletion, not visual feedback
   if (line.tool === 'eraser') return null;
@@ -100,8 +103,8 @@ const LineRenderer: React.FC<LineRendererProps> = React.memo(({
         scaleY={line.scaleY}
         rotation={line.rotation}
         perfectDrawEnabled={false}
-        listening={onSelect || onMouseEnter || onMouseLeave || ((currentTool === 'select' || currentTool === 'select2') && isSelected) ? true : false}
-        draggable={(currentTool === 'select' || currentTool === 'select2') && isSelected}
+        listening={onSelect || onMouseEnter || onMouseLeave || (isSelectionTool && isSelected) ? true : false}
+        draggable={isSelectionTool && isSelected}
         onClick={onSelect}
         onTap={onSelect}
         onMouseEnter={onMouseEnter}
@@ -132,7 +135,7 @@ const LineRenderer: React.FC<LineRendererProps> = React.memo(({
       />
       
       {/* Transformer for selected lines */}
-      {isSelected && (currentTool === 'select' || currentTool === 'select2') && (
+      {isSelected && isSelectionTool && (
         <Transformer
           ref={trRef}
           listening={currentTool === 'select'}

@@ -1,7 +1,8 @@
+
 import React from 'react';
 import { Rect, Line, Image } from 'react-konva';
 import { SelectionBounds, SelectedObject, LineObject, ImageObject } from '@/types/whiteboard';
-// Removed legacy SelectionRect - using integrated selection rendering
+import { GroupTransformer } from './GroupTransformer';
 
 interface Select2RendererProps {
   selectedObjects: SelectedObject[];
@@ -13,6 +14,10 @@ interface Select2RendererProps {
   groupBounds: SelectionBounds | null;
   dragOffset: { x: number; y: number } | null;
   isDraggingObjects: boolean;
+  currentTool?: string;
+  onUpdateLine?: (lineId: string, updates: Partial<LineObject>) => void;
+  onUpdateImage?: (imageId: string, updates: Partial<ImageObject>) => void;
+  onTransformEnd?: () => void;
 }
 
 export const Select2Renderer: React.FC<Select2RendererProps> = ({
@@ -24,7 +29,11 @@ export const Select2Renderer: React.FC<Select2RendererProps> = ({
   images,
   groupBounds,
   dragOffset,
-  isDraggingObjects
+  isDraggingObjects,
+  currentTool = 'pencil',
+  onUpdateLine,
+  onUpdateImage,
+  onTransformEnd
 }) => {
   // Helper function to get object bounds for individual hover feedback
   const getObjectBounds = (obj: SelectedObject) => {
@@ -178,11 +187,38 @@ export const Select2Renderer: React.FC<Select2RendererProps> = ({
         })()
       )}
 
+      {/* Group selection bounds for multiple objects */}
+      {selectedObjects.length > 1 && groupBounds && !isDraggingObjects && (
+        <Rect
+          x={groupBounds.x}
+          y={groupBounds.y}
+          width={groupBounds.width}
+          height={groupBounds.height}
+          fill="rgba(0, 123, 255, 0.05)"
+          stroke="rgba(0, 123, 255, 0.6)"
+          strokeWidth={2}
+          dash={[5, 5]}
+          listening={false}
+        />
+      )}
+
       {/* Dimming overlay for original objects during drag */}
       {renderOriginalObjectDimming()}
 
       {/* Preview objects during dragging */}
       {renderPreviewObjects()}
+
+      {/* Group transformer for multiple selected objects */}
+      <GroupTransformer
+        selectedObjects={selectedObjects}
+        lines={lines}
+        images={images}
+        groupBounds={groupBounds}
+        onUpdateLine={onUpdateLine}
+        onUpdateImage={onUpdateImage}
+        onTransformEnd={onTransformEnd}
+        currentTool={currentTool}
+      />
     </>
   );
 };
