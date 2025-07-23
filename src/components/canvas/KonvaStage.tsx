@@ -5,6 +5,7 @@ import { Stage, Layer } from 'react-konva';
 import { useSharedWhiteboardState } from '@/hooks/useSharedWhiteboardState';
 import { useCanvasEventHandlers } from '@/hooks/canvas/useCanvasEventHandlers';
 import { useSelectEventHandlers } from '@/hooks/useSelectEventHandlers';
+import { useCanvasKeyboardShortcuts } from '@/hooks/canvas/useCanvasKeyboardShortcuts';
 import LinesList from './layers/LinesList';
 import { SelectRenderer } from './SelectRenderer';
 
@@ -59,46 +60,16 @@ const KonvaStage: React.FC<KonvaStageProps> = ({
     isReadOnly
   });
 
-  // Keyboard event handling
-  useEffect(() => {
-    const container = containerRef?.current;
-    if (!container) return;
-
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (isReadOnly) return;
-
-      // Delete selected objects
-      if (e.key === 'Delete' || e.key === 'Backspace') {
-        if (currentTool === 'select' && selection?.selectionState?.selectedObjects?.length > 0) {
-          e.preventDefault();
-          selectHandlers.deleteSelectedObjects();
-        }
-      }
-
-      // Select all
-      if (e.key === 'a' && (e.ctrlKey || e.metaKey)) {
-        if (currentTool === 'select') {
-          e.preventDefault();
-          if (selection?.selectAll) {
-            selection.selectAll(state.lines, state.images);
-          }
-        }
-      }
-
-      // Clear selection
-      if (e.key === 'Escape') {
-        if (currentTool === 'select') {
-          e.preventDefault();
-          selectHandlers.clearSelection();
-        }
-      }
-    };
-
-    container.addEventListener('keydown', handleKeyDown);
-    return () => {
-      container.removeEventListener('keydown', handleKeyDown);
-    };
-  }, [isReadOnly, currentTool, selection, selectHandlers, state.lines, state.images, containerRef]);
+  // Keyboard shortcuts for selection operations
+  useCanvasKeyboardShortcuts({
+    containerRef,
+    currentTool,
+    isReadOnly,
+    selection,
+    selectHandlers,
+    lines: state.lines,
+    images: state.images
+  });
 
   // Reset handlers when tool changes
   useEffect(() => {
@@ -148,6 +119,7 @@ const KonvaStage: React.FC<KonvaStageProps> = ({
       onPointerDown={canvasHandlers.onPointerDown}
       onPointerMove={canvasHandlers.onPointerMove}
       onPointerUp={canvasHandlers.onPointerUp}
+      onContextMenu={canvasHandlers.onContextMenu}
       onTouchStart={canvasHandlers.onTouchStart}
       onTouchMove={canvasHandlers.onTouchMove}
       onTouchEnd={canvasHandlers.onTouchEnd}

@@ -8,10 +8,10 @@ interface UseCanvasKeyboardShortcutsProps {
   containerRef: React.RefObject<HTMLDivElement>;
   currentTool: string;
   isReadOnly: boolean;
-  selection?: any;
-  onDeleteSelected?: () => void;
-  onSelectAll?: () => void;
-  onClearSelection?: () => void;
+  selection: any;
+  selectHandlers: any;
+  lines: any[];
+  images: any[];
 }
 
 export const useCanvasKeyboardShortcuts = ({
@@ -19,22 +19,24 @@ export const useCanvasKeyboardShortcuts = ({
   currentTool,
   isReadOnly,
   selection,
-  onDeleteSelected,
-  onSelectAll,
-  onClearSelection
+  selectHandlers,
+  lines,
+  images
 }: UseCanvasKeyboardShortcutsProps) => {
   useEffect(() => {
-    const container = containerRef.current;
-    if (!container || isReadOnly) return;
+    const container = containerRef?.current;
+    if (!container) return;
 
     const handleKeyDown = (e: KeyboardEvent) => {
-      debugLog('Keyboard', 'Key down', { key: e.key, tool: currentTool });
+      if (isReadOnly) return;
+
+      debugLog('KeyboardShortcuts', 'Key down', { key: e.key, tool: currentTool });
 
       // Delete selected objects
       if (e.key === 'Delete' || e.key === 'Backspace') {
         if (currentTool === 'select' && selection?.selectionState?.selectedObjects?.length > 0) {
           e.preventDefault();
-          onDeleteSelected?.();
+          selectHandlers.deleteSelectedObjects();
         }
       }
 
@@ -42,7 +44,9 @@ export const useCanvasKeyboardShortcuts = ({
       if (e.key === 'a' && (e.ctrlKey || e.metaKey)) {
         if (currentTool === 'select') {
           e.preventDefault();
-          onSelectAll?.();
+          if (selection?.selectAll) {
+            selection.selectAll(lines, images);
+          }
         }
       }
 
@@ -50,17 +54,14 @@ export const useCanvasKeyboardShortcuts = ({
       if (e.key === 'Escape') {
         if (currentTool === 'select') {
           e.preventDefault();
-          onClearSelection?.();
+          selectHandlers.clearSelection();
         }
       }
     };
 
-    // Make container focusable and focus it
-    container.tabIndex = 0;
     container.addEventListener('keydown', handleKeyDown);
-    
     return () => {
       container.removeEventListener('keydown', handleKeyDown);
     };
-  }, [containerRef, currentTool, isReadOnly, selection, onDeleteSelected, onSelectAll, onClearSelection]);
+  }, [containerRef, currentTool, isReadOnly, selection, selectHandlers, lines, images]);
 };
