@@ -119,9 +119,13 @@ export const useCanvasEventHandlers = ({
 
     const pointerId = e.evt.pointerId;
     const pointerType = e.evt.pointerType;
+    const button = e.evt.button;
+    
+    debugLog('Canvas', 'Pointer move', { pointerId, pointerType, button, isRightClickPanActive: isRightClickPanRef.current, isMiddleClickPanActive: isMiddleClickPanRef.current });
     
     // Handle right-click or middle-click pan
     if (isRightClickPanRef.current || isMiddleClickPanRef.current) {
+      debugLog('Canvas', 'Processing pan move');
       const pos = stage.getPointerPosition();
       if (pos) {
         panZoom.continuePan(pos.x, pos.y);
@@ -157,10 +161,11 @@ export const useCanvasEventHandlers = ({
     const pointerId = e.evt.pointerId;
     const button = e.evt.button;
     
-    debugLog('Canvas', 'Pointer up', { pointerId, button, currentTool });
+    debugLog('Canvas', 'Pointer up', { pointerId, button, isRightClickPanActive: isRightClickPanRef.current, isMiddleClickPanActive: isMiddleClickPanRef.current, currentTool });
     
     // Handle right-click or middle-click pan end
     if (isRightClickPanRef.current || isMiddleClickPanRef.current) {
+      debugLog('Canvas', 'Stopping pan from pointer up');
       panZoom.stopPan();
       isRightClickPanRef.current = false;
       isMiddleClickPanRef.current = false;
