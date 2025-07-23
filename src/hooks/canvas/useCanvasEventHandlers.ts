@@ -34,6 +34,7 @@ export const useCanvasEventHandlers = ({
   const isDraggingRef = useRef(false);
   const isRightClickPanRef = useRef(false);
   const isMiddleClickPanRef = useRef(false);
+  const isSpacePanRef = useRef(false);
 
   // Get advanced touch handlers
   const touchHandlers = useTouchHandlers(
@@ -50,6 +51,85 @@ export const useCanvasEventHandlers = ({
     currentTool
   );
 
+  // Reset all gesture states
+  const resetGestureStates = useCallback(() => {
+    debugLog('Canvas', 'Resetting all gesture states');
+    isDraggingRef.current = false;
+    isRightClickPanRef.current = false;
+    isMiddleClickPanRef.current = false;
+    isSpacePanRef.current = false;
+    panZoom.stopPan();
+    reset();
+  }, [panZoom, reset]);
+
+  // Handle mouse down events (for better right-click detection)
+  const onMouseDown = useCallback((e: Konva.KonvaEventObject<MouseEvent>) => {
+    const stage = stageRef.current;
+    if (!stage) return;
+
+    const button = e.evt.button;
+    debugLog('Canvas', 'Mouse down', { button, currentTool });
+
+    // Handle right-click pan (button 2)
+    if (button === 2) {
+      debugLog('Canvas', 'Right-click pan started');
+      e.evt.preventDefault();
+      const pos = stage.getPointerPosition();
+      if (pos) {
+        panZoom.startPan(pos.x, pos.y);
+        isRightClickPanRef.current = true;
+        isDraggingRef.current = true;
+      }
+      return;
+    }
+
+    // Handle middle-click pan (button 1)
+    if (button === 1) {
+      debugLog('Canvas', 'Middle-click pan started');
+      e.evt.preventDefault();
+      const pos = stage.getPointerPosition();
+      if (pos) {
+        panZoom.startPan(pos.x, pos.y);
+        isMiddleClickPanRef.current = true;
+        isDraggingRef.current = true;
+      }
+      return;
+    }
+  }, [stageRef, panZoom]);
+
+  // Handle mouse move events
+  const onMouseMove = useCallback((e: Konva.KonvaEventObject<MouseEvent>) => {
+    const stage = stageRef.current;
+    if (!stage) return;
+
+    // Handle right-click or middle-click pan
+    if (isRightClickPanRef.current || isMiddleClickPanRef.current) {
+      e.evt.preventDefault();
+      const pos = stage.getPointerPosition();
+      if (pos) {
+        panZoom.continuePan(pos.x, pos.y);
+      }
+      return;
+    }
+  }, [stageRef, panZoom]);
+
+  // Handle mouse up events
+  const onMouseUp = useCallback((e: Konva.KonvaEventObject<MouseEvent>) => {
+    const button = e.evt.button;
+    debugLog('Canvas', 'Mouse up', { button, wasRightClickPan: isRightClickPanRef.current });
+
+    // Handle right-click or middle-click pan end
+    if ((button === 2 && isRightClickPanRef.current) || (button === 1 && isMiddleClickPanRef.current)) {
+      e.evt.preventDefault();
+      debugLog('Canvas', 'Ending right/middle-click pan');
+      panZoom.stopPan();
+      isRightClickPanRef.current = false;
+      isMiddleClickPanRef.current = false;
+      isDraggingRef.current = false;
+      return;
+    }
+  }, [panZoom]);
+
   // Handle pointer down events
   const onPointerDown = useCallback((e: Konva.KonvaEventObject<PointerEvent>) => {
     const stage = stageRef.current;
@@ -60,28 +140,10 @@ export const useCanvasEventHandlers = ({
     const button = e.evt.button;
     
     debugLog('Canvas', 'Pointer down', { pointerId, pointerType, button, currentTool });
-    
-    // Handle right-click pan (button 2) - works regardless of read-only status
-    if (button === 2) {
-      debugLog('Canvas', 'Right-click pan detected');
-      const pos = stage.getPointerPosition();
-      if (pos) {
-        panZoom.startPan(pos.x, pos.y);
-        isRightClickPanRef.current = true;
-        isDraggingRef.current = true;
-      }
-      return;
-    }
 
-    // Handle middle-click pan (button 1) - works regardless of read-only status
-    if (button === 1) {
-      debugLog('Canvas', 'Middle-click pan detected');
-      const pos = stage.getPointerPosition();
-      if (pos) {
-        panZoom.startPan(pos.x, pos.y);
-        isMiddleClickPanRef.current = true;
-        isDraggingRef.current = true;
-      }
+    // Skip if already in a gesture state
+    if (isRightClickPanRef.current || isMiddleClickPanRef.current || isSpacePanRef.current) {
+      debugLog('Canvas', 'Skipping pointer down - already in gesture');
       return;
     }
 
@@ -119,13 +181,9 @@ export const useCanvasEventHandlers = ({
 
     const pointerId = e.evt.pointerId;
     const pointerType = e.evt.pointerType;
-    
-    // Handle right-click or middle-click pan
-    if (isRightClickPanRef.current || isMiddleClickPanRef.current) {
-      const pos = stage.getPointerPosition();
-      if (pos) {
-        panZoom.continuePan(pos.x, pos.y);
-      }
+
+    // Skip if in right-click, middle-click, or space pan mode
+    if (isRightClickPanRef.current || isMiddleClickPanRef.current || isSpacePanRef.current) {
       return;
     }
 
@@ -158,13 +216,9 @@ export const useCanvasEventHandlers = ({
     const button = e.evt.button;
     
     debugLog('Canvas', 'Pointer up', { pointerId, button, currentTool });
-    
-    // Handle right-click or middle-click pan end
-    if (isRightClickPanRef.current || isMiddleClickPanRef.current) {
-      panZoom.stopPan();
-      isRightClickPanRef.current = false;
-      isMiddleClickPanRef.current = false;
-      isDraggingRef.current = false;
+
+    // Skip if in right-click, middle-click, or space pan mode
+    if (isRightClickPanRef.current || isMiddleClickPanRef.current || isSpacePanRef.current) {
       return;
     }
 
@@ -188,9 +242,19 @@ export const useCanvasEventHandlers = ({
 
   // Handle context menu (right-click menu)
   const onContextMenu = useCallback((e: Konva.KonvaEventObject<MouseEvent>) => {
-    // Prevent context menu when right-click panning
-    e.evt.preventDefault();
-  }, []);
+    // Always prevent context menu during any pan operation
+    if (isRightClickPanRef.current || isMiddleClickPanRef.current || isSpacePanRef.current) {
+      e.evt.preventDefault();
+      e.evt.stopPropagation();
+      return;
+    }
+    
+    // Prevent context menu for drawing tools
+    if (currentTool === 'pencil' || currentTool === 'highlighter' || currentTool === 'eraser') {
+      e.evt.preventDefault();
+      e.evt.stopPropagation();
+    }
+  }, [currentTool]);
 
   // Handle touch events for mobile using advanced touch handlers
   const onTouchStart = useCallback((e: Konva.KonvaEventObject<TouchEvent>) => {
@@ -225,15 +289,39 @@ export const useCanvasEventHandlers = ({
     touchHandlers.handleTouchEnd(e.evt);
   }, [setActiveTouches, touchHandlers, isReadOnly]);
 
+  // Space pan handlers
+  const startSpacePan = useCallback((x: number, y: number) => {
+    debugLog('Canvas', 'Space pan started');
+    panZoom.startPan(x, y);
+    isSpacePanRef.current = true;
+    isDraggingRef.current = true;
+  }, [panZoom]);
+
+  const continueSpacePan = useCallback((x: number, y: number) => {
+    if (isSpacePanRef.current) {
+      panZoom.continuePan(x, y);
+    }
+  }, [panZoom]);
+
+  const stopSpacePan = useCallback(() => {
+    if (isSpacePanRef.current) {
+      debugLog('Canvas', 'Space pan stopped');
+      panZoom.stopPan();
+      isSpacePanRef.current = false;
+      isDraggingRef.current = false;
+    }
+  }, [panZoom]);
+
   // Reset on tool change
   const resetHandlers = useCallback(() => {
-    reset();
-    isDraggingRef.current = false;
-    isRightClickPanRef.current = false;
-    isMiddleClickPanRef.current = false;
-  }, [reset]);
+    debugLog('Canvas', 'Resetting handlers for tool change');
+    resetGestureStates();
+  }, [resetGestureStates]);
 
   return {
+    onMouseDown,
+    onMouseMove,
+    onMouseUp,
     onPointerDown,
     onPointerMove,
     onPointerUp,
@@ -241,6 +329,10 @@ export const useCanvasEventHandlers = ({
     onTouchStart,
     onTouchMove,
     onTouchEnd,
-    resetHandlers
+    startSpacePan,
+    continueSpacePan,
+    stopSpacePan,
+    resetHandlers,
+    resetGestureStates
   };
 };

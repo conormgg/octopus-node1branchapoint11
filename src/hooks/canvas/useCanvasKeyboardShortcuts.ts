@@ -2,16 +2,23 @@
 import { useEffect } from 'react';
 import { createDebugLogger } from '@/utils/debug/debugConfig';
 
-const debugLog = createDebugLogger('events');
+const debugLog = createDebugLogger('keyboard');
+
+interface SpacePanHandlers {
+  startSpacePan: (x: number, y: number) => void;
+  continueSpacePan: (x: number, y: number) => void;
+  stopSpacePan: () => void;
+}
 
 interface UseCanvasKeyboardShortcutsProps {
-  containerRef: React.RefObject<HTMLDivElement>;
+  containerRef?: React.RefObject<HTMLDivElement>;
   currentTool: string;
   isReadOnly: boolean;
   selection: any;
   selectHandlers: any;
   lines: any[];
   images: any[];
+  spacePanHandlers?: SpacePanHandlers;
 }
 
 export const useCanvasKeyboardShortcuts = ({
@@ -21,47 +28,106 @@ export const useCanvasKeyboardShortcuts = ({
   selection,
   selectHandlers,
   lines,
-  images
+  images,
+  spacePanHandlers
 }: UseCanvasKeyboardShortcutsProps) => {
   useEffect(() => {
     const container = containerRef?.current;
     if (!container) return;
 
+    let isSpacePressed = false;
+    let wasSpacePanning = false;
+
     const handleKeyDown = (e: KeyboardEvent) => {
       if (isReadOnly) return;
 
-      debugLog('KeyboardShortcuts', 'Key down', { key: e.key, tool: currentTool });
-
-      // Delete selected objects
-      if (e.key === 'Delete' || e.key === 'Backspace') {
-        if (currentTool === 'select' && selection?.selectionState?.selectedObjects?.length > 0) {
-          e.preventDefault();
-          selectHandlers.deleteSelectedObjects();
-        }
+      // Handle space key for panning
+      if (e.code === 'Space' && !isSpacePressed) {
+        isSpacePressed = true;
+        wasSpacePanning = false;
+        debugLog('Keyboard', 'Space key pressed');
+        // Don't prevent default yet - only when actually panning
       }
 
-      // Select all
-      if (e.key === 'a' && (e.ctrlKey || e.metaKey)) {
-        if (currentTool === 'select') {
+      // Handle selection shortcuts
+      if (currentTool === 'select' && selection) {
+        // Delete key - delete selected objects
+        if (e.key === 'Delete' || e.key === 'Backspace') {
           e.preventDefault();
-          if (selection?.selectAll) {
+          if (selectHandlers?.deleteSelectedObjects) {
+            debugLog('Keyboard', 'Delete key pressed - deleting selected objects');
+            selectHandlers.deleteSelectedObjects();
+          }
+        }
+        
+        // Ctrl+A - select all
+        if (e.key === 'a' && (e.ctrlKey || e.metaKey)) {
+          e.preventDefault();
+          if (selection.selectAll) {
+            debugLog('Keyboard', 'Ctrl+A pressed - selecting all objects');
             selection.selectAll(lines, images);
           }
         }
-      }
-
-      // Clear selection
-      if (e.key === 'Escape') {
-        if (currentTool === 'select') {
+        
+        // Escape - clear selection
+        if (e.key === 'Escape') {
           e.preventDefault();
-          selectHandlers.clearSelection();
+          if (selection.clearSelection) {
+            debugLog('Keyboard', 'Escape pressed - clearing selection');
+            selection.clearSelection();
+          }
         }
       }
     };
 
-    container.addEventListener('keydown', handleKeyDown);
-    return () => {
-      container.removeEventListener('keydown', handleKeyDown);
+    const handleKeyUp = (e: KeyboardEvent) => {
+      if (e.code === 'Space' && isSpacePressed) {
+        isSpacePressed = false;
+        if (wasSpacePanning && spacePanHandlers) {
+          debugLog('Keyboard', 'Space key released - stopping pan');
+          spacePanHandlers.stopSpacePan();
+          wasSpacePanning = false;
+        }
+      }
     };
-  }, [containerRef, currentTool, isReadOnly, selection, selectHandlers, lines, images]);
+
+    const handlePointerDown = (e: PointerEvent) => {
+      if (isSpacePressed && e.button === 0 && spacePanHandlers) {
+        e.preventDefault();
+        debugLog('Keyboard', 'Space + pointer down - starting pan');
+        spacePanHandlers.startSpacePan(e.clientX, e.clientY);
+        wasSpacePanning = true;
+      }
+    };
+
+    const handlePointerMove = (e: PointerEvent) => {
+      if (isSpacePressed && wasSpacePanning && spacePanHandlers) {
+        e.preventDefault();
+        spacePanHandlers.continueSpacePan(e.clientX, e.clientY);
+      }
+    };
+
+    const handlePointerUp = (e: PointerEvent) => {
+      if (isSpacePressed && wasSpacePanning && e.button === 0 && spacePanHandlers) {
+        e.preventDefault();
+        spacePanHandlers.stopSpacePan();
+        wasSpacePanning = false;
+      }
+    };
+
+    // Add event listeners
+    window.addEventListener('keydown', handleKeyDown);
+    window.addEventListener('keyup', handleKeyUp);
+    container.addEventListener('pointerdown', handlePointerDown);
+    container.addEventListener('pointermove', handlePointerMove);
+    container.addEventListener('pointerup', handlePointerUp);
+
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown);
+      window.removeEventListener('keyup', handleKeyUp);
+      container.removeEventListener('pointerdown', handlePointerDown);
+      container.removeEventListener('pointermove', handlePointerMove);
+      container.removeEventListener('pointerup', handlePointerUp);
+    };
+  }, [containerRef, currentTool, isReadOnly, selection, selectHandlers, lines, images, spacePanHandlers]);
 };

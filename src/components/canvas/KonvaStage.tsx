@@ -68,13 +68,25 @@ const KonvaStage: React.FC<KonvaStageProps> = ({
     selection,
     selectHandlers,
     lines: state.lines,
-    images: state.images
+    images: state.images,
+    spacePanHandlers: {
+      startSpacePan: canvasHandlers.startSpacePan,
+      continueSpacePan: canvasHandlers.continueSpacePan,
+      stopSpacePan: canvasHandlers.stopSpacePan
+    }
   });
 
   // Reset handlers when tool changes
   useEffect(() => {
     canvasHandlers.resetHandlers();
   }, [currentTool, canvasHandlers]);
+
+  // Reset gesture states on unmount
+  useEffect(() => {
+    return () => {
+      canvasHandlers.resetGestureStates();
+    };
+  }, [canvasHandlers]);
 
   const renderLines = () => {
     return (
@@ -116,6 +128,9 @@ const KonvaStage: React.FC<KonvaStageProps> = ({
       scaleY={state.panZoomState.scale}
       x={state.panZoomState.x}
       y={state.panZoomState.y}
+      onMouseDown={canvasHandlers.onMouseDown}
+      onMouseMove={canvasHandlers.onMouseMove}
+      onMouseUp={canvasHandlers.onMouseUp}
       onPointerDown={canvasHandlers.onPointerDown}
       onPointerMove={canvasHandlers.onPointerMove}
       onPointerUp={canvasHandlers.onPointerUp}
