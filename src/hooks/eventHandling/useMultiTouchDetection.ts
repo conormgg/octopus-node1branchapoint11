@@ -8,7 +8,6 @@ export const useMultiTouchDetection = () => {
   const activePointersRef = useRef<Map<number, string>>(new Map());
   const activeTouchesRef = useRef<number>(0);
   const lastMultiTouchCheckRef = useRef<number>(0);
-  const isMultiTouchActiveRef = useRef<boolean>(false);
   const MULTI_TOUCH_DEBOUNCE = 50; // ms
 
   const addPointer = useCallback((pointerId: number, pointerType: string = 'unknown') => {
@@ -28,29 +27,13 @@ export const useMultiTouchDetection = () => {
       pointerType,
       totalPointers: activePointersRef.current.size
     });
-    
-    // Update multi-touch active state
-    if (activePointersRef.current.size < 2 && activeTouchesRef.current < 2) {
-      isMultiTouchActiveRef.current = false;
-      debugLog('MultiTouchDetection', 'Multi-touch ended');
-    }
   }, []);
 
   const setActiveTouches = useCallback((count: number) => {
     activeTouchesRef.current = count;
     debugLog('MultiTouchDetection', 'Set active touches', {
-      count,
-      wasMultiTouch: isMultiTouchActiveRef.current
+      count
     });
-    
-    // Update multi-touch active state
-    if (count >= 2) {
-      isMultiTouchActiveRef.current = true;
-      debugLog('MultiTouchDetection', 'Multi-touch started via touches');
-    } else if (count === 0) {
-      isMultiTouchActiveRef.current = false;
-      debugLog('MultiTouchDetection', 'Multi-touch ended via touches');
-    }
   }, []);
 
   const isMultiTouch = useCallback(() => {
@@ -58,7 +41,7 @@ export const useMultiTouchDetection = () => {
     
     // Debounce multi-touch checks to prevent rapid state changes
     if (now - lastMultiTouchCheckRef.current < MULTI_TOUCH_DEBOUNCE) {
-      return isMultiTouchActiveRef.current;
+      return false;
     }
     
     // Count only touch pointers, exclude stylus/pen pointers
@@ -71,7 +54,6 @@ export const useMultiTouchDetection = () => {
     
     if (result) {
       lastMultiTouchCheckRef.current = now;
-      isMultiTouchActiveRef.current = true;
     }
     
     debugLog('MultiTouchDetection', 'Multi-touch check', {
@@ -80,8 +62,7 @@ export const useMultiTouchDetection = () => {
       activeTouches: activeTouchesRef.current,
       multiPointer,
       multiTouch,
-      result,
-      isActive: isMultiTouchActiveRef.current
+      result
     });
     
     return result;
@@ -91,12 +72,7 @@ export const useMultiTouchDetection = () => {
     activePointersRef.current.clear();
     activeTouchesRef.current = 0;
     lastMultiTouchCheckRef.current = 0;
-    isMultiTouchActiveRef.current = false;
     debugLog('MultiTouchDetection', 'Reset all gesture state');
-  }, []);
-
-  const isGestureActive = useCallback(() => {
-    return isMultiTouchActiveRef.current;
   }, []);
 
   return {
@@ -104,7 +80,6 @@ export const useMultiTouchDetection = () => {
     removePointer,
     setActiveTouches,
     isMultiTouch,
-    isGestureActive,
     reset,
     getActivePointerCount: () => activePointersRef.current.size,
     getActiveTouchCount: () => activeTouchesRef.current
