@@ -158,7 +158,7 @@ export const useStageEventHandlers = ({
     currentTool: currentToolRef.current
   });
 
-  // Pointer event handlers - handles single-touch interactions
+  // Pointer event handlers - handles single-touch interactions with proper coordinate transformation
   usePointerEventHandlers({
     containerRef,
     stageRef,

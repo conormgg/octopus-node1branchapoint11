@@ -2,6 +2,7 @@
 import Konva from 'konva';
 import { usePalmRejection } from '../usePalmRejection';
 import { PanZoomState } from '@/types/whiteboard';
+import { useStageCoordinates } from '../useStageCoordinates';
 import { usePointerEventCore } from './pointerEvents/usePointerEventCore';
 import { usePointerEventSetup } from './pointerEvents/usePointerEventSetup';
 
@@ -42,28 +43,32 @@ export const usePointerEventHandlers = ({
   logEventHandling,
   supportsPointerEvents
 }: UsePointerEventHandlersProps) => {
+  const { getRelativePointerPosition } = useStageCoordinates(panZoomState);
+
   /**
    * Always use pointer events when supported for stylus functionality.
    * Palm rejection filtering is applied conditionally within the event handlers.
    */
   const shouldUsePointerEvents = supportsPointerEvents;
 
-  // Get all pointer event handlers - need to pass the required dependencies
-  // For now, we'll need to create the handlers with the current interface
+  // Get all pointer event handlers with proper coordinate transformation
   const handlers = {
     handlePointerDownEvent: (e: PointerEvent) => {
       logEventHandling('pointer', 'pointer', { type: 'down' });
-      const rect = containerRef.current?.getBoundingClientRect();
-      if (!rect) return;
-      const x = e.clientX - rect.left;
-      const y = e.clientY - rect.top;
+      
+      const stage = stageRef.current;
+      if (!stage) return;
+
+      // Transform screen coordinates to world coordinates
+      const { x, y } = getRelativePointerPosition(stage, e.clientX, e.clientY);
       handlePointerDown(x, y);
     },
     handlePointerMoveEvent: (e: PointerEvent) => {
-      const rect = containerRef.current?.getBoundingClientRect();
-      if (!rect) return;
-      const x = e.clientX - rect.left;
-      const y = e.clientY - rect.top;
+      const stage = stageRef.current;
+      if (!stage) return;
+
+      // Transform screen coordinates to world coordinates
+      const { x, y } = getRelativePointerPosition(stage, e.clientX, e.clientY);
       handlePointerMove(x, y);
     },
     handlePointerUpEvent: (e: PointerEvent) => {
