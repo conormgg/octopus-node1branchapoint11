@@ -64,9 +64,6 @@ export const useCanvasEventHandlers = ({
     // Handle right-click pan (button 2) - works regardless of read-only status
     if (button === 2) {
       debugLog('Canvas', 'Right-click pan detected');
-      e.evt.preventDefault();
-      e.evt.stopPropagation();
-      
       const pos = stage.getPointerPosition();
       if (pos) {
         panZoom.startPan(pos.x, pos.y);
@@ -79,9 +76,6 @@ export const useCanvasEventHandlers = ({
     // Handle middle-click pan (button 1) - works regardless of read-only status
     if (button === 1) {
       debugLog('Canvas', 'Middle-click pan detected');
-      e.evt.preventDefault();
-      e.evt.stopPropagation();
-      
       const pos = stage.getPointerPosition();
       if (pos) {
         panZoom.startPan(pos.x, pos.y);
@@ -128,12 +122,8 @@ export const useCanvasEventHandlers = ({
     
     // Handle right-click or middle-click pan
     if (isRightClickPanRef.current || isMiddleClickPanRef.current) {
-      e.evt.preventDefault();
-      e.evt.stopPropagation();
-      
       const pos = stage.getPointerPosition();
       if (pos) {
-        debugLog('Canvas', 'Continuing pan', { x: pos.x, y: pos.y });
         panZoom.continuePan(pos.x, pos.y);
       }
       return;
@@ -171,10 +161,6 @@ export const useCanvasEventHandlers = ({
     
     // Handle right-click or middle-click pan end
     if (isRightClickPanRef.current || isMiddleClickPanRef.current) {
-      e.evt.preventDefault();
-      e.evt.stopPropagation();
-      
-      debugLog('Canvas', 'Stopping pan');
       panZoom.stopPan();
       isRightClickPanRef.current = false;
       isMiddleClickPanRef.current = false;
@@ -202,9 +188,8 @@ export const useCanvasEventHandlers = ({
 
   // Handle context menu (right-click menu)
   const onContextMenu = useCallback((e: Konva.KonvaEventObject<MouseEvent>) => {
-    // Always prevent context menu when right-click panning
+    // Prevent context menu when right-click panning
     e.evt.preventDefault();
-    e.evt.stopPropagation();
   }, []);
 
   // Handle touch events for mobile using advanced touch handlers
