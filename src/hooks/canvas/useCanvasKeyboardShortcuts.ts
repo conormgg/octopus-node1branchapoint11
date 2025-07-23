@@ -2,7 +2,7 @@
 import { useEffect } from 'react';
 import { createDebugLogger } from '@/utils/debug/debugConfig';
 
-const debugLog = createDebugLogger('keyboard');
+const debugLog = createDebugLogger('events');
 
 interface UseCanvasKeyboardShortcutsProps {
   containerRef: React.RefObject<HTMLDivElement>;

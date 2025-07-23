@@ -40,9 +40,9 @@ const KonvaStage: React.FC<KonvaStageProps> = ({
     images: state.images,
     panZoomState: state.panZoomState,
     panZoom: whiteboardState.panZoom,
-    onUpdateLine: whiteboardState.operations?.updateLine,
-    onUpdateImage: whiteboardState.operations?.updateImage,
-    onDeleteObjects: whiteboardState.operations?.deleteSelectedObjects,
+    onUpdateLine: whiteboardState.updateLine,
+    onUpdateImage: whiteboardState.updateImage,
+    onDeleteObjects: whiteboardState.deleteSelectedObjects,
     containerRef,
     mainSelection: selection
   });

@@ -5,7 +5,7 @@ import { useStageCoordinates } from '@/hooks/useStageCoordinates';
 import { createDebugLogger } from '@/utils/debug/debugConfig';
 import Konva from 'konva';
 
-const debugLog = createDebugLogger('canvasEvents');
+const debugLog = createDebugLogger('events');
 
 interface UseCanvasEventHandlersProps {
   stageRef: React.RefObject<Konva.Stage>;
