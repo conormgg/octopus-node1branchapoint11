@@ -1,7 +1,7 @@
 
 import React from 'react';
 import { useWhiteboardState } from '@/hooks/useWhiteboardState';
-import KonvaStage from './canvas/KonvaStage';
+import KonvaStageCanvas from './canvas/KonvaStageCanvas';
 
 interface PalmRejectionConfig {
   maxContactSize: number;
@@ -49,7 +49,7 @@ const WhiteboardCanvas: React.FC<WhiteboardCanvasProps> = ({
       }}
       data-whiteboard-canvas="true"
     >
-      <KonvaStage
+      <KonvaStageCanvas
         width={width}
         height={height}
         whiteboardState={whiteboardState}

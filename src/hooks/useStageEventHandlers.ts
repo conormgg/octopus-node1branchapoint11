@@ -88,7 +88,7 @@ export const useStageEventHandlers = ({
     hasMainSelection: !!mainSelection
   });
 
-  // Select2 event handlers with update functions, delete function, and main selection integration
+  // Select2 event handlers with update functions and main selection integration
   const select2Handlers = useSelect2EventHandlers({
     stageRef,
     lines,
@@ -97,7 +97,6 @@ export const useStageEventHandlers = ({
     panZoom,
     onUpdateLine,
     onUpdateImage,
-    onDeleteObjects,
     containerRef,
     mainSelection // Pass main selection state for integration
   });
@@ -188,7 +187,6 @@ export const useStageEventHandlers = ({
     return {
       select2State: select2Handlers.select2State,
       clearSelect2Selection: select2Handlers.clearSelection,
-      deleteSelectedObjects: select2Handlers.deleteSelectedObjects,
       select2MouseHandlers: {
         onMouseDown: select2Handlers.handleMouseDown,
         onMouseMove: select2Handlers.handleMouseMove,

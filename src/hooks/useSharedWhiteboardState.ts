@@ -62,7 +62,7 @@ export const useSharedWhiteboardState = (syncConfig?: SyncConfig, whiteboardId?:
 
   // Operations handling
   const operationsHandler = useSharedOperationsHandler(syncConfig, state, setState, panZoom, selection, whiteboardId);
-  const { operations, handlePointerDown, handlePointerMove, handlePointerUp, deleteSelectedObjects } = operationsHandler;
+  const { operations, handlePointerDown, handlePointerMove, handlePointerUp } = operationsHandler;
 
   // Use sync config to determine read-only status, with proper fallback
   const isReadOnly = syncConfig?.isReceiveOnly || false;
@@ -128,7 +128,6 @@ export const useSharedWhiteboardState = (syncConfig?: SyncConfig, whiteboardId?:
     updateLine: operations.updateLine,
     updateImage: operations.updateImage,
     toggleImageLock: operations.toggleImageLock,
-    deleteSelectedObjects,
     selection,
     isReadOnly,
     whiteboardId // Expose whiteboard ID for component identification

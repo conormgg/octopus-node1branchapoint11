@@ -6,22 +6,12 @@ interface UseKonvaKeyboardHandlersProps {
   containerRef: React.RefObject<HTMLDivElement>;
   whiteboardState: ReturnType<typeof useWhiteboardState>;
   isReadOnly: boolean;
-  whiteboardId?: string;
-  select2DeleteFunction?: undefined; // Removed - will be replaced
-  originalSelectDeleteFunction?: undefined; // Removed - will be replaced
-  select2Handlers?: {
-    select2State: any;
-    deleteSelectedObjects: () => void;
-    clearSelection: () => void;
-  };
 }
 
 export const useKonvaKeyboardHandlers = ({
   containerRef,
   whiteboardState,
-  isReadOnly,
-  whiteboardId,
-  select2Handlers
+  isReadOnly
 }: UseKonvaKeyboardHandlersProps) => {
   const { state, handlePaste } = whiteboardState;
 
@@ -58,7 +48,7 @@ export const useKonvaKeyboardHandlers = ({
 
       // Delete key - will be replaced with new delete system
       if ((e.key === 'Delete' || e.key === 'Backspace')) {
-        console.log(`[${whiteboardId}] Delete key pressed - delete system will be reimplemented`);
+        console.log('Delete key pressed - delete system will be reimplemented');
         e.preventDefault();
         return;
       }
@@ -71,13 +61,8 @@ export const useKonvaKeyboardHandlers = ({
     };
 
     // Make container focusable and add event listeners
-    const tabIndexValue =
-      typeof whiteboardId === 'string'
-        ? String(1000 + whiteboardId.charCodeAt(0))
-        : '1000';
-    
-    container.setAttribute('tabIndex', tabIndexValue);
-    container.setAttribute('id', `whiteboard-container-${whiteboardId || 'unknown'}`);
+    container.setAttribute('tabIndex', '1000');
+    container.setAttribute('id', `whiteboard-container`);
     container.style.outline = 'none';
     
     container.addEventListener('paste', pasteHandler);
@@ -89,5 +74,5 @@ export const useKonvaKeyboardHandlers = ({
       container.removeEventListener('keydown', keyDownHandler);
       container.removeEventListener('click', clickHandler);
     };
-  }, [handlePaste, isReadOnly, whiteboardId, state.currentTool, whiteboardState, select2Handlers]);
+  }, [handlePaste, isReadOnly, state.currentTool, whiteboardState]);
 };
