@@ -96,17 +96,16 @@ const KonvaStage: React.FC<KonvaStageProps> = ({
     currentTool: state.currentTool
   });
 
-  // Determine the correct delete functions to use
-  // Check if this is a shared whiteboard (has operations property) vs regular whiteboard
+  // FIXED: Use the correct parameter-accepting delete function for select2
   const hasSharedOperations = 'operations' in whiteboardState && 
     whiteboardState.operations && 
     typeof whiteboardState.operations === 'object' && 
     'deleteSelectedObjects' in whiteboardState.operations &&
     typeof (whiteboardState.operations as any).deleteSelectedObjects === 'function';
 
-  // For select2: use the real implementation that accepts parameters
+  // For select2: use the parameter-accepting function directly from operations
   const select2DeleteFunction = hasSharedOperations 
-    ? (whiteboardState.operations as any).deleteSelectedObjects 
+    ? (whiteboardState.operations as any).deleteSelectedObjects  // This accepts parameters
     : ('deleteSelectedObjects' in whiteboardState && typeof whiteboardState.deleteSelectedObjects === 'function' 
        ? (selectedObjects: Array<{id: string, type: 'line' | 'image'}>) => whiteboardState.deleteSelectedObjects(selectedObjects)
        : deleteSelectedObjects);
@@ -118,13 +117,13 @@ const KonvaStage: React.FC<KonvaStageProps> = ({
        ? whiteboardState.deleteSelectedObjects 
        : deleteSelectedObjects);
 
-  debugLog('KonvaStage', 'Delete function selection', {
+  debugLog('KonvaStage', 'FIXED: Delete function selection', {
     whiteboardId,
     hasOperations: 'operations' in whiteboardState,
     hasSharedDelete: hasSharedOperations,
     usingSharedDelete: hasSharedOperations,
-    select2DeleteFunction: select2DeleteFunction ? 'available' : 'none',
-    originalSelectDeleteFunction: originalSelectDeleteFunction ? 'available' : 'none'
+    select2DeleteFunction: select2DeleteFunction ? 'parameter-accepting' : 'none',
+    originalSelectDeleteFunction: originalSelectDeleteFunction ? 'wrapper' : 'none'
   });
 
   // Set up all event handlers with proper update functions for select2
