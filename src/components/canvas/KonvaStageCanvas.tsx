@@ -94,8 +94,8 @@ const KonvaStageCanvas: React.FC<KonvaStageCanvasProps> = ({
 
   const cursor = useStageCursor({ currentTool, selection });
 
-  // Use select mouse handlers when select tool is active, otherwise use default handlers
-  const stageMouseHandlers = currentTool === 'select' && select2MouseHandlers ? {
+  // Use select2 mouse handlers when select2 tool is active, otherwise use default handlers
+  const stageMouseHandlers = currentTool === 'select2' && select2MouseHandlers ? {
     onMouseDown: select2MouseHandlers.onMouseDown,
     onMouseMove: select2MouseHandlers.onMouseMove,
     onMouseUp: select2MouseHandlers.onMouseUp,

@@ -25,7 +25,7 @@ export const useKonvaKeyboardHandlers = ({
   originalSelectDeleteFunction,
   select2Handlers
 }: UseKonvaKeyboardHandlersProps) => {
-  const { state, handlePaste } = whiteboardState; // selection now handled by select2 system
+  const { state, handlePaste, selection } = whiteboardState;
 
   useEffect(() => {
     const container = containerRef.current;
@@ -59,14 +59,22 @@ export const useKonvaKeyboardHandlers = ({
       }
 
       // Ctrl+A - select all objects (only when select tool is active)
-      // Ctrl+A functionality now handled by select2 system
+      if (e.ctrlKey && e.key === 'a' && state.currentTool === 'select' && selection?.selectAll) {
+        selection.selectAll(state.lines || [], state.images || []);
+        e.preventDefault();
+        return;
+      }
 
-      // Escape key - clear selection now handled by select2 system
+      // Escape key - clear selection
+      if (e.key === 'Escape' && selection?.clearSelection) {
+        selection.clearSelection();
+        e.preventDefault();
+      }
       
       // Delete key - remove selected objects
       if ((e.key === 'Delete' || e.key === 'Backspace')) {
         // Check if using select2 tool
-        if (state.currentTool === 'select' && select2Handlers?.select2State?.selectedObjects?.length > 0) {
+        if (state.currentTool === 'select2' && select2Handlers?.select2State?.selectedObjects?.length > 0) {
           console.log(`[${whiteboardId}] Delete key pressed - select2 selected objects:`, select2Handlers.select2State.selectedObjects);
           
           // Use the select2 delete function (accepts parameters)
@@ -83,7 +91,17 @@ export const useKonvaKeyboardHandlers = ({
           return;
         }
         
-        // Original selection system no longer used
+        // Fallback to regular selection
+        if (selection?.selectionState?.selectedObjects?.length > 0) {
+          console.log(`[${whiteboardId}] Delete key pressed - selected objects:`, selection.selectionState.selectedObjects);
+          
+          // Use the original select delete function (no parameters - wrapper)
+          if (originalSelectDeleteFunction) {
+            originalSelectDeleteFunction();
+          }
+          
+          e.preventDefault();
+        }
       }
     };
 
@@ -112,5 +130,5 @@ export const useKonvaKeyboardHandlers = ({
       container.removeEventListener('keydown', keyDownHandler);
       container.removeEventListener('click', clickHandler);
     };
-  }, [handlePaste, isReadOnly, whiteboardId, state.currentTool, state.lines, state.images, whiteboardState, select2DeleteFunction, originalSelectDeleteFunction, select2Handlers]);
+  }, [handlePaste, isReadOnly, selection, whiteboardId, state.currentTool, state.lines, state.images, whiteboardState, select2DeleteFunction, originalSelectDeleteFunction, select2Handlers]);
 };
