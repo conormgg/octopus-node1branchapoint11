@@ -1,4 +1,5 @@
 import React from 'react';
+import { createPortal } from 'react-dom';
 import { Trash2, Lock, Unlock } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
@@ -58,9 +59,9 @@ const SelectionContextMenu: React.FC<SelectionContextMenuProps> = ({
     return 'Unlock Images';
   };
 
-  return (
+  const contextMenuContent = (
     <Card 
-      className="absolute z-50 p-2 shadow-lg bg-background border"
+      className="fixed z-[9999] p-2 shadow-lg bg-background border"
       style={{
         left: `${x}px`,
         top: `${y}px`,
@@ -75,6 +76,7 @@ const SelectionContextMenu: React.FC<SelectionContextMenuProps> = ({
           className="w-full justify-start text-destructive hover:text-destructive hover:bg-destructive/10"
           onClick={(e) => {
             e.stopPropagation();
+            e.preventDefault();
             onDelete();
             onClose();
           }}
@@ -94,6 +96,7 @@ const SelectionContextMenu: React.FC<SelectionContextMenuProps> = ({
                 className="w-full justify-start"
                 onClick={(e) => {
                   e.stopPropagation();
+                  e.preventDefault();
                   onLockImages();
                   onClose();
                 }}
@@ -111,6 +114,7 @@ const SelectionContextMenu: React.FC<SelectionContextMenuProps> = ({
                 className="w-full justify-start"
                 onClick={(e) => {
                   e.stopPropagation();
+                  e.preventDefault();
                   onUnlockImages();
                   onClose();
                 }}
@@ -124,6 +128,9 @@ const SelectionContextMenu: React.FC<SelectionContextMenuProps> = ({
       </div>
     </Card>
   );
+
+  // Render the context menu using a portal to document.body
+  return createPortal(contextMenuContent, document.body);
 };
 
 export default SelectionContextMenu;
