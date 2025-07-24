@@ -73,7 +73,8 @@ const SelectionContextMenu: React.FC<SelectionContextMenuProps> = ({
           variant="ghost"
           size="sm"
           className="w-full justify-start text-destructive hover:text-destructive hover:bg-destructive/10"
-          onClick={() => {
+          onClick={(e) => {
+            e.stopPropagation();
             onDelete();
             onClose();
           }}
@@ -91,7 +92,8 @@ const SelectionContextMenu: React.FC<SelectionContextMenuProps> = ({
                 variant="ghost"
                 size="sm"
                 className="w-full justify-start"
-                onClick={() => {
+                onClick={(e) => {
+                  e.stopPropagation();
                   onLockImages();
                   onClose();
                 }}
@@ -107,7 +109,8 @@ const SelectionContextMenu: React.FC<SelectionContextMenuProps> = ({
                 variant="ghost"
                 size="sm"
                 className="w-full justify-start"
-                onClick={() => {
+                onClick={(e) => {
+                  e.stopPropagation();
                   onUnlockImages();
                   onClose();
                 }}
