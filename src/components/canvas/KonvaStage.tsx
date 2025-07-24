@@ -111,9 +111,15 @@ const KonvaStage: React.FC<KonvaStageProps> = ({
        ? (selectedObjects: Array<{id: string, type: 'line' | 'image'}>) => whiteboardState.deleteSelectedObjects(selectedObjects)
        : deleteSelectedObjects);
 
-  // For original select: use the wrapper that reads from selection state
+  // For original select: use the operations delete function directly with selected objects
   const originalSelectDeleteFunction = hasSharedOperations 
-    ? deleteSelectedObjects  // This is the wrapper in shared whiteboards
+    ? () => {
+        const selectedObjects = selection?.selectionState?.selectedObjects;
+        if (selectedObjects && (whiteboardState.operations as any).deleteSelectedObjects) {
+          (whiteboardState.operations as any).deleteSelectedObjects(selectedObjects);
+          selection?.clearSelection();
+        }
+      }
     : ('deleteSelectedObjects' in whiteboardState && typeof whiteboardState.deleteSelectedObjects === 'function' 
        ? whiteboardState.deleteSelectedObjects 
        : deleteSelectedObjects);

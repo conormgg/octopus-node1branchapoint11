@@ -53,30 +53,12 @@ export const useSharedOperationsHandler = (
     selection
   );
 
-  /**
-   * @function deleteSelectedObjects
-   * @description Deletes currently selected objects and syncs the operation
-   */
-  const deleteSelectedObjects = useCallback(() => {
-    const selectedObjects = selection.selectionState.selectedObjects;
-    debugLog('Delete', 'Delete selected objects requested', { 
-      count: selectedObjects?.length || 0 
-    });
-    
-    if (selectedObjects && operations.deleteSelectedObjects) {
-      operations.deleteSelectedObjects(selectedObjects);
-      selection.clearSelection();
-      debugLog('Delete', 'Objects deleted and selection cleared');
-    }
-  }, [selection, operations]);
-
   debugLog('Operations', 'Operations handler initialized', { whiteboardId });
 
   return {
     operations,
     handlePointerDown,
     handlePointerMove,
-    handlePointerUp,
-    deleteSelectedObjects
+    handlePointerUp
   };
 };
