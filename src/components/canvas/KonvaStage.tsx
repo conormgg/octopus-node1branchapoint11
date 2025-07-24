@@ -184,9 +184,8 @@ const KonvaStage: React.FC<KonvaStageProps> = ({
         images={state.images}
         contextMenu={stageEventHandlers?.select2State?.contextMenu || { isVisible: false, x: 0, y: 0 }}
         onDeleteObjects={() => {
-          console.log('Context menu delete clicked');
-          if (stageEventHandlers?.deleteSelectedObjects) {
-            stageEventHandlers.deleteSelectedObjects();
+          if (stageEventHandlers?.select2MouseHandlers?.deleteSelectedObjects) {
+            stageEventHandlers.select2MouseHandlers.deleteSelectedObjects();
           }
         }}
         onLockImages={() => {

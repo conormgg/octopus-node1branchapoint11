@@ -58,26 +58,14 @@ const SelectionContextMenu: React.FC<SelectionContextMenuProps> = ({
     return 'Unlock Images';
   };
 
-  const handleCardPointerDown = (e: React.PointerEvent) => {
-    e.stopPropagation();
-    e.preventDefault();
-  };
-
-  const handleCardMouseDown = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    e.preventDefault();
-  };
-
   return (
     <Card 
-      className="absolute z-[9999] p-2 shadow-lg bg-background border pointer-events-auto"
+      className="absolute z-50 p-2 shadow-lg bg-background border"
       style={{
         left: `${x}px`,
         top: `${y}px`,
       }}
       onMouseLeave={onClose}
-      onPointerDown={handleCardPointerDown}
-      onMouseDown={handleCardMouseDown}
     >
       <div className="flex flex-col gap-1">
         {/* Delete option - always available */}
@@ -85,15 +73,9 @@ const SelectionContextMenu: React.FC<SelectionContextMenuProps> = ({
           variant="ghost"
           size="sm"
           className="w-full justify-start text-destructive hover:text-destructive hover:bg-destructive/10"
-          onClick={(e) => {
-            e.stopPropagation();
-            e.preventDefault();
-            console.log('Delete button clicked');
+          onClick={() => {
             onDelete();
             onClose();
-          }}
-          onPointerDown={(e) => {
-            e.stopPropagation();
           }}
         >
           <Trash2 className="h-4 w-4 mr-2" />
@@ -109,14 +91,9 @@ const SelectionContextMenu: React.FC<SelectionContextMenuProps> = ({
                 variant="ghost"
                 size="sm"
                 className="w-full justify-start"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  e.preventDefault();
+                onClick={() => {
                   onLockImages();
                   onClose();
-                }}
-                onPointerDown={(e) => {
-                  e.stopPropagation();
                 }}
               >
                 <Lock className="h-4 w-4 mr-2" />
@@ -130,14 +107,9 @@ const SelectionContextMenu: React.FC<SelectionContextMenuProps> = ({
                 variant="ghost"
                 size="sm"
                 className="w-full justify-start"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  e.preventDefault();
+                onClick={() => {
                   onUnlockImages();
                   onClose();
-                }}
-                onPointerDown={(e) => {
-                  e.stopPropagation();
                 }}
               >
                 <Unlock className="h-4 w-4 mr-2" />
