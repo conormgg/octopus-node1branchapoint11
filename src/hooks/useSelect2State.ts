@@ -162,7 +162,22 @@ export const useSelect2State = () => {
            point.y <= image.y + height;
   }, []);
 
-  // Find objects at point
+  // Helper function to check if an object is locked
+  const isObjectLocked = useCallback((
+    objectId: string,
+    objectType: 'line' | 'image',
+    lines: LineObject[],
+    images: ImageObject[]
+  ): boolean => {
+    if (objectType === 'image') {
+      const image = images.find(img => img.id === objectId);
+      return image?.locked === true;
+    }
+    // Lines don't have locked property currently
+    return false;
+  }, []);
+
+  // Find objects at point (excluding locked objects)
   const findObjectsAtPoint = useCallback((
     point: { x: number; y: number }, 
     lines: LineObject[], 
@@ -170,14 +185,14 @@ export const useSelect2State = () => {
   ): SelectedObject[] => {
     const foundObjects: SelectedObject[] = [];
 
-    // Check images first (they're typically on top)
+    // Check images first (they're typically on top) - exclude locked images
     for (const image of images) {
-      if (isPointOnImage(point, image)) {
+      if (isPointOnImage(point, image) && !image.locked) {
         foundObjects.push({ id: image.id, type: 'image' });
       }
     }
 
-    // Check lines
+    // Check lines (lines don't have locked property currently)
     for (const line of lines) {
       if (isPointOnLine(point, line)) {
         foundObjects.push({ id: line.id, type: 'line' });
@@ -187,7 +202,7 @@ export const useSelect2State = () => {
     return foundObjects;
   }, [isPointOnLine, isPointOnImage]);
 
-  // Find objects within selection bounds
+  // Find objects within selection bounds (excluding locked objects)
   const findObjectsInBounds = useCallback((
     bounds: SelectionBounds,
     lines: LineObject[],
@@ -195,8 +210,10 @@ export const useSelect2State = () => {
   ): SelectedObject[] => {
     const foundObjects: SelectedObject[] = [];
 
-    // Check images
+    // Check images - exclude locked images
     for (const image of images) {
+      if (image.locked) continue; // Skip locked images
+      
       const imageWidth = image.width || 100;
       const imageHeight = image.height || 100;
       
@@ -538,6 +555,7 @@ export const useSelect2State = () => {
     calculateGroupBounds,
     updateGroupBounds,
     isPointInGroupBounds,
+    isObjectLocked,
     showContextMenu,
     hideContextMenu,
     updateContextMenuPosition

@@ -56,6 +56,7 @@ export const useSelect2EventHandlers = ({
     calculateGroupBounds,
     updateGroupBounds,
     isPointInGroupBounds,
+    isObjectLocked,
     setState,
     showContextMenu,
     hideContextMenu
@@ -110,7 +111,7 @@ export const useSelect2EventHandlers = ({
     );
   }, [findObjectsAtPoint, lines, images, state.selectedObjects, isPointInGroupBounds]);
 
-  // FIXED: Apply drag offset with proper coordinate handling - now ensures single application
+  // FIXED: Apply drag offset with proper coordinate handling - now ensures single application and respects locked state
   const applyDragOffset = useCallback(() => {
     if (!state.dragOffset || (!onUpdateLine && !onUpdateImage)) return;
 
@@ -118,8 +119,14 @@ export const useSelect2EventHandlers = ({
 
     console.log('Select2: Applying drag offset', { dx, dy, selectedCount: state.selectedObjects.length });
 
-    // Apply offset to objects - single application only
+    // Apply offset to objects - single application only, skip locked objects
     state.selectedObjects.forEach(obj => {
+      // Check if object is locked before applying updates
+      if (isObjectLocked(obj.id, obj.type, lines, images)) {
+        console.log('Select2: Skipping locked object', { id: obj.id, type: obj.type });
+        return;
+      }
+
       if (obj.type === 'line' && onUpdateLine) {
         const currentLine = lines.find(l => l.id === obj.id);
         if (currentLine) {
@@ -203,6 +210,16 @@ export const useSelect2EventHandlers = ({
 
     // Check if clicking on a selected object or within group bounds first
     if (isPointOnSelectedObject(worldPoint)) {
+      // Check if any selected objects are locked before allowing drag
+      const hasLockedObjects = state.selectedObjects.some(obj => 
+        isObjectLocked(obj.id, obj.type, lines, images)
+      );
+      
+      if (hasLockedObjects) {
+        console.log('Select2: Cannot drag - selection contains locked objects');
+        return;
+      }
+      
       // Start dragging selected objects
       console.log('Select2: Starting drag of selected objects');
       startDraggingObjects(worldPoint);
@@ -323,6 +340,16 @@ export const useSelect2EventHandlers = ({
 
     // Check if clicking on a selected object or within group bounds first
     if (isPointOnSelectedObject(worldPoint)) {
+      // Check if any selected objects are locked before allowing drag
+      const hasLockedObjects = state.selectedObjects.some(obj => 
+        isObjectLocked(obj.id, obj.type, lines, images)
+      );
+      
+      if (hasLockedObjects) {
+        console.log('Select2: Cannot drag - selection contains locked objects');
+        return;
+      }
+      
       // Start dragging selected objects
       startDraggingObjects(worldPoint);
       return;
