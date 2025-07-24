@@ -19,8 +19,8 @@ interface UsePointerEventHandlersProps {
     continuePan: (x: number, y: number) => void;
     stopPan: () => void;
   };
-  handlePointerDown: (x: number, y: number, ctrlKey?: boolean, button?: number) => void;
-  handlePointerMove: (x: number, y: number) => void;
+  handlePointerDown: (x: number, y: number, ctrlKey?: boolean, button?: number, clientX?: number, clientY?: number) => void;
+  handlePointerMove: (x: number, y: number, clientX?: number, clientY?: number) => void;
   handlePointerUp: () => void;
   isReadOnly: boolean;
   currentToolRef: React.RefObject<string>;
@@ -61,7 +61,7 @@ export const usePointerEventHandlers = ({
 
       // Transform screen coordinates to world coordinates
       const { x, y } = getRelativePointerPosition(stage, e.clientX, e.clientY);
-      handlePointerDown(x, y, e.ctrlKey, e.button);
+      handlePointerDown(x, y, e.ctrlKey, e.button, e.clientX, e.clientY);
     },
     handlePointerMoveEvent: (e: PointerEvent) => {
       const stage = stageRef.current;
@@ -69,7 +69,7 @@ export const usePointerEventHandlers = ({
 
       // Transform screen coordinates to world coordinates
       const { x, y } = getRelativePointerPosition(stage, e.clientX, e.clientY);
-      handlePointerMove(x, y);
+      handlePointerMove(x, y, e.clientX, e.clientY);
     },
     handlePointerUpEvent: (e: PointerEvent) => {
       logEventHandling('pointer', 'pointer', { type: 'up' });

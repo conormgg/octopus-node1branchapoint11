@@ -166,21 +166,21 @@ export const useStageEventHandlers = ({
     palmRejectionConfig,
     panZoom,
     handlePointerDown: currentTool === 'select2' ? 
-      (worldX: number, worldY: number, ctrlKey?: boolean, button?: number) => {
-        // For right-click (button 2), bypass Select2 and use pan/zoom directly
-        if (button === 2) {
+      (worldX: number, worldY: number, ctrlKey?: boolean, button?: number, clientX?: number, clientY?: number) => {
+        // For right-click (button 2), bypass Select2 and use pan/zoom directly with screen coordinates
+        if (button === 2 && clientX !== undefined && clientY !== undefined) {
           isPanningRef.current = true;
-          panZoom.startPan(worldX, worldY);
+          panZoom.startPan(clientX, clientY);
           return;
         }
         // For left-click and other buttons, use Select2
         select2Handlers.handlePointerDown(worldX, worldY, ctrlKey || false, button || 0);
       } : handlePointerDown,
     handlePointerMove: currentTool === 'select2' ? 
-      (worldX: number, worldY: number) => {
+      (worldX: number, worldY: number, clientX?: number, clientY?: number) => {
         // Check if we're currently panning (right-click drag)
-        if (isPanningRef.current) {
-          panZoom.continuePan(worldX, worldY);
+        if (isPanningRef.current && clientX !== undefined && clientY !== undefined) {
+          panZoom.continuePan(clientX, clientY);
           return;
         }
         // Otherwise use Select2
