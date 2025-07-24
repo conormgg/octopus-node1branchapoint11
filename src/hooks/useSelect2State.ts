@@ -177,7 +177,7 @@ export const useSelect2State = () => {
     return false;
   }, []);
 
-  // Find objects at point (excluding locked objects)
+  // Find objects at point (including locked objects for selection)
   const findObjectsAtPoint = useCallback((
     point: { x: number; y: number }, 
     lines: LineObject[], 
@@ -185,9 +185,9 @@ export const useSelect2State = () => {
   ): SelectedObject[] => {
     const foundObjects: SelectedObject[] = [];
 
-    // Check images first (they're typically on top) - exclude locked images
+    // Check images first (they're typically on top)
     for (const image of images) {
-      if (isPointOnImage(point, image) && !image.locked) {
+      if (isPointOnImage(point, image)) {
         foundObjects.push({ id: image.id, type: 'image' });
       }
     }
@@ -202,7 +202,7 @@ export const useSelect2State = () => {
     return foundObjects;
   }, [isPointOnLine, isPointOnImage]);
 
-  // Find objects within selection bounds (excluding locked objects)
+  // Find objects within selection bounds (including locked objects for selection)
   const findObjectsInBounds = useCallback((
     bounds: SelectionBounds,
     lines: LineObject[],
@@ -210,10 +210,8 @@ export const useSelect2State = () => {
   ): SelectedObject[] => {
     const foundObjects: SelectedObject[] = [];
 
-    // Check images - exclude locked images
+    // Check images
     for (const image of images) {
-      if (image.locked) continue; // Skip locked images
-      
       const imageWidth = image.width || 100;
       const imageHeight = image.height || 100;
       
