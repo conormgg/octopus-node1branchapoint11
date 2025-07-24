@@ -74,7 +74,6 @@ const SelectionContextMenu: React.FC<SelectionContextMenuProps> = ({
           size="sm"
           className="w-full justify-start text-destructive hover:text-destructive hover:bg-destructive/10"
           onClick={() => {
-            console.log('🗑️ Context menu delete clicked', { selectedObjects });
             onDelete();
             onClose();
           }}
