@@ -33,9 +33,13 @@ const Select2ContextMenuHandler: React.FC<Select2ContextMenuHandlerProps> = ({
   // Show context menu automatically when objects are selected
   useEffect(() => {
     if (selectedObjects.length > 0 && !contextMenu.isVisible) {
+      console.log('📋 Auto-showing context menu for selection', { selectedObjects: selectedObjects.length });
       showContextMenu();
+    } else if (selectedObjects.length === 0 && contextMenu.isVisible) {
+      console.log('📋 Auto-hiding context menu - no selection');
+      onHideContextMenu();
     }
-  }, [selectedObjects.length, contextMenu.isVisible, showContextMenu]);
+  }, [selectedObjects.length, contextMenu.isVisible, showContextMenu, onHideContextMenu]);
 
   return (
     <>

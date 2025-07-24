@@ -351,10 +351,10 @@ export const useSelect2State = () => {
           ...prev,
           selectedObjects: newSelectedObjects,
           groupBounds,
-          // Hide context menu when selection is cleared
+          // Hide context menu only when selection is completely cleared
           contextMenu: {
             ...prev.contextMenu,
-            isVisible: false
+            isVisible: newSelectedObjects.length > 0 ? prev.contextMenu.isVisible : false
           }
         };
       }
@@ -372,12 +372,7 @@ export const useSelect2State = () => {
         return {
           ...prev,
           selectedObjects: newSelectedObjects,
-          groupBounds,
-          // Hide context menu when multi-selection changes
-          contextMenu: {
-            ...prev.contextMenu,
-            isVisible: false
-          }
+          groupBounds
         };
       } else {
         // Single select
@@ -386,12 +381,7 @@ export const useSelect2State = () => {
         return {
           ...prev,
           selectedObjects: newSelectedObjects,
-          groupBounds,
-          // Hide context menu when selection changes
-          contextMenu: {
-            ...prev.contextMenu,
-            isVisible: false
-          }
+          groupBounds
         };
       }
     });
