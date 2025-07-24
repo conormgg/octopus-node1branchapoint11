@@ -70,19 +70,17 @@ const KonvaStageCanvas: React.FC<KonvaStageCanvasProps> = ({
         x={state.panZoomState.x}
         y={state.panZoomState.y}
       >
-        <Layer>
-          <LinesLayer 
-            layerRef={useRef<Konva.Layer>(null)}
-            lines={state.lines}
-            images={state.images}
-            currentTool={state.currentTool}
-            normalizedState={normalizedState}
-            onUpdateLine={whiteboardState.updateLine}
-            onUpdateImage={whiteboardState.updateImage}
-            stageRef={stageRef}
-          />
-          <ImagesLayer />
-        </Layer>
+        <LinesLayer 
+          layerRef={useRef<Konva.Layer>(null)}
+          lines={state.lines}
+          images={state.images}
+          currentTool={state.currentTool}
+          normalizedState={normalizedState}
+          onUpdateLine={whiteboardState.updateLine}
+          onUpdateImage={whiteboardState.updateImage}
+          stageRef={stageRef}
+        />
+        <ImagesLayer />
       </Stage>
     </div>
   );
