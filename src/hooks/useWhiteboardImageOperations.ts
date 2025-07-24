@@ -4,6 +4,7 @@ import { v4 as uuidv4 } from 'uuid';
 import { ImageObject } from '@/types/whiteboard';
 import Konva from 'konva';
 import { createDebugLogger } from '@/utils/debug/debugConfig';
+import { calculateImageDisplayDimensions } from '@/utils/imageUtils';
 
 const debugLog = createDebugLogger('images');
 
@@ -40,24 +41,30 @@ export const useWhiteboardImageOperations = (
         const reader = new FileReader();
         reader.onload = (event) => {
           const imageUrl = event.target?.result as string;
-          const image = new window.Image();
-          image.src = imageUrl;
-          image.onload = () => {
-            debugLog('Paste', 'Image loaded, creating image object');
-            const pointerPosition = stage.getPointerPosition() ?? { x: stage.width() / 2, y: stage.height() / 2 };
-            const position = {
-              x: (pointerPosition.x - state.panZoomState.x) / state.panZoomState.scale,
-              y: (pointerPosition.y - state.panZoomState.y) / state.panZoomState.scale,
-            };
+            const image = new window.Image();
+            image.src = imageUrl;
+            image.onload = () => {
+              debugLog('Paste', 'Image loaded, creating image object');
+              const pointerPosition = stage.getPointerPosition() ?? { x: stage.width() / 2, y: stage.height() / 2 };
+              const position = {
+                x: (pointerPosition.x - state.panZoomState.x) / state.panZoomState.scale,
+                y: (pointerPosition.y - state.panZoomState.y) / state.panZoomState.scale,
+              };
 
-            const newImage: ImageObject = {
-              id: `image_${uuidv4()}`,
-              src: imageUrl,
-              x: position.x - (image.width / 4),
-              y: position.y - (image.height / 4),
-              width: image.width / 2,
-              height: image.height / 2,
-            };
+              // Calculate appropriate display dimensions
+              const displayDimensions = calculateImageDisplayDimensions(
+                image.naturalWidth,
+                image.naturalHeight
+              );
+
+              const newImage: ImageObject = {
+                id: `image_${uuidv4()}`,
+                src: imageUrl,
+                x: position.x - (displayDimensions.width / 2),
+                y: position.y - (displayDimensions.height / 2),
+                width: displayDimensions.width,
+                height: displayDimensions.height,
+              };
             
             setState((prev: any) => ({
               ...prev,

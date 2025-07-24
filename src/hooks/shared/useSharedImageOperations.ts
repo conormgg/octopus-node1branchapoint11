@@ -2,6 +2,7 @@
 import { useCallback, useRef } from 'react';
 import { ImageObject, ActivityMetadata } from '@/types/whiteboard';
 import { serializeAddImageOperation, serializeUpdateImageOperation, serializeDeleteImageOperation } from '@/utils/operationSerializer';
+import { calculateImageDisplayDimensions, loadImageDimensions } from '@/utils/imageUtils';
 
 // Helper function to calculate image bounds
 const calculateImageBounds = (image: ImageObject) => {
@@ -43,53 +44,85 @@ export const useSharedImageOperations = (
       if (!file) continue;
       
       const reader = new FileReader();
-      reader.onload = (event) => {
+      reader.onload = async (event) => {
         const src = event.target?.result as string;
         if (!src) return;
         
-        const imageId = `image_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-        const newImage: ImageObject = {
-          id: imageId,
-          x: 100, // Default position
-          y: 100,
-          src,
-          width: 200,
-          height: 150,
-          rotation: 0,
-          scaleX: 1,
-          scaleY: 1,
-          locked: false
-        };
-        
-        // Calculate activity metadata for pasted image
-        const bounds = calculateImageBounds(newImage);
-        const activityMetadata: ActivityMetadata = {
-          type: 'paste',
-          bounds,
-          timestamp: Date.now()
-        };
-        
-        console.log(`[ImageOperations] Created activity metadata for paste:`, activityMetadata);
-        
-        setState((prev: any) => ({
-          ...prev,
-          images: [...prev.images, newImage]
-        }));
-        
-        // Add to history with activity metadata
-        setTimeout(() => {
-          addToHistory({
-            lines: state.lines,
-            images: [...state.images, newImage],
-            selectionState: state.selectionState
-          }, activityMetadata);
-        }, 0);
-        
-        // Send operation to sync
-        if (sendOperation && !isApplyingRemoteOperation.current) {
-          console.log(`[ImageOperations] Sending paste operation to sync:`, newImage);
-          const operation = serializeAddImageOperation(newImage);
-          sendOperation(operation);
+        try {
+          // Load image to get natural dimensions
+          const naturalDimensions = await loadImageDimensions(src);
+          
+          // Calculate appropriate display dimensions
+          const displayDimensions = calculateImageDisplayDimensions(
+            naturalDimensions.width,
+            naturalDimensions.height
+          );
+          
+          const imageId = `image_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+          const newImage: ImageObject = {
+            id: imageId,
+            x: 100, // Default position
+            y: 100,
+            src,
+            width: displayDimensions.width,
+            height: displayDimensions.height,
+            rotation: 0,
+            scaleX: 1,
+            scaleY: 1,
+            locked: false
+          };
+          
+          // Calculate activity metadata for pasted image
+          const bounds = calculateImageBounds(newImage);
+          const activityMetadata: ActivityMetadata = {
+            type: 'paste',
+            bounds,
+            timestamp: Date.now()
+          };
+          
+          console.log(`[ImageOperations] Created activity metadata for paste:`, activityMetadata);
+          
+          setState((prev: any) => ({
+            ...prev,
+            images: [...prev.images, newImage]
+          }));
+          
+          // Add to history with activity metadata
+          setTimeout(() => {
+            addToHistory({
+              lines: state.lines,
+              images: [...state.images, newImage],
+              selectionState: state.selectionState
+            }, activityMetadata);
+          }, 0);
+          
+          // Send operation to sync
+          if (sendOperation && !isApplyingRemoteOperation.current) {
+            console.log(`[ImageOperations] Sending paste operation to sync:`, newImage);
+            const operation = serializeAddImageOperation(newImage);
+            sendOperation(operation);
+          }
+        } catch (error) {
+          console.error('Failed to load image dimensions:', error);
+          // Fallback to original fixed dimensions if loading fails
+          const imageId = `image_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+          const newImage: ImageObject = {
+            id: imageId,
+            x: 100,
+            y: 100,
+            src,
+            width: 200,
+            height: 150,
+            rotation: 0,
+            scaleX: 1,
+            scaleY: 1,
+            locked: false
+          };
+          
+          setState((prev: any) => ({
+            ...prev,
+            images: [...prev.images, newImage]
+          }));
         }
       };
       reader.readAsDataURL(file);
