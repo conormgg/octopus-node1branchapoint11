@@ -100,24 +100,52 @@ const KonvaStage: React.FC<KonvaStageProps> = ({
   // Determine the correct delete functions to use
   // Create unified delete function that works for both select and select2 tools
   const unifiedDeleteFunction = useCallback((selectedObjects?: Array<{id: string, type: 'line' | 'image'}>) => {
+    console.log('🗑️ KonvaStage unifiedDeleteFunction called', {
+      selectedObjects,
+      selectionState: selection?.selectionState?.selectedObjects,
+      whiteboardType: whiteboardState.constructor?.name,
+      whiteboardKeys: Object.keys(whiteboardState)
+    });
+
     // Use provided objects or get from selection state
     const objectsToDelete = selectedObjects || selection?.selectionState?.selectedObjects;
     
-    if (!objectsToDelete || objectsToDelete.length === 0) return;
+    console.log('🗑️ Objects to delete:', objectsToDelete);
+    
+    if (!objectsToDelete || objectsToDelete.length === 0) {
+      console.log('❌ No objects to delete');
+      return;
+    }
 
     // Check if this is a shared whiteboard and use operations function
-    if ('operations' in whiteboardState && 
+    const hasOperations = 'operations' in whiteboardState && 
         whiteboardState.operations && 
         typeof whiteboardState.operations === 'object' && 
         'deleteSelectedObjects' in whiteboardState.operations &&
-        typeof (whiteboardState.operations as any).deleteSelectedObjects === 'function') {
+        typeof (whiteboardState.operations as any).deleteSelectedObjects === 'function';
+
+    const hasWhiteboardDelete = 'deleteSelectedObjects' in whiteboardState && 
+        typeof whiteboardState.deleteSelectedObjects === 'function';
+
+    console.log('🗑️ Delete function availability:', {
+      hasOperations,
+      hasWhiteboardDelete,
+      hasLocalDelete: typeof deleteSelectedObjects === 'function'
+    });
+
+    if (hasOperations) {
+      console.log('🗑️ Using shared whiteboard operations delete');
       (whiteboardState.operations as any).deleteSelectedObjects(objectsToDelete);
       selection?.clearSelection();
-    } else if ('deleteSelectedObjects' in whiteboardState && typeof whiteboardState.deleteSelectedObjects === 'function') {
+    } else if (hasWhiteboardDelete) {
+      console.log('🗑️ Using whiteboard deleteSelectedObjects');
       whiteboardState.deleteSelectedObjects(objectsToDelete);
     } else {
+      console.log('🗑️ Using local deleteSelectedObjects');
       deleteSelectedObjects(objectsToDelete);
     }
+    
+    console.log('🗑️ Delete operation completed');
   }, [whiteboardState, selection, deleteSelectedObjects]);
 
   debugLog('KonvaStage', 'Unified delete function initialized', {

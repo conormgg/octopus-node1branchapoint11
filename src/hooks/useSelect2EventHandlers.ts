@@ -430,14 +430,24 @@ export const useSelect2EventHandlers = ({
 
   // Simplified delete functionality - just use select2 state directly
   const deleteSelectedObjects = useCallback(() => {
-    if (state.selectedObjects.length === 0 || !onDeleteObjects) return;
+    console.log('🗑️ Select2 deleteSelectedObjects called', {
+      selectedObjects: state.selectedObjects,
+      selectedCount: state.selectedObjects.length,
+      hasOnDeleteObjects: typeof onDeleteObjects === 'function'
+    });
+    
+    if (state.selectedObjects.length === 0 || !onDeleteObjects) {
+      console.log('❌ No objects selected or onDeleteObjects not available');
+      return;
+    }
 
-    console.log(`Deleting ${state.selectedObjects.length} selected objects via select2`);
+    console.log('🗑️ Calling onDeleteObjects with:', state.selectedObjects);
     
     // Use the unified delete function with select2 selected objects
     onDeleteObjects(state.selectedObjects);
 
     // Clear select2 selection (main selection clearing is handled by unified function)
+    console.log('🗑️ Clearing select2 selection');
     clearSelection();
   }, [state.selectedObjects, onDeleteObjects, clearSelection]);
 
