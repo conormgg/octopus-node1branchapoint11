@@ -10,6 +10,11 @@ interface Select2State {
   isDraggingObjects: boolean;
   dragOffset: { x: number; y: number } | null;
   groupBounds: SelectionBounds | null;
+  contextMenu: {
+    isVisible: boolean;
+    x: number;
+    y: number;
+  };
 }
 
 export const useSelect2State = () => {
@@ -21,7 +26,12 @@ export const useSelect2State = () => {
     dragStartPoint: null,
     isDraggingObjects: false,
     dragOffset: null,
-    groupBounds: null
+    groupBounds: null,
+    contextMenu: {
+      isVisible: false,
+      x: 0,
+      y: 0
+    }
   });
 
   // Calculate group bounds for selected objects
@@ -340,7 +350,12 @@ export const useSelect2State = () => {
         return {
           ...prev,
           selectedObjects: newSelectedObjects,
-          groupBounds
+          groupBounds,
+          // Hide context menu when selection is cleared
+          contextMenu: {
+            ...prev.contextMenu,
+            isVisible: false
+          }
         };
       }
 
@@ -357,7 +372,12 @@ export const useSelect2State = () => {
         return {
           ...prev,
           selectedObjects: newSelectedObjects,
-          groupBounds
+          groupBounds,
+          // Hide context menu when multi-selection changes
+          contextMenu: {
+            ...prev.contextMenu,
+            isVisible: false
+          }
         };
       } else {
         // Single select
@@ -366,7 +386,12 @@ export const useSelect2State = () => {
         return {
           ...prev,
           selectedObjects: newSelectedObjects,
-          groupBounds
+          groupBounds,
+          // Hide context menu when selection changes
+          contextMenu: {
+            ...prev.contextMenu,
+            isVisible: false
+          }
         };
       }
     });
@@ -379,7 +404,11 @@ export const useSelect2State = () => {
       selectedObjects: [],
       hoveredObjectId: null,
       selectionBounds: null,
-      groupBounds: null
+      groupBounds: null,
+      contextMenu: {
+        ...prev.contextMenu,
+        isVisible: false
+      }
     }));
   }, []);
 
@@ -390,6 +419,108 @@ export const useSelect2State = () => {
       hoveredObjectId: objectId
     }));
   }, []);
+
+  // Calculate context menu position based on selection bounds or group bounds
+  const calculateContextMenuPosition = useCallback((
+    selectionBounds: SelectionBounds | null,
+    groupBounds: SelectionBounds | null,
+    containerRef?: React.RefObject<HTMLElement>
+  ) => {
+    const bounds = groupBounds || selectionBounds;
+    if (!bounds) return { x: 0, y: 0 };
+
+    const menuWidth = 200; // Approximate menu width
+    const menuHeight = 120; // Approximate menu height
+    const offset = 10; // Distance from selection
+
+    // Default position: bottom-right of selection
+    let x = bounds.x + bounds.width + offset;
+    let y = bounds.y;
+
+    // Adjust if menu would go off-screen
+    if (containerRef?.current) {
+      const containerRect = containerRef.current.getBoundingClientRect();
+      const containerWidth = containerRect.width;
+      const containerHeight = containerRect.height;
+
+      // If menu would overflow right, position to the left
+      if (x + menuWidth > containerWidth) {
+        x = bounds.x - menuWidth - offset;
+      }
+
+      // If menu would overflow bottom, position above
+      if (y + menuHeight > containerHeight) {
+        y = bounds.y + bounds.height - menuHeight;
+      }
+
+      // Ensure menu doesn't go off left edge
+      if (x < 0) {
+        x = bounds.x + bounds.width / 2;
+      }
+
+      // Ensure menu doesn't go off top edge
+      if (y < 0) {
+        y = offset;
+      }
+    }
+
+    return { x, y };
+  }, []);
+
+  // Show context menu
+  const showContextMenu = useCallback((containerRef?: React.RefObject<HTMLElement>) => {
+    setState(prev => {
+      if (prev.selectedObjects.length === 0) return prev;
+
+      const position = calculateContextMenuPosition(
+        prev.selectionBounds,
+        prev.groupBounds,
+        containerRef
+      );
+
+      return {
+        ...prev,
+        contextMenu: {
+          isVisible: true,
+          x: position.x,
+          y: position.y
+        }
+      };
+    });
+  }, [calculateContextMenuPosition]);
+
+  // Hide context menu
+  const hideContextMenu = useCallback(() => {
+    setState(prev => ({
+      ...prev,
+      contextMenu: {
+        ...prev.contextMenu,
+        isVisible: false
+      }
+    }));
+  }, []);
+
+  // Update context menu position (useful when selection bounds change)
+  const updateContextMenuPosition = useCallback((containerRef?: React.RefObject<HTMLElement>) => {
+    setState(prev => {
+      if (!prev.contextMenu.isVisible) return prev;
+
+      const position = calculateContextMenuPosition(
+        prev.selectionBounds,
+        prev.groupBounds,
+        containerRef
+      );
+
+      return {
+        ...prev,
+        contextMenu: {
+          ...prev.contextMenu,
+          x: position.x,
+          y: position.y
+        }
+      };
+    });
+  }, [calculateContextMenuPosition]);
 
   return {
     state,
@@ -406,6 +537,9 @@ export const useSelect2State = () => {
     findObjectsAtPoint,
     calculateGroupBounds,
     updateGroupBounds,
-    isPointInGroupBounds
+    isPointInGroupBounds,
+    showContextMenu,
+    hideContextMenu,
+    updateContextMenuPosition
   };
 };
