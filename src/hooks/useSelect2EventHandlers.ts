@@ -426,22 +426,18 @@ export const useSelect2EventHandlers = ({
     }
   }, [getRelativePointerPosition, selectObjectsAtPoint, findObjectsAtPoint, lines, images, state.selectedObjects, syncSelectionWithMainState]);
 
-  // Updated delete functionality - now uses the main selection state that's synchronized
+  // Simplified delete functionality - just use select2 state directly
   const deleteSelectedObjects = useCallback(() => {
-    // Use main selection state for deletion if available, fallback to select2 state
-    const selectedObjects = mainSelection?.selectionState?.selectedObjects || state.selectedObjects;
-    
-    if (selectedObjects.length === 0 || !onDeleteObjects) return;
+    if (state.selectedObjects.length === 0 || !onDeleteObjects) return;
 
-    console.log(`Deleting ${selectedObjects.length} selected objects via select2`);
+    console.log(`Deleting ${state.selectedObjects.length} selected objects via select2`);
     
-    // Use the proper delete function
-    onDeleteObjects(selectedObjects);
+    // Use the unified delete function with select2 selected objects
+    onDeleteObjects(state.selectedObjects);
 
-    // Clear both selection states after deletion
+    // Clear select2 selection (main selection clearing is handled by unified function)
     clearSelection();
-    clearMainSelection();
-  }, [state.selectedObjects, mainSelection?.selectionState?.selectedObjects, onDeleteObjects, clearSelection, clearMainSelection]);
+  }, [state.selectedObjects, onDeleteObjects, clearSelection]);
 
   return {
     select2State: state,
@@ -452,10 +448,7 @@ export const useSelect2EventHandlers = ({
     handleMouseDown,
     handleMouseMove,
     handleMouseUp,
-    clearSelection: () => {
-      clearSelection();
-      clearMainSelection();
-    },
+    clearSelection: clearSelection,
     deleteSelectedObjects
   };
 };
