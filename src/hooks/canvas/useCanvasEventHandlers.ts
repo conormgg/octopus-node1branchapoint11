@@ -61,6 +61,15 @@ export const useCanvasEventHandlers = ({
     
     debugLog('Canvas', 'Pointer down', { pointerId, pointerType, button, currentTool });
     
+    // Stop any active pan before starting new actions (except for pan buttons)
+    if (button !== 1 && button !== 2 && (isRightClickPanRef.current || isMiddleClickPanRef.current)) {
+      debugLog('Canvas', 'Stopping active pan before new action');
+      panZoom.stopPan();
+      isRightClickPanRef.current = false;
+      isMiddleClickPanRef.current = false;
+      isDraggingRef.current = false;
+    }
+    
     // Handle right-click pan (button 2) - works regardless of read-only status
     if (button === 2) {
       debugLog('Canvas', 'Right-click pan detected');
@@ -159,13 +168,18 @@ export const useCanvasEventHandlers = ({
     
     debugLog('Canvas', 'Pointer up', { pointerId, button, currentTool });
     
-    // Handle right-click or middle-click pan end
+    // Handle right-click or middle-click pan end - stop pan regardless of which button is released
     if (isRightClickPanRef.current || isMiddleClickPanRef.current) {
+      debugLog('Canvas', 'Stopping pan on pointer up');
       panZoom.stopPan();
       isRightClickPanRef.current = false;
       isMiddleClickPanRef.current = false;
       isDraggingRef.current = false;
-      return;
+      
+      // If this was a left-click after panning, don't process it further
+      if (button === 0) {
+        return;
+      }
     }
 
     // Don't handle other interactions if read-only
