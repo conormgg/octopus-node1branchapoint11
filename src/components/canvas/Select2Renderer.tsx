@@ -2,7 +2,6 @@ import React from 'react';
 import { Rect, Line, Image } from 'react-konva';
 import { SelectionBounds, SelectedObject, LineObject, ImageObject } from '@/types/whiteboard';
 import SelectionRect from './SelectionRect';
-import SelectionContextMenu from './SelectionContextMenu';
 
 interface Select2RendererProps {
   selectedObjects: SelectedObject[];
@@ -14,15 +13,6 @@ interface Select2RendererProps {
   groupBounds: SelectionBounds | null;
   dragOffset: { x: number; y: number } | null;
   isDraggingObjects: boolean;
-  contextMenu?: {
-    isVisible: boolean;
-    x: number;
-    y: number;
-  };
-  onDeleteObjects?: (selectedObjects: SelectedObject[]) => void;
-  onLockImages?: (imageIds: string[]) => void;
-  onUnlockImages?: (imageIds: string[]) => void;
-  onHideContextMenu?: () => void;
 }
 
 export const Select2Renderer: React.FC<Select2RendererProps> = ({
@@ -34,12 +24,7 @@ export const Select2Renderer: React.FC<Select2RendererProps> = ({
   images,
   groupBounds,
   dragOffset,
-  isDraggingObjects,
-  contextMenu,
-  onDeleteObjects,
-  onLockImages,
-  onUnlockImages,
-  onHideContextMenu
+  isDraggingObjects
 }) => {
   // Helper function to get object bounds for individual hover feedback
   const getObjectBounds = (obj: SelectedObject) => {
@@ -189,35 +174,6 @@ export const Select2Renderer: React.FC<Select2RendererProps> = ({
 
       {/* Preview objects during dragging */}
       {renderPreviewObjects()}
-
-      {/* Selection Context Menu */}
-      {contextMenu?.isVisible && selectedObjects.length > 0 && (
-        <SelectionContextMenu
-          x={contextMenu.x}
-          y={contextMenu.y}
-          selectedObjects={selectedObjects}
-          images={images}
-          onDelete={() => {
-            onDeleteObjects?.(selectedObjects);
-            onHideContextMenu?.();
-          }}
-          onLockImages={() => {
-            const imageIds = selectedObjects
-              .filter(obj => obj.type === 'image')
-              .map(obj => obj.id);
-            onLockImages?.(imageIds);
-            onHideContextMenu?.();
-          }}
-          onUnlockImages={() => {
-            const imageIds = selectedObjects
-              .filter(obj => obj.type === 'image')
-              .map(obj => obj.id);
-            onUnlockImages?.(imageIds);
-            onHideContextMenu?.();
-          }}
-          onClose={() => onHideContextMenu?.()}
-        />
-      )}
     </>
   );
 };

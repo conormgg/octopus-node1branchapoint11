@@ -237,27 +237,6 @@ const KonvaStage: React.FC<KonvaStageProps> = ({
                   images={state.images}
                   dragOffset={stageEventHandlers.select2State?.dragOffset || null}
                   isDraggingObjects={stageEventHandlers.select2State?.isDraggingObjects || false}
-                  contextMenu={stageEventHandlers.select2State?.contextMenu}
-                  onDeleteObjects={(selectedObjects) => {
-                    if (stageEventHandlers.deleteSelectedObjects) {
-                      stageEventHandlers.deleteSelectedObjects();
-                    }
-                  }}
-                  onLockImages={(imageIds) => {
-                    imageIds.forEach(imageId => {
-                      whiteboardState.toggleImageLock?.(imageId);
-                    });
-                  }}
-                  onUnlockImages={(imageIds) => {
-                    imageIds.forEach(imageId => {
-                      whiteboardState.toggleImageLock?.(imageId);
-                    });
-                  }}
-                  onHideContextMenu={() => {
-                    if (stageEventHandlers.hideContextMenu) {
-                      stageEventHandlers.hideContextMenu();
-                    }
-                  }}
                 />
               )}
               {/* SelectionGroup for select2 - show transform handles when objects are selected and not selecting */}
