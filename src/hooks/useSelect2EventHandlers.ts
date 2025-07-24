@@ -192,11 +192,17 @@ export const useSelect2EventHandlers = ({
     }, 0);
   }, [state.dragOffset, state.selectedObjects, lines, images, onUpdateLine, onUpdateImage, setState, calculateGroupBounds]);
 
-  // UPDATED: Improved pointer handlers with pan/zoom gesture detection
-  const handlePointerDown = useCallback((worldX: number, worldY: number, ctrlKey: boolean = false) => {
+  // UPDATED: Improved pointer handlers with pan/zoom gesture detection and mouse button filtering
+  const handlePointerDown = useCallback((worldX: number, worldY: number, ctrlKey: boolean = false, button: number = 0) => {
     // Ignore pointer events during pan/zoom gestures
     if (panZoom.isGestureActive()) {
       console.log('Select2: Ignoring pointer down during pan/zoom gesture');
+      return;
+    }
+
+    // Only handle left mouse button (0) for selection, ignore right-click (2) for panning
+    if (button !== 0) {
+      console.log('Select2: Ignoring non-left-click event', { button });
       return;
     }
 
@@ -331,6 +337,12 @@ export const useSelect2EventHandlers = ({
   const handleMouseDown = useCallback((e: Konva.KonvaEventObject<MouseEvent>) => {
     const stage = e.target.getStage();
     if (!stage) return;
+
+    // Only handle left mouse button (0) for selection, ignore right-click (2) for panning
+    if (e.evt.button !== 0) {
+      console.log('Select2: Ignoring non-left-click mouse event', { button: e.evt.button });
+      return;
+    }
 
     const worldPoint = getRelativePointerPosition(stage, e.evt.clientX, e.evt.clientY);
     
