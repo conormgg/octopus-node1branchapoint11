@@ -56,7 +56,9 @@ export const useSelect2EventHandlers = ({
     calculateGroupBounds,
     updateGroupBounds,
     isPointInGroupBounds,
-    setState
+    setState,
+    showContextMenu,
+    hideContextMenu
   } = useSelect2State();
 
   const { getRelativePointerPosition } = useStageCoordinates(panZoomState);
@@ -449,6 +451,13 @@ export const useSelect2EventHandlers = ({
     handleMouseMove,
     handleMouseUp,
     clearSelection: clearSelection,
-    deleteSelectedObjects
+    deleteSelectedObjects,
+    showContextMenu: (containerRef?: React.RefObject<HTMLElement>) => {
+      // Use the showContextMenu from useSelect2State
+      if (state.selectedObjects.length > 0) {
+        showContextMenu(containerRef);
+      }
+    },
+    hideContextMenu
   };
 };

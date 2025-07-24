@@ -11,6 +11,7 @@ import KonvaImageContextMenuHandler from './KonvaImageContextMenuHandler';
 import KonvaImageOperationsHandler from './KonvaImageOperationsHandler';
 import { Select2Renderer } from './Select2Renderer';
 import SelectionGroup from './SelectionGroup';
+import Select2ContextMenuHandler from './Select2ContextMenuHandler';
 import { createDebugLogger } from '@/utils/debug/debugConfig';
 
 const debugLog = createDebugLogger('toolSync');
@@ -178,10 +179,56 @@ const KonvaStage: React.FC<KonvaStageProps> = ({
       tabIndex={0}
       data-whiteboard-id={whiteboardId}
     >
-      <KonvaImageContextMenuHandler
-        whiteboardState={whiteboardState}
-        whiteboardId={whiteboardId}
+      <Select2ContextMenuHandler
+        selectedObjects={stageEventHandlers?.select2State?.selectedObjects || []}
+        images={state.images}
+        contextMenu={stageEventHandlers?.select2State?.contextMenu || { isVisible: false, x: 0, y: 0 }}
+        onDeleteObjects={() => {
+          if (stageEventHandlers?.select2MouseHandlers?.deleteSelectedObjects) {
+            stageEventHandlers.select2MouseHandlers.deleteSelectedObjects();
+          }
+        }}
+        onLockImages={() => {
+          // Handle lock images
+          const selectedImages = (stageEventHandlers?.select2State?.selectedObjects || [])
+            .filter(obj => obj.type === 'image')
+            .map(obj => state.images.find(img => img.id === obj.id))
+            .filter(Boolean);
+          
+          selectedImages.forEach(image => {
+            if (image && 'updateImage' in whiteboardState && whiteboardState.updateImage) {
+              whiteboardState.updateImage(image.id, { locked: true });
+            }
+          });
+        }}
+        onUnlockImages={() => {
+          // Handle unlock images
+          const selectedImages = (stageEventHandlers?.select2State?.selectedObjects || [])
+            .filter(obj => obj.type === 'image')
+            .map(obj => state.images.find(img => img.id === obj.id))
+            .filter(Boolean);
+          
+          selectedImages.forEach(image => {
+            if (image && 'updateImage' in whiteboardState && whiteboardState.updateImage) {
+              whiteboardState.updateImage(image.id, { locked: false });
+            }
+          });
+        }}
+        onHideContextMenu={() => {
+          if (stageEventHandlers?.select2MouseHandlers?.hideContextMenu) {
+            stageEventHandlers.select2MouseHandlers.hideContextMenu();
+          }
+        }}
+        showContextMenu={() => {
+          if (stageEventHandlers?.select2MouseHandlers?.showContextMenu) {
+            stageEventHandlers.select2MouseHandlers.showContextMenu(containerRef);
+          }
+        }}
       >
+        <KonvaImageContextMenuHandler
+          whiteboardState={whiteboardState}
+          whiteboardId={whiteboardId}
+        >
         <KonvaStageCanvas
           width={width}
           height={height}
@@ -264,6 +311,7 @@ const KonvaStage: React.FC<KonvaStageProps> = ({
           }
         />
       </KonvaImageContextMenuHandler>
+      </Select2ContextMenuHandler>
     </div>
   );
 };

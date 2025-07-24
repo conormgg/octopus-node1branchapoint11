@@ -187,7 +187,10 @@ export const useStageEventHandlers = ({
       select2MouseHandlers: {
         onMouseDown: select2Handlers.handleMouseDown,
         onMouseMove: select2Handlers.handleMouseMove,
-        onMouseUp: select2Handlers.handleMouseUp
+        onMouseUp: select2Handlers.handleMouseUp,
+        deleteSelectedObjects: select2Handlers.deleteSelectedObjects,
+        showContextMenu: select2Handlers.showContextMenu,
+        hideContextMenu: select2Handlers.hideContextMenu
       }
     };
   }
