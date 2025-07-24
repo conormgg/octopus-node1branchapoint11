@@ -1,17 +1,5 @@
-export type Tool = 'pencil' | 'eraser' | 'select' | 'highlighter';
 
-export interface Point {
-  x: number;
-  y: number;
-}
-
-export interface WhiteboardOptions {
-  width?: number;
-  height?: number;
-  backgroundColor?: string;
-  initialScale?: number;
-  initialPosition?: Point;
-}
+export type Tool = 'pencil' | 'eraser' | 'select' | 'highlighter' | 'select2';
 
 export interface LineObject {
   id: string;

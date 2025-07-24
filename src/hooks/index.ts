@@ -34,6 +34,12 @@ export { useSyncWhiteboardState } from './useSyncWhiteboardState';
 // ============================================================================
 
 /**
+ * Coordinates all input events (pointer, touch, mouse) for the canvas
+ * Handles the complex logic of choosing the right event system
+ */
+export { useStageEventHandlers } from './useStageEventHandlers';
+
+/**
  * Advanced palm rejection for stylus input on touch devices
  * Prevents accidental palm touches while drawing with a stylus
  */
@@ -134,11 +140,11 @@ export { useTeacherViewState } from './useTeacherViewState';
 export { useToolbarDrag } from './useToolbarDrag';
 
 /**
- * Enhanced selection state management and event handling
- * Primary selection tool for all object selection and manipulation
+ * Select2 state management and event handling (experimental)
+ * Simplified selection tool for testing and development
  */
-export { useSelectState } from './useSelectState';
-export { useSelectEventHandlers } from './useSelectEventHandlers';
+export { useSelect2State } from './useSelect2State';
+export { useSelect2EventHandlers } from './useSelect2EventHandlers';
 
 /**
  * Session creation form state and validation

@@ -1,22 +1,34 @@
-
-import React, { useRef, useEffect, useCallback } from 'react';
+import React, { useRef, useEffect } from 'react';
 import Konva from 'konva';
-import { Stage, Layer } from 'react-konva';
-import { useSharedWhiteboardState } from '@/hooks/useSharedWhiteboardState';
-import { useCanvasEventHandlers } from '@/hooks/canvas/useCanvasEventHandlers';
-import { useSelectEventHandlers } from '@/hooks/useSelectEventHandlers';
-import { useCanvasKeyboardShortcuts } from '@/hooks/canvas/useCanvasKeyboardShortcuts';
-import LinesList from './layers/LinesList';
-import { SelectRenderer } from './SelectRenderer';
+import { useWhiteboardState } from '@/hooks/useWhiteboardState';
+import { useNormalizedWhiteboardState } from '@/hooks/performance/useNormalizedWhiteboardState';
+import { usePalmRejection } from '@/hooks/usePalmRejection';
+import { useStageEventHandlers } from '@/hooks/useStageEventHandlers';
+import { useKonvaKeyboardHandlers } from '@/hooks/canvas/useKonvaKeyboardHandlers';
+import { useKonvaPanZoomSync } from '@/hooks/canvas/useKonvaPanZoomSync';
+import KonvaStageCanvas from './KonvaStageCanvas';
+import KonvaImageContextMenuHandler from './KonvaImageContextMenuHandler';
+import KonvaImageOperationsHandler from './KonvaImageOperationsHandler';
+import { Select2Renderer } from './Select2Renderer';
+import SelectionGroup from './SelectionGroup';
+import { createDebugLogger } from '@/utils/debug/debugConfig';
+
+const debugLog = createDebugLogger('toolSync');
 
 interface KonvaStageProps {
   width: number;
   height: number;
-  whiteboardState: ReturnType<typeof useSharedWhiteboardState>;
+  whiteboardState: ReturnType<typeof useWhiteboardState>;
   isReadOnly?: boolean;
-  palmRejectionConfig?: any;
-  normalizedState?: any;
-  containerRef?: React.RefObject<HTMLDivElement>;
+  palmRejectionConfig?: {
+    maxContactSize: number;
+    minPressure: number;
+    palmTimeoutMs: number;
+    clusterDistance: number;
+    preferStylus: boolean;
+    enabled: boolean;
+  };
+  normalizedState?: ReturnType<typeof useNormalizedWhiteboardState>;
 }
 
 const KonvaStage: React.FC<KonvaStageProps> = ({
@@ -24,111 +36,236 @@ const KonvaStage: React.FC<KonvaStageProps> = ({
   height,
   whiteboardState,
   isReadOnly = false,
-  palmRejectionConfig,
-  normalizedState,
-  containerRef
+  palmRejectionConfig = {
+    maxContactSize: 40,
+    minPressure: 0.1,
+    palmTimeoutMs: 500,
+    clusterDistance: 100,
+    preferStylus: true,
+    enabled: true
+  },
+  normalizedState
 }) => {
   const stageRef = useRef<Konva.Stage>(null);
-  
-  const { state, selection } = whiteboardState;
-  const currentTool = state.currentTool;
-  const isDrawing = state.isDrawing;
+  const layerRef = useRef<Konva.Layer>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
 
-  // Selection event handlers
-  const selectHandlers = useSelectEventHandlers({
+  const {
+    state,
+    handlePointerDown,
+    handlePointerMove,
+    handlePointerUp,
+    panZoom,
+    // selection: null, // Selection now handled by select2 system
+    updateLine,
+    deleteSelectedObjects
+  } = whiteboardState;
+
+  // Get whiteboard ID for this instance with proper typing
+  const whiteboardId: string = 'whiteboardId' in whiteboardState && typeof whiteboardState.whiteboardId === 'string' 
+    ? whiteboardState.whiteboardId 
+    : 'default';
+
+  const palmRejection = usePalmRejection(palmRejectionConfig);
+
+  // Check if currently drawing
+  const isDrawing = state.isDrawing || false;
+  const isDrawingTool = state.currentTool === 'pencil' || state.currentTool === 'highlighter' || state.currentTool === 'eraser';
+
+  // Dynamic touch-action based on drawing state
+  const touchAction = React.useMemo(() => {
+    if (isDrawing && isDrawingTool) {
+      return 'none'; // Strict control during drawing
+    }
+    return palmRejectionConfig.enabled ? 'manipulation' : 'auto';
+  }, [isDrawing, isDrawingTool, palmRejectionConfig.enabled]);
+
+  // Debug tool state flow in KonvaStage
+  useEffect(() => {
+    debugLog('KonvaStage', 'Tool state in KonvaStage', {
+      currentTool: state.currentTool,
+      toolType: typeof state.currentTool,
+      whiteboardId
+    });
+  }, [state.currentTool, whiteboardId]);
+
+  // Use focused hooks for specific functionality
+  useKonvaPanZoomSync({
     stageRef,
+    panZoomState: state.panZoomState,
+    currentTool: state.currentTool
+  });
+
+  // Determine the correct delete functions to use
+  // Check if this is a shared whiteboard (has operations property) vs regular whiteboard
+  const hasSharedOperations = 'operations' in whiteboardState && 
+    whiteboardState.operations && 
+    typeof whiteboardState.operations === 'object' && 
+    'deleteSelectedObjects' in whiteboardState.operations &&
+    typeof (whiteboardState.operations as any).deleteSelectedObjects === 'function';
+
+  // For select2: use the real implementation that accepts parameters
+  const select2DeleteFunction = hasSharedOperations 
+    ? (whiteboardState.operations as any).deleteSelectedObjects 
+    : ('deleteSelectedObjects' in whiteboardState && typeof whiteboardState.deleteSelectedObjects === 'function' 
+       ? (selectedObjects: Array<{id: string, type: 'line' | 'image'}>) => whiteboardState.deleteSelectedObjects(selectedObjects)
+       : deleteSelectedObjects);
+
+  // For original select: use the wrapper that reads from selection state
+  const originalSelectDeleteFunction = hasSharedOperations 
+    ? deleteSelectedObjects  // This is the wrapper in shared whiteboards
+    : ('deleteSelectedObjects' in whiteboardState && typeof whiteboardState.deleteSelectedObjects === 'function' 
+       ? whiteboardState.deleteSelectedObjects 
+       : deleteSelectedObjects);
+
+  debugLog('KonvaStage', 'Delete function selection', {
+    whiteboardId,
+    hasOperations: 'operations' in whiteboardState,
+    hasSharedDelete: hasSharedOperations,
+    usingSharedDelete: hasSharedOperations,
+    select2DeleteFunction: select2DeleteFunction ? 'available' : 'none',
+    originalSelectDeleteFunction: originalSelectDeleteFunction ? 'available' : 'none'
+  });
+
+  // Set up all event handlers with proper update functions for select2
+  const stageEventHandlers = useStageEventHandlers({
+    containerRef,
+    stageRef,
+    panZoomState: state.panZoomState,
+    palmRejection,
+    palmRejectionConfig,
+    panZoom,
+    handlePointerDown,
+    handlePointerMove,
+    handlePointerUp,
+    isReadOnly,
+    currentTool: state.currentTool,
     lines: state.lines,
     images: state.images,
-    panZoomState: state.panZoomState,
-    panZoom: whiteboardState.panZoom,
-    onUpdateLine: whiteboardState.updateLine,
-    onUpdateImage: whiteboardState.updateImage,
-    onDeleteObjects: whiteboardState.deleteSelectedObjects,
-    containerRef,
-    mainSelection: selection
+    // Pass update functions for select2 object movement
+    onUpdateLine: updateLine,
+    onUpdateImage: 'updateImage' in whiteboardState && whiteboardState.updateImage ? whiteboardState.updateImage : undefined,
+    // Pass the select2 delete function (accepts parameters)
+    onDeleteObjects: select2DeleteFunction,
+    // Pass the original select delete function (wrapper, no parameters)
+    onDeleteObjectsNoParams: originalSelectDeleteFunction,
+    mainSelection: null // Selection now handled by select2 system
   });
 
-  // Canvas event handlers for coordinating all input
-  const canvasHandlers = useCanvasEventHandlers({
-    stageRef,
-    panZoomState: state.panZoomState,
-    panZoom: whiteboardState.panZoom,
-    currentTool,
-    handlePointerDown: currentTool === 'select' ? selectHandlers.handlePointerDown : whiteboardState.handlePointerDown,
-    handlePointerMove: currentTool === 'select' ? selectHandlers.handlePointerMove : whiteboardState.handlePointerMove,
-    handlePointerUp: currentTool === 'select' ? selectHandlers.handlePointerUp : whiteboardState.handlePointerUp,
-    isReadOnly
-  });
-
-  // Keyboard shortcuts for selection operations
-  useCanvasKeyboardShortcuts({
+  useKonvaKeyboardHandlers({
     containerRef,
-    currentTool,
+    whiteboardState,
     isReadOnly,
-    selection,
-    selectHandlers,
-    lines: state.lines,
-    images: state.images
+    whiteboardId,
+    // Pass both delete functions
+    select2DeleteFunction,
+    originalSelectDeleteFunction,
+    // Pass select handlers when select tool is active
+    select2Handlers: state.currentTool === 'select' && stageEventHandlers ? {
+      select2State: stageEventHandlers.select2State,
+      deleteSelectedObjects: stageEventHandlers.deleteSelectedObjects || (() => {}),
+      clearSelection: stageEventHandlers.clearSelect2Selection || (() => {})
+    } : undefined
   });
-
-  // Reset handlers when tool changes
-  useEffect(() => {
-    canvasHandlers.resetHandlers();
-  }, [currentTool, canvasHandlers]);
-
-  const renderLines = () => {
-    return (
-      <LinesList
-        lines={normalizedState?.linesArray || state.lines}
-      />
-    );
-  };
-
-  const renderSelectVisuals = () => {
-    if (currentTool !== 'select') return null;
-
-    return (
-      <SelectRenderer
-        selectedObjects={selection?.selectionState?.selectedObjects || []}
-        hoveredObjectId={selectHandlers.selectState?.hoveredObjectId || null}
-        selectionBounds={selection?.selectionState?.selectionBounds || null}
-        isSelecting={selection?.selectionState?.isSelecting || false}
-        lines={state.lines}
-        images={state.images}
-        groupBounds={selectHandlers.selectState?.groupBounds || null}
-        dragOffset={selectHandlers.selectState?.dragOffset || null}
-        isDraggingObjects={selectHandlers.selectState?.isDraggingObjects || false}
-      />
-    );
-  };
 
   return (
-    <Stage
-      width={width}
-      height={height}
-      style={{
-        backgroundColor: '#fff',
-        touchAction: 'none',
-        cursor: isDrawing ? 'crosshair' : currentTool === 'eraser' ? 'grab' : currentTool === 'select' ? 'pointer' : 'default'
+    <div 
+      ref={containerRef} 
+      className="w-full h-full select-none outline-none drawing-background" 
+      style={{ 
+        WebkitUserSelect: 'none',
+        WebkitTouchCallout: 'none',
+        touchAction,
+        userSelect: 'none',
+        pointerEvents: 'auto'
       }}
-      ref={stageRef}
-      scaleX={state.panZoomState.scale}
-      scaleY={state.panZoomState.scale}
-      x={state.panZoomState.x}
-      y={state.panZoomState.y}
-      onPointerDown={canvasHandlers.onPointerDown}
-      onPointerMove={canvasHandlers.onPointerMove}
-      onPointerUp={canvasHandlers.onPointerUp}
-      onContextMenu={canvasHandlers.onContextMenu}
-      onTouchStart={canvasHandlers.onTouchStart}
-      onTouchMove={canvasHandlers.onTouchMove}
-      onTouchEnd={canvasHandlers.onTouchEnd}
+      tabIndex={0}
+      data-whiteboard-id={whiteboardId}
     >
-      <Layer>
-        {renderLines()}
-        {renderSelectVisuals()}
-      </Layer>
-    </Stage>
+      <KonvaImageContextMenuHandler
+        whiteboardState={whiteboardState}
+        whiteboardId={whiteboardId}
+      >
+        <KonvaStageCanvas
+          width={width}
+          height={height}
+          stageRef={stageRef}
+          layerRef={layerRef}
+          lines={state.lines}
+          images={state.images}
+          currentTool={state.currentTool}
+          panZoomState={state.panZoomState}
+          palmRejectionConfig={palmRejectionConfig}
+          panZoom={panZoom}
+          handlePointerDown={handlePointerDown}
+          handlePointerMove={handlePointerMove}
+          handlePointerUp={handlePointerUp}
+          isReadOnly={isReadOnly}
+          onStageClick={(e) => {
+            // Stage click handling now managed by select2 system
+          }}
+          selectionBounds={null}
+          isSelecting={false}
+          selection={null}
+          onUpdateLine={updateLine}
+          onUpdateImage={(imageId, updates) => {
+            if ('updateImage' in whiteboardState && whiteboardState.updateImage) {
+              whiteboardState.updateImage(imageId, updates);
+            }
+          }}
+          onTransformEnd={() => {
+            if ('addToHistory' in whiteboardState && whiteboardState.addToHistory) {
+              whiteboardState.addToHistory();
+            }
+          }}
+          normalizedState={normalizedState}
+          select2MouseHandlers={state.currentTool === 'select' && stageEventHandlers ? stageEventHandlers.select2MouseHandlers : undefined}
+          extraContent={
+            <>
+              <KonvaImageOperationsHandler
+                whiteboardState={whiteboardState}
+                whiteboardId={whiteboardId}
+              />
+              {/* Select overlay when select tool is active */}
+              {state.currentTool === 'select' && stageEventHandlers && (
+                <Select2Renderer
+                  selectedObjects={stageEventHandlers.select2State?.selectedObjects || []}
+                  hoveredObjectId={stageEventHandlers.select2State?.hoveredObjectId || null}
+                  selectionBounds={stageEventHandlers.select2State?.selectionBounds || null}
+                  isSelecting={stageEventHandlers.select2State?.isSelecting || false}
+                  groupBounds={stageEventHandlers.select2State?.groupBounds || null}
+                  lines={state.lines}
+                  images={state.images}
+                  dragOffset={stageEventHandlers.select2State?.dragOffset || null}
+                  isDraggingObjects={stageEventHandlers.select2State?.isDraggingObjects || false}
+                />
+              )}
+              {/* SelectionGroup for select - show transform handles when objects are selected and not selecting */}
+              {state.currentTool === 'select' && stageEventHandlers && stageEventHandlers.select2State && (
+                <SelectionGroup
+                  selectedObjects={stageEventHandlers.select2State.selectedObjects}
+                  lines={state.lines}
+                  images={state.images}
+                  onUpdateLine={updateLine}
+                  onUpdateImage={(imageId, updates) => {
+                    if ('updateImage' in whiteboardState && whiteboardState.updateImage) {
+                      whiteboardState.updateImage(imageId, updates);
+                    }
+                  }}
+                  onTransformEnd={() => {
+                    if ('addToHistory' in whiteboardState && whiteboardState.addToHistory) {
+                      whiteboardState.addToHistory();
+                    }
+                  }}
+                  currentTool={state.currentTool}
+                  isVisible={!stageEventHandlers.select2State.isSelecting}
+                />
+              )}
+            </>
+          }
+        />
+      </KonvaImageContextMenuHandler>
+    </div>
   );
 };
 

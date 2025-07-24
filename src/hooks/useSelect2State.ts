@@ -1,8 +1,7 @@
-
 import { useState, useCallback } from 'react';
 import { LineObject, ImageObject, SelectedObject, SelectionBounds } from '@/types/whiteboard';
 
-interface SelectState {
+interface Select2State {
   selectedObjects: SelectedObject[];
   hoveredObjectId: string | null;
   isSelecting: boolean;
@@ -13,8 +12,8 @@ interface SelectState {
   groupBounds: SelectionBounds | null;
 }
 
-export const useSelectState = () => {
-  const [state, setState] = useState<SelectState>({
+export const useSelect2State = () => {
+  const [state, setState] = useState<Select2State>({
     selectedObjects: [],
     hoveredObjectId: null,
     isSelecting: false,

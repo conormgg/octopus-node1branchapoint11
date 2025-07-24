@@ -6,6 +6,7 @@ import { Tool, SelectionBounds, LineObject, ImageObject } from '@/types/whiteboa
 import { useNormalizedWhiteboardState } from '@/hooks/performance/useNormalizedWhiteboardState';
 import { useViewportCulling } from '@/hooks/canvas/useViewportCulling';
 import SelectionRect from '../SelectionRect';
+import SelectionGroup from '../SelectionGroup';
 import LinesList from './LinesList';
 import LayerOptimizationHandler from './LayerOptimizationHandler';
 
@@ -89,6 +90,9 @@ const LinesLayer: React.FC<LinesLayerProps> = ({
       {/* Individual lines - hide transformers when part of a group */}
       <LinesList
         lines={linesToRender}
+        currentTool={currentTool}
+        selection={selection}
+        onUpdateLine={onUpdateLine}
       />
       
       {/* Original selection system removed - now using select2 */}

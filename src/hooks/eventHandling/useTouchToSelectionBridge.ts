@@ -1,3 +1,4 @@
+
 import { useCallback, useRef } from 'react';
 import { useStageCoordinates } from '@/hooks/useStageCoordinates';
 import { PanZoomState } from '@/types/whiteboard';
@@ -79,7 +80,7 @@ export const useTouchToSelectionBridge = ({
       toolType: typeof effectiveTool
     });
 
-    // Bridge for select tool, only single-finger touches
+    // FIXED: Bridge for both select and select2 tools, only single-finger touches
     if (effectiveTool !== 'select' || isReadOnly) {
       debugLog('TouchToSelectionBridge', 'Bridge conditions not met', {
         currentTool,

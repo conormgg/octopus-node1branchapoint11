@@ -39,7 +39,7 @@ const KonvaImageOperationsHandler: React.FC<KonvaImageOperationsHandlerProps> = 
         return (
           <ImageRenderer
             key={image.id}
-            image={image}
+            imageObject={image}
             isSelected={false} // Selection now handled by select2 system
             isHovered={false}
             onSelect={() => {

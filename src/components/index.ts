@@ -1,3 +1,4 @@
+
 /**
  * Component exports with categorization and usage documentation
  * 
@@ -31,9 +32,22 @@ export { SyncWhiteboard } from './SyncWhiteboard';
  */
 export { default as KonvaStage } from './canvas/KonvaStage';
 
+/**
+ * Raw Konva stage canvas without container logic
+ * 
+ * @usage For custom canvas implementations
+ */
+export { default as KonvaStageCanvas } from './canvas/KonvaStageCanvas';
+
 // ============================================================================
 // CANVAS RENDERING COMPONENTS
 // ============================================================================
+
+/**
+ * Renders individual line objects (strokes) on the canvas
+ * Handles selection, transformation, and visual feedback
+ */
+export { default as LineRenderer } from './canvas/LineRenderer';
 
 /**
  * Renders individual image objects on the canvas
@@ -48,20 +62,16 @@ export { default as ImageRenderer } from './canvas/ImageRenderer';
 export { default as SelectionRect } from './canvas/SelectionRect';
 
 /**
+ * Group selection and transformation component
+ * Handles multiple selected objects as a unified group
+ */
+export { default as SelectionGroup } from './canvas/SelectionGroup';
+
+/**
  * Context menu for image operations
  * Provides lock/unlock and other image-specific actions
  */
 export { default as ImageContextMenu } from './canvas/ImageContextMenu';
-
-// ============================================================================
-// ENHANCED SELECTION COMPONENTS
-// ============================================================================
-
-/**
- * Enhanced select renderer with drag preview and hover feedback
- * Provides visual feedback during selection operations
- */
-export { SelectRenderer } from './canvas/SelectRenderer';
 
 // ============================================================================
 // SESSION MANAGEMENT COMPONENTS
@@ -156,6 +166,11 @@ export { default as AuthForm } from './auth/AuthForm';
  * Provides access to pencil, eraser, colors, and other tools
  */
 export { default as MovableToolbar } from './MovableToolbar';
+
+/**
+ * Select2 renderer for experimental selection tool
+ */
+export { Select2Renderer } from './canvas/Select2Renderer';
 
 /**
  * Layout selector for student board arrangements

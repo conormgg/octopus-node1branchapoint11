@@ -1,10 +1,9 @@
-
 import React from 'react';
 import { Rect, Line, Image } from 'react-konva';
 import { SelectionBounds, SelectedObject, LineObject, ImageObject } from '@/types/whiteboard';
 import SelectionRect from './SelectionRect';
 
-interface SelectRendererProps {
+interface Select2RendererProps {
   selectedObjects: SelectedObject[];
   hoveredObjectId: string | null;
   selectionBounds: SelectionBounds | null;
@@ -16,7 +15,7 @@ interface SelectRendererProps {
   isDraggingObjects: boolean;
 }
 
-export const SelectRenderer: React.FC<SelectRendererProps> = ({
+export const Select2Renderer: React.FC<Select2RendererProps> = ({
   selectedObjects,
   hoveredObjectId,
   selectionBounds,
