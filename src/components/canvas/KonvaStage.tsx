@@ -1,4 +1,4 @@
-import React, { useRef, useEffect } from 'react';
+import React, { useRef, useEffect, useCallback } from 'react';
 import Konva from 'konva';
 import { useWhiteboardState } from '@/hooks/useWhiteboardState';
 import { useNormalizedWhiteboardState } from '@/hooks/performance/useNormalizedWhiteboardState';
@@ -97,40 +97,33 @@ const KonvaStage: React.FC<KonvaStageProps> = ({
   });
 
   // Determine the correct delete functions to use
-  // Check if this is a shared whiteboard (has operations property) vs regular whiteboard
-  const hasSharedOperations = 'operations' in whiteboardState && 
-    whiteboardState.operations && 
-    typeof whiteboardState.operations === 'object' && 
-    'deleteSelectedObjects' in whiteboardState.operations &&
-    typeof (whiteboardState.operations as any).deleteSelectedObjects === 'function';
+  // Create unified delete function that works for both select and select2 tools
+  const unifiedDeleteFunction = useCallback((selectedObjects?: Array<{id: string, type: 'line' | 'image'}>) => {
+    // Use provided objects or get from selection state
+    const objectsToDelete = selectedObjects || selection?.selectionState?.selectedObjects;
+    
+    if (!objectsToDelete || objectsToDelete.length === 0) return;
 
-  // For select2: use the real implementation that accepts parameters
-  const select2DeleteFunction = hasSharedOperations 
-    ? (whiteboardState.operations as any).deleteSelectedObjects 
-    : ('deleteSelectedObjects' in whiteboardState && typeof whiteboardState.deleteSelectedObjects === 'function' 
-       ? (selectedObjects: Array<{id: string, type: 'line' | 'image'}>) => whiteboardState.deleteSelectedObjects(selectedObjects)
-       : deleteSelectedObjects);
+    // Check if this is a shared whiteboard and use operations function
+    if ('operations' in whiteboardState && 
+        whiteboardState.operations && 
+        typeof whiteboardState.operations === 'object' && 
+        'deleteSelectedObjects' in whiteboardState.operations &&
+        typeof (whiteboardState.operations as any).deleteSelectedObjects === 'function') {
+      (whiteboardState.operations as any).deleteSelectedObjects(objectsToDelete);
+      selection?.clearSelection();
+    } else if ('deleteSelectedObjects' in whiteboardState && typeof whiteboardState.deleteSelectedObjects === 'function') {
+      whiteboardState.deleteSelectedObjects(objectsToDelete);
+    } else {
+      deleteSelectedObjects(objectsToDelete);
+    }
+  }, [whiteboardState, selection, deleteSelectedObjects]);
 
-  // For original select: use the operations delete function directly with selected objects
-  const originalSelectDeleteFunction = hasSharedOperations 
-    ? () => {
-        const selectedObjects = selection?.selectionState?.selectedObjects;
-        if (selectedObjects && (whiteboardState.operations as any).deleteSelectedObjects) {
-          (whiteboardState.operations as any).deleteSelectedObjects(selectedObjects);
-          selection?.clearSelection();
-        }
-      }
-    : ('deleteSelectedObjects' in whiteboardState && typeof whiteboardState.deleteSelectedObjects === 'function' 
-       ? whiteboardState.deleteSelectedObjects 
-       : deleteSelectedObjects);
-
-  debugLog('KonvaStage', 'Delete function selection', {
+  debugLog('KonvaStage', 'Unified delete function initialized', {
     whiteboardId,
     hasOperations: 'operations' in whiteboardState,
-    hasSharedDelete: hasSharedOperations,
-    usingSharedDelete: hasSharedOperations,
-    select2DeleteFunction: select2DeleteFunction ? 'available' : 'none',
-    originalSelectDeleteFunction: originalSelectDeleteFunction ? 'available' : 'none'
+    hasWhiteboardDelete: 'deleteSelectedObjects' in whiteboardState,
+    hasSelection: !!selection
   });
 
   // Set up all event handlers with proper update functions for select2
@@ -151,10 +144,8 @@ const KonvaStage: React.FC<KonvaStageProps> = ({
     // Pass update functions for select2 object movement
     onUpdateLine: updateLine,
     onUpdateImage: 'updateImage' in whiteboardState && whiteboardState.updateImage ? whiteboardState.updateImage : undefined,
-    // Pass the select2 delete function (accepts parameters)
-    onDeleteObjects: select2DeleteFunction,
-    // Pass the original select delete function (wrapper, no parameters)
-    onDeleteObjectsNoParams: originalSelectDeleteFunction,
+    // Pass unified delete function
+    onDeleteObjects: unifiedDeleteFunction,
     mainSelection: selection // Pass main selection state for integration
   });
 
@@ -163,9 +154,8 @@ const KonvaStage: React.FC<KonvaStageProps> = ({
     whiteboardState,
     isReadOnly,
     whiteboardId,
-    // Pass both delete functions
-    select2DeleteFunction,
-    originalSelectDeleteFunction,
+    // Pass unified delete function
+    unifiedDeleteFunction,
     // Pass select2 handlers when select2 tool is active
     select2Handlers: state.currentTool === 'select2' && stageEventHandlers ? {
       select2State: stageEventHandlers.select2State,

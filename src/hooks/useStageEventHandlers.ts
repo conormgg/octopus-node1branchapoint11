@@ -39,8 +39,7 @@ interface UseStageEventHandlersProps {
   images?: any[];
   onUpdateLine?: (lineId: string, updates: any) => void;
   onUpdateImage?: (imageId: string, updates: any) => void;
-  onDeleteObjects?: (selectedObjects: Array<{id: string, type: 'line' | 'image'}>) => void;
-  onDeleteObjectsNoParams?: () => void;
+  onDeleteObjects?: (selectedObjects?: Array<{id: string, type: 'line' | 'image'}>) => void;
   // Main selection state for select2 integration
   mainSelection?: {
     selectObjects: (objects: Array<{id: string, type: 'line' | 'image'}>) => void;
@@ -72,19 +71,15 @@ export const useStageEventHandlers = ({
   onUpdateLine,
   onUpdateImage,
   onDeleteObjects,
-  onDeleteObjectsNoParams,
   mainSelection
 }: UseStageEventHandlersProps) => {
   const currentToolRef = useRef<string>(currentTool || 'pencil');
   const { logEventHandling } = useEventDebug(palmRejectionConfig);
   const { supportsPointerEvents } = usePointerEventDetection();
 
-  debugLog('StageEventHandlers', 'Initializing with delete functions', {
+  debugLog('StageEventHandlers', 'Initializing with unified delete function', {
     currentTool,
     hasDeleteFunction: !!onDeleteObjects,
-    hasDeleteNoParams: !!onDeleteObjectsNoParams,
-    deleteFunction: onDeleteObjects ? 'provided' : 'none',
-    deleteNoParamsFunction: onDeleteObjectsNoParams ? 'provided' : 'none',
     hasMainSelection: !!mainSelection
   });
 

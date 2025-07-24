@@ -7,8 +7,7 @@ interface UseKonvaKeyboardHandlersProps {
   whiteboardState: ReturnType<typeof useWhiteboardState>;
   isReadOnly: boolean;
   whiteboardId?: string;
-  select2DeleteFunction?: (selectedObjects: Array<{id: string, type: 'line' | 'image'}>) => void;
-  originalSelectDeleteFunction?: () => void;
+  unifiedDeleteFunction?: (selectedObjects?: Array<{id: string, type: 'line' | 'image'}>) => void;
   select2Handlers?: {
     select2State: any;
     deleteSelectedObjects: () => void;
@@ -21,8 +20,7 @@ export const useKonvaKeyboardHandlers = ({
   whiteboardState,
   isReadOnly,
   whiteboardId,
-  select2DeleteFunction,
-  originalSelectDeleteFunction,
+  unifiedDeleteFunction,
   select2Handlers
 }: UseKonvaKeyboardHandlersProps) => {
   const { state, handlePaste, selection } = whiteboardState;
@@ -71,37 +69,30 @@ export const useKonvaKeyboardHandlers = ({
         e.preventDefault();
       }
       
-      // Delete key - remove selected objects
+      // Delete key - remove selected objects using unified function
       if ((e.key === 'Delete' || e.key === 'Backspace')) {
-        // Check if using select2 tool
+        // Check if using select2 tool with active selection
         if (state.currentTool === 'select2' && select2Handlers?.select2State?.selectedObjects?.length > 0) {
           console.log(`[${whiteboardId}] Delete key pressed - select2 selected objects:`, select2Handlers.select2State.selectedObjects);
           
-          // Use the select2 delete function (accepts parameters)
-          if (select2DeleteFunction) {
-            select2DeleteFunction(select2Handlers.select2State.selectedObjects);
+          if (unifiedDeleteFunction) {
+            unifiedDeleteFunction(select2Handlers.select2State.selectedObjects);
           }
           
           // Clear select2 selection
           if (select2Handlers.clearSelection) {
             select2Handlers.clearSelection();
           }
-          
-          e.preventDefault();
-          return;
-        }
-        
-        // Fallback to regular selection
-        if (selection?.selectionState?.selectedObjects?.length > 0) {
+        } else if (selection?.selectionState?.selectedObjects?.length > 0) {
+          // Fallback to regular selection
           console.log(`[${whiteboardId}] Delete key pressed - selected objects:`, selection.selectionState.selectedObjects);
           
-          // Use the original select delete function (no parameters - wrapper)
-          if (originalSelectDeleteFunction) {
-            originalSelectDeleteFunction();
+          if (unifiedDeleteFunction) {
+            unifiedDeleteFunction(selection.selectionState.selectedObjects);
           }
-          
-          e.preventDefault();
         }
+        
+        e.preventDefault();
       }
     };
 
@@ -130,5 +121,5 @@ export const useKonvaKeyboardHandlers = ({
       container.removeEventListener('keydown', keyDownHandler);
       container.removeEventListener('click', clickHandler);
     };
-  }, [handlePaste, isReadOnly, selection, whiteboardId, state.currentTool, state.lines, state.images, whiteboardState, select2DeleteFunction, originalSelectDeleteFunction, select2Handlers]);
+  }, [handlePaste, isReadOnly, selection, whiteboardId, state.currentTool, state.lines, state.images, whiteboardState, unifiedDeleteFunction, select2Handlers]);
 };
