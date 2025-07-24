@@ -26,9 +26,16 @@ export { default as Whiteboard } from './Whiteboard';
 export { SyncWhiteboard } from './SyncWhiteboard';
 
 /**
- * Konva stage canvas component for whiteboard rendering
+ * Lower-level Konva stage wrapper with advanced event handling
  * 
- * @usage Core canvas component used by whiteboard components
+ * @usage When you need direct access to Konva stage features
+ */
+export { default as KonvaStage } from './canvas/KonvaStage';
+
+/**
+ * Raw Konva stage canvas without container logic
+ * 
+ * @usage For custom canvas implementations
  */
 export { default as KonvaStageCanvas } from './canvas/KonvaStageCanvas';
 

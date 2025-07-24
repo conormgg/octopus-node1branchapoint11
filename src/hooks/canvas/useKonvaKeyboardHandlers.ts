@@ -6,14 +6,26 @@ interface UseKonvaKeyboardHandlersProps {
   containerRef: React.RefObject<HTMLDivElement>;
   whiteboardState: ReturnType<typeof useWhiteboardState>;
   isReadOnly: boolean;
+  whiteboardId?: string;
+  select2DeleteFunction?: (selectedObjects: Array<{id: string, type: 'line' | 'image'}>) => void;
+  originalSelectDeleteFunction?: () => void;
+  select2Handlers?: {
+    select2State: any;
+    deleteSelectedObjects: () => void;
+    clearSelection: () => void;
+  };
 }
 
 export const useKonvaKeyboardHandlers = ({
   containerRef,
   whiteboardState,
-  isReadOnly
+  isReadOnly,
+  whiteboardId,
+  select2DeleteFunction,
+  originalSelectDeleteFunction,
+  select2Handlers
 }: UseKonvaKeyboardHandlersProps) => {
-  const { state, handlePaste } = whiteboardState;
+  const { state, handlePaste, selection } = whiteboardState;
 
   useEffect(() => {
     const container = containerRef.current;
@@ -46,11 +58,50 @@ export const useKonvaKeyboardHandlers = ({
         return;
       }
 
-      // Delete key - will be replaced with new delete system
-      if ((e.key === 'Delete' || e.key === 'Backspace')) {
-        console.log('Delete key pressed - delete system will be reimplemented');
+      // Ctrl+A - select all objects (only when select tool is active)
+      if (e.ctrlKey && e.key === 'a' && state.currentTool === 'select' && selection?.selectAll) {
+        selection.selectAll(state.lines || [], state.images || []);
         e.preventDefault();
         return;
+      }
+
+      // Escape key - clear selection
+      if (e.key === 'Escape' && selection?.clearSelection) {
+        selection.clearSelection();
+        e.preventDefault();
+      }
+      
+      // Delete key - remove selected objects
+      if ((e.key === 'Delete' || e.key === 'Backspace')) {
+        // Check if using select2 tool
+        if (state.currentTool === 'select2' && select2Handlers?.select2State?.selectedObjects?.length > 0) {
+          console.log(`[${whiteboardId}] Delete key pressed - select2 selected objects:`, select2Handlers.select2State.selectedObjects);
+          
+          // Use the select2 delete function (accepts parameters)
+          if (select2DeleteFunction) {
+            select2DeleteFunction(select2Handlers.select2State.selectedObjects);
+          }
+          
+          // Clear select2 selection
+          if (select2Handlers.clearSelection) {
+            select2Handlers.clearSelection();
+          }
+          
+          e.preventDefault();
+          return;
+        }
+        
+        // Fallback to regular selection
+        if (selection?.selectionState?.selectedObjects?.length > 0) {
+          console.log(`[${whiteboardId}] Delete key pressed - selected objects:`, selection.selectionState.selectedObjects);
+          
+          // Use the original select delete function (no parameters - wrapper)
+          if (originalSelectDeleteFunction) {
+            originalSelectDeleteFunction();
+          }
+          
+          e.preventDefault();
+        }
       }
     };
 
@@ -61,8 +112,13 @@ export const useKonvaKeyboardHandlers = ({
     };
 
     // Make container focusable and add event listeners
-    container.setAttribute('tabIndex', '1000');
-    container.setAttribute('id', `whiteboard-container`);
+    const tabIndexValue =
+      typeof whiteboardId === 'string'
+        ? String(1000 + whiteboardId.charCodeAt(0))
+        : '1000';
+    
+    container.setAttribute('tabIndex', tabIndexValue);
+    container.setAttribute('id', `whiteboard-container-${whiteboardId || 'unknown'}`);
     container.style.outline = 'none';
     
     container.addEventListener('paste', pasteHandler);
@@ -74,5 +130,5 @@ export const useKonvaKeyboardHandlers = ({
       container.removeEventListener('keydown', keyDownHandler);
       container.removeEventListener('click', clickHandler);
     };
-  }, [handlePaste, isReadOnly, state.currentTool, whiteboardState]);
+  }, [handlePaste, isReadOnly, selection, whiteboardId, state.currentTool, state.lines, state.images, whiteboardState, select2DeleteFunction, originalSelectDeleteFunction, select2Handlers]);
 };

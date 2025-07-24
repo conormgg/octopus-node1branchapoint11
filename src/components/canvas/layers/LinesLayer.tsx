@@ -95,7 +95,25 @@ const LinesLayer: React.FC<LinesLayerProps> = ({
         onUpdateLine={onUpdateLine}
       />
       
-      {/* Original selection system removed - now using select2 */}
+      {/* Selection Group - handles multiple selected objects as one entity */}
+      {selection?.selectionState?.selectedObjects && (
+        <SelectionGroup
+          selectedObjects={selection.selectionState.selectedObjects}
+          lines={allLinesToRender} // Use all lines for selection, not culled ones
+          images={imagesToUse}
+          onUpdateLine={onUpdateLine}
+          onUpdateImage={onUpdateImage}
+          onTransformEnd={onTransformEnd}
+          currentTool={currentTool}
+          isVisible={!isSelecting} // Hide during drag-to-select
+        />
+      )}
+      
+      {/* Selection rectangle - rendered on top of everything */}
+      <SelectionRect
+        selectionBounds={selectionBounds}
+        isVisible={isSelecting}
+      />
     </Layer>
   );
 };

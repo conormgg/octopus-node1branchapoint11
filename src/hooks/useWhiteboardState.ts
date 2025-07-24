@@ -1,8 +1,8 @@
-
 import { useState, useCallback, useEffect } from 'react';
 import { WhiteboardState, PanZoomState, LineObject } from '@/types/whiteboard';
 import { useHistoryState } from './useHistoryState';
 import { usePanZoom } from './usePanZoom';
+import { useSelectionState } from './useSelectionState';
 import { useWhiteboardToolManagement } from './useWhiteboardToolManagement';
 import { useWhiteboardDrawingCoordination } from './useWhiteboardDrawingCoordination';
 import { useWhiteboardImageOperations } from './useWhiteboardImageOperations';
@@ -10,7 +10,7 @@ import { useWhiteboardPointerHandlers } from './useWhiteboardPointerHandlers';
 import { useNormalizedWhiteboardState } from './performance/useNormalizedWhiteboardState';
 import { createDebugLogger } from '@/utils/debug/debugConfig';
 
-const USE_NORMALIZED_STATE = true;
+const USE_NORMALIZED_STATE = true; // Feature flag for gradual rollout
 const debugLog = createDebugLogger('state');
 
 /**
@@ -23,6 +23,9 @@ export const useWhiteboardState = () => {
   // Tool management
   const toolManagement = useWhiteboardToolManagement();
 
+  // Selection operations - initialize first so we can use its state
+  const selection = useSelectionState();
+
   const [state, setState] = useState<WhiteboardState>({
     lines: [],
     images: [],
@@ -33,12 +36,7 @@ export const useWhiteboardState = () => {
     highlighterSettings: toolManagement.highlighterSettings,
     isDrawing: false,
     panZoomState: { x: 0, y: 0, scale: 1 },
-    selectionState: {
-      selectedObjects: [],
-      selectionBounds: null,
-      isSelecting: false,
-      transformationData: {}
-    },
+    selectionState: selection.selectionState,
     history: [{
       lines: [],
       images: [],
@@ -79,6 +77,23 @@ export const useWhiteboardState = () => {
     toolManagement.highlighterSettings
   ]);
 
+  // Update state when selection state changes
+  useEffect(() => {
+    setState(prev => {
+      if (JSON.stringify(prev.selectionState) !== JSON.stringify(selection.selectionState)) {
+        debugLog('Selection', 'Selection state updated', {
+          selectedCount: selection.selectionState.selectedObjects?.length || 0,
+          isSelecting: selection.selectionState.isSelecting
+        });
+        return {
+          ...prev,
+          selectionState: selection.selectionState
+        };
+      }
+      return prev;
+    });
+  }, [selection.selectionState]);
+
   // Pan/zoom state management
   const setPanZoomState = useCallback((panZoomState: PanZoomState) => {
     setState(prev => ({
@@ -97,7 +112,7 @@ export const useWhiteboardState = () => {
     redo,
     canUndo,
     canRedo
-  } = useHistoryState(state, setState, () => {});
+  } = useHistoryState(state, setState, selection.updateSelectionState);
 
   const addToHistory = useCallback(() => {
     baseAddToHistory({
@@ -113,8 +128,8 @@ export const useWhiteboardState = () => {
   // Image operations
   const imageOperations = useWhiteboardImageOperations(state, setState, addToHistory);
 
-  // Pointer handlers for drawing tools
-  const pointerHandlers = useWhiteboardPointerHandlers(state, panZoom, null, drawingCoordination);
+  // Pointer handlers
+  const pointerHandlers = useWhiteboardPointerHandlers(state, panZoom, selection, drawingCoordination);
 
   // Update line position
   const updateLine = useCallback((lineId: string, updates: Partial<LineObject>) => {
@@ -124,11 +139,44 @@ export const useWhiteboardState = () => {
         line.id === lineId ? { ...line, ...updates } : line
       )
     }));
+    // Add to history after state update
     setTimeout(() => addToHistory(), 0);
   }, [addToHistory]);
 
+  // Generic delete function that can accept optional selected objects
+  const deleteSelectedObjects = useCallback((customSelectedObjects?: Array<{id: string, type: 'line' | 'image'}>) => {
+    // Use custom selected objects if provided, otherwise use selection state
+    const selectedObjects = customSelectedObjects || selection.selectionState.selectedObjects;
+    
+    if (!selectedObjects || selectedObjects.length === 0) return;
+
+    setState(prev => {
+      const selectedLineIds = selectedObjects
+        .filter(obj => obj.type === 'line')
+        .map(obj => obj.id);
+      const selectedImageIds = selectedObjects
+        .filter(obj => obj.type === 'image')
+        .map(obj => obj.id);
+
+      return {
+        ...prev,
+        lines: prev.lines.filter(line => !selectedLineIds.includes(line.id)),
+        images: prev.images.filter(image => !selectedImageIds.includes(image.id))
+      };
+    });
+
+    // Clear selection after deletion (only if using default selection state)
+    if (!customSelectedObjects) {
+      selection.clearSelection();
+    }
+    
+    // Add to history
+    addToHistory();
+  }, [selection.selectionState.selectedObjects, selection, addToHistory]);
+
   return {
     state,
+    // Expose normalized state for components that can use it
     normalizedState: USE_NORMALIZED_STATE ? normalizedState : undefined,
     setTool: toolManagement.setTool,
     setColor: toolManagement.setColor,
@@ -145,9 +193,10 @@ export const useWhiteboardState = () => {
     canUndo,
     canRedo,
     panZoom,
+    selection,
     updateLine,
     updateImage: imageOperations.updateImage,
-    toggleImageLock: imageOperations.toggleImageLock
-    // Removed deleteSelectedObjects - will be replaced with new system
+    toggleImageLock: imageOperations.toggleImageLock,
+    deleteSelectedObjects
   };
 };
