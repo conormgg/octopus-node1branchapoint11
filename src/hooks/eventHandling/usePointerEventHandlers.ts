@@ -19,7 +19,7 @@ interface UsePointerEventHandlersProps {
     continuePan: (x: number, y: number) => void;
     stopPan: () => void;
   };
-  handlePointerDown: (x: number, y: number, ctrlKey?: boolean, button?: number) => void;
+  handlePointerDown: (x: number, y: number) => void;
   handlePointerMove: (x: number, y: number) => void;
   handlePointerUp: () => void;
   isReadOnly: boolean;
@@ -54,14 +54,14 @@ export const usePointerEventHandlers = ({
   // Get all pointer event handlers with proper coordinate transformation
   const handlers = {
     handlePointerDownEvent: (e: PointerEvent) => {
-      logEventHandling('pointer', 'pointer', { type: 'down', button: e.button });
+      logEventHandling('pointer', 'pointer', { type: 'down' });
       
       const stage = stageRef.current;
       if (!stage) return;
 
       // Transform screen coordinates to world coordinates
       const { x, y } = getRelativePointerPosition(stage, e.clientX, e.clientY);
-      handlePointerDown(x, y, e.ctrlKey, e.button);
+      handlePointerDown(x, y);
     },
     handlePointerMoveEvent: (e: PointerEvent) => {
       const stage = stageRef.current;

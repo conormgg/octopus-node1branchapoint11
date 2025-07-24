@@ -76,9 +76,6 @@ export const useStageEventHandlers = ({
   const currentToolRef = useRef<string>(currentTool || 'pencil');
   const { logEventHandling } = useEventDebug(palmRejectionConfig);
   const { supportsPointerEvents } = usePointerEventDetection();
-  
-  // Track pan state locally for Select2 tool
-  const isPanningRef = useRef(false);
 
   debugLog('StageEventHandlers', 'Initializing with unified delete function', {
     currentTool,
@@ -166,37 +163,15 @@ export const useStageEventHandlers = ({
     palmRejectionConfig,
     panZoom,
     handlePointerDown: currentTool === 'select2' ? 
-      (worldX: number, worldY: number, ctrlKey?: boolean, button?: number) => {
-        // For right-click (button 2), bypass Select2 and use pan/zoom directly
-        if (button === 2) {
-          isPanningRef.current = true;
-          panZoom.startPan(worldX, worldY);
-          return;
-        }
-        // For left-click and other buttons, use Select2
-        select2Handlers.handlePointerDown(worldX, worldY, ctrlKey || false, button || 0);
+      (worldX: number, worldY: number) => {
+        select2Handlers.handlePointerDown(worldX, worldY);
       } : handlePointerDown,
     handlePointerMove: currentTool === 'select2' ? 
       (worldX: number, worldY: number) => {
-        // Check if we're currently panning (right-click drag)
-        if (isPanningRef.current) {
-          panZoom.continuePan(worldX, worldY);
-          return;
-        }
-        // Otherwise use Select2
         select2Handlers.handlePointerMove(worldX, worldY);
       } : handlePointerMove,
     handlePointerUp: currentTool === 'select2' ? 
-      () => {
-        // Check if we were panning and stop it
-        if (isPanningRef.current) {
-          isPanningRef.current = false;
-          panZoom.stopPan();
-          return;
-        }
-        // Otherwise use Select2
-        select2Handlers.handlePointerUp();
-      } : handlePointerUp,
+      select2Handlers.handlePointerUp : handlePointerUp,
     isReadOnly,
     currentToolRef,
     logEventHandling,
