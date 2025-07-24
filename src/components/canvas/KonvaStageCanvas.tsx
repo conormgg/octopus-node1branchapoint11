@@ -44,6 +44,7 @@ interface KonvaStageCanvasProps {
     onMouseDown: (e: Konva.KonvaEventObject<MouseEvent>) => void;
     onMouseMove: (e: Konva.KonvaEventObject<MouseEvent>) => void;
     onMouseUp: (e: Konva.KonvaEventObject<MouseEvent>) => void;
+    onContextMenu?: (e: Konva.KonvaEventObject<PointerEvent>) => void;
   };
 }
 
@@ -99,7 +100,8 @@ const KonvaStageCanvas: React.FC<KonvaStageCanvasProps> = ({
     onMouseDown: select2MouseHandlers.onMouseDown,
     onMouseMove: select2MouseHandlers.onMouseMove,
     onMouseUp: select2MouseHandlers.onMouseUp,
-    onMouseLeave: select2MouseHandlers.onMouseUp
+    onMouseLeave: select2MouseHandlers.onMouseUp,
+    onContextMenu: select2MouseHandlers.onContextMenu
   } : {
     onMouseDown: handleMouseDown,
     onMouseMove: handleMouseMove,

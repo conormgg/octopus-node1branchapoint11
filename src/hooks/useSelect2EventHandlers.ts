@@ -65,6 +65,21 @@ export const useSelect2EventHandlers = ({
   const hasMovedRef = useRef(false);
   const dragStartPositionRef = useRef<{ x: number; y: number } | null>(null);
 
+  // Context menu handlers
+  const showContextMenu = useCallback((x: number, y: number) => {
+    setState(prev => ({
+      ...prev,
+      contextMenu: { isVisible: true, x, y }
+    }));
+  }, [setState]);
+
+  const hideContextMenu = useCallback(() => {
+    setState(prev => ({
+      ...prev,
+      contextMenu: { isVisible: false, x: 0, y: 0 }
+    }));
+  }, [setState]);
+
   // Helper function to sync selection with main state
   const syncSelectionWithMainState = useCallback((selectedObjects: Array<{id: string, type: 'line' | 'image'}>) => {
     if (mainSelection) {
@@ -406,6 +421,28 @@ export const useSelect2EventHandlers = ({
     dragStartPositionRef.current = null;
   }, [state.isDraggingObjects, state.isSelecting, applyDragOffset, endObjectDragging, endDragSelection, lines, images, ensureContainerFocus, syncSelectionWithMainState, syncSelectionBoundsWithMainState]);
 
+  const handleContextMenu = useCallback((e: Konva.KonvaEventObject<PointerEvent>) => {
+    e.evt.preventDefault();
+    
+    if (state.selectedObjects.length === 0) return;
+    
+    // Show context menu at mouse position
+    const stage = e.target.getStage();
+    if (!stage) return;
+    
+    const containerRect = containerRef?.current?.getBoundingClientRect();
+    if (!containerRect) return;
+    
+    // Convert stage coordinates to screen coordinates
+    const stagePosition = stage.position();
+    const stageScale = stage.scale() || { x: 1, y: 1 };
+    
+    const screenX = containerRect.left + (e.evt.clientX - containerRect.left);
+    const screenY = containerRect.top + (e.evt.clientY - containerRect.top);
+    
+    showContextMenu(screenX, screenY);
+  }, [state.selectedObjects.length, containerRef, showContextMenu]);
+
   const handleStageClick = useCallback((e: Konva.KonvaEventObject<MouseEvent>) => {
     if (!hasMovedRef.current) {
       // This was a click, not a drag
@@ -439,6 +476,7 @@ export const useSelect2EventHandlers = ({
     clearSelection();
   }, [state.selectedObjects, onDeleteObjects, clearSelection]);
 
+
   return {
     select2State: state,
     handlePointerDown,
@@ -448,7 +486,10 @@ export const useSelect2EventHandlers = ({
     handleMouseDown,
     handleMouseMove,
     handleMouseUp,
+    handleContextMenu,
     clearSelection: clearSelection,
-    deleteSelectedObjects
+    deleteSelectedObjects,
+    showContextMenu,
+    hideContextMenu
   };
 };
