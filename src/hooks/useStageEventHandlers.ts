@@ -167,15 +167,15 @@ export const useStageEventHandlers = ({
     palmRejection,
     palmRejectionConfig,
     panZoom,
-    handlePointerDown: currentTool === 'select2' ? 
+    handlePointerDown: currentTool === 'select' ? 
       (worldX: number, worldY: number) => {
         select2Handlers.handlePointerDown(worldX, worldY);
       } : handlePointerDown,
-    handlePointerMove: currentTool === 'select2' ? 
+    handlePointerMove: currentTool === 'select' ? 
       (worldX: number, worldY: number) => {
         select2Handlers.handlePointerMove(worldX, worldY);
       } : handlePointerMove,
-    handlePointerUp: currentTool === 'select2' ? 
+    handlePointerUp: currentTool === 'select' ? 
       select2Handlers.handlePointerUp : handlePointerUp,
     isReadOnly,
     currentToolRef,
@@ -183,8 +183,8 @@ export const useStageEventHandlers = ({
     supportsPointerEvents
   });
 
-  // Return select2 state for rendering when using select2 tool
-  if (currentTool === 'select2') {
+  // Return select2 state for rendering when using select tool
+  if (currentTool === 'select') {
     return {
       select2State: select2Handlers.select2State,
       clearSelect2Selection: select2Handlers.clearSelection,

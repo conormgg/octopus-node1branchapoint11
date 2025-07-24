@@ -56,7 +56,7 @@ const KonvaStage: React.FC<KonvaStageProps> = ({
     handlePointerMove,
     handlePointerUp,
     panZoom,
-    selection,
+    // selection: null, // Selection now handled by select2 system
     updateLine,
     deleteSelectedObjects
   } = whiteboardState;
@@ -149,7 +149,7 @@ const KonvaStage: React.FC<KonvaStageProps> = ({
     onDeleteObjects: select2DeleteFunction,
     // Pass the original select delete function (wrapper, no parameters)
     onDeleteObjectsNoParams: originalSelectDeleteFunction,
-    mainSelection: selection // Pass main selection state for integration
+    mainSelection: null // Selection now handled by select2 system
   });
 
   useKonvaKeyboardHandlers({
@@ -160,8 +160,8 @@ const KonvaStage: React.FC<KonvaStageProps> = ({
     // Pass both delete functions
     select2DeleteFunction,
     originalSelectDeleteFunction,
-    // Pass select2 handlers when select2 tool is active
-    select2Handlers: state.currentTool === 'select2' && stageEventHandlers ? {
+    // Pass select handlers when select tool is active
+    select2Handlers: state.currentTool === 'select' && stageEventHandlers ? {
       select2State: stageEventHandlers.select2State,
       deleteSelectedObjects: stageEventHandlers.deleteSelectedObjects || (() => {}),
       clearSelection: stageEventHandlers.clearSelect2Selection || (() => {})
@@ -202,14 +202,11 @@ const KonvaStage: React.FC<KonvaStageProps> = ({
           handlePointerUp={handlePointerUp}
           isReadOnly={isReadOnly}
           onStageClick={(e) => {
-            const clickedOnEmpty = e.target === e.target.getStage();
-            if (clickedOnEmpty && selection) {
-              selection.clearSelection();
-            }
+            // Stage click handling now managed by select2 system
           }}
-          selectionBounds={selection?.selectionState?.selectionBounds || null}
-          isSelecting={selection?.selectionState?.isSelecting || false}
-          selection={selection}
+          selectionBounds={null}
+          isSelecting={false}
+          selection={null}
           onUpdateLine={updateLine}
           onUpdateImage={(imageId, updates) => {
             if ('updateImage' in whiteboardState && whiteboardState.updateImage) {
@@ -222,15 +219,15 @@ const KonvaStage: React.FC<KonvaStageProps> = ({
             }
           }}
           normalizedState={normalizedState}
-          select2MouseHandlers={state.currentTool === 'select2' && stageEventHandlers ? stageEventHandlers.select2MouseHandlers : undefined}
+          select2MouseHandlers={state.currentTool === 'select' && stageEventHandlers ? stageEventHandlers.select2MouseHandlers : undefined}
           extraContent={
             <>
               <KonvaImageOperationsHandler
                 whiteboardState={whiteboardState}
                 whiteboardId={whiteboardId}
               />
-              {/* Select2 overlay when select2 tool is active */}
-              {state.currentTool === 'select2' && stageEventHandlers && (
+              {/* Select overlay when select tool is active */}
+              {state.currentTool === 'select' && stageEventHandlers && (
                 <Select2Renderer
                   selectedObjects={stageEventHandlers.select2State?.selectedObjects || []}
                   hoveredObjectId={stageEventHandlers.select2State?.hoveredObjectId || null}
@@ -243,8 +240,8 @@ const KonvaStage: React.FC<KonvaStageProps> = ({
                   isDraggingObjects={stageEventHandlers.select2State?.isDraggingObjects || false}
                 />
               )}
-              {/* SelectionGroup for select2 - show transform handles when objects are selected and not selecting */}
-              {state.currentTool === 'select2' && stageEventHandlers && stageEventHandlers.select2State && (
+              {/* SelectionGroup for select - show transform handles when objects are selected and not selecting */}
+              {state.currentTool === 'select' && stageEventHandlers && stageEventHandlers.select2State && (
                 <SelectionGroup
                   selectedObjects={stageEventHandlers.select2State.selectedObjects}
                   lines={state.lines}

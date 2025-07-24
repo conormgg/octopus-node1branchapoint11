@@ -29,7 +29,7 @@ const LineRenderer: React.FC<LineRendererProps> = React.memo(({
   const trRef = useRef<Konva.Transformer>(null);
 
   useEffect(() => {
-    if (isSelected && (currentTool === 'select' || currentTool === 'select2')) {
+    if (isSelected && currentTool === 'select') {
       trRef.current?.nodes([lineRef.current!]);
       trRef.current?.getLayer()?.batchDraw();
     }
@@ -100,8 +100,8 @@ const LineRenderer: React.FC<LineRendererProps> = React.memo(({
         scaleY={line.scaleY}
         rotation={line.rotation}
         perfectDrawEnabled={false}
-        listening={onSelect || onMouseEnter || onMouseLeave || ((currentTool === 'select' || currentTool === 'select2') && isSelected) ? true : false}
-        draggable={(currentTool === 'select' || currentTool === 'select2') && isSelected}
+        listening={onSelect || onMouseEnter || onMouseLeave || (currentTool === 'select' && isSelected) ? true : false}
+        draggable={currentTool === 'select' && isSelected}
         onClick={onSelect}
         onTap={onSelect}
         onMouseEnter={onMouseEnter}
@@ -132,10 +132,10 @@ const LineRenderer: React.FC<LineRendererProps> = React.memo(({
       />
       
       {/* Transformer for selected lines */}
-      {isSelected && (currentTool === 'select' || currentTool === 'select2') && (
+      {isSelected && currentTool === 'select' && (
         <Transformer
           ref={trRef}
-          listening={currentTool === 'select'}
+          listening={false}
           boundBoxFunc={(oldBox, newBox) => {
             if (newBox.width < 5 || newBox.height < 5) {
               return oldBox;
