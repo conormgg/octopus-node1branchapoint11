@@ -1,8 +1,8 @@
+
 import { useState, useCallback, useEffect } from 'react';
 import { WhiteboardState, PanZoomState, LineObject } from '@/types/whiteboard';
 import { useHistoryState } from './useHistoryState';
 import { usePanZoom } from './usePanZoom';
-// import { useSelectionState } from './useSelectionState'; // Removed - now using select2 system
 import { useWhiteboardToolManagement } from './useWhiteboardToolManagement';
 import { useWhiteboardDrawingCoordination } from './useWhiteboardDrawingCoordination';
 import { useWhiteboardImageOperations } from './useWhiteboardImageOperations';
@@ -10,7 +10,7 @@ import { useWhiteboardPointerHandlers } from './useWhiteboardPointerHandlers';
 import { useNormalizedWhiteboardState } from './performance/useNormalizedWhiteboardState';
 import { createDebugLogger } from '@/utils/debug/debugConfig';
 
-const USE_NORMALIZED_STATE = true; // Feature flag for gradual rollout
+const USE_NORMALIZED_STATE = true;
 const debugLog = createDebugLogger('state');
 
 /**
@@ -23,8 +23,6 @@ export const useWhiteboardState = () => {
   // Tool management
   const toolManagement = useWhiteboardToolManagement();
 
-  // Note: Selection now handled by select2 system integrated in stage event handlers
-
   const [state, setState] = useState<WhiteboardState>({
     lines: [],
     images: [],
@@ -35,7 +33,7 @@ export const useWhiteboardState = () => {
     highlighterSettings: toolManagement.highlighterSettings,
     isDrawing: false,
     panZoomState: { x: 0, y: 0, scale: 1 },
-    selectionState: { // Default empty selection state
+    selectionState: {
       selectedObjects: [],
       selectionBounds: null,
       isSelecting: false,
@@ -81,8 +79,6 @@ export const useWhiteboardState = () => {
     toolManagement.highlighterSettings
   ]);
 
-  // Note: Selection state now managed by select2 system
-
   // Pan/zoom state management
   const setPanZoomState = useCallback((panZoomState: PanZoomState) => {
     setState(prev => ({
@@ -101,7 +97,7 @@ export const useWhiteboardState = () => {
     redo,
     canUndo,
     canRedo
-  } = useHistoryState(state, setState, () => {}); // Empty function since selection handled by select2
+  } = useHistoryState(state, setState, () => {});
 
   const addToHistory = useCallback(() => {
     baseAddToHistory({
@@ -117,7 +113,7 @@ export const useWhiteboardState = () => {
   // Image operations
   const imageOperations = useWhiteboardImageOperations(state, setState, addToHistory);
 
-  // Pointer handlers for drawing tools (selection now handled by select2 system)
+  // Pointer handlers for drawing tools
   const pointerHandlers = useWhiteboardPointerHandlers(state, panZoom, null, drawingCoordination);
 
   // Update line position
@@ -128,37 +124,11 @@ export const useWhiteboardState = () => {
         line.id === lineId ? { ...line, ...updates } : line
       )
     }));
-    // Add to history after state update
     setTimeout(() => addToHistory(), 0);
-  }, [addToHistory]);
-
-  // Generic delete function that can accept optional selected objects
-  const deleteSelectedObjects = useCallback((customSelectedObjects?: Array<{id: string, type: 'line' | 'image'}>) => {
-    // Must provide selected objects since we no longer have selection state
-    if (!customSelectedObjects || customSelectedObjects.length === 0) return;
-
-    setState(prev => {
-      const selectedLineIds = customSelectedObjects
-        .filter(obj => obj.type === 'line')
-        .map(obj => obj.id);
-      const selectedImageIds = customSelectedObjects
-        .filter(obj => obj.type === 'image')
-        .map(obj => obj.id);
-
-      return {
-        ...prev,
-        lines: prev.lines.filter(line => !selectedLineIds.includes(line.id)),
-        images: prev.images.filter(image => !selectedImageIds.includes(image.id))
-      };
-    });
-    
-    // Add to history
-    addToHistory();
   }, [addToHistory]);
 
   return {
     state,
-    // Expose normalized state for components that can use it
     normalizedState: USE_NORMALIZED_STATE ? normalizedState : undefined,
     setTool: toolManagement.setTool,
     setColor: toolManagement.setColor,
@@ -175,10 +145,9 @@ export const useWhiteboardState = () => {
     canUndo,
     canRedo,
     panZoom,
-    // selection: null, // Now handled by select2 system
     updateLine,
     updateImage: imageOperations.updateImage,
-    toggleImageLock: imageOperations.toggleImageLock,
-    deleteSelectedObjects
+    toggleImageLock: imageOperations.toggleImageLock
+    // Removed deleteSelectedObjects - will be replaced with new system
   };
 };
