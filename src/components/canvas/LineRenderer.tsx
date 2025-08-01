@@ -1,6 +1,6 @@
 
 import React, { useRef, useEffect } from 'react';
-import { Line, Transformer } from 'react-konva';
+import { Line } from 'react-konva';
 import { LineObject } from '@/types/whiteboard';
 import Konva from 'konva';
 
@@ -26,14 +26,8 @@ const LineRenderer: React.FC<LineRendererProps> = React.memo(({
   currentTool = 'pencil'
 }) => {
   const lineRef = useRef<Konva.Line>(null);
-  const trRef = useRef<Konva.Transformer>(null);
+  
 
-  useEffect(() => {
-    if (isSelected && (currentTool === 'select' || currentTool === 'select2')) {
-      trRef.current?.nodes([lineRef.current!]);
-      trRef.current?.getLayer()?.batchDraw();
-    }
-  }, [isSelected, currentTool]);
 
   // Don't render eraser strokes - they are used for stroke deletion, not visual feedback
   if (line.tool === 'eraser') return null;
@@ -115,36 +109,10 @@ const LineRenderer: React.FC<LineRendererProps> = React.memo(({
             });
           }
         }}
-        onTransformEnd={(e) => {
-          if (onDragEnd) {
-            const node = e.target;
-            onDragEnd({
-              x: node.x(),
-              y: node.y(),
-              scaleX: node.scaleX(),
-              scaleY: node.scaleY(),
-              rotation: node.rotation()
-            });
-          }
-        }}
         shadowForStrokeEnabled={false}
         hitStrokeWidth={line.strokeWidth + 10}
       />
       
-      {/* Transformer for selected lines */}
-      {isSelected && (currentTool === 'select' || currentTool === 'select2') && (
-        <Transformer
-          ref={trRef}
-          listening={currentTool === 'select'}
-          boundBoxFunc={(oldBox, newBox) => {
-            if (newBox.width < 5 || newBox.height < 5) {
-              return oldBox;
-            }
-            return newBox;
-          }}
-          enabledAnchors={['top-left', 'top-right', 'bottom-left', 'bottom-right', 'middle-left', 'middle-right', 'top-center', 'bottom-center']}
-        />
-      )}
     </>
   );
 }, (prevProps, nextProps) => {
