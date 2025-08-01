@@ -85,6 +85,7 @@ const SelectionGroup: React.FC<SelectionGroupProps> = ({
       rotation: group.rotation()
     };
     
+    // Simple translation only
     if (groupTransform.scaleX === 1 && groupTransform.scaleY === 1 && groupTransform.rotation === 0) {
       selectedLines.forEach((line) => {
         if (onUpdateLine) {
@@ -104,52 +105,66 @@ const SelectionGroup: React.FC<SelectionGroupProps> = ({
         }
       });
     } else {
-      const children = group.getChildren();
+      // Handle scaling and rotation - apply transforms directly to objects
+      selectedLines.forEach((line) => {
+        if (onUpdateLine) {
+          // Calculate new position accounting for group center
+          const centerX = (groupBounds?.x || 0) + (groupBounds?.width || 0) / 2;
+          const centerY = (groupBounds?.y || 0) + (groupBounds?.height || 0) / 2;
+          
+          // Translate to origin, scale, rotate, translate back
+          const relX = line.x - centerX;
+          const relY = line.y - centerY;
+          
+          const rotRad = groupTransform.rotation * Math.PI / 180;
+          const cos = Math.cos(rotRad);
+          const sin = Math.sin(rotRad);
+          
+          const newRelX = (relX * cos - relY * sin) * groupTransform.scaleX;
+          const newRelY = (relX * sin + relY * cos) * groupTransform.scaleY;
+          
+          onUpdateLine(line.id, {
+            x: newRelX + centerX + groupTransform.x,
+            y: newRelY + centerY + groupTransform.y,
+            scaleX: (line.scaleX || 1) * groupTransform.scaleX,
+            scaleY: (line.scaleY || 1) * groupTransform.scaleY,
+            rotation: (line.rotation || 0) + groupTransform.rotation
+          });
+        }
+      });
       
-      children.forEach((child, index) => {
-        if (index === 0) return;
-        
-        const localTransform = child.getTransform().copy();
-        const groupTransformMatrix = group.getTransform().copy();
-        const finalTransform = groupTransformMatrix.multiply(localTransform);
-        const decomposed = finalTransform.decompose();
-        
-        const adjustedIndex = index - 1;
-        
-        if (adjustedIndex < selectedLines.length) {
-          const line = selectedLines[adjustedIndex];
-          if (onUpdateLine) {
-            const updatedLine = {
-              x: decomposed.x,
-              y: decomposed.y,
-              scaleX: (line.scaleX || 1) * groupTransform.scaleX,
-              scaleY: (line.scaleY || 1) * groupTransform.scaleY,
-              rotation: (line.rotation || 0) + groupTransform.rotation
-            };
-            
-            onUpdateLine(line.id, updatedLine);
-          }
-        } else {
-          const imageIndex = adjustedIndex - selectedLines.length;
-          const image = selectedImages[imageIndex];
-          if (image && onUpdateImage) {
-            const currentWidth = image.width || 100;
-            const currentHeight = image.height || 100;
-            
-            const updatedImage = {
-              x: decomposed.x,
-              y: decomposed.y,
-              width: currentWidth * groupTransform.scaleX,
-              height: currentHeight * groupTransform.scaleY,
-              rotation: (image.rotation || 0) + groupTransform.rotation
-            };
-            
-            onUpdateImage(image.id, updatedImage);
-          }
+      selectedImages.forEach((image) => {
+        if (onUpdateImage) {
+          // Calculate new position accounting for group center
+          const centerX = (groupBounds?.x || 0) + (groupBounds?.width || 0) / 2;
+          const centerY = (groupBounds?.y || 0) + (groupBounds?.height || 0) / 2;
+          
+          // Translate to origin, scale, rotate, translate back
+          const relX = image.x - centerX;
+          const relY = image.y - centerY;
+          
+          const rotRad = groupTransform.rotation * Math.PI / 180;
+          const cos = Math.cos(rotRad);
+          const sin = Math.sin(rotRad);
+          
+          const newRelX = (relX * cos - relY * sin) * groupTransform.scaleX;
+          const newRelY = (relX * sin + relY * cos) * groupTransform.scaleY;
+          
+          const currentWidth = image.width || 100;
+          const currentHeight = image.height || 100;
+          
+          onUpdateImage(image.id, {
+            x: newRelX + centerX + groupTransform.x,
+            y: newRelY + centerY + groupTransform.y,
+            width: currentWidth * groupTransform.scaleX,
+            height: currentHeight * groupTransform.scaleY,
+            rotation: (image.rotation || 0) + groupTransform.rotation
+          });
         }
       });
     }
 
+    // Reset group transform
     group.x(0);
     group.y(0);
     group.scaleX(1);

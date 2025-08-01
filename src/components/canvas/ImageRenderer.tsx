@@ -56,13 +56,34 @@ const ImageRenderer: React.FC<ImageRendererProps> = React.memo(({
     if (node) {
       const scaleX = node.scaleX();
       const scaleY = node.scaleY();
+      
+      // Calculate current position before resetting scale
+      const currentX = node.x();
+      const currentY = node.y();
+      const currentWidth = node.width();
+      const currentHeight = node.height();
+      
+      // Calculate new dimensions
+      const newWidth = Math.max(5, currentWidth * scaleX);
+      const newHeight = Math.max(5, currentHeight * scaleY);
+      
+      // Calculate position offset caused by scaling from center
+      const widthDiff = newWidth - currentWidth;
+      const heightDiff = newHeight - currentHeight;
+      
+      // Adjust position to compensate for size change (Konva scales from center by default)
+      const adjustedX = currentX - (widthDiff / 2);
+      const adjustedY = currentY - (heightDiff / 2);
+      
+      // Reset scale and apply new values
       node.scaleX(1);
       node.scaleY(1);
+      
       onChange({
-        x: node.x(),
-        y: node.y(),
-        width: Math.max(5, node.width() * scaleX),
-        height: Math.max(node.height() * scaleY),
+        x: adjustedX,
+        y: adjustedY,
+        width: newWidth,
+        height: newHeight,
         rotation: node.rotation(),
       });
       onUpdateState();

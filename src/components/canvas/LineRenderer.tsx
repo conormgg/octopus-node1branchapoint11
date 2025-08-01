@@ -118,6 +118,8 @@ const LineRenderer: React.FC<LineRendererProps> = React.memo(({
         onTransformEnd={(e) => {
           if (onDragEnd) {
             const node = e.target;
+            // For lines, we keep the scale transformation and position as-is
+            // since lines handle scaling differently than images
             onDragEnd({
               x: node.x(),
               y: node.y(),
