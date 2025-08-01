@@ -6,16 +6,14 @@ import { calculateImageDisplayDimensions, loadImageDimensions } from '@/utils/im
 
 // Helper function to calculate image bounds
 const calculateImageBounds = (image: ImageObject) => {
-  const width = image.width || 100;
-  const height = image.height || 100;
-  const scaleX = image.scaleX || 1;
-  const scaleY = image.scaleY || 1;
+      const width = image.width || 100;
+      const height = image.height || 100;
   
   return {
     x: image.x,
     y: image.y,
-    width: width * scaleX,
-    height: height * scaleY
+    width: width,
+    height: height
   };
 };
 
@@ -66,9 +64,6 @@ export const useSharedImageOperations = (
             src,
             width: displayDimensions.width,
             height: displayDimensions.height,
-            rotation: 0,
-            scaleX: 1,
-            scaleY: 1,
             locked: false
           };
           
@@ -113,9 +108,6 @@ export const useSharedImageOperations = (
             src,
             width: 200,
             height: 150,
-            rotation: 0,
-            scaleX: 1,
-            scaleY: 1,
             locked: false
           };
           

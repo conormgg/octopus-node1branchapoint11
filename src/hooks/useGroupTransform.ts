@@ -38,10 +38,7 @@ export const useGroupTransform = ({
         if (onUpdateLine) {
           onUpdateLine(line.id, {
             x: attrs.x,
-            y: attrs.y,
-            scaleX: attrs.scaleX,
-            scaleY: attrs.scaleY,
-            rotation: attrs.rotation
+            y: attrs.y
           });
         }
       } else {
@@ -53,8 +50,7 @@ export const useGroupTransform = ({
             x: attrs.x,
             y: attrs.y,
             width: (image.width || 100) * attrs.scaleX,
-            height: (image.height || 100) * attrs.scaleY,
-            rotation: attrs.rotation
+            height: (image.height || 100) * attrs.scaleY
           });
         }
       }

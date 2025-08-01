@@ -1,7 +1,7 @@
 
 import { useCallback, useRef } from 'react';
 import { pointPool, boundsPool, transformDataPool, type PooledPoint, type PooledBounds, type PooledTransform } from '@/utils/performance/objectPool';
-import { SelectionBounds, TransformationData } from '@/types/whiteboard';
+import { SelectionBounds } from '@/types/whiteboard';
 
 /**
  * Hook for object pooling in selection operations
@@ -32,22 +32,12 @@ export const useSelectionObjectPooling = () => {
   }, []);
 
   // Create temporary transform data
-  const createTempTransform = useCallback((
-    x: number = 0, 
-    y: number = 0, 
-    scaleX: number = 1, 
-    scaleY: number = 1, 
-    rotation: number = 0
-  ): TransformationData => {
-    const transform = transformDataPool.acquire();
-    transform.x = x;
-    transform.y = y;
-    transform.scaleX = scaleX;
-    transform.scaleY = scaleY;
-    transform.rotation = rotation;
-    borrowedObjects.current.add(transform);
-    return transform;
-  }, []);
+  const createTempTransform = (
+    x: number = 0,
+    y: number = 0
+  ) => {
+    return { x, y };
+  };
 
   // Release a specific object back to its pool
   const releaseObject = useCallback((obj: any) => {

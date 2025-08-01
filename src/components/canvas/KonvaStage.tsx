@@ -259,11 +259,6 @@ const KonvaStage: React.FC<KonvaStageProps> = ({
               whiteboardState.updateImage(imageId, updates);
             }
           }}
-          onTransformEnd={() => {
-            if ('addToHistory' in whiteboardState && whiteboardState.addToHistory) {
-              whiteboardState.addToHistory();
-            }
-          }}
           normalizedState={normalizedState}
           select2MouseHandlers={state.currentTool === 'select2' && stageEventHandlers ? stageEventHandlers.select2MouseHandlers : undefined}
           extraContent={
@@ -296,11 +291,6 @@ const KonvaStage: React.FC<KonvaStageProps> = ({
                   onUpdateImage={(imageId, updates) => {
                     if ('updateImage' in whiteboardState && whiteboardState.updateImage) {
                       whiteboardState.updateImage(imageId, updates);
-                    }
-                  }}
-                  onTransformEnd={() => {
-                    if ('addToHistory' in whiteboardState && whiteboardState.addToHistory) {
-                      whiteboardState.addToHistory();
                     }
                   }}
                   currentTool={state.currentTool}
