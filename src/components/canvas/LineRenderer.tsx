@@ -13,6 +13,8 @@ interface LineRendererProps {
   onMouseLeave?: () => void;
   onDragEnd?: (updates: { x: number; y: number; scaleX?: number; scaleY?: number; rotation?: number }) => void;
   currentTool?: string;
+  isInGroup?: boolean;
+  isGroupTransformActive?: boolean;
 }
 
 const LineRenderer: React.FC<LineRendererProps> = React.memo(({ 
@@ -23,7 +25,9 @@ const LineRenderer: React.FC<LineRendererProps> = React.memo(({
   onMouseEnter,
   onMouseLeave,
   onDragEnd,
-  currentTool = 'pencil'
+  currentTool = 'pencil',
+  isInGroup = false,
+  isGroupTransformActive = false
 }) => {
   const lineRef = useRef<Konva.Line>(null);
   const trRef = useRef<Konva.Transformer>(null);
@@ -116,7 +120,14 @@ const LineRenderer: React.FC<LineRendererProps> = React.memo(({
           }
         }}
         onTransformEnd={(e) => {
+          // Skip individual transform if group transform is active
+          if (isInGroup && isGroupTransformActive) {
+            console.log('[LineRenderer] Skipping individual transform - group transform is active', line.id);
+            return;
+          }
+          
           if (onDragEnd) {
+            console.log('[LineRenderer] Applying individual transform', line.id);
             const node = e.target;
             // For lines, we keep the scale transformation and position as-is
             // since lines handle scaling differently than images
@@ -133,8 +144,8 @@ const LineRenderer: React.FC<LineRendererProps> = React.memo(({
         hitStrokeWidth={line.strokeWidth + 10}
       />
       
-      {/* Transformer for selected lines */}
-      {isSelected && (currentTool === 'select' || currentTool === 'select2') && (
+      {/* Transformer for selected lines - only show if not in a group */}
+      {isSelected && (currentTool === 'select' || currentTool === 'select2') && !isInGroup && (
         <Transformer
           ref={trRef}
           listening={currentTool === 'select' || currentTool === 'select2'}
@@ -162,7 +173,9 @@ const LineRenderer: React.FC<LineRendererProps> = React.memo(({
     prevProps.line.rotation === nextProps.line.rotation &&
     prevProps.isSelected === nextProps.isSelected &&
     prevProps.isHovered === nextProps.isHovered &&
-    prevProps.currentTool === nextProps.currentTool
+    prevProps.currentTool === nextProps.currentTool &&
+    prevProps.isInGroup === nextProps.isInGroup &&
+    prevProps.isGroupTransformActive === nextProps.isGroupTransformActive
   );
 });
 

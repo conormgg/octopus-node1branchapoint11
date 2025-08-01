@@ -17,6 +17,8 @@ interface ImageRendererProps {
   onMouseLeave?: () => void;
   onToggleLock?: (imageId: string) => void;
   onContextMenu?: (imageId: string, x: number, y: number) => void;
+  isInGroup?: boolean;
+  isGroupTransformActive?: boolean;
 }
 
 const ImageRenderer: React.FC<ImageRendererProps> = React.memo(({
@@ -31,6 +33,8 @@ const ImageRenderer: React.FC<ImageRendererProps> = React.memo(({
   onMouseLeave,
   onToggleLock,
   onContextMenu,
+  isInGroup = false,
+  isGroupTransformActive = false
 }) => {
   const [image] = useImage(imageObject.src);
   const imageRef = useRef<Konva.Image>(null);
@@ -52,6 +56,13 @@ const ImageRenderer: React.FC<ImageRendererProps> = React.memo(({
   };
 
   const handleTransformEnd = () => {
+    // Skip individual transform if group transform is active
+    if (isInGroup && isGroupTransformActive) {
+      console.log('[ImageRenderer] Skipping individual transform - group transform is active', imageObject.id);
+      return;
+    }
+
+    console.log('[ImageRenderer] Applying individual transform', imageObject.id);
     const node = imageRef.current;
     if (node) {
       const scaleX = node.scaleX();
@@ -134,7 +145,8 @@ const ImageRenderer: React.FC<ImageRendererProps> = React.memo(({
         {...(imageObject.width && { width: imageObject.width })}
         {...(imageObject.height && { height: imageObject.height })}
       />
-      {isSelected && (currentTool === 'select' || currentTool === 'select2') && !isLocked && (
+      {/* Transformer for selected images - only show if not in a group */}
+      {isSelected && (currentTool === 'select' || currentTool === 'select2') && !isLocked && !isInGroup && (
         <Transformer
           ref={trRef}
           listening={currentTool === 'select' || currentTool === 'select2'}
@@ -160,7 +172,9 @@ const ImageRenderer: React.FC<ImageRendererProps> = React.memo(({
     prevProps.imageObject.locked === nextProps.imageObject.locked &&
     prevProps.isSelected === nextProps.isSelected &&
     prevProps.isHovered === nextProps.isHovered &&
-    prevProps.currentTool === nextProps.currentTool
+    prevProps.currentTool === nextProps.currentTool &&
+    prevProps.isInGroup === nextProps.isInGroup &&
+    prevProps.isGroupTransformActive === nextProps.isGroupTransformActive
   );
 });
 

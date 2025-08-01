@@ -31,6 +31,7 @@ const SelectionGroup: React.FC<SelectionGroupProps> = ({
   const groupRef = useRef<Konva.Group>(null);
   const transformerRef = useRef<Konva.Transformer>(null);
   const [isTransforming, setIsTransforming] = useState(false);
+  const [isGroupTransformActive, setIsGroupTransformActive] = useState(false);
 
   // Get selected lines and images
   const selectedLines = selectedObjects
@@ -62,7 +63,9 @@ const SelectionGroup: React.FC<SelectionGroupProps> = ({
 
   // Handle group transformation
   const handleTransformStart = () => {
+    console.log('[SelectionGroup] Transform start - activating group transform flag');
     setIsTransforming(true);
+    setIsGroupTransformActive(true);
   };
 
   const handleDragMove = () => {
@@ -72,6 +75,7 @@ const SelectionGroup: React.FC<SelectionGroupProps> = ({
   };
 
   const handleTransformEnd = () => {
+    console.log('[SelectionGroup] Transform end - group transform handling');
     setIsTransforming(false);
     
     if (!groupRef.current) return;
@@ -178,6 +182,12 @@ const SelectionGroup: React.FC<SelectionGroupProps> = ({
       }
     });
 
+    // Delay resetting the flag to ensure individual objects see it during their transform events
+    setTimeout(() => {
+      console.log('[SelectionGroup] Deactivating group transform flag');
+      setIsGroupTransformActive(false);
+    }, 100);
+
     if (onTransformEnd) {
       onTransformEnd();
     }
@@ -206,6 +216,8 @@ const SelectionGroup: React.FC<SelectionGroupProps> = ({
             isSelected={false}
             currentTool={currentTool}
             onDragEnd={() => {}}
+            isInGroup={true}
+            isGroupTransformActive={isGroupTransformActive}
           />
         ))}
         
@@ -218,6 +230,8 @@ const SelectionGroup: React.FC<SelectionGroupProps> = ({
             onChange={() => {}}
             onUpdateState={() => {}}
             currentTool={currentTool}
+            isInGroup={true}
+            isGroupTransformActive={isGroupTransformActive}
           />
         ))}
       </Group>
