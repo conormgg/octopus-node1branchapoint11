@@ -24,36 +24,15 @@ export const calculateLineBounds = (line: LineObject) => {
     const localX = line.points[i];
     const localY = line.points[i + 1];
     
-    // Apply transformations if they exist
-    const scaleX = line.scaleX || 1;
-    const scaleY = line.scaleY || 1;
-    const rotation = line.rotation || 0;
+    // Apply simple positioning only (no transforms)
+    const transformedX = localX + line.x;
+    const transformedY = localY + line.y;
     
-    // Apply scale
-    let transformedX = localX * scaleX;
-    let transformedY = localY * scaleY;
     
-    // Apply rotation if present
-    if (rotation !== 0) {
-      const rad = (rotation * Math.PI) / 180;
-      const cos = Math.cos(rad);
-      const sin = Math.sin(rad);
-      
-      const rotatedX = transformedX * cos - transformedY * sin;
-      const rotatedY = transformedX * sin + transformedY * cos;
-      
-      transformedX = rotatedX;
-      transformedY = rotatedY;
-    }
-    
-    // Apply translation
-    const finalX = transformedX + (line.x || 0);
-    const finalY = transformedY + (line.y || 0);
-    
-    minX = Math.min(minX, finalX);
-    minY = Math.min(minY, finalY);
-    maxX = Math.max(maxX, finalX);
-    maxY = Math.max(maxY, finalY);
+    minX = Math.min(minX, transformedX);
+    minY = Math.min(minY, transformedY);
+    maxX = Math.max(maxX, transformedX);
+    maxY = Math.max(maxY, transformedY);
   }
 
   // Add some padding based on stroke width

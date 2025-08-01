@@ -25,12 +25,8 @@ export const useSharedObjectOperations = (
       console.log(`[Line Movement] Updating line ${lineId}:`, updates);
     }
     
-    // Check if this is a transformational update (move, scale, rotate)
-    const isTransformationalUpdate = updates.x !== undefined || 
-                                   updates.y !== undefined || 
-                                   updates.scaleX !== undefined || 
-                                   updates.scaleY !== undefined || 
-                                   updates.rotation !== undefined;
+    // Check if this is a transformational update (move only)
+    const isTransformationalUpdate = updates.x !== undefined || updates.y !== undefined;
     
     let activityMetadata: ActivityMetadata | undefined = undefined;
     
