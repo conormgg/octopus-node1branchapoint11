@@ -52,8 +52,7 @@ export const useHistoryReplayOrchestrator = () => {
       selectionState: {
         selectedObjects: [],
         selectionBounds: null,
-        isSelecting: false,
-        transformationData: {}
+        isSelecting: false
       },
       ...(persistence.lastActivity ? { lastActivity: persistence.lastActivity } : {})
     };

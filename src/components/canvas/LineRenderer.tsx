@@ -46,9 +46,6 @@ const LineRenderer: React.FC<LineRendererProps> = React.memo(({
           globalCompositeOperation="source-over"
           x={line.x}
           y={line.y}
-          scaleX={line.scaleX}
-          scaleY={line.scaleY}
-          rotation={line.rotation}
           perfectDrawEnabled={false}
           listening={false}
         />
@@ -66,9 +63,6 @@ const LineRenderer: React.FC<LineRendererProps> = React.memo(({
           globalCompositeOperation="source-over"
           x={line.x}
           y={line.y}
-          scaleX={line.scaleX}
-          scaleY={line.scaleY}
-          rotation={line.rotation}
           perfectDrawEnabled={false}
           listening={false}
           shadowForStrokeEnabled={false}
@@ -90,9 +84,6 @@ const LineRenderer: React.FC<LineRendererProps> = React.memo(({
         opacity={line.tool === 'highlighter' ? 0.5 : 1}
         x={line.x}
         y={line.y}
-        scaleX={line.scaleX}
-        scaleY={line.scaleY}
-        rotation={line.rotation}
         perfectDrawEnabled={false}
         listening={onSelect || onMouseEnter || onMouseLeave || ((currentTool === 'select' || currentTool === 'select2') && isSelected) ? true : false}
         draggable={(currentTool === 'select' || currentTool === 'select2') && isSelected}
@@ -123,9 +114,6 @@ const LineRenderer: React.FC<LineRendererProps> = React.memo(({
     prevProps.line.strokeWidth === nextProps.line.strokeWidth &&
     prevProps.line.x === nextProps.line.x &&
     prevProps.line.y === nextProps.line.y &&
-    prevProps.line.scaleX === nextProps.line.scaleX &&
-    prevProps.line.scaleY === nextProps.line.scaleY &&
-    prevProps.line.rotation === nextProps.line.rotation &&
     prevProps.isSelected === nextProps.isSelected &&
     prevProps.isHovered === nextProps.isHovered &&
     prevProps.currentTool === nextProps.currentTool

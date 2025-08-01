@@ -43,8 +43,7 @@ export const useWhiteboardState = () => {
       selectionState: {
         selectedObjects: [],
         selectionBounds: null,
-        isSelecting: false,
-        transformationData: {}
+        isSelecting: false
       }
     }],
     historyIndex: 0

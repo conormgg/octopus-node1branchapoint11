@@ -29,8 +29,7 @@ export const useSharedStateInitialization = (whiteboardId?: string) => {
       selectionState: {
         selectedObjects: [],
         selectionBounds: null,
-        isSelecting: false,
-        transformationData: {}
+        isSelecting: false
       },
       history: [{
         lines: [], // Start with empty history
@@ -38,8 +37,7 @@ export const useSharedStateInitialization = (whiteboardId?: string) => {
         selectionState: {
           selectedObjects: [],
           selectionBounds: null,
-          isSelecting: false,
-          transformationData: {}
+          isSelecting: false
         }
       }],
       historyIndex: 0

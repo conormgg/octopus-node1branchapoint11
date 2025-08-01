@@ -50,8 +50,7 @@ export const useSharedHistoryReplay = () => {
       selectionState: {
         selectedObjects: [],
         selectionBounds: null,
-        isSelecting: false,
-        transformationData: {}
+        isSelecting: false
       }
     };
     historyStack.push(initialSnapshot);
@@ -111,8 +110,7 @@ export const useSharedHistoryReplay = () => {
         selectionState: {
           selectedObjects: [],
           selectionBounds: null,
-          isSelecting: false,
-          transformationData: {}
+          isSelecting: false
         },
         lastActivity: activityMetadata
       };

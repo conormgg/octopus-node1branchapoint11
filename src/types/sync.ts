@@ -1,4 +1,4 @@
-import { LineObject, ImageObject, SelectedObject, TransformationData } from './whiteboard';
+import { LineObject, ImageObject, SelectedObject } from './whiteboard';
 
 export type OperationType = 'draw' | 'erase' | 'add_image' | 'update_image' | 'delete_image' | 'select_objects' | 'deselect_objects' | 'transform_objects' | 'update_line' | 'delete_objects' | 'undo' | 'redo';
 
@@ -39,9 +39,6 @@ export interface DeselectObjectsOperationData {
   objectIds: string[];
 }
 
-export interface TransformObjectsOperationData {
-  transformations: Record<string, TransformationData>;
-}
 
 export interface UpdateLineOperationData {
   line_id: string;

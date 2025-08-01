@@ -9,9 +9,6 @@ export interface LineObject {
   strokeWidth: number;
   x: number;
   y: number;
-  scaleX: number;
-  scaleY: number;
-  rotation: number;
 }
 
 export interface ImageObject {
@@ -21,9 +18,6 @@ export interface ImageObject {
   src: string;
   width?: number;
   height?: number;
-  rotation?: number;
-  scaleX?: number;
-  scaleY?: number;
   locked?: boolean;
 }
 
@@ -45,19 +39,11 @@ export interface SelectedObject {
   type: 'line' | 'image';
 }
 
-export interface TransformationData {
-  x: number;
-  y: number;
-  scaleX: number;
-  scaleY: number;
-  rotation: number;
-}
 
 export interface SelectionState {
   selectedObjects: SelectedObject[];
   selectionBounds: SelectionBounds | null;
   isSelecting: boolean;
-  transformationData: Record<string, TransformationData>;
 }
 
 export interface ActivityMetadata {

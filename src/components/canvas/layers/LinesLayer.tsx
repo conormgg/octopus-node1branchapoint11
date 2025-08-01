@@ -22,7 +22,7 @@ interface LinesLayerProps {
   normalizedState?: ReturnType<typeof useNormalizedWhiteboardState>;
   onUpdateLine?: (lineId: string, updates: any) => void;
   onUpdateImage?: (imageId: string, updates: any) => void;
-  onTransformEnd?: () => void;
+  
   // Viewport props for culling
   stageRef?: React.RefObject<Konva.Stage>;
 }
@@ -46,7 +46,7 @@ const LinesLayer: React.FC<LinesLayerProps> = ({
   normalizedState,
   onUpdateLine,
   onUpdateImage,
-  onTransformEnd,
+  
   stageRef
 }) => {
   const { cullLines } = useViewportCulling(stageRef);
@@ -103,7 +103,6 @@ const LinesLayer: React.FC<LinesLayerProps> = ({
           images={imagesToUse}
           onUpdateLine={onUpdateLine}
           onUpdateImage={onUpdateImage}
-          onTransformEnd={onTransformEnd}
           currentTool={currentTool}
           isVisible={!isSelecting} // Hide during drag-to-select
         />

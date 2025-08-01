@@ -13,7 +13,6 @@ interface SelectionGroupProps {
   images: ImageObject[];
   onUpdateLine?: (lineId: string, updates: Partial<LineObject>) => void;
   onUpdateImage?: (imageId: string, updates: Partial<ImageObject>) => void;
-  onTransformEnd?: () => void;
   currentTool?: string;
   isVisible?: boolean;
 }
@@ -24,7 +23,6 @@ const SelectionGroup: React.FC<SelectionGroupProps> = ({
   images,
   onUpdateLine,
   onUpdateImage,
-  onTransformEnd,
   currentTool = 'select',
   isVisible = true
 }) => {
@@ -85,10 +83,6 @@ const SelectionGroup: React.FC<SelectionGroupProps> = ({
     // Reset group position
     group.x(0);
     group.y(0);
-
-    if (onTransformEnd) {
-      onTransformEnd();
-    }
   };
 
   if (!shouldShowGroup) {

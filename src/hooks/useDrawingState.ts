@@ -43,10 +43,7 @@ export const useDrawingState = (
       color: state.currentColor,
       strokeWidth: state.currentStrokeWidth,
       x: 0,
-      y: 0,
-      scaleX: 1,
-      scaleY: 1,
-      rotation: 0
+      y: 0
     };
 
     setState(prev => ({

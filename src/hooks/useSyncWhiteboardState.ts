@@ -60,8 +60,7 @@ export const useSyncWhiteboardState = (syncConfig: SyncConfig) => {
   const defaultSelectionState: SelectionState = {
     selectedObjects: [],
     selectionBounds: null,
-    isSelecting: false,
-    transformationData: {}
+    isSelecting: false
   };
 
   /**

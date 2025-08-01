@@ -30,8 +30,7 @@ export const useHistoryState = (
         images: [...snapshot.images],
         selectionState: {
           ...snapshot.selectionState,
-          selectedObjects: [...snapshot.selectionState.selectedObjects],
-          transformationData: { ...snapshot.selectionState.transformationData }
+          selectedObjects: [...snapshot.selectionState.selectedObjects]
         },
         lastActivity: activityMetadata
       };
@@ -74,19 +73,9 @@ export const useHistoryState = (
       return false;
     });
 
-    // Clean up transformation data for objects that no longer exist
-    const validTransformationData: Record<string, any> = {};
-    Object.keys(selectionState.transformationData).forEach(id => {
-      const objectExists = lines.some(line => line.id === id) || images.some(image => image.id === id);
-      if (objectExists) {
-        validTransformationData[id] = selectionState.transformationData[id];
-      }
-    });
-
     return {
       ...selectionState,
       selectedObjects: validSelectedObjects,
-      transformationData: validTransformationData,
       // Clear selection bounds if no objects are selected
       selectionBounds: validSelectedObjects.length > 0 ? selectionState.selectionBounds : null,
       // Don't restore isSelecting state from history

@@ -38,7 +38,7 @@ interface KonvaStageCanvasProps {
   selection?: any;
   onUpdateLine?: (lineId: string, updates: any) => void;
   onUpdateImage?: (imageId: string, updates: any) => void;
-  onTransformEnd?: () => void;
+  
   normalizedState?: ReturnType<typeof useNormalizedWhiteboardState>;
   select2MouseHandlers?: {
     onMouseDown: (e: Konva.KonvaEventObject<MouseEvent>) => void;
@@ -69,7 +69,7 @@ const KonvaStageCanvas: React.FC<KonvaStageCanvasProps> = ({
   selection,
   onUpdateLine,
   onUpdateImage,
-  onTransformEnd,
+  
   normalizedState,
   select2MouseHandlers
 }) => {
@@ -131,7 +131,7 @@ const KonvaStageCanvas: React.FC<KonvaStageCanvasProps> = ({
         normalizedState={normalizedState}
         onUpdateLine={onUpdateLine}
         onUpdateImage={onUpdateImage}
-        onTransformEnd={onTransformEnd}
+        
         stageRef={stageRef} // Pass stageRef for viewport calculations
       />
     </Stage>
