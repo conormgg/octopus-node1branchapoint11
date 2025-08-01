@@ -42,11 +42,11 @@ const WhiteboardCanvas: React.FC<WhiteboardCanvasProps> = ({
       className={canvasClasses}
       style={{ 
         WebkitUserSelect: 'none',
-        WebkitTouchCallout: 'none' as any,
+        WebkitTouchCallout: 'none',
         touchAction: isDrawing && isDrawingTool ? 'none' : 'auto',
         userSelect: 'none',
         pointerEvents: 'auto'
-      } as React.CSSProperties}
+      }}
       data-whiteboard-canvas="true"
     >
       <KonvaStage

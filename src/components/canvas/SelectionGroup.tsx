@@ -14,7 +14,6 @@ interface SelectionGroupProps {
   onUpdateLine?: (lineId: string, updates: Partial<LineObject>) => void;
   onUpdateImage?: (imageId: string, updates: Partial<ImageObject>) => void;
   onTransformEnd?: () => void;
-  onTransformStateChange?: (isTransforming: boolean) => void; // New prop to communicate transform state
   currentTool?: string;
   isVisible?: boolean;
 }
@@ -26,14 +25,12 @@ const SelectionGroup: React.FC<SelectionGroupProps> = ({
   onUpdateLine,
   onUpdateImage,
   onTransformEnd,
-  onTransformStateChange,
   currentTool = 'select',
   isVisible = true
 }) => {
   const groupRef = useRef<Konva.Group>(null);
   const transformerRef = useRef<Konva.Transformer>(null);
   const [isTransforming, setIsTransforming] = useState(false);
-  const [isGroupTransformActive, setIsGroupTransformActive] = useState(false);
 
   // Get selected lines and images
   const selectedLines = selectedObjects
@@ -65,11 +62,7 @@ const SelectionGroup: React.FC<SelectionGroupProps> = ({
 
   // Handle group transformation
   const handleTransformStart = () => {
-    console.log('[SelectionGroup] Transform start - activating group transform flag');
     setIsTransforming(true);
-    setIsGroupTransformActive(true);
-    // Notify parent component that transform is active
-    onTransformStateChange?.(true);
   };
 
   const handleDragMove = () => {
@@ -79,7 +72,6 @@ const SelectionGroup: React.FC<SelectionGroupProps> = ({
   };
 
   const handleTransformEnd = () => {
-    console.log('[SelectionGroup] Transform end - group transform handling');
     setIsTransforming(false);
     
     if (!groupRef.current) return;
@@ -93,7 +85,6 @@ const SelectionGroup: React.FC<SelectionGroupProps> = ({
       rotation: group.rotation()
     };
     
-    // Simple translation only
     if (groupTransform.scaleX === 1 && groupTransform.scaleY === 1 && groupTransform.rotation === 0) {
       selectedLines.forEach((line) => {
         if (onUpdateLine) {
@@ -113,66 +104,52 @@ const SelectionGroup: React.FC<SelectionGroupProps> = ({
         }
       });
     } else {
-      // Handle scaling and rotation - apply transforms directly to objects
-      selectedLines.forEach((line) => {
-        if (onUpdateLine) {
-          // Calculate new position accounting for group center
-          const centerX = (groupBounds?.x || 0) + (groupBounds?.width || 0) / 2;
-          const centerY = (groupBounds?.y || 0) + (groupBounds?.height || 0) / 2;
-          
-          // Translate to origin, scale, rotate, translate back
-          const relX = line.x - centerX;
-          const relY = line.y - centerY;
-          
-          const rotRad = groupTransform.rotation * Math.PI / 180;
-          const cos = Math.cos(rotRad);
-          const sin = Math.sin(rotRad);
-          
-          const newRelX = (relX * cos - relY * sin) * groupTransform.scaleX;
-          const newRelY = (relX * sin + relY * cos) * groupTransform.scaleY;
-          
-          onUpdateLine(line.id, {
-            x: newRelX + centerX + groupTransform.x,
-            y: newRelY + centerY + groupTransform.y,
-            scaleX: (line.scaleX || 1) * groupTransform.scaleX,
-            scaleY: (line.scaleY || 1) * groupTransform.scaleY,
-            rotation: (line.rotation || 0) + groupTransform.rotation
-          });
-        }
-      });
+      const children = group.getChildren();
       
-      selectedImages.forEach((image) => {
-        if (onUpdateImage) {
-          // Calculate new position accounting for group center
-          const centerX = (groupBounds?.x || 0) + (groupBounds?.width || 0) / 2;
-          const centerY = (groupBounds?.y || 0) + (groupBounds?.height || 0) / 2;
-          
-          // Translate to origin, scale, rotate, translate back
-          const relX = image.x - centerX;
-          const relY = image.y - centerY;
-          
-          const rotRad = groupTransform.rotation * Math.PI / 180;
-          const cos = Math.cos(rotRad);
-          const sin = Math.sin(rotRad);
-          
-          const newRelX = (relX * cos - relY * sin) * groupTransform.scaleX;
-          const newRelY = (relX * sin + relY * cos) * groupTransform.scaleY;
-          
-          const currentWidth = image.width || 100;
-          const currentHeight = image.height || 100;
-          
-          onUpdateImage(image.id, {
-            x: newRelX + centerX + groupTransform.x,
-            y: newRelY + centerY + groupTransform.y,
-            width: currentWidth * groupTransform.scaleX,
-            height: currentHeight * groupTransform.scaleY,
-            rotation: (image.rotation || 0) + groupTransform.rotation
-          });
+      children.forEach((child, index) => {
+        if (index === 0) return;
+        
+        const localTransform = child.getTransform().copy();
+        const groupTransformMatrix = group.getTransform().copy();
+        const finalTransform = groupTransformMatrix.multiply(localTransform);
+        const decomposed = finalTransform.decompose();
+        
+        const adjustedIndex = index - 1;
+        
+        if (adjustedIndex < selectedLines.length) {
+          const line = selectedLines[adjustedIndex];
+          if (onUpdateLine) {
+            const updatedLine = {
+              x: decomposed.x,
+              y: decomposed.y,
+              scaleX: (line.scaleX || 1) * groupTransform.scaleX,
+              scaleY: (line.scaleY || 1) * groupTransform.scaleY,
+              rotation: (line.rotation || 0) + groupTransform.rotation
+            };
+            
+            onUpdateLine(line.id, updatedLine);
+          }
+        } else {
+          const imageIndex = adjustedIndex - selectedLines.length;
+          const image = selectedImages[imageIndex];
+          if (image && onUpdateImage) {
+            const currentWidth = image.width || 100;
+            const currentHeight = image.height || 100;
+            
+            const updatedImage = {
+              x: decomposed.x,
+              y: decomposed.y,
+              width: currentWidth * groupTransform.scaleX,
+              height: currentHeight * groupTransform.scaleY,
+              rotation: (image.rotation || 0) + groupTransform.rotation
+            };
+            
+            onUpdateImage(image.id, updatedImage);
+          }
         }
       });
     }
 
-    // Reset group transform
     group.x(0);
     group.y(0);
     group.scaleX(1);
@@ -185,14 +162,6 @@ const SelectionGroup: React.FC<SelectionGroupProps> = ({
         transformerRef.current.getLayer()?.batchDraw();
       }
     });
-
-    // Delay resetting the flag to ensure individual objects see it during their transform events
-    setTimeout(() => {
-      console.log('[SelectionGroup] Deactivating group transform flag');
-      setIsGroupTransformActive(false);
-      // Notify parent component that transform is no longer active
-      onTransformStateChange?.(false);
-    }, 100);
 
     if (onTransformEnd) {
       onTransformEnd();
@@ -242,7 +211,7 @@ const SelectionGroup: React.FC<SelectionGroupProps> = ({
       {shouldShowGroup && (
         <Transformer
           ref={transformerRef}
-          listening={currentTool === 'select' || currentTool === 'select2'}
+          listening={currentTool === 'select'}
           boundBoxFunc={(oldBox, newBox) => {
             if (newBox.width < 10 || newBox.height < 10) {
               return oldBox;

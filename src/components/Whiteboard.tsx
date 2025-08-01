@@ -52,13 +52,13 @@ const Whiteboard: React.FC<WhiteboardProps> = ({ isReadOnly = false }) => {
       className="relative w-full h-full select-none touch-none drawing-background" 
       style={{ 
         WebkitUserSelect: 'none',
-        WebkitTouchCallout: 'none' as any,
+        WebkitTouchCallout: 'none',
         touchAction: 'none',
         userSelect: 'none',
         pointerEvents: 'auto',
         position: 'relative',
         overflow: 'hidden'
-      } as React.CSSProperties}
+      }}
       data-whiteboard-ui="true"
     >
       {/* Palm Rejection Settings Button */}

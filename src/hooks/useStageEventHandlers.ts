@@ -97,7 +97,6 @@ export const useStageEventHandlers = ({
     onUpdateImage,
     onDeleteObjects,
     containerRef,
-    isTransformActive: false, // Add default value - will be updated by parent
     mainSelection // Pass main selection state for integration
   });
 

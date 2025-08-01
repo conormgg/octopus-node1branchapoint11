@@ -123,10 +123,10 @@ export const SyncWhiteboard: React.FC<SyncWhiteboardProps> = ({
   // Container styles for proper isolation
   const containerStyles = {
     WebkitUserSelect: 'none' as const,
-    WebkitTouchCallout: 'none' as any,
+    WebkitTouchCallout: 'none' as const,
     touchAction: 'none' as const,
     overflow: 'hidden' as const
-  } as React.CSSProperties;
+  };
 
   return (
     <div 
