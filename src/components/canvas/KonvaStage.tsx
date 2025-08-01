@@ -171,11 +171,11 @@ const KonvaStage: React.FC<KonvaStageProps> = ({
       className="w-full h-full select-none outline-none drawing-background" 
       style={{ 
         WebkitUserSelect: 'none',
-        WebkitTouchCallout: 'none',
+        WebkitTouchCallout: 'none' as any,
         touchAction,
         userSelect: 'none',
         pointerEvents: 'auto'
-      }}
+      } as React.CSSProperties}
       tabIndex={0}
       data-whiteboard-id={whiteboardId}
     >
