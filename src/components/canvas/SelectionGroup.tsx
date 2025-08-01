@@ -14,6 +14,7 @@ interface SelectionGroupProps {
   onUpdateLine?: (lineId: string, updates: Partial<LineObject>) => void;
   onUpdateImage?: (imageId: string, updates: Partial<ImageObject>) => void;
   onTransformEnd?: () => void;
+  onTransformStateChange?: (isTransforming: boolean) => void; // New prop to communicate transform state
   currentTool?: string;
   isVisible?: boolean;
 }
@@ -25,6 +26,7 @@ const SelectionGroup: React.FC<SelectionGroupProps> = ({
   onUpdateLine,
   onUpdateImage,
   onTransformEnd,
+  onTransformStateChange,
   currentTool = 'select',
   isVisible = true
 }) => {
@@ -66,6 +68,8 @@ const SelectionGroup: React.FC<SelectionGroupProps> = ({
     console.log('[SelectionGroup] Transform start - activating group transform flag');
     setIsTransforming(true);
     setIsGroupTransformActive(true);
+    // Notify parent component that transform is active
+    onTransformStateChange?.(true);
   };
 
   const handleDragMove = () => {
@@ -186,6 +190,8 @@ const SelectionGroup: React.FC<SelectionGroupProps> = ({
     setTimeout(() => {
       console.log('[SelectionGroup] Deactivating group transform flag');
       setIsGroupTransformActive(false);
+      // Notify parent component that transform is no longer active
+      onTransformStateChange?.(false);
     }, 100);
 
     if (onTransformEnd) {
@@ -216,8 +222,6 @@ const SelectionGroup: React.FC<SelectionGroupProps> = ({
             isSelected={false}
             currentTool={currentTool}
             onDragEnd={() => {}}
-            isInGroup={true}
-            isGroupTransformActive={isGroupTransformActive}
           />
         ))}
         
@@ -230,8 +234,6 @@ const SelectionGroup: React.FC<SelectionGroupProps> = ({
             onChange={() => {}}
             onUpdateState={() => {}}
             currentTool={currentTool}
-            isInGroup={true}
-            isGroupTransformActive={isGroupTransformActive}
           />
         ))}
       </Group>

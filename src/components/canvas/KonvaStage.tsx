@@ -1,4 +1,4 @@
-import React, { useRef, useEffect, useCallback } from 'react';
+import React, { useRef, useEffect, useCallback, useState } from 'react';
 import Konva from 'konva';
 import { useWhiteboardState } from '@/hooks/useWhiteboardState';
 import { useNormalizedWhiteboardState } from '@/hooks/performance/useNormalizedWhiteboardState';
@@ -50,6 +50,9 @@ const KonvaStage: React.FC<KonvaStageProps> = ({
   const stageRef = useRef<Konva.Stage>(null);
   const layerRef = useRef<Konva.Layer>(null);
   const containerRef = useRef<HTMLDivElement>(null);
+  
+  // Track transform state to prevent Select2 drag during transforms
+  const [isTransformActive, setIsTransformActive] = useState(false);
 
   const {
     state,
@@ -303,6 +306,7 @@ const KonvaStage: React.FC<KonvaStageProps> = ({
                       whiteboardState.addToHistory();
                     }
                   }}
+                  onTransformStateChange={setIsTransformActive}
                   currentTool={state.currentTool}
                   isVisible={!stageEventHandlers.select2State.isSelecting}
                 />

@@ -15,6 +15,7 @@ interface UseSelect2EventHandlersProps {
   onUpdateImage?: (imageId: string, updates: any) => void;
   onDeleteObjects?: (selectedObjects: Array<{id: string, type: 'line' | 'image'}>) => void;
   containerRef?: React.RefObject<HTMLDivElement>;
+  isTransformActive?: boolean; // New prop to indicate if transform is active
   // Main selection state integration for delete/visual feedback
   mainSelection?: {
     selectObjects: (objects: Array<{id: string, type: 'line' | 'image'}>) => void;
@@ -39,6 +40,7 @@ export const useSelect2EventHandlers = ({
   onUpdateImage,
   onDeleteObjects,
   containerRef,
+  isTransformActive,
   mainSelection
 }: UseSelect2EventHandlersProps) => {
   const {
@@ -200,6 +202,12 @@ export const useSelect2EventHandlers = ({
       return;
     }
 
+    // Skip drag operations when transform is active (resize/rotate)
+    if (isTransformActive) {
+      console.log('Select2: Ignoring pointer down during transform operation');
+      return;
+    }
+
     // Only handle left mouse button (0) for selection, ignore right-click (2) for panning
     if (button !== 0) {
       console.log('Select2: Ignoring non-left-click event', { button });
@@ -256,11 +264,16 @@ export const useSelect2EventHandlers = ({
       startDragSelection(worldPoint);
       syncSelectionBoundsWithMainState({ x: worldX, y: worldY, width: 0, height: 0 }, true);
     }
-  }, [panZoom, isPointOnSelectedObject, startDraggingObjects, findObjectsAtPoint, selectObjectsAtPoint, clearSelection, startDragSelection, lines, images, ensureContainerFocus, state.selectedObjects, syncSelectionWithMainState, clearMainSelection, syncSelectionBoundsWithMainState]);
+  }, [panZoom, isTransformActive, isPointOnSelectedObject, startDraggingObjects, findObjectsAtPoint, selectObjectsAtPoint, clearSelection, startDragSelection, lines, images, ensureContainerFocus, state.selectedObjects, syncSelectionWithMainState, clearMainSelection, syncSelectionBoundsWithMainState]);
 
   const handlePointerMove = useCallback((worldX: number, worldY: number) => {
     // Ignore pointer events during pan/zoom gestures
     if (panZoom.isGestureActive()) {
+      return;
+    }
+
+    // Skip drag operations when transform is active (resize/rotate)
+    if (isTransformActive) {
       return;
     }
 
@@ -297,11 +310,16 @@ export const useSelect2EventHandlers = ({
       const hoveredId = objectsAtPoint.length > 0 ? objectsAtPoint[0].id : null;
       setHoveredObject(hoveredId);
     }
-  }, [panZoom, state.isDraggingObjects, state.isSelecting, state.selectionBounds, state.dragOffset, updateObjectDragging, updateDragSelection, findObjectsAtPoint, setHoveredObject, lines, images, syncSelectionBoundsWithMainState]);
+  }, [panZoom, isTransformActive, state.isDraggingObjects, state.isSelecting, state.selectionBounds, state.dragOffset, updateObjectDragging, updateDragSelection, findObjectsAtPoint, setHoveredObject, lines, images, syncSelectionBoundsWithMainState]);
 
   const handlePointerUp = useCallback(() => {
     // Ignore pointer events during pan/zoom gestures
     if (panZoom.isGestureActive()) {
+      return;
+    }
+
+    // Skip drag operations when transform is active (resize/rotate)
+    if (isTransformActive) {
       return;
     }
 
@@ -332,11 +350,17 @@ export const useSelect2EventHandlers = ({
     isDraggingRef.current = false;
     hasMovedRef.current = false;
     dragStartPositionRef.current = null;
-  }, [panZoom, state.isDraggingObjects, state.isSelecting, state.dragOffset, applyDragOffset, endObjectDragging, endDragSelection, lines, images, ensureContainerFocus, syncSelectionWithMainState, syncSelectionBoundsWithMainState]);
+  }, [panZoom, isTransformActive, state.isDraggingObjects, state.isSelecting, state.dragOffset, applyDragOffset, endObjectDragging, endDragSelection, lines, images, ensureContainerFocus, syncSelectionWithMainState, syncSelectionBoundsWithMainState]);
 
   const handleMouseDown = useCallback((e: Konva.KonvaEventObject<MouseEvent>) => {
     const stage = e.target.getStage();
     if (!stage) return;
+
+    // Skip drag operations when transform is active (resize/rotate)
+    if (isTransformActive) {
+      console.log('Select2: Ignoring mouse down during transform operation');
+      return;
+    }
 
     // Only handle left mouse button (0) for selection, ignore right-click (2) for panning
     if (e.evt.button !== 0) {
@@ -389,11 +413,16 @@ export const useSelect2EventHandlers = ({
       startDragSelection(worldPoint);
       syncSelectionBoundsWithMainState({ x: worldPoint.x, y: worldPoint.y, width: 0, height: 0 }, true);
     }
-  }, [getRelativePointerPosition, isPointOnSelectedObject, startDraggingObjects, findObjectsAtPoint, selectObjectsAtPoint, clearSelection, startDragSelection, lines, images, ensureContainerFocus, state.selectedObjects, syncSelectionWithMainState, clearMainSelection, syncSelectionBoundsWithMainState]);
+  }, [getRelativePointerPosition, isTransformActive, isPointOnSelectedObject, startDraggingObjects, findObjectsAtPoint, selectObjectsAtPoint, clearSelection, startDragSelection, lines, images, ensureContainerFocus, state.selectedObjects, syncSelectionWithMainState, clearMainSelection, syncSelectionBoundsWithMainState]);
 
   const handleMouseMove = useCallback((e: Konva.KonvaEventObject<MouseEvent>) => {
     const stage = e.target.getStage();
     if (!stage) return;
+
+    // Skip drag operations when transform is active (resize/rotate)
+    if (isTransformActive) {
+      return;
+    }
 
     const worldPoint = getRelativePointerPosition(stage, e.evt.clientX, e.evt.clientY);
     
@@ -423,9 +452,14 @@ export const useSelect2EventHandlers = ({
       const hoveredId = objectsAtPoint.length > 0 ? objectsAtPoint[0].id : null;
       setHoveredObject(hoveredId);
     }
-  }, [getRelativePointerPosition, state.isDraggingObjects, state.isSelecting, state.selectionBounds, updateObjectDragging, updateDragSelection, findObjectsAtPoint, setHoveredObject, lines, images, syncSelectionBoundsWithMainState]);
+  }, [getRelativePointerPosition, isTransformActive, state.isDraggingObjects, state.isSelecting, state.selectionBounds, updateObjectDragging, updateDragSelection, findObjectsAtPoint, setHoveredObject, lines, images, syncSelectionBoundsWithMainState]);
 
   const handleMouseUp = useCallback((e: Konva.KonvaEventObject<MouseEvent>) => {
+    // Skip drag operations when transform is active (resize/rotate)
+    if (isTransformActive) {
+      return;
+    }
+
     if (isDraggingRef.current) {
       if (state.isDraggingObjects && hasMovedRef.current) {
         // Apply the drag offset to actually move the objects
@@ -445,7 +479,7 @@ export const useSelect2EventHandlers = ({
     isDraggingRef.current = false;
     hasMovedRef.current = false;
     dragStartPositionRef.current = null;
-  }, [state.isDraggingObjects, state.isSelecting, applyDragOffset, endObjectDragging, endDragSelection, lines, images, ensureContainerFocus, syncSelectionWithMainState, syncSelectionBoundsWithMainState]);
+  }, [isTransformActive, state.isDraggingObjects, state.isSelecting, applyDragOffset, endObjectDragging, endDragSelection, lines, images, ensureContainerFocus, syncSelectionWithMainState, syncSelectionBoundsWithMainState]);
 
   const handleStageClick = useCallback((e: Konva.KonvaEventObject<MouseEvent>) => {
     if (!hasMovedRef.current) {
