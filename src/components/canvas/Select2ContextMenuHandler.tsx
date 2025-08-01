@@ -14,7 +14,7 @@ interface Select2ContextMenuHandlerProps {
   onLockImages: () => void;
   onUnlockImages: () => void;
   onHideContextMenu: () => void;
-  showContextMenu: () => void;
+  showContextMenu: (containerRef?: React.RefObject<HTMLElement>) => void;
   children: React.ReactNode;
 }
 

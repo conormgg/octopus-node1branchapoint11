@@ -1,4 +1,5 @@
 import { useState, useCallback } from 'react';
+import Konva from 'konva';
 import { LineObject, ImageObject, SelectedObject, SelectionBounds } from '@/types/whiteboard';
 
 interface Select2State {
@@ -439,58 +440,74 @@ export const useSelect2State = () => {
   const calculateContextMenuPosition = useCallback((
     selectionBounds: SelectionBounds | null,
     groupBounds: SelectionBounds | null,
-    containerRef?: React.RefObject<HTMLElement>
+    containerRef?: React.RefObject<HTMLElement>,
+    stageRef?: React.RefObject<Konva.Stage>,
+    panZoomState?: { x: number; y: number; scale: number }
   ) => {
     const bounds = groupBounds || selectionBounds;
-    if (!bounds) return { x: 0, y: 0 };
+    if (!bounds || !stageRef?.current || !panZoomState) return { x: 0, y: 0 };
+
+    const stage = stageRef.current;
+    const rect = stage.container().getBoundingClientRect();
+    const { x: stageX, y: stageY } = panZoomState;
+    const scale = panZoomState.scale;
+
+    // Convert world coordinates to screen coordinates
+    const screenX = rect.left + (bounds.x * scale) + stageX;
+    const screenY = rect.top + (bounds.y * scale) + stageY;
+    const screenWidth = bounds.width * scale;
+    const screenHeight = bounds.height * scale;
 
     const menuWidth = 200; // Approximate menu width
     const menuHeight = 120; // Approximate menu height
     const offset = 10; // Distance from selection
 
-    // Default position: bottom-right of selection
-    let x = bounds.x + bounds.width + offset;
-    let y = bounds.y;
+    // Default position: bottom-right of selection in screen coordinates
+    let x = screenX + screenWidth + offset;
+    let y = screenY;
 
-    // Adjust if menu would go off-screen
-    if (containerRef?.current) {
-      const containerRect = containerRef.current.getBoundingClientRect();
-      const containerWidth = containerRect.width;
-      const containerHeight = containerRect.height;
+    // Get viewport dimensions for boundary checking
+    const viewportWidth = window.innerWidth;
+    const viewportHeight = window.innerHeight;
 
-      // If menu would overflow right, position to the left
-      if (x + menuWidth > containerWidth) {
-        x = bounds.x - menuWidth - offset;
-      }
+    // If menu would overflow right edge of viewport, position to the left
+    if (x + menuWidth > viewportWidth) {
+      x = screenX - menuWidth - offset;
+    }
 
-      // If menu would overflow bottom, position above
-      if (y + menuHeight > containerHeight) {
-        y = bounds.y + bounds.height - menuHeight;
-      }
+    // If menu would overflow bottom edge of viewport, position above
+    if (y + menuHeight > viewportHeight) {
+      y = screenY + screenHeight - menuHeight;
+    }
 
-      // Ensure menu doesn't go off left edge
-      if (x < 0) {
-        x = bounds.x + bounds.width / 2;
-      }
+    // Ensure menu doesn't go off left edge of viewport
+    if (x < 0) {
+      x = Math.max(offset, screenX + screenWidth / 2 - menuWidth / 2);
+    }
 
-      // Ensure menu doesn't go off top edge
-      if (y < 0) {
-        y = offset;
-      }
+    // Ensure menu doesn't go off top edge of viewport
+    if (y < 0) {
+      y = offset;
     }
 
     return { x, y };
   }, []);
 
   // Show context menu
-  const showContextMenu = useCallback((containerRef?: React.RefObject<HTMLElement>) => {
+  const showContextMenu = useCallback((
+    containerRef?: React.RefObject<HTMLElement>,
+    stageRef?: React.RefObject<Konva.Stage>,
+    panZoomState?: { x: number; y: number; scale: number }
+  ) => {
     setState(prev => {
       if (prev.selectedObjects.length === 0) return prev;
 
       const position = calculateContextMenuPosition(
         prev.selectionBounds,
         prev.groupBounds,
-        containerRef
+        containerRef,
+        stageRef,
+        panZoomState
       );
 
       return {
@@ -516,14 +533,20 @@ export const useSelect2State = () => {
   }, []);
 
   // Update context menu position (useful when selection bounds change)
-  const updateContextMenuPosition = useCallback((containerRef?: React.RefObject<HTMLElement>) => {
+  const updateContextMenuPosition = useCallback((
+    containerRef?: React.RefObject<HTMLElement>,
+    stageRef?: React.RefObject<Konva.Stage>,
+    panZoomState?: { x: number; y: number; scale: number }
+  ) => {
     setState(prev => {
       if (!prev.contextMenu.isVisible) return prev;
 
       const position = calculateContextMenuPosition(
         prev.selectionBounds,
         prev.groupBounds,
-        containerRef
+        containerRef,
+        stageRef,
+        panZoomState
       );
 
       return {

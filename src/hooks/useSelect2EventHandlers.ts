@@ -492,9 +492,9 @@ export const useSelect2EventHandlers = ({
     clearSelection: clearSelection,
     deleteSelectedObjects,
     showContextMenu: (containerRef?: React.RefObject<HTMLElement>) => {
-      // Use the showContextMenu from useSelect2State
+      // Use the showContextMenu from useSelect2State with proper parameters
       if (state.selectedObjects.length > 0) {
-        showContextMenu(containerRef);
+        showContextMenu(containerRef, stageRef, panZoomState);
       }
     },
     hideContextMenu
