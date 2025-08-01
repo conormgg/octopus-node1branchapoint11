@@ -211,7 +211,7 @@ const SelectionGroup: React.FC<SelectionGroupProps> = ({
       {shouldShowGroup && (
         <Transformer
           ref={transformerRef}
-          listening={currentTool === 'select'}
+          listening={currentTool === 'select' || currentTool === 'select2'}
           boundBoxFunc={(oldBox, newBox) => {
             if (newBox.width < 10 || newBox.height < 10) {
               return oldBox;
