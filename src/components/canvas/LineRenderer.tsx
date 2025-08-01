@@ -11,7 +11,7 @@ interface LineRendererProps {
   onSelect?: () => void;
   onMouseEnter?: () => void;
   onMouseLeave?: () => void;
-  onDragEnd?: (updates: { x: number; y: number; scaleX?: number; scaleY?: number; rotation?: number }) => void;
+  onDragEnd?: (updates: { x: number; y: number }) => void;
   currentTool?: string;
 }
 

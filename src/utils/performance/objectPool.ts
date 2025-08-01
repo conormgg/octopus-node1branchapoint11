@@ -75,13 +75,6 @@ interface PooledBounds extends PoolableObject {
   height: number;
 }
 
-interface PooledTransform extends PoolableObject {
-  x: number;
-  y: number;
-  scaleX: number;
-  scaleY: number;
-  rotation: number;
-}
 
 interface PooledCalculationResult extends PoolableObject {
   result: number;
@@ -112,18 +105,6 @@ export const boundsPool = new ObjectPool<PooledBounds>({
   initialSize: 5
 });
 
-export const transformDataPool = new ObjectPool<PooledTransform>({
-  createFn: (): PooledTransform => ({ x: 0, y: 0, scaleX: 1, scaleY: 1, rotation: 0 }),
-  resetFn: (transform) => {
-    transform.x = 0;
-    transform.y = 0;
-    transform.scaleX = 1;
-    transform.scaleY = 1;
-    transform.rotation = 0;
-  },
-  maxSize: 30,
-  initialSize: 5
-});
 
 // Calculation result pools for temporary objects
 export const calculationResultPool = new ObjectPool<PooledCalculationResult>({
@@ -138,4 +119,4 @@ export const calculationResultPool = new ObjectPool<PooledCalculationResult>({
 });
 
 export { ObjectPool };
-export type { PooledPoint, PooledBounds, PooledTransform, PooledCalculationResult };
+export type { PooledPoint, PooledBounds, PooledCalculationResult };

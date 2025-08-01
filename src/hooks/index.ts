@@ -73,11 +73,7 @@ export { useEraserState } from './useEraserState';
  */
 export { useSelectionState } from './useSelectionState';
 
-/**
- * Group transformation operations for multiple selected objects
- * Provides unified transformation controls for object groups
- */
-export { useGroupTransform } from './useGroupTransform';
+
 
 // ============================================================================
 // SESSION AND COLLABORATION HOOKS

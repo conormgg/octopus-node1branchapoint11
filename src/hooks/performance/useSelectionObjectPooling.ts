@@ -1,6 +1,6 @@
 
 import { useCallback, useRef } from 'react';
-import { pointPool, boundsPool, transformDataPool, type PooledPoint, type PooledBounds, type PooledTransform } from '@/utils/performance/objectPool';
+import { pointPool, boundsPool, type PooledPoint, type PooledBounds } from '@/utils/performance/objectPool';
 import { SelectionBounds } from '@/types/whiteboard';
 
 /**
@@ -47,8 +47,6 @@ export const useSelectionObjectPooling = () => {
       // Determine which pool this object belongs to based on its properties
       if ('x' in obj && 'y' in obj && 'width' in obj && 'height' in obj) {
         boundsPool.release(obj);
-      } else if ('x' in obj && 'y' in obj && 'scaleX' in obj) {
-        transformDataPool.release(obj);
       } else if ('x' in obj && 'y' in obj) {
         pointPool.release(obj);
       }
@@ -61,8 +59,6 @@ export const useSelectionObjectPooling = () => {
       // Determine which pool this object belongs to
       if ('x' in obj && 'y' in obj && 'width' in obj && 'height' in obj) {
         boundsPool.release(obj);
-      } else if ('x' in obj && 'y' in obj && 'scaleX' in obj) {
-        transformDataPool.release(obj);
       } else if ('x' in obj && 'y' in obj) {
         pointPool.release(obj);
       }
@@ -91,7 +87,6 @@ export const useSelectionObjectPooling = () => {
     getPoolStats: () => ({
       pointPool: pointPool.size,
       boundsPool: boundsPool.size,
-      transformDataPool: transformDataPool.size,
       borrowedObjects: borrowedObjects.current.size
     })
   };

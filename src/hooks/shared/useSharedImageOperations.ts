@@ -125,8 +125,8 @@ export const useSharedImageOperations = (
   const updateImageState = useCallback((imageId: string, updates: Partial<ImageObject>) => {
     console.log(`[ImageOperations] Updating image ${imageId}:`, updates);
     
-    // Check if this is a transform operation (position or scale change)
-    const isTransformUpdate = 'x' in updates || 'y' in updates || 'scaleX' in updates || 'scaleY' in updates || 'rotation' in updates;
+    // Check if this is a transform operation (position change only)
+    const isTransformUpdate = 'x' in updates || 'y' in updates;
     
     setState((prev: any) => {
       const updatedImages = prev.images.map((image: ImageObject) =>

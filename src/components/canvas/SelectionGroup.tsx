@@ -1,4 +1,4 @@
-import React, { useRef, useEffect, useState } from 'react';
+import React, { useRef, useEffect } from 'react';
 import { Group } from 'react-konva';
 import Konva from 'konva';
 import { LineObject, ImageObject, SelectedObject } from '@/types/whiteboard';
