@@ -233,9 +233,11 @@ export const useSelect2EventHandlers = ({
       startTransform(mode, handle.type, state.groupBounds!);
       
       console.log('Transform started:', { handleType: handle.type, mode, bounds: state.groupBounds });
+      // Early return - don't set drag state when transforming
       return;
     }
-    
+
+    // Initialize drag state only if NOT transforming
     isDraggingRef.current = true;
     hasMovedRef.current = false;
     dragStartPositionRef.current = worldPoint;
@@ -500,8 +502,17 @@ export const useSelect2EventHandlers = ({
       return;
     }
 
-    // Handle transform end
+    console.log('Select2: Pointer up', { 
+      wasDragging: isDraggingRef.current,
+      hasMoved: hasMovedRef.current,
+      isDraggingObjects: state.isDraggingObjects,
+      dragOffset: state.dragOffset,
+      isTransforming: isTransformingRef.current
+    });
+
+    // Handle transform end first (highest priority)
     if (isTransformingRef.current) {
+      console.log('Select2: Transform operation ended');
       isTransformingRef.current = false;
       transformStartRef.current = null;
       
@@ -546,17 +557,17 @@ export const useSelect2EventHandlers = ({
       
       endTransform();
       console.log('Transform ended');
-      return;
+      
+      // Reset cursor
+      if (stageRef.current) {
+        stageRef.current.container().style.cursor = 'default';
+      }
+      hoveredHandleRef.current = null;
+      return; // Early return for transform operations
     }
-
-    console.log('Select2: Pointer up', { 
-      wasDragging: isDraggingRef.current,
-      hasMoved: hasMovedRef.current,
-      isDraggingObjects: state.isDraggingObjects,
-      dragOffset: state.dragOffset 
-    });
     
-    if (isDraggingRef.current) {
+    // Handle drag operations only if we were actually dragging and not transforming
+    if (isDraggingRef.current && !isTransformingRef.current) {
       if (state.isDraggingObjects && hasMovedRef.current) {
         // Apply the drag offset to actually move the objects - single application
         console.log('Select2: Applying final drag offset');
@@ -564,6 +575,7 @@ export const useSelect2EventHandlers = ({
         endObjectDragging();
       } else if (state.isSelecting && hasMovedRef.current) {
         // Complete drag selection
+        console.log('Select2: Ending drag selection operation');
         const selectedObjects = endDragSelection(lines, images);
         // Sync with main selection state
         syncSelectionWithMainState(selectedObjects);
@@ -573,58 +585,11 @@ export const useSelect2EventHandlers = ({
       }
     }
     
-    // Handle transform mouse up
-    if (isTransformingRef.current) {
-      isTransformingRef.current = false;
-      transformStartRef.current = null;
-      
-      // Apply the transform to actual objects
-      if (state.currentTransformBounds && state.initialTransformBounds) {
-        const matrix = transform.calculateTransformMatrix(
-          state.initialTransformBounds,
-          state.currentTransformBounds,
-          state.transformRotation
-        );
-        
-        const centerX = state.initialTransformBounds.x + state.initialTransformBounds.width / 2;
-        const centerY = state.initialTransformBounds.y + state.initialTransformBounds.height / 2;
-        
-        state.selectedObjects.forEach(obj => {
-          if (isObjectLocked(obj.id, obj.type, lines, images)) {
-            return; // Skip locked objects
-          }
-          
-          const newBounds = transform.transformObjectBounds(
-            obj,
-            lines,
-            images,
-            { x: centerX, y: centerY },
-            matrix
-          );
-          
-          if (!newBounds) return;
-          
-          if (obj.type === 'line' && onUpdateLine) {
-            onUpdateLine(obj.id, newBounds);
-          } else if (obj.type === 'image' && onUpdateImage) {
-            onUpdateImage(obj.id, newBounds);
-          }
-        });
-        
-        // Update group bounds after transform
-        setTimeout(() => {
-          updateGroupBounds(lines, images);
-        }, 0);
-      }
-      
-      endTransform();
-      console.log('Transform ended');
-    }
-    
+    // Reset dragging state only if not transforming
     isDraggingRef.current = false;
     hasMovedRef.current = false;
     dragStartPositionRef.current = null;
-  }, [panZoom, state.isDraggingObjects, state.isSelecting, state.dragOffset, applyDragOffset, endObjectDragging, endDragSelection, lines, images, ensureContainerFocus, syncSelectionWithMainState, syncSelectionBoundsWithMainState]);
+  }, [panZoom, state.isDraggingObjects, state.isSelecting, state.dragOffset, applyDragOffset, endObjectDragging, endDragSelection, lines, images, ensureContainerFocus, syncSelectionWithMainState, syncSelectionBoundsWithMainState, transform, onUpdateLine, onUpdateImage, isObjectLocked, updateGroupBounds, endTransform, stageRef]);
 
   const handleMouseDown = useCallback((e: Konva.KonvaEventObject<MouseEvent>) => {
     const stage = e.target.getStage();
