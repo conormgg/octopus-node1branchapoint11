@@ -2,6 +2,7 @@ import React from 'react';
 import { Rect, Line, Image } from 'react-konva';
 import { SelectionBounds, SelectedObject, LineObject, ImageObject } from '@/types/whiteboard';
 import SelectionRect from './SelectionRect';
+import { TransformControls } from './TransformControls';
 
 interface Select2RendererProps {
   selectedObjects: SelectedObject[];
@@ -13,6 +14,13 @@ interface Select2RendererProps {
   groupBounds: SelectionBounds | null;
   dragOffset: { x: number; y: number } | null;
   isDraggingObjects: boolean;
+  // Transform props
+  isTransforming: boolean;
+  transformMode: 'resize' | 'rotate' | null;
+  currentTransformBounds: SelectionBounds | null;
+  transformRotation: number;
+  onTransformHandleMouseDown?: (handleType: string, e: any) => void;
+  zoom: number;
 }
 
 export const Select2Renderer: React.FC<Select2RendererProps> = ({
@@ -24,7 +32,13 @@ export const Select2Renderer: React.FC<Select2RendererProps> = ({
   images,
   groupBounds,
   dragOffset,
-  isDraggingObjects
+  isDraggingObjects,
+  isTransforming,
+  transformMode,
+  currentTransformBounds,
+  transformRotation,
+  onTransformHandleMouseDown,
+  zoom
 }) => {
   // Helper function to get object bounds for individual hover feedback
   const getObjectBounds = (obj: SelectedObject) => {
@@ -174,6 +188,14 @@ export const Select2Renderer: React.FC<Select2RendererProps> = ({
 
       {/* Preview objects during dragging */}
       {renderPreviewObjects()}
+
+      {/* Transform controls */}
+      <TransformControls
+        bounds={currentTransformBounds || groupBounds}
+        isVisible={!isSelecting && !isDraggingObjects && selectedObjects.length > 0 && !isTransforming}
+        onHandleMouseDown={onTransformHandleMouseDown || (() => {})}
+        zoom={zoom}
+      />
     </>
   );
 };

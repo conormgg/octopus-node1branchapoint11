@@ -279,6 +279,12 @@ const KonvaStage: React.FC<KonvaStageProps> = ({
                   images={state.images}
                   dragOffset={stageEventHandlers.select2State?.dragOffset || null}
                   isDraggingObjects={stageEventHandlers.select2State?.isDraggingObjects || false}
+                  isTransforming={stageEventHandlers.select2State?.isTransforming || false}
+                  transformMode={stageEventHandlers.select2State?.transformMode || null}
+                  currentTransformBounds={stageEventHandlers.select2State?.currentTransformBounds || null}
+                  transformRotation={stageEventHandlers.select2State?.transformRotation || 0}
+                  onTransformHandleMouseDown={stageEventHandlers.handleTransformHandleMouseDown || (() => {})}
+                  zoom={state.panZoomState.scale}
                 />
               )}
               {/* SelectionGroup for select2 - show transform handles when objects are selected and not selecting */}

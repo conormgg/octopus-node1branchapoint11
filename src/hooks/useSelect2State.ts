@@ -16,6 +16,13 @@ interface Select2State {
     x: number;
     y: number;
   };
+  // Transform state
+  isTransforming: boolean;
+  transformMode: 'resize' | 'rotate' | null;
+  transformAnchor: string | null;
+  initialTransformBounds: SelectionBounds | null;
+  currentTransformBounds: SelectionBounds | null;
+  transformRotation: number;
 }
 
 export const useSelect2State = () => {
@@ -32,7 +39,14 @@ export const useSelect2State = () => {
       isVisible: false,
       x: 0,
       y: 0
-    }
+    },
+    // Transform state
+    isTransforming: false,
+    transformMode: null,
+    transformAnchor: null,
+    initialTransformBounds: null,
+    currentTransformBounds: null,
+    transformRotation: 0
   });
 
   // Calculate group bounds for selected objects
@@ -560,6 +574,58 @@ export const useSelect2State = () => {
     });
   }, [calculateContextMenuPosition]);
 
+  // Transform methods
+  const startTransform = useCallback((
+    mode: 'resize' | 'rotate',
+    anchor: string,
+    initialBounds: SelectionBounds
+  ) => {
+    setState(prev => ({
+      ...prev,
+      isTransforming: true,
+      transformMode: mode,
+      transformAnchor: anchor,
+      initialTransformBounds: initialBounds,
+      currentTransformBounds: { ...initialBounds },
+      transformRotation: 0
+    }));
+  }, []);
+
+  const updateTransform = useCallback((
+    newBounds: SelectionBounds,
+    rotation: number = 0
+  ) => {
+    setState(prev => ({
+      ...prev,
+      currentTransformBounds: newBounds,
+      transformRotation: rotation
+    }));
+  }, []);
+
+  const endTransform = useCallback(() => {
+    setState(prev => ({
+      ...prev,
+      isTransforming: false,
+      transformMode: null,
+      transformAnchor: null,
+      initialTransformBounds: null,
+      currentTransformBounds: null,
+      transformRotation: 0
+    }));
+  }, []);
+
+  const cancelTransform = useCallback(() => {
+    setState(prev => ({
+      ...prev,
+      isTransforming: false,
+      transformMode: null,
+      transformAnchor: null,
+      initialTransformBounds: null,
+      currentTransformBounds: null,
+      transformRotation: 0
+    }));
+  }, []);
+
   return {
     state,
     setState,
@@ -579,6 +645,11 @@ export const useSelect2State = () => {
     isObjectLocked,
     showContextMenu,
     hideContextMenu,
-    updateContextMenuPosition
+    updateContextMenuPosition,
+    // Transform methods
+    startTransform,
+    updateTransform,
+    endTransform,
+    cancelTransform
   };
 };
