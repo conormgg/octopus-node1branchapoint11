@@ -486,20 +486,29 @@ export const useSelect2EventHandlers = ({
       isTransformingRef.current = false;
       transformStartRef.current = null;
       
-      // Apply the transform to actual objects using direct bounds updates
+      // Apply the transform to actual objects using matrix-based calculations (same as preview)
       if (state.currentTransformBounds && state.initialTransformBounds) {
         const initialBounds = state.initialTransformBounds;
-        const finalBounds = state.currentTransformBounds;
+        const currentBounds = state.currentTransformBounds;
         
-        // Calculate scale factors
-        const scaleX = finalBounds.width / initialBounds.width;
-        const scaleY = finalBounds.height / initialBounds.height;
+        // Calculate transform matrix (same method as preview)
+        const matrix = transform.calculateTransformMatrix(
+          initialBounds,
+          currentBounds,
+          state.transformRotation || 0
+        );
         
-        console.log('Select2: Applying transform to objects', { 
+        // Calculate group center for transform origin (same as preview)
+        const groupCenter = {
+          x: initialBounds.x + initialBounds.width / 2,
+          y: initialBounds.y + initialBounds.height / 2
+        };
+        
+        console.log('Select2: Applying matrix-based transform to objects', { 
           initialBounds, 
-          finalBounds, 
-          scaleX, 
-          scaleY,
+          currentBounds,
+          matrix,
+          groupCenter,
           objectCount: state.selectedObjects.length 
         });
         
@@ -509,46 +518,40 @@ export const useSelect2EventHandlers = ({
             return; // Skip locked objects
           }
           
+          // Use the same transform calculation as the preview
+          const transformedBounds = transform.transformObjectBounds(obj, lines, images, groupCenter, matrix);
+          if (!transformedBounds) return;
+          
           if (obj.type === 'line' && onUpdateLine) {
             const line = lines.find(l => l.id === obj.id);
             if (line) {
-              // Calculate new line position and scale
-              const newX = finalBounds.x + ((line.x - initialBounds.x) * scaleX);
-              const newY = finalBounds.y + ((line.y - initialBounds.y) * scaleY);
-              const newStrokeWidth = Math.max(1, line.strokeWidth * Math.min(scaleX, scaleY));
-              
-              console.log('Select2: Transforming line', { 
+              console.log('Select2: Transforming line with matrix', { 
                 id: obj.id, 
                 from: { x: line.x, y: line.y, strokeWidth: line.strokeWidth },
-                to: { x: newX, y: newY, strokeWidth: newStrokeWidth }
+                to: { x: transformedBounds.x, y: transformedBounds.y, strokeWidth: transformedBounds.strokeWidth }
               });
               
               onUpdateLine(obj.id, { 
-                x: newX, 
-                y: newY, 
-                strokeWidth: newStrokeWidth 
+                x: transformedBounds.x, 
+                y: transformedBounds.y,
+                points: transformedBounds.points,
+                strokeWidth: transformedBounds.strokeWidth 
               });
             }
           } else if (obj.type === 'image' && onUpdateImage) {
             const image = images.find(i => i.id === obj.id);
             if (image) {
-              // Calculate new image position and size
-              const newX = finalBounds.x + ((image.x - initialBounds.x) * scaleX);
-              const newY = finalBounds.y + ((image.y - initialBounds.y) * scaleY);
-              const newWidth = (image.width || 100) * scaleX;
-              const newHeight = (image.height || 100) * scaleY;
-              
-              console.log('Select2: Transforming image', { 
+              console.log('Select2: Transforming image with matrix', { 
                 id: obj.id, 
                 from: { x: image.x, y: image.y, w: image.width, h: image.height },
-                to: { x: newX, y: newY, w: newWidth, h: newHeight }
+                to: { x: transformedBounds.x, y: transformedBounds.y, w: transformedBounds.width, h: transformedBounds.height }
               });
               
               onUpdateImage(obj.id, { 
-                x: newX, 
-                y: newY, 
-                width: Math.max(10, newWidth), 
-                height: Math.max(10, newHeight) 
+                x: transformedBounds.x, 
+                y: transformedBounds.y, 
+                width: Math.max(10, transformedBounds.width), 
+                height: Math.max(10, transformedBounds.height) 
               });
             }
           }
