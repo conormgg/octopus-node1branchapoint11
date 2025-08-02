@@ -282,6 +282,7 @@ const KonvaStage: React.FC<KonvaStageProps> = ({
                   isTransforming={stageEventHandlers.select2State?.isTransforming || false}
                   transformMode={stageEventHandlers.select2State?.transformMode || null}
                   currentTransformBounds={stageEventHandlers.select2State?.currentTransformBounds || null}
+                  initialTransformBounds={stageEventHandlers.select2State?.initialTransformBounds || null}
                   transformRotation={stageEventHandlers.select2State?.transformRotation || 0}
                   onTransformHandleMouseDown={stageEventHandlers.handleTransformHandleMouseDown || (() => {})}
                   zoom={state.panZoomState.scale}

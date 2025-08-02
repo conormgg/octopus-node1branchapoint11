@@ -3,6 +3,7 @@ import { Rect, Line, Image } from 'react-konva';
 import { SelectionBounds, SelectedObject, LineObject, ImageObject } from '@/types/whiteboard';
 import SelectionRect from './SelectionRect';
 import { TransformControls } from './TransformControls';
+import { useSelect2Transform } from '@/hooks/useSelect2Transform';
 
 interface Select2RendererProps {
   selectedObjects: SelectedObject[];
@@ -18,6 +19,7 @@ interface Select2RendererProps {
   isTransforming: boolean;
   transformMode: 'resize' | 'rotate' | null;
   currentTransformBounds: SelectionBounds | null;
+  initialTransformBounds: SelectionBounds | null;
   transformRotation: number;
   onTransformHandleMouseDown?: (handleType: string, e: any) => void;
   zoom: number;
@@ -36,10 +38,12 @@ export const Select2Renderer: React.FC<Select2RendererProps> = ({
   isTransforming,
   transformMode,
   currentTransformBounds,
+  initialTransformBounds,
   transformRotation,
   onTransformHandleMouseDown,
   zoom
 }) => {
+  const { calculateTransformMatrix, transformObjectBounds } = useSelect2Transform();
   // Helper function to get object bounds for individual hover feedback
   const getObjectBounds = (obj: SelectedObject) => {
     if (obj.type === 'line') {
@@ -127,9 +131,70 @@ export const Select2Renderer: React.FC<Select2RendererProps> = ({
     });
   };
 
-  // Render dimming overlay for original objects during drag
+  // Render preview objects during transform
+  const renderTransformPreviewObjects = () => {
+    if (!isTransforming || !currentTransformBounds || !initialTransformBounds) return null;
+
+    // Calculate transform matrix
+    const matrix = calculateTransformMatrix(
+      initialTransformBounds,
+      currentTransformBounds,
+      transformRotation
+    );
+
+    // Calculate group center for transform origin
+    const groupCenter = {
+      x: initialTransformBounds.x + initialTransformBounds.width / 2,
+      y: initialTransformBounds.y + initialTransformBounds.height / 2
+    };
+
+    return selectedObjects.map(obj => {
+      const transformedBounds = transformObjectBounds(obj, lines, images, groupCenter, matrix);
+      if (!transformedBounds) return null;
+
+      if (obj.type === 'line') {
+        return (
+          <Line
+            key={`transform-preview-${obj.id}`}
+            points={transformedBounds.points}
+            x={transformedBounds.x}
+            y={transformedBounds.y}
+            stroke="rgba(0, 123, 255, 0.6)"
+            strokeWidth={transformedBounds.strokeWidth}
+            lineCap="round"
+            lineJoin="round"
+            opacity={0.5}
+            listening={false}
+            dash={[5, 5]}
+          />
+        );
+      } else if (obj.type === 'image') {
+        const image = images.find(i => i.id === obj.id);
+        if (!image) return null;
+
+        const img = new window.Image();
+        img.src = image.src;
+
+        return (
+          <Image
+            key={`transform-preview-${obj.id}`}
+            image={img}
+            x={transformedBounds.x}
+            y={transformedBounds.y}
+            width={transformedBounds.width}
+            height={transformedBounds.height}
+            opacity={0.5}
+            listening={false}
+          />
+        );
+      }
+      return null;
+    });
+  };
+
+  // Render dimming overlay for original objects during drag/transform
   const renderOriginalObjectDimming = () => {
-    if (!isDraggingObjects || !dragOffset) return null;
+    if ((!isDraggingObjects || !dragOffset) && !isTransforming) return null;
 
     return selectedObjects.map(obj => {
       const bounds = getObjectBounds(obj);
@@ -183,11 +248,14 @@ export const Select2Renderer: React.FC<Select2RendererProps> = ({
         })()
       )}
 
-      {/* Dimming overlay for original objects during drag */}
+      {/* Dimming overlay for original objects during drag/transform */}
       {renderOriginalObjectDimming()}
 
       {/* Preview objects during dragging */}
       {renderPreviewObjects()}
+
+      {/* Preview objects during transform */}
+      {renderTransformPreviewObjects()}
 
       {/* Transform controls */}
       <TransformControls
