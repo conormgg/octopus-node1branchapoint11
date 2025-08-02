@@ -339,7 +339,7 @@ export const useSelect2State = () => {
   // Update object dragging
   const updateObjectDragging = useCallback((point: { x: number; y: number }) => {
     setState(prev => {
-      if (!prev.dragStartPoint || !prev.isDraggingObjects) return prev;
+      if (!prev.dragStartPoint || !prev.isDraggingObjects || prev.isTransforming) return prev;
 
       const dragOffset = {
         x: point.x - prev.dragStartPoint.x,
