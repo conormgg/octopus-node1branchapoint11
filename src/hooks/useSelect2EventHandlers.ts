@@ -300,12 +300,87 @@ export const useSelect2EventHandlers = ({
         }
       }
     } else {
-      // Update hover feedback
-      const objectsAtPoint = findObjectsAtPoint(worldPoint, lines, images);
-      const hoveredId = objectsAtPoint.length > 0 ? objectsAtPoint[0].id : null;
-      setHoveredObject(hoveredId);
+      // Handle transform mouse move if transforming
+      if (isTransformingRef.current) {
+        const stage = stageRef.current;
+        if (stage) {
+          const pointerPos = stage.getPointerPosition();
+          if (pointerPos) {
+            const worldPoint = getRelativePointerPosition(stage, pointerPos.x, pointerPos.y);
+            // Call the transform mouse move method inline
+            if (!transformStartRef.current || !state.initialTransformBounds) return;
+
+            const { transformMode, transformAnchor, initialTransformBounds } = state;
+            
+            if (transformMode === 'resize' && transformAnchor) {
+              const dx = worldPoint.x - transformStartRef.current.x;
+              const dy = worldPoint.y - transformStartRef.current.y;
+              
+              let newBounds = { ...initialTransformBounds };
+              
+              switch (transformAnchor) {
+                case 'nw':
+                  newBounds.x += dx;
+                  newBounds.y += dy;
+                  newBounds.width -= dx;
+                  newBounds.height -= dy;
+                  break;
+                case 'ne':
+                  newBounds.y += dy;
+                  newBounds.width += dx;
+                  newBounds.height -= dy;
+                  break;
+                case 'se':
+                  newBounds.width += dx;
+                  newBounds.height += dy;
+                  break;
+                case 'sw':
+                  newBounds.x += dx;
+                  newBounds.width -= dx;
+                  newBounds.height += dy;
+                  break;
+                case 'n':
+                  newBounds.y += dy;
+                  newBounds.height -= dy;
+                  break;
+                case 's':
+                  newBounds.height += dy;
+                  break;
+                case 'e':
+                  newBounds.width += dx;
+                  break;
+                case 'w':
+                  newBounds.x += dx;
+                  newBounds.width -= dx;
+                  break;
+              }
+              
+              const minSize = 10;
+              if (newBounds.width < minSize) {
+                if (transformAnchor.includes('w')) {
+                  newBounds.x = newBounds.x + newBounds.width - minSize;
+                }
+                newBounds.width = minSize;
+              }
+              if (newBounds.height < minSize) {
+                if (transformAnchor.includes('n')) {
+                  newBounds.y = newBounds.y + newBounds.height - minSize;
+                }
+                newBounds.height = minSize;
+              }
+              
+              updateTransform(newBounds);
+            }
+          }
+        }
+      } else {
+        // Update hover feedback
+        const objectsAtPoint = findObjectsAtPoint(worldPoint, lines, images);
+        const hoveredId = objectsAtPoint.length > 0 ? objectsAtPoint[0].id : null;
+        setHoveredObject(hoveredId);
+      }
     }
-  }, [panZoom, state.isDraggingObjects, state.isSelecting, state.selectionBounds, state.dragOffset, updateObjectDragging, updateDragSelection, findObjectsAtPoint, setHoveredObject, lines, images, syncSelectionBoundsWithMainState]);
+  }, [panZoom, state.isDraggingObjects, state.isSelecting, state.selectionBounds, state.dragOffset, updateObjectDragging, updateDragSelection, findObjectsAtPoint, setHoveredObject, lines, images, syncSelectionBoundsWithMainState, stageRef, getRelativePointerPosition]);
 
   const handlePointerUp = useCallback(() => {
     // Ignore pointer events during pan/zoom gestures
@@ -335,6 +410,54 @@ export const useSelect2EventHandlers = ({
         // Ensure container has focus for keyboard events after drag selection
         ensureContainerFocus();
       }
+    }
+    
+    // Handle transform mouse up
+    if (isTransformingRef.current) {
+      isTransformingRef.current = false;
+      transformStartRef.current = null;
+      
+      // Apply the transform to actual objects
+      if (state.currentTransformBounds && state.initialTransformBounds) {
+        const matrix = transform.calculateTransformMatrix(
+          state.initialTransformBounds,
+          state.currentTransformBounds,
+          state.transformRotation
+        );
+        
+        const centerX = state.initialTransformBounds.x + state.initialTransformBounds.width / 2;
+        const centerY = state.initialTransformBounds.y + state.initialTransformBounds.height / 2;
+        
+        state.selectedObjects.forEach(obj => {
+          if (isObjectLocked(obj.id, obj.type, lines, images)) {
+            return; // Skip locked objects
+          }
+          
+          const newBounds = transform.transformObjectBounds(
+            obj,
+            lines,
+            images,
+            { x: centerX, y: centerY },
+            matrix
+          );
+          
+          if (!newBounds) return;
+          
+          if (obj.type === 'line' && onUpdateLine) {
+            onUpdateLine(obj.id, newBounds);
+          } else if (obj.type === 'image' && onUpdateImage) {
+            onUpdateImage(obj.id, newBounds);
+          }
+        });
+        
+        // Update group bounds after transform
+        setTimeout(() => {
+          updateGroupBounds(lines, images);
+        }, 0);
+      }
+      
+      endTransform();
+      console.log('Transform ended');
     }
     
     isDraggingRef.current = false;
@@ -526,7 +649,7 @@ export const useSelect2EventHandlers = ({
       
       console.log('Transform started:', { handleType, mode, bounds: state.groupBounds });
     },
-    handleTransformMouseMove: (worldPoint: { x: number; y: number }) => {
+    handleTransformMouseMove: (worldPoint: { x: number; y: number }, ctrlKey = false, shiftKey = false, altKey = false) => {
       if (!isTransformingRef.current || !transformStartRef.current || !state.initialTransformBounds) {
         return;
       }
@@ -578,6 +701,25 @@ export const useSelect2EventHandlers = ({
             break;
         }
         
+        // Apply keyboard modifiers
+        if (shiftKey) {
+          // Maintain aspect ratio
+          const aspectRatio = initialTransformBounds.width / initialTransformBounds.height;
+          if (Math.abs(newBounds.width - initialTransformBounds.width) > Math.abs(newBounds.height - initialTransformBounds.height)) {
+            newBounds.height = newBounds.width / aspectRatio;
+          } else {
+            newBounds.width = newBounds.height * aspectRatio;
+          }
+        }
+        
+        if (altKey) {
+          // Transform from center
+          const centerX = initialTransformBounds.x + initialTransformBounds.width / 2;
+          const centerY = initialTransformBounds.y + initialTransformBounds.height / 2;
+          newBounds.x = centerX - newBounds.width / 2;
+          newBounds.y = centerY - newBounds.height / 2;
+        }
+        
         // Apply minimum size constraints
         const minSize = 10;
         if (newBounds.width < minSize) {
@@ -600,10 +742,15 @@ export const useSelect2EventHandlers = ({
         const centerX = initialTransformBounds.x + initialTransformBounds.width / 2;
         const centerY = initialTransformBounds.y + initialTransformBounds.height / 2;
         
-        const angle = Math.atan2(
+        let angle = Math.atan2(
           worldPoint.y - centerY,
           worldPoint.x - centerX
         ) * (180 / Math.PI);
+        
+        // Apply Ctrl modifier for 15-degree snapping
+        if (ctrlKey) {
+          angle = transform.snapRotation(angle);
+        }
         
         updateTransform(initialTransformBounds, angle);
       }
