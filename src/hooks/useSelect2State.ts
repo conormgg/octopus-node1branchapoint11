@@ -614,7 +614,11 @@ export const useSelect2State = () => {
       transformAnchor: null,
       initialTransformBounds: null,
       currentTransformBounds: null,
-      transformRotation: 0
+      transformRotation: 0,
+      // Also reset dragging state
+      isDraggingObjects: false,
+      dragStartPoint: null,
+      dragOffset: null
     }));
   }, []);
 
