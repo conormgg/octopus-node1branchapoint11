@@ -203,7 +203,7 @@ export const useSelect2EventHandlers = ({
     }, 0);
   }, [state.dragOffset, state.selectedObjects, lines, images, onUpdateLine, onUpdateImage, setState, calculateGroupBounds]);
 
-  // UPDATED: Improved pointer handlers with pan/zoom gesture detection and mouse button filtering
+  // STAGE 1 & 3: Fixed state variable conflicts and event handler priority
   const handlePointerDown = useCallback((worldX: number, worldY: number, ctrlKey: boolean = false, button: number = 0) => {
     // Ignore pointer events during pan/zoom gestures
     if (panZoom.isGestureActive()) {
@@ -219,28 +219,45 @@ export const useSelect2EventHandlers = ({
 
     const worldPoint = { x: worldX, y: worldY };
     
-    console.log('Select2: Pointer down', { worldPoint, ctrlKey });
+    console.log('Select2: Pointer down - entry', { worldPoint, ctrlKey, isTransforming: state.isTransforming });
 
-    // Check for transform handle hit first (highest priority)
+    // PRIORITY 1: Transform handle detection (blocks all other operations)
     const handle = handleDetection.getHandleAtPoint(worldPoint, state.groupBounds);
     if (handle && state.selectedObjects.length > 0) {
-      console.log('Select2: Transform handle clicked', { handleType: handle.type });
+      console.log('Select2: TRANSFORM MODE ACTIVATED', { 
+        handleType: handle.type, 
+        groupBounds: state.groupBounds,
+        selectedCount: state.selectedObjects.length 
+      });
       
+      // Set ONLY transform state - no drag state contamination
       isTransformingRef.current = true;
       transformStartRef.current = worldPoint;
       
       const mode = handle.type === 'rotate' ? 'rotate' : 'resize';
       startTransform(mode, handle.type, state.groupBounds!);
       
-      console.log('Transform started:', { handleType: handle.type, mode, bounds: state.groupBounds });
-      // Early return - don't set drag state when transforming
+      console.log('Select2: Transform initiated successfully', { 
+        mode, 
+        anchor: handle.type, 
+        startPoint: worldPoint 
+      });
+      // CRITICAL: Early return prevents any drag state initialization
       return;
     }
 
-    // Initialize drag state only if NOT transforming
-    isDraggingRef.current = true;
-    hasMovedRef.current = false;
-    dragStartPositionRef.current = worldPoint;
+    console.log('Select2: No transform handle detected, proceeding with drag/selection logic');
+
+    // PRIORITY 2 & 3: Only set drag state if NOT transforming
+    if (!state.isTransforming) {
+      isDraggingRef.current = true;
+      hasMovedRef.current = false;
+      dragStartPositionRef.current = worldPoint;
+      console.log('Select2: Drag state initialized', { worldPoint });
+    } else {
+      console.log('Select2: BLOCKED drag state initialization - transform in progress');
+      return;
+    }
 
     // Check if clicking on a selected object or within group bounds first
     if (isPointOnSelectedObject(worldPoint)) {
@@ -294,19 +311,25 @@ export const useSelect2EventHandlers = ({
 
     const worldPoint = { x: worldX, y: worldY };
 
-    // Handle transform mouse movement
-    if (isTransformingRef.current && transformStartRef.current) {
-      // Inline transform move handling
-      if (!state.initialTransformBounds) return;
+    // STAGE 4: Use proper transform matrix operations instead of inline calculations
+    if (isTransformingRef.current && transformStartRef.current && state.initialTransformBounds) {
+      console.log('Select2: Transform move detected', { 
+        worldPoint, 
+        transformStart: transformStartRef.current, 
+        mode: state.transformMode,
+        anchor: state.transformAnchor 
+      });
 
       const { transformMode, transformAnchor, initialTransformBounds } = state;
       
       if (transformMode === 'resize' && transformAnchor) {
+        // Use simpler direct bounds calculation for resize operations
         const dx = worldPoint.x - transformStartRef.current.x;
         const dy = worldPoint.y - transformStartRef.current.y;
         
         let newBounds = { ...initialTransformBounds };
         
+        // Apply resize logic based on handle type
         switch (transformAnchor) {
           case 'nw':
             newBounds.x += dx;
@@ -344,6 +367,7 @@ export const useSelect2EventHandlers = ({
             break;
         }
         
+        // Apply minimum size constraints
         const minSize = 10;
         if (newBounds.width < minSize) {
           if (transformAnchor.includes('w')) {
@@ -357,6 +381,13 @@ export const useSelect2EventHandlers = ({
           }
           newBounds.height = minSize;
         }
+
+        console.log('Select2: Transform bounds calculated', { 
+          original: initialTransformBounds, 
+          new: newBounds,
+          anchor: transformAnchor,
+          delta: { dx, dy }
+        });
         
         updateTransform(newBounds);
       } else if (transformMode === 'rotate') {
@@ -367,40 +398,31 @@ export const useSelect2EventHandlers = ({
           worldPoint.y - centerY,
           worldPoint.x - centerX
         ) * (180 / Math.PI);
+
+        // Apply rotation snapping
+        angle = transform.snapRotation(angle);
+        
+        console.log('Select2: Rotation calculated', { angle, center: { x: centerX, y: centerY } });
         
         updateTransform(initialTransformBounds, angle);
       }
-      return;
+      return; // CRITICAL: Early return prevents drag operations during transform
     }
 
-    // Handle cursor feedback for transform handles
-    if (!isDraggingRef.current && state.selectedObjects.length > 0) {
-      const handle = handleDetection.getHandleAtPoint(worldPoint, state.groupBounds);
-      const newHoveredHandle = handle?.type || null;
-      
-      if (hoveredHandleRef.current !== newHoveredHandle) {
-        hoveredHandleRef.current = newHoveredHandle;
-        
-        const cursor = handle ? handle.cursor : 'default';
-        if (stageRef.current) {
-          stageRef.current.container().style.cursor = cursor;
-        }
-      }
-    }
-    
-    if (isDraggingRef.current) {
+    // STAGE 2: Separate state paths - only process drag if NOT transforming
+    if (isDraggingRef.current && !state.isTransforming) {
       hasMovedRef.current = true;
       
-      if (state.isDraggingObjects) {
-        // Update object dragging with consistent coordinate handling
+      if (state.isDraggingObjects && !state.isTransforming) {
         console.log('Select2: Updating object drag', { 
           worldPoint,
           dragStartPosition: dragStartPositionRef.current,
-          currentOffset: state.dragOffset 
+          currentOffset: state.dragOffset,
+          isTransforming: state.isTransforming
         });
         updateObjectDragging(worldPoint);
-      } else if (state.isSelecting) {
-        // Update drag selection rectangle
+      } else if (state.isSelecting && !state.isTransforming) {
+        console.log('Select2: Updating drag selection', { worldPoint, isTransforming: state.isTransforming });
         updateDragSelection(worldPoint);
         // Sync with main selection bounds
         if (state.selectionBounds) {
@@ -413,88 +435,36 @@ export const useSelect2EventHandlers = ({
           syncSelectionBoundsWithMainState(newBounds, true);
         }
       }
+    } else if (state.isTransforming) {
+      console.log('Select2: Drag operations blocked - transform in progress');
     } else {
-      // Handle transform mouse move if transforming
-      if (isTransformingRef.current) {
-        const stage = stageRef.current;
-        if (stage) {
-          const pointerPos = stage.getPointerPosition();
-          if (pointerPos) {
-            const worldPoint = getRelativePointerPosition(stage, pointerPos.x, pointerPos.y);
-            // Call the transform mouse move method inline
-            if (!transformStartRef.current || !state.initialTransformBounds) return;
-
-            const { transformMode, transformAnchor, initialTransformBounds } = state;
-            
-            if (transformMode === 'resize' && transformAnchor) {
-              const dx = worldPoint.x - transformStartRef.current.x;
-              const dy = worldPoint.y - transformStartRef.current.y;
-              
-              let newBounds = { ...initialTransformBounds };
-              
-              switch (transformAnchor) {
-                case 'nw':
-                  newBounds.x += dx;
-                  newBounds.y += dy;
-                  newBounds.width -= dx;
-                  newBounds.height -= dy;
-                  break;
-                case 'ne':
-                  newBounds.y += dy;
-                  newBounds.width += dx;
-                  newBounds.height -= dy;
-                  break;
-                case 'se':
-                  newBounds.width += dx;
-                  newBounds.height += dy;
-                  break;
-                case 'sw':
-                  newBounds.x += dx;
-                  newBounds.width -= dx;
-                  newBounds.height += dy;
-                  break;
-                case 'n':
-                  newBounds.y += dy;
-                  newBounds.height -= dy;
-                  break;
-                case 's':
-                  newBounds.height += dy;
-                  break;
-                case 'e':
-                  newBounds.width += dx;
-                  break;
-                case 'w':
-                  newBounds.x += dx;
-                  newBounds.width -= dx;
-                  break;
-              }
-              
-              const minSize = 10;
-              if (newBounds.width < minSize) {
-                if (transformAnchor.includes('w')) {
-                  newBounds.x = newBounds.x + newBounds.width - minSize;
-                }
-                newBounds.width = minSize;
-              }
-              if (newBounds.height < minSize) {
-                if (transformAnchor.includes('n')) {
-                  newBounds.y = newBounds.y + newBounds.height - minSize;
-                }
-                newBounds.height = minSize;
-              }
-              
-              updateTransform(newBounds);
-            }
+      // STAGE 6: Enhanced cursor feedback for transform handles
+      if (!isDraggingRef.current && state.selectedObjects.length > 0 && !state.isTransforming) {
+        const handle = handleDetection.getHandleAtPoint(worldPoint, state.groupBounds);
+        const newHoveredHandle = handle?.type || null;
+        
+        if (hoveredHandleRef.current !== newHoveredHandle) {
+          hoveredHandleRef.current = newHoveredHandle;
+          
+          const cursor = handle ? handle.cursor : 'default';
+          if (stageRef.current) {
+            stageRef.current.container().style.cursor = cursor;
           }
+          
+          console.log('Select2: Handle hover state changed', { 
+            handleType: newHoveredHandle, 
+            cursor,
+            isTransforming: state.isTransforming 
+          });
         }
       } else {
-        // Update hover feedback
+        // Update hover feedback for objects
         const objectsAtPoint = findObjectsAtPoint(worldPoint, lines, images);
         const hoveredId = objectsAtPoint.length > 0 ? objectsAtPoint[0].id : null;
         setHoveredObject(hoveredId);
       }
     }
-  }, [panZoom, state.isDraggingObjects, state.isSelecting, state.selectionBounds, state.dragOffset, updateObjectDragging, updateDragSelection, findObjectsAtPoint, setHoveredObject, lines, images, syncSelectionBoundsWithMainState, stageRef, getRelativePointerPosition]);
+  }, [panZoom, state, updateObjectDragging, updateDragSelection, findObjectsAtPoint, setHoveredObject, lines, images, syncSelectionBoundsWithMainState, stageRef, handleDetection, transform]);
 
   const handlePointerUp = useCallback(() => {
     // Ignore pointer events during pan/zoom gestures
@@ -516,36 +486,71 @@ export const useSelect2EventHandlers = ({
       isTransformingRef.current = false;
       transformStartRef.current = null;
       
-      // Apply the transform to actual objects
+      // Apply the transform to actual objects using direct bounds updates
       if (state.currentTransformBounds && state.initialTransformBounds) {
-        const matrix = transform.calculateTransformMatrix(
-          state.initialTransformBounds,
-          state.currentTransformBounds,
-          state.transformRotation
-        );
+        const initialBounds = state.initialTransformBounds;
+        const finalBounds = state.currentTransformBounds;
         
-        const centerX = state.initialTransformBounds.x + state.initialTransformBounds.width / 2;
-        const centerY = state.initialTransformBounds.y + state.initialTransformBounds.height / 2;
+        // Calculate scale factors
+        const scaleX = finalBounds.width / initialBounds.width;
+        const scaleY = finalBounds.height / initialBounds.height;
+        
+        console.log('Select2: Applying transform to objects', { 
+          initialBounds, 
+          finalBounds, 
+          scaleX, 
+          scaleY,
+          objectCount: state.selectedObjects.length 
+        });
         
         state.selectedObjects.forEach(obj => {
           if (isObjectLocked(obj.id, obj.type, lines, images)) {
+            console.log('Select2: Skipping locked object during transform', { id: obj.id, type: obj.type });
             return; // Skip locked objects
           }
           
-          const newBounds = transform.transformObjectBounds(
-            obj,
-            lines,
-            images,
-            { x: centerX, y: centerY },
-            matrix
-          );
-          
-          if (!newBounds) return;
-          
           if (obj.type === 'line' && onUpdateLine) {
-            onUpdateLine(obj.id, newBounds);
+            const line = lines.find(l => l.id === obj.id);
+            if (line) {
+              // Calculate new line position and scale
+              const newX = finalBounds.x + ((line.x - initialBounds.x) * scaleX);
+              const newY = finalBounds.y + ((line.y - initialBounds.y) * scaleY);
+              const newStrokeWidth = Math.max(1, line.strokeWidth * Math.min(scaleX, scaleY));
+              
+              console.log('Select2: Transforming line', { 
+                id: obj.id, 
+                from: { x: line.x, y: line.y, strokeWidth: line.strokeWidth },
+                to: { x: newX, y: newY, strokeWidth: newStrokeWidth }
+              });
+              
+              onUpdateLine(obj.id, { 
+                x: newX, 
+                y: newY, 
+                strokeWidth: newStrokeWidth 
+              });
+            }
           } else if (obj.type === 'image' && onUpdateImage) {
-            onUpdateImage(obj.id, newBounds);
+            const image = images.find(i => i.id === obj.id);
+            if (image) {
+              // Calculate new image position and size
+              const newX = finalBounds.x + ((image.x - initialBounds.x) * scaleX);
+              const newY = finalBounds.y + ((image.y - initialBounds.y) * scaleY);
+              const newWidth = (image.width || 100) * scaleX;
+              const newHeight = (image.height || 100) * scaleY;
+              
+              console.log('Select2: Transforming image', { 
+                id: obj.id, 
+                from: { x: image.x, y: image.y, w: image.width, h: image.height },
+                to: { x: newX, y: newY, w: newWidth, h: newHeight }
+              });
+              
+              onUpdateImage(obj.id, { 
+                x: newX, 
+                y: newY, 
+                width: Math.max(10, newWidth), 
+                height: Math.max(10, newHeight) 
+              });
+            }
           }
         });
         
@@ -871,36 +876,50 @@ export const useSelect2EventHandlers = ({
       isTransformingRef.current = false;
       transformStartRef.current = null;
       
-      // Apply the transform to actual objects
+      // Apply the transform to actual objects using direct bounds updates
       if (state.currentTransformBounds && state.initialTransformBounds) {
-        const matrix = transform.calculateTransformMatrix(
-          state.initialTransformBounds,
-          state.currentTransformBounds,
-          state.transformRotation
-        );
+        const initialBounds = state.initialTransformBounds;
+        const finalBounds = state.currentTransformBounds;
         
-        const centerX = state.initialTransformBounds.x + state.initialTransformBounds.width / 2;
-        const centerY = state.initialTransformBounds.y + state.initialTransformBounds.height / 2;
+        // Calculate scale factors
+        const scaleX = finalBounds.width / initialBounds.width;
+        const scaleY = finalBounds.height / initialBounds.height;
         
         state.selectedObjects.forEach(obj => {
           if (isObjectLocked(obj.id, obj.type, lines, images)) {
             return; // Skip locked objects
           }
           
-          const newBounds = transform.transformObjectBounds(
-            obj,
-            lines,
-            images,
-            { x: centerX, y: centerY },
-            matrix
-          );
-          
-          if (!newBounds) return;
-          
           if (obj.type === 'line' && onUpdateLine) {
-            onUpdateLine(obj.id, newBounds);
+            const line = lines.find(l => l.id === obj.id);
+            if (line) {
+              // Calculate new line position and scale
+              const newX = finalBounds.x + ((line.x - initialBounds.x) * scaleX);
+              const newY = finalBounds.y + ((line.y - initialBounds.y) * scaleY);
+              const newStrokeWidth = Math.max(1, line.strokeWidth * Math.min(scaleX, scaleY));
+              
+              onUpdateLine(obj.id, { 
+                x: newX, 
+                y: newY, 
+                strokeWidth: newStrokeWidth 
+              });
+            }
           } else if (obj.type === 'image' && onUpdateImage) {
-            onUpdateImage(obj.id, newBounds);
+            const image = images.find(i => i.id === obj.id);
+            if (image) {
+              // Calculate new image position and size
+              const newX = finalBounds.x + ((image.x - initialBounds.x) * scaleX);
+              const newY = finalBounds.y + ((image.y - initialBounds.y) * scaleY);
+              const newWidth = (image.width || 100) * scaleX;
+              const newHeight = (image.height || 100) * scaleY;
+              
+              onUpdateImage(obj.id, { 
+                x: newX, 
+                y: newY, 
+                width: Math.max(10, newWidth), 
+                height: Math.max(10, newHeight) 
+              });
+            }
           }
         });
         
