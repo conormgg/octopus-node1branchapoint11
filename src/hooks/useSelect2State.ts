@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import React, { useState, useCallback } from 'react';
 import Konva from 'konva';
 import { LineObject, ImageObject, SelectedObject, SelectionBounds } from '@/types/whiteboard';
 
@@ -587,7 +587,11 @@ export const useSelect2State = () => {
       transformAnchor: anchor,
       initialTransformBounds: initialBounds,
       currentTransformBounds: { ...initialBounds },
-      transformRotation: 0
+      transformRotation: 0,
+      // Reset dragging state to prevent conflicts
+      isDraggingObjects: false,
+      dragStartPoint: null,
+      dragOffset: null
     }));
   }, []);
 
