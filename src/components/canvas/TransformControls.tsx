@@ -75,7 +75,7 @@ export const TransformControls: React.FC<TransformControlsProps> = ({
         listening={false}
       />
 
-      {/* Resize handles */}
+      {/* Resize handles - remove event handlers, they'll be handled at stage level */}
       {handles.map((handle) => (
         <Group key={handle.type}>
           <Rect
@@ -86,13 +86,7 @@ export const TransformControls: React.FC<TransformControlsProps> = ({
             fill="hsl(var(--background))"
             stroke="hsl(var(--primary))"
             strokeWidth={1 / zoom}
-            onMouseDown={(e) => onHandleMouseDown(handle.type, e)}
-            onMouseEnter={(e) => {
-              e.target.getStage()!.container().style.cursor = getCursor(handle.type);
-            }}
-            onMouseLeave={(e) => {
-              e.target.getStage()!.container().style.cursor = 'default';
-            }}
+            listening={false}
           />
         </Group>
       ))}
@@ -110,7 +104,7 @@ export const TransformControls: React.FC<TransformControlsProps> = ({
         listening={false}
       />
 
-      {/* Rotation handle */}
+      {/* Rotation handle - remove event handlers, they'll be handled at stage level */}
       <Circle
         x={rotationHandle.x}
         y={rotationHandle.y}
@@ -118,13 +112,7 @@ export const TransformControls: React.FC<TransformControlsProps> = ({
         fill="hsl(var(--background))"
         stroke="hsl(var(--primary))"
         strokeWidth={1 / zoom}
-        onMouseDown={(e) => onHandleMouseDown('rotate', e)}
-        onMouseEnter={(e) => {
-          e.target.getStage()!.container().style.cursor = getCursor('rotate');
-        }}
-        onMouseLeave={(e) => {
-          e.target.getStage()!.container().style.cursor = 'default';
-        }}
+        listening={false}
       />
     </Group>
   );

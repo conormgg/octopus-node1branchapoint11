@@ -192,7 +192,7 @@ export const Select2Renderer: React.FC<Select2RendererProps> = ({
       {/* Transform controls */}
       <TransformControls
         bounds={currentTransformBounds || groupBounds}
-        isVisible={!isSelecting && !isDraggingObjects && selectedObjects.length > 0 && !isTransforming}
+        isVisible={!isSelecting && !isDraggingObjects && selectedObjects.length > 0}
         onHandleMouseDown={onTransformHandleMouseDown || (() => {})}
         zoom={zoom}
       />

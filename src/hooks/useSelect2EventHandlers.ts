@@ -5,6 +5,7 @@ import { LineObject, ImageObject } from '@/types/whiteboard';
 import { useSelect2State } from './useSelect2State';
 import { useStageCoordinates } from './useStageCoordinates';
 import { useSelect2Transform } from './useSelect2Transform';
+import { useTransformHandleDetection } from './useTransformHandleDetection';
 
 interface UseSelect2EventHandlersProps {
   stageRef: React.RefObject<Konva.Stage>;
@@ -69,12 +70,14 @@ export const useSelect2EventHandlers = ({
 
   const { getRelativePointerPosition } = useStageCoordinates(panZoomState);
   const transform = useSelect2Transform();
+  const handleDetection = useTransformHandleDetection(panZoomState.scale);
 
   const isDraggingRef = useRef(false);
   const hasMovedRef = useRef(false);
   const dragStartPositionRef = useRef<{ x: number; y: number } | null>(null);
   const transformStartRef = useRef<{ x: number; y: number } | null>(null);
   const isTransformingRef = useRef(false);
+  const hoveredHandleRef = useRef<string | null>(null);
 
   // Helper function to sync selection with main state
   const syncSelectionWithMainState = useCallback((selectedObjects: Array<{id: string, type: 'line' | 'image'}>) => {
@@ -217,6 +220,21 @@ export const useSelect2EventHandlers = ({
     const worldPoint = { x: worldX, y: worldY };
     
     console.log('Select2: Pointer down', { worldPoint, ctrlKey });
+
+    // Check for transform handle hit first (highest priority)
+    const handle = handleDetection.getHandleAtPoint(worldPoint, state.groupBounds);
+    if (handle && state.selectedObjects.length > 0) {
+      console.log('Select2: Transform handle clicked', { handleType: handle.type });
+      
+      isTransformingRef.current = true;
+      transformStartRef.current = worldPoint;
+      
+      const mode = handle.type === 'rotate' ? 'rotate' : 'resize';
+      startTransform(mode, handle.type, state.groupBounds!);
+      
+      console.log('Transform started:', { handleType: handle.type, mode, bounds: state.groupBounds });
+      return;
+    }
     
     isDraggingRef.current = true;
     hasMovedRef.current = false;
@@ -273,6 +291,100 @@ export const useSelect2EventHandlers = ({
     }
 
     const worldPoint = { x: worldX, y: worldY };
+
+    // Handle transform mouse movement
+    if (isTransformingRef.current && transformStartRef.current) {
+      // Inline transform move handling
+      if (!state.initialTransformBounds) return;
+
+      const { transformMode, transformAnchor, initialTransformBounds } = state;
+      
+      if (transformMode === 'resize' && transformAnchor) {
+        const dx = worldPoint.x - transformStartRef.current.x;
+        const dy = worldPoint.y - transformStartRef.current.y;
+        
+        let newBounds = { ...initialTransformBounds };
+        
+        switch (transformAnchor) {
+          case 'nw':
+            newBounds.x += dx;
+            newBounds.y += dy;
+            newBounds.width -= dx;
+            newBounds.height -= dy;
+            break;
+          case 'ne':
+            newBounds.y += dy;
+            newBounds.width += dx;
+            newBounds.height -= dy;
+            break;
+          case 'se':
+            newBounds.width += dx;
+            newBounds.height += dy;
+            break;
+          case 'sw':
+            newBounds.x += dx;
+            newBounds.width -= dx;
+            newBounds.height += dy;
+            break;
+          case 'n':
+            newBounds.y += dy;
+            newBounds.height -= dy;
+            break;
+          case 's':
+            newBounds.height += dy;
+            break;
+          case 'e':
+            newBounds.width += dx;
+            break;
+          case 'w':
+            newBounds.x += dx;
+            newBounds.width -= dx;
+            break;
+        }
+        
+        const minSize = 10;
+        if (newBounds.width < minSize) {
+          if (transformAnchor.includes('w')) {
+            newBounds.x = newBounds.x + newBounds.width - minSize;
+          }
+          newBounds.width = minSize;
+        }
+        if (newBounds.height < minSize) {
+          if (transformAnchor.includes('n')) {
+            newBounds.y = newBounds.y + newBounds.height - minSize;
+          }
+          newBounds.height = minSize;
+        }
+        
+        updateTransform(newBounds);
+      } else if (transformMode === 'rotate') {
+        const centerX = initialTransformBounds.x + initialTransformBounds.width / 2;
+        const centerY = initialTransformBounds.y + initialTransformBounds.height / 2;
+        
+        let angle = Math.atan2(
+          worldPoint.y - centerY,
+          worldPoint.x - centerX
+        ) * (180 / Math.PI);
+        
+        updateTransform(initialTransformBounds, angle);
+      }
+      return;
+    }
+
+    // Handle cursor feedback for transform handles
+    if (!isDraggingRef.current && state.selectedObjects.length > 0) {
+      const handle = handleDetection.getHandleAtPoint(worldPoint, state.groupBounds);
+      const newHoveredHandle = handle?.type || null;
+      
+      if (hoveredHandleRef.current !== newHoveredHandle) {
+        hoveredHandleRef.current = newHoveredHandle;
+        
+        const cursor = handle ? handle.cursor : 'default';
+        if (stageRef.current) {
+          stageRef.current.container().style.cursor = cursor;
+        }
+      }
+    }
     
     if (isDraggingRef.current) {
       hasMovedRef.current = true;
@@ -385,6 +497,55 @@ export const useSelect2EventHandlers = ({
   const handlePointerUp = useCallback(() => {
     // Ignore pointer events during pan/zoom gestures
     if (panZoom.isGestureActive()) {
+      return;
+    }
+
+    // Handle transform end
+    if (isTransformingRef.current) {
+      isTransformingRef.current = false;
+      transformStartRef.current = null;
+      
+      // Apply the transform to actual objects
+      if (state.currentTransformBounds && state.initialTransformBounds) {
+        const matrix = transform.calculateTransformMatrix(
+          state.initialTransformBounds,
+          state.currentTransformBounds,
+          state.transformRotation
+        );
+        
+        const centerX = state.initialTransformBounds.x + state.initialTransformBounds.width / 2;
+        const centerY = state.initialTransformBounds.y + state.initialTransformBounds.height / 2;
+        
+        state.selectedObjects.forEach(obj => {
+          if (isObjectLocked(obj.id, obj.type, lines, images)) {
+            return; // Skip locked objects
+          }
+          
+          const newBounds = transform.transformObjectBounds(
+            obj,
+            lines,
+            images,
+            { x: centerX, y: centerY },
+            matrix
+          );
+          
+          if (!newBounds) return;
+          
+          if (obj.type === 'line' && onUpdateLine) {
+            onUpdateLine(obj.id, newBounds);
+          } else if (obj.type === 'image' && onUpdateImage) {
+            onUpdateImage(obj.id, newBounds);
+          }
+        });
+        
+        // Update group bounds after transform
+        setTimeout(() => {
+          updateGroupBounds(lines, images);
+        }, 0);
+      }
+      
+      endTransform();
+      console.log('Transform ended');
       return;
     }
 
@@ -629,25 +790,9 @@ export const useSelect2EventHandlers = ({
       }
     },
     hideContextMenu,
-    // Transform handlers
-    handleTransformHandleMouseDown: (handleType: string, e: any) => {
-      e.cancelBubble = true;
-      e.evt?.stopPropagation();
-      
-      if (!state.groupBounds) return;
-      
-      const stage = stageRef.current;
-      if (!stage) return;
-
-      const worldPoint = getRelativePointerPosition(stage, e.evt.clientX, e.evt.clientY);
-      
-      isTransformingRef.current = true;
-      transformStartRef.current = worldPoint;
-      
-      const mode = handleType === 'rotate' ? 'rotate' : 'resize';
-      startTransform(mode, handleType, state.groupBounds);
-      
-      console.log('Transform started:', { handleType, mode, bounds: state.groupBounds });
+    // Transform handlers (deprecated - now handled in main pointer events)
+    handleTransformHandleMouseDown: () => {
+      // This is now handled in the main pointer down handler
     },
     handleTransformMouseMove: (worldPoint: { x: number; y: number }, ctrlKey = false, shiftKey = false, altKey = false) => {
       if (!isTransformingRef.current || !transformStartRef.current || !state.initialTransformBounds) {
