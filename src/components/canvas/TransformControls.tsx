@@ -63,20 +63,16 @@ export const TransformControls: React.FC<TransformControlsProps> = ({
   };
 
   return (
-    <Group 
-      listening={false}
-      x={bounds.x + bounds.width / 2}
-      y={bounds.y + bounds.height / 2}
-      rotation={rotation}
-      offsetX={bounds.width / 2}
-      offsetY={bounds.height / 2}
-    >
+    <Group listening={false}>
       {/* Selection border */}
       <Rect
-        x={0}
-        y={0}
+        x={bounds.x}
+        y={bounds.y}
         width={bounds.width}
         height={bounds.height}
+        rotation={rotation}
+        offsetX={rotation !== 0 ? bounds.width / 2 : 0}
+        offsetY={rotation !== 0 ? bounds.height / 2 : 0}
         fill="transparent"
         stroke="hsl(var(--primary))"
         strokeWidth={1 / zoom}
@@ -88,10 +84,13 @@ export const TransformControls: React.FC<TransformControlsProps> = ({
       {handles.map((handle) => (
         <Group key={handle.type}>
           <Rect
-            x={handle.x - bounds.x - handleSize / 2}
-            y={handle.y - bounds.y - handleSize / 2}
+            x={handle.x - handleSize / 2}
+            y={handle.y - handleSize / 2}
             width={handleSize}
             height={handleSize}
+            rotation={rotation}
+            offsetX={rotation !== 0 ? handleSize / 2 : 0}
+            offsetY={rotation !== 0 ? handleSize / 2 : 0}
             fill="hsl(var(--background))"
             stroke="hsl(var(--primary))"
             strokeWidth={1 / zoom}
@@ -103,11 +102,14 @@ export const TransformControls: React.FC<TransformControlsProps> = ({
       {/* Rotation handle line */}
       <Line
         points={[
-          bounds.width / 2,
-          0,
-          bounds.width / 2,
-          -rotationHandleOffset
+          bounds.x + bounds.width / 2,
+          bounds.y,
+          rotationHandle.x,
+          rotationHandle.y
         ]}
+        rotation={rotation}
+        offsetX={rotation !== 0 ? (bounds.x + bounds.width / 2) : 0}
+        offsetY={rotation !== 0 ? bounds.y : 0}
         stroke="hsl(var(--primary))"
         strokeWidth={1 / zoom}
         listening={false}
@@ -115,8 +117,11 @@ export const TransformControls: React.FC<TransformControlsProps> = ({
 
       {/* Rotation handle - remove event handlers, they'll be handled at stage level */}
       <Circle
-        x={bounds.width / 2}
-        y={-rotationHandleOffset}
+        x={rotationHandle.x}
+        y={rotationHandle.y}
+        rotation={rotation}
+        offsetX={rotation !== 0 ? rotationHandle.x : 0}
+        offsetY={rotation !== 0 ? rotationHandle.y : 0}
         radius={handleSize / 2}
         fill="hsl(var(--background))"
         stroke="hsl(var(--primary))"
