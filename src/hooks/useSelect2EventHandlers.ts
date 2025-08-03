@@ -401,8 +401,65 @@ export const useSelect2EventHandlers = ({
         
         updateTransform(newBounds);
       } else if (transformMode === 'rotate') {
-        const centerX = initialTransformBounds.x + initialTransformBounds.width / 2;
-        const centerY = initialTransformBounds.y + initialTransformBounds.height / 2;
+        // Calculate rotation center based on actual objects, not group bounds
+        let centerX, centerY;
+        
+        if (state.selectedObjects.length === 1 && state.selectedObjects[0].type === 'image') {
+          // For single image, use the image's actual center
+          const image = images.find(img => img.id === state.selectedObjects[0].id);
+          if (image) {
+            const width = image.width || 100;
+            const height = image.height || 100;
+            centerX = image.x + width / 2;
+            centerY = image.y + height / 2;
+          } else {
+            // Fallback to group bounds center
+            centerX = initialTransformBounds.x + initialTransformBounds.width / 2;
+            centerY = initialTransformBounds.y + initialTransformBounds.height / 2;
+          }
+        } else {
+          // For multiple objects, calculate centroid of actual object centers
+          let totalX = 0, totalY = 0, count = 0;
+          
+          state.selectedObjects.forEach(obj => {
+            if (obj.type === 'image') {
+              const image = images.find(img => img.id === obj.id);
+              if (image) {
+                const width = image.width || 100;
+                const height = image.height || 100;
+                totalX += image.x + width / 2;
+                totalY += image.y + height / 2;
+                count++;
+              }
+            } else if (obj.type === 'line') {
+              const line = lines.find(l => l.id === obj.id);
+              if (line && line.points.length >= 4) {
+                // Calculate line center from its points
+                let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+                for (let i = 0; i < line.points.length; i += 2) {
+                  const x = line.points[i] + line.x;
+                  const y = line.points[i + 1] + line.y;
+                  minX = Math.min(minX, x);
+                  minY = Math.min(minY, y);
+                  maxX = Math.max(maxX, x);
+                  maxY = Math.max(maxY, y);
+                }
+                totalX += (minX + maxX) / 2;
+                totalY += (minY + maxY) / 2;
+                count++;
+              }
+            }
+          });
+          
+          if (count > 0) {
+            centerX = totalX / count;
+            centerY = totalY / count;
+          } else {
+            // Fallback to group bounds center
+            centerX = initialTransformBounds.x + initialTransformBounds.width / 2;
+            centerY = initialTransformBounds.y + initialTransformBounds.height / 2;
+          }
+        }
         
         // Store initial rotation angle when transform starts
         if (!transformStartRef.current?.initialRotation) {
@@ -414,7 +471,7 @@ export const useSelect2EventHandlers = ({
             ...transformStartRef.current,
             initialRotation: initialAngle
           };
-          console.log('Select2: Stored initial rotation', { initialAngle });
+          console.log('Select2: Stored initial rotation', { initialAngle, center: { x: centerX, y: centerY } });
         }
         
         // Calculate current angle
@@ -440,7 +497,8 @@ export const useSelect2EventHandlers = ({
           currentAngle, 
           initialRotation: transformStartRef.current.initialRotation,
           relativeRotation, 
-          center: { x: centerX, y: centerY } 
+          center: { x: centerX, y: centerY },
+          objectCount: state.selectedObjects.length
         });
         
         // For rotation, bounds stay the same but rotation changes
@@ -542,20 +600,82 @@ export const useSelect2EventHandlers = ({
           state.transformRotation || 0
         );
         
-        // Calculate group center for transform origin (same as preview)
-        const groupCenter = {
-          x: initialBounds.x + initialBounds.width / 2,
-          y: initialBounds.y + initialBounds.height / 2
-        };
-        
         // STAGE 2: Use preserved selectedObjects from ref if state is cleared
         const currentSelectedObjects = state.selectedObjects.length > 0 ? state.selectedObjects : selectedObjectsRef.current;
+        
+        // Calculate rotation center based on actual objects, not group bounds (same as preview)
+        let rotationCenter;
+        
+        if (currentSelectedObjects.length === 1 && currentSelectedObjects[0].type === 'image') {
+          // For single image, use the image's actual center
+          const image = images.find(img => img.id === currentSelectedObjects[0].id);
+          if (image) {
+            const width = image.width || 100;
+            const height = image.height || 100;
+            rotationCenter = {
+              x: image.x + width / 2,
+              y: image.y + height / 2
+            };
+          } else {
+            // Fallback to group bounds center
+            rotationCenter = {
+              x: initialBounds.x + initialBounds.width / 2,
+              y: initialBounds.y + initialBounds.height / 2
+            };
+          }
+        } else {
+          // For multiple objects, calculate centroid of actual object centers
+          let totalX = 0, totalY = 0, count = 0;
+          
+          currentSelectedObjects.forEach(obj => {
+            if (obj.type === 'image') {
+              const image = images.find(img => img.id === obj.id);
+              if (image) {
+                const width = image.width || 100;
+                const height = image.height || 100;
+                totalX += image.x + width / 2;
+                totalY += image.y + height / 2;
+                count++;
+              }
+            } else if (obj.type === 'line') {
+              const line = lines.find(l => l.id === obj.id);
+              if (line && line.points.length >= 4) {
+                // Calculate line center from its points
+                let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+                for (let i = 0; i < line.points.length; i += 2) {
+                  const x = line.points[i] + line.x;
+                  const y = line.points[i + 1] + line.y;
+                  minX = Math.min(minX, x);
+                  minY = Math.min(minY, y);
+                  maxX = Math.max(maxX, x);
+                  maxY = Math.max(maxY, y);
+                }
+                totalX += (minX + maxX) / 2;
+                totalY += (minY + maxY) / 2;
+                count++;
+              }
+            }
+          });
+          
+          if (count > 0) {
+            rotationCenter = {
+              x: totalX / count,
+              y: totalY / count
+            };
+          } else {
+            // Fallback to group bounds center
+            rotationCenter = {
+              x: initialBounds.x + initialBounds.width / 2,
+              y: initialBounds.y + initialBounds.height / 2
+            };
+          }
+        }
         
         console.log('Select2: Applying matrix-based transform to objects', { 
           initialBounds, 
           currentBounds,
           matrix,
-          groupCenter,
+          rotationCenter,
           objectCount: currentSelectedObjects.length,
           selectedObjectIds: currentSelectedObjects.map(obj => obj.id)
         });
@@ -567,7 +687,7 @@ export const useSelect2EventHandlers = ({
           }
           
           // Use the same transform calculation as the preview
-          const transformedBounds = transform.transformObjectBounds(obj, lines, images, groupCenter, matrix);
+          const transformedBounds = transform.transformObjectBounds(obj, lines, images, rotationCenter, matrix);
           if (!transformedBounds) return;
           
           if (obj.type === 'line' && onUpdateLine) {
