@@ -125,6 +125,9 @@ export const Select2Renderer: React.FC<Select2RendererProps> = ({
             y={image.y + dragOffset.y}
             width={image.width}
             height={image.height}
+            rotation={image.rotation || 0}
+            offsetX={image.width / 2}
+            offsetY={image.height / 2}
             opacity={0.5}
             listening={false}
           />
@@ -186,6 +189,9 @@ export const Select2Renderer: React.FC<Select2RendererProps> = ({
             y={transformedBounds.y}
             width={transformedBounds.width}
             height={transformedBounds.height}
+            rotation={transformedBounds.rotation || 0}
+            offsetX={transformedBounds.width / 2}
+            offsetY={transformedBounds.height / 2}
             opacity={0.5}
             listening={false}
           />
