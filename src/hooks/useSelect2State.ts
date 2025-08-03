@@ -224,15 +224,41 @@ export const useSelect2State = () => {
     return false;
   }, []);
 
-  // Simple hit detection for images
+  // Hit detection for images (handles rotation)
   const isPointOnImage = useCallback((point: { x: number; y: number }, image: ImageObject): boolean => {
     const width = image.width || 100;
     const height = image.height || 100;
+    const rotation = image.rotation || 0;
     
-    return point.x >= image.x && 
-           point.x <= image.x + width && 
-           point.y >= image.y && 
-           point.y <= image.y + height;
+    // If no rotation, use simple bounds check
+    if (rotation === 0) {
+      return point.x >= image.x && 
+             point.x <= image.x + width && 
+             point.y >= image.y && 
+             point.y <= image.y + height;
+    }
+    
+    // For rotated images, transform the point to image's local coordinate system
+    const centerX = image.x + width / 2;
+    const centerY = image.y + height / 2;
+    
+    // Translate point to be relative to image center
+    const relativeX = point.x - centerX;
+    const relativeY = point.y - centerY;
+    
+    // Apply inverse rotation to get point in image's local coordinates
+    const rad = (-rotation * Math.PI) / 180; // Negative for inverse rotation
+    const cos = Math.cos(rad);
+    const sin = Math.sin(rad);
+    
+    const localX = relativeX * cos - relativeY * sin;
+    const localY = relativeX * sin + relativeY * cos;
+    
+    // Check if the local point is within the unrotated image bounds
+    return localX >= -width / 2 && 
+           localX <= width / 2 && 
+           localY >= -height / 2 && 
+           localY <= height / 2;
   }, []);
 
   // Helper function to check if an object is locked
@@ -283,16 +309,72 @@ export const useSelect2State = () => {
   ): SelectedObject[] => {
     const foundObjects: SelectedObject[] = [];
 
-    // Check images
+    // Check images (handles rotation)
     for (const image of images) {
       const imageWidth = image.width || 100;
       const imageHeight = image.height || 100;
+      const rotation = image.rotation || 0;
       
-      if (image.x < bounds.x + bounds.width &&
-          image.x + imageWidth > bounds.x &&
-          image.y < bounds.y + bounds.height &&
-          image.y + imageHeight > bounds.y) {
-        foundObjects.push({ id: image.id, type: 'image' });
+      if (rotation === 0) {
+        // Simple rectangular bounds check for non-rotated images
+        if (image.x < bounds.x + bounds.width &&
+            image.x + imageWidth > bounds.x &&
+            image.y < bounds.y + bounds.height &&
+            image.y + imageHeight > bounds.y) {
+          foundObjects.push({ id: image.id, type: 'image' });
+        }
+      } else {
+        // For rotated images, check if any corner of the rotated image intersects with selection bounds
+        const centerX = image.x + imageWidth / 2;
+        const centerY = image.y + imageHeight / 2;
+        const rad = (rotation * Math.PI) / 180;
+        const cos = Math.cos(rad);
+        const sin = Math.sin(rad);
+        
+        // Calculate the four corners of the rotated image
+        const corners = [
+          { x: -imageWidth / 2, y: -imageHeight / 2 },
+          { x: imageWidth / 2, y: -imageHeight / 2 },
+          { x: imageWidth / 2, y: imageHeight / 2 },
+          { x: -imageWidth / 2, y: imageHeight / 2 }
+        ];
+        
+        let imageInBounds = false;
+        
+        // Check if any corner of the rotated image is within the selection bounds
+        for (const corner of corners) {
+          const rotatedX = corner.x * cos - corner.y * sin + centerX;
+          const rotatedY = corner.x * sin + corner.y * cos + centerY;
+          
+          if (rotatedX >= bounds.x && rotatedX <= bounds.x + bounds.width &&
+              rotatedY >= bounds.y && rotatedY <= bounds.y + bounds.height) {
+            imageInBounds = true;
+            break;
+          }
+        }
+        
+        // Also check if the selection bounds intersect with the rotated image bounds
+        // (in case the selection is smaller than the image but overlaps it)
+        if (!imageInBounds) {
+          // Check if any corner of the selection bounds is within the rotated image
+          const selectionCorners = [
+            { x: bounds.x, y: bounds.y },
+            { x: bounds.x + bounds.width, y: bounds.y },
+            { x: bounds.x + bounds.width, y: bounds.y + bounds.height },
+            { x: bounds.x, y: bounds.y + bounds.height }
+          ];
+          
+          for (const selectionCorner of selectionCorners) {
+            if (isPointOnImage(selectionCorner, image)) {
+              imageInBounds = true;
+              break;
+            }
+          }
+        }
+        
+        if (imageInBounds) {
+          foundObjects.push({ id: image.id, type: 'image' });
+        }
       }
     }
 
@@ -318,7 +400,7 @@ export const useSelect2State = () => {
     }
 
     return foundObjects;
-  }, []);
+  }, [isPointOnImage]);
 
   // Start drag selection
   const startDragSelection = useCallback((point: { x: number; y: number }) => {
