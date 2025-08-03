@@ -196,6 +196,14 @@ export const useSelect2EventHandlers = ({
     selectedObjectsRef.current = state.selectedObjects;
   }, [state.selectedObjects]);
 
+  // FIXED: Update group bounds whenever lines or images change to ensure sync after transforms
+  useEffect(() => {
+    if (state.selectedObjects.length > 0) {
+      console.log('Select2: Syncing group bounds due to lines/images change');
+      updateGroupBounds(lines, images);
+    }
+  }, [lines, images, state.selectedObjects.length, updateGroupBounds]);
+
   // ENHANCED: Prioritize transform handle detection with immediate bounds calculation
   const handlePointerDown = useCallback((worldX: number, worldY: number, ctrlKey: boolean = false, button: number = 0) => {
     if (panZoom.isGestureActive() || button !== 0) {
@@ -555,8 +563,8 @@ export const useSelect2EventHandlers = ({
           }
         });
         
-        // Update group bounds immediately after transform
-        updateGroupBounds(lines, images);
+        // BOUNDS_UPDATE_FIX: The immediate updateGroupBounds call is removed from here.
+        // The new useEffect hook will now handle this update when the `lines` and `images` props are updated.
       }
       
       endTransform();
