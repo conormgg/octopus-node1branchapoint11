@@ -242,9 +242,11 @@ export const useSelect2EventHandlers = ({
     console.log('Select2: No transform handle detected, proceeding with selection/drag logic');
 
     // --- PRIORITY 2: Drag/Selection Logic ---
-    isDraggingRef.current = true;
-    hasMovedRef.current = false;
-    dragStartPositionRef.current = worldPoint;
+    if (!state.isTransforming) {
+      isDraggingRef.current = true;
+      hasMovedRef.current = false;
+      dragStartPositionRef.current = worldPoint;
+    }
 
     // Check if clicking on an already selected object or its group bounds
     if (isPointOnSelectedObject(worldPoint)) {
