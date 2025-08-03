@@ -108,19 +108,27 @@ export const useSelect2EventHandlers = ({
     }
   }, [containerRef]);
 
-  // Check if point is on any selected object OR within group bounds
+  // Check if point is on any selected object OR within group bounds OR on transform handles
   const isPointOnSelectedObject = useCallback((point: { x: number; y: number }) => {
-    // First check if we're within the group bounds (for easy dragging)
+    // PRIORITY 1: Check if we're on a transform handle first (this ensures handles work even outside bounds)
+    if (state.selectedObjects.length > 0 && state.groupBounds) {
+      const handle = handleDetection.getHandleAtPoint(point, state.groupBounds);
+      if (handle) {
+        return true; // Transform handles are always considered "on selected object"
+      }
+    }
+    
+    // PRIORITY 2: Check if we're within the group bounds (for easy dragging)
     if (state.selectedObjects.length > 0 && isPointInGroupBounds(point)) {
       return true;
     }
     
-    // Fallback: check if clicking directly on a selected object
+    // PRIORITY 3: Check if clicking directly on a selected object
     const objectsAtPoint = findObjectsAtPoint(point, lines, images);
     return objectsAtPoint.some(obj => 
       state.selectedObjects.some(selected => selected.id === obj.id)
     );
-  }, [findObjectsAtPoint, lines, images, state.selectedObjects, isPointInGroupBounds]);
+  }, [findObjectsAtPoint, lines, images, state.selectedObjects, isPointInGroupBounds, handleDetection, state.groupBounds]);
 
   // FIXED: Apply drag offset with proper coordinate handling - now ensures single application and respects locked state
   const applyDragOffset = useCallback(() => {
