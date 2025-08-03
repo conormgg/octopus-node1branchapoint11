@@ -404,6 +404,8 @@ export const useSelect2EventHandlers = ({
         
         console.log('Select2: Rotation calculated', { angle, center: { x: centerX, y: centerY } });
         
+        // For rotation, bounds stay the same but rotation changes
+        // This will trigger the Select2Renderer to show rotated preview
         updateTransform(initialTransformBounds, angle);
       }
       return; // CRITICAL: Early return prevents drag operations during transform
@@ -482,7 +484,10 @@ export const useSelect2EventHandlers = ({
 
     // Handle transform end first (highest priority)
     if (isTransformingRef.current) {
-      console.log('Select2: Transform operation ended');
+      console.log('Select2: Transform operation ended', {
+        selectedObjectsCount: state.selectedObjects.length,
+        selectedObjectIds: state.selectedObjects.map(obj => obj.id)
+      });
       isTransformingRef.current = false;
       transformStartRef.current = null;
       
@@ -504,15 +509,19 @@ export const useSelect2EventHandlers = ({
           y: initialBounds.y + initialBounds.height / 2
         };
         
+        // Ensure we have the latest selectedObjects from state
+        const currentSelectedObjects = state.selectedObjects;
+        
         console.log('Select2: Applying matrix-based transform to objects', { 
           initialBounds, 
           currentBounds,
           matrix,
           groupCenter,
-          objectCount: state.selectedObjects.length 
+          objectCount: currentSelectedObjects.length,
+          selectedObjectIds: currentSelectedObjects.map(obj => obj.id)
         });
         
-        state.selectedObjects.forEach(obj => {
+        currentSelectedObjects.forEach(obj => {
           if (isObjectLocked(obj.id, obj.type, lines, images)) {
             console.log('Select2: Skipping locked object during transform', { id: obj.id, type: obj.type });
             return; // Skip locked objects
