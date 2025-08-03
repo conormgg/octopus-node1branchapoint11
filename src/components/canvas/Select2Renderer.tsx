@@ -124,6 +124,7 @@ export const Select2Renderer: React.FC<Select2RendererProps> = ({
             y={image.y + dragOffset.y}
             width={image.width}
             height={image.height}
+            rotation={image.rotation || 0}
             opacity={0.5}
             listening={false}
           />
@@ -185,6 +186,7 @@ export const Select2Renderer: React.FC<Select2RendererProps> = ({
             y={transformedBounds.y}
             width={transformedBounds.width}
             height={transformedBounds.height}
+            rotation={transformedBounds.rotation || 0}
             opacity={0.5}
             listening={false}
           />
@@ -222,11 +224,7 @@ export const Select2Renderer: React.FC<Select2RendererProps> = ({
       <SelectionRect
         selectionBounds={selectionBounds}
         isVisible={isSelecting}
-        rotation={
-          selectedObjects.length === 1 && selectedObjects[0].type === 'image'
-            ? images.find(img => img.id === selectedObjects[0].id)?.rotation || 0
-            : 0
-        }
+        rotation={transformGroupRotation}
       />
 
       {/* Visual feedback for hovered object (only when not selected) */}

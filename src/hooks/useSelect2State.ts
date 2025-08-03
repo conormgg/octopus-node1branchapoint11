@@ -87,10 +87,39 @@ export const useSelect2State = () => {
         
         const width = image.width || 100;
         const height = image.height || 100;
-        minX = Math.min(minX, image.x);
-        minY = Math.min(minY, image.y);
-        maxX = Math.max(maxX, image.x + width);
-        maxY = Math.max(maxY, image.y + height);
+        const rotation = image.rotation || 0;
+        
+        if (rotation === 0) {
+          // No rotation, simple bounds calculation
+          minX = Math.min(minX, image.x);
+          minY = Math.min(minY, image.y);
+          maxX = Math.max(maxX, image.x + width);
+          maxY = Math.max(maxY, image.y + height);
+        } else {
+          // Calculate rotated bounds
+          const centerX = image.x + width / 2;
+          const centerY = image.y + height / 2;
+          const rad = (rotation * Math.PI) / 180;
+          const cos = Math.cos(rad);
+          const sin = Math.sin(rad);
+          
+          // Calculate the four corners of the rotated rectangle
+          const corners = [
+            { x: -width / 2, y: -height / 2 },
+            { x: width / 2, y: -height / 2 },
+            { x: width / 2, y: height / 2 },
+            { x: -width / 2, y: height / 2 }
+          ];
+          
+          corners.forEach(corner => {
+            const rotatedX = corner.x * cos - corner.y * sin + centerX;
+            const rotatedY = corner.x * sin + corner.y * cos + centerY;
+            minX = Math.min(minX, rotatedX);
+            minY = Math.min(minY, rotatedY);
+            maxX = Math.max(maxX, rotatedX);
+            maxY = Math.max(maxY, rotatedY);
+          });
+        }
       }
     });
 
@@ -104,6 +133,33 @@ export const useSelect2State = () => {
       width: (maxX - minX) + (extraPadding * 2),
       height: (maxY - minY) + (extraPadding * 2)
     };
+  }, []);
+  // Calculate group rotation for selected objects
+  const calculateGroupRotation = useCallback((
+    selectedObjects: SelectedObject[],
+    images: ImageObject[]
+  ): number => {
+    if (selectedObjects.length === 0) return 0;
+    
+    // If only one image is selected, use its rotation
+    if (selectedObjects.length === 1 && selectedObjects[0].type === 'image') {
+      const image = images.find(i => i.id === selectedObjects[0].id);
+      return image?.rotation || 0;
+    }
+    
+    // For multiple objects or mixed types, use average rotation of images
+    const imageRotations = selectedObjects
+      .filter(obj => obj.type === 'image')
+      .map(obj => {
+        const image = images.find(i => i.id === obj.id);
+        return image?.rotation || 0;
+      });
+    
+    if (imageRotations.length === 0) return 0;
+    
+    // Calculate average rotation
+    const avgRotation = imageRotations.reduce((sum, rot) => sum + rot, 0) / imageRotations.length;
+    return avgRotation;
   }, []);
 
   // Update group bounds for currently selected objects
@@ -312,6 +368,7 @@ export const useSelect2State = () => {
 
       const objectsInBounds = findObjectsInBounds(prev.selectionBounds, lines, images);
       const groupBounds = calculateGroupBounds(objectsInBounds, lines, images);
+      const groupRotation = calculateGroupRotation(objectsInBounds, images);
       
       selectedObjects = objectsInBounds;
 
@@ -319,6 +376,7 @@ export const useSelect2State = () => {
         ...prev,
         selectedObjects: objectsInBounds,
         groupBounds,
+        transformGroupRotation: groupRotation,
         isSelecting: false,
         dragStartPoint: null,
         selectionBounds: null
@@ -326,7 +384,7 @@ export const useSelect2State = () => {
     });
     
     return selectedObjects;
-  }, [findObjectsInBounds, calculateGroupBounds]);
+  }, [findObjectsInBounds, calculateGroupBounds, calculateGroupRotation]);
 
   // Start dragging objects
   const startDraggingObjects = useCallback((point: { x: number; y: number }) => {
@@ -379,10 +437,12 @@ export const useSelect2State = () => {
         // Clicked on empty space
         const newSelectedObjects = multiSelect ? prev.selectedObjects : [];
         const groupBounds = calculateGroupBounds(newSelectedObjects, lines, images);
+        const groupRotation = calculateGroupRotation(newSelectedObjects, images);
         return {
           ...prev,
           selectedObjects: newSelectedObjects,
           groupBounds,
+          transformGroupRotation: groupRotation,
           // Hide context menu when selection is cleared
           contextMenu: {
             ...prev.contextMenu,
@@ -401,10 +461,12 @@ export const useSelect2State = () => {
           : [...prev.selectedObjects, firstObject];
         
         const groupBounds = calculateGroupBounds(newSelectedObjects, lines, images);
+        const groupRotation = calculateGroupRotation(newSelectedObjects, images);
         return {
           ...prev,
           selectedObjects: newSelectedObjects,
           groupBounds,
+          transformGroupRotation: groupRotation,
           // Hide context menu when multi-selection changes
           contextMenu: {
             ...prev.contextMenu,
@@ -415,10 +477,12 @@ export const useSelect2State = () => {
         // Single select
         const newSelectedObjects = [firstObject];
         const groupBounds = calculateGroupBounds(newSelectedObjects, lines, images);
+        const groupRotation = calculateGroupRotation(newSelectedObjects, images);
         return {
           ...prev,
           selectedObjects: newSelectedObjects,
           groupBounds,
+          transformGroupRotation: groupRotation,
           // Hide context menu when selection changes
           contextMenu: {
             ...prev.contextMenu,
@@ -427,7 +491,7 @@ export const useSelect2State = () => {
         };
       }
     });
-  }, [findObjectsAtPoint, calculateGroupBounds]);
+  }, [findObjectsAtPoint, calculateGroupBounds, calculateGroupRotation]);
 
   // Clear selection
   const clearSelection = useCallback(() => {
@@ -654,6 +718,7 @@ export const useSelect2State = () => {
     setHoveredObject,
     findObjectsAtPoint,
     calculateGroupBounds,
+    calculateGroupRotation,
     updateGroupBounds,
     isPointInGroupBounds,
     isObjectLocked,
