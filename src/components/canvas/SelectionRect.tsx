@@ -19,8 +19,8 @@ const SelectionRect: React.FC<SelectionRectProps> = ({
 
   return (
     <Rect
-      x={selectionBounds.x + (rotation !== 0 ? selectionBounds.width / 2 : 0)}
-      y={selectionBounds.y + (rotation !== 0 ? selectionBounds.height / 2 : 0)}
+      x={selectionBounds.x}
+      y={selectionBounds.y}
       width={selectionBounds.width}
       height={selectionBounds.height}
       rotation={rotation}
