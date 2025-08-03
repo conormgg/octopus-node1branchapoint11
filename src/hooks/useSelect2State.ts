@@ -132,8 +132,8 @@ export const useSelect2State = () => {
 
     const width = (maxX - minX) + (extraPadding * 2);
     const height = (maxY - minY) + (extraPadding * 2);
-    const x = minX - extraPadding + width / 2;
-    const y = minY - extraPadding + height / 2;
+    const x = minX - extraPadding;
+    const y = minY - extraPadding;
 
     return {
       x,

@@ -20,23 +20,28 @@ export const TransformControls: React.FC<TransformControlsProps> = ({
   // Scale handle size based on zoom level for consistent visual size
   const handleSize = Math.max(8, 12 / zoom);
   const rotationHandleOffset = Math.max(20, 30 / zoom);
+  const rotation = bounds.rotation || 0;
 
-  // Calculate handle positions
+  // Calculate center point for rotation
+  const centerX = bounds.x + bounds.width / 2;
+  const centerY = bounds.y + bounds.height / 2;
+
+  // Calculate handle positions relative to top-left corner (before rotation)
   const handles = [
-    { type: 'nw', x: bounds.x, y: bounds.y },
-    { type: 'n', x: bounds.x + bounds.width / 2, y: bounds.y },
-    { type: 'ne', x: bounds.x + bounds.width, y: bounds.y },
-    { type: 'e', x: bounds.x + bounds.width, y: bounds.y + bounds.height / 2 },
-    { type: 'se', x: bounds.x + bounds.width, y: bounds.y + bounds.height },
-    { type: 's', x: bounds.x + bounds.width / 2, y: bounds.y + bounds.height },
-    { type: 'sw', x: bounds.x, y: bounds.y + bounds.height },
-    { type: 'w', x: bounds.x, y: bounds.y + bounds.height / 2 }
+    { type: 'nw', x: 0, y: 0 },
+    { type: 'n', x: bounds.width / 2, y: 0 },
+    { type: 'ne', x: bounds.width, y: 0 },
+    { type: 'e', x: bounds.width, y: bounds.height / 2 },
+    { type: 'se', x: bounds.width, y: bounds.height },
+    { type: 's', x: bounds.width / 2, y: bounds.height },
+    { type: 'sw', x: 0, y: bounds.height },
+    { type: 'w', x: 0, y: bounds.height / 2 }
   ];
 
-  // Rotation handle position (above the selection)
+  // Rotation handle position relative to bounds (before rotation)
   const rotationHandle = {
-    x: bounds.x + bounds.width / 2,
-    y: bounds.y - rotationHandleOffset
+    x: bounds.width / 2,
+    y: -rotationHandleOffset
   };
 
   const getCursor = (handleType: string) => {
@@ -61,11 +66,18 @@ export const TransformControls: React.FC<TransformControlsProps> = ({
   };
 
   return (
-    <Group listening={false}>
+    <Group 
+      x={centerX}
+      y={centerY}
+      rotation={rotation}
+      offsetX={bounds.width / 2}
+      offsetY={bounds.height / 2}
+      listening={false}
+    >
       {/* Selection border */}
       <Rect
-        x={bounds.x}
-        y={bounds.y}
+        x={0}
+        y={0}
         width={bounds.width}
         height={bounds.height}
         fill="transparent"
@@ -94,8 +106,8 @@ export const TransformControls: React.FC<TransformControlsProps> = ({
       {/* Rotation handle line */}
       <Line
         points={[
-          bounds.x + bounds.width / 2,
-          bounds.y,
+          bounds.width / 2,
+          0,
           rotationHandle.x,
           rotationHandle.y
         ]}
