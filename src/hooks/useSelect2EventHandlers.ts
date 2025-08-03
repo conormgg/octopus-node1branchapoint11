@@ -175,40 +175,17 @@ export const useSelect2EventHandlers = ({
       }
     });
 
-    // FIXED: Update group bounds synchronously after applying position changes
+    // Update group bounds immediately after applying position changes
     // This ensures the visual feedback matches the actual object positions
-    setTimeout(() => {
-      setState(prev => {
-        const updatedLines = lines.map(line => {
-          const selectedObj = prev.selectedObjects.find(obj => obj.id === line.id && obj.type === 'line');
-          if (selectedObj) {
-            return { ...line, x: line.x + dx, y: line.y + dy };
-          }
-          return line;
-        });
-
-        const updatedImages = images.map(image => {
-          const selectedObj = prev.selectedObjects.find(obj => obj.id === image.id && obj.type === 'image');
-          if (selectedObj) {
-            return { ...image, x: image.x + dx, y: image.y + dy };
-          }
-          return image;
-        });
-
-        const newGroupBounds = calculateGroupBounds(prev.selectedObjects, updatedLines, updatedImages);
-        
-        console.log('Select2: Updated group bounds after position changes', { 
-          oldBounds: prev.groupBounds, 
-          newBounds: newGroupBounds,
-          offset: { dx, dy }
-        });
-        
-        return {
-          ...prev,
-          groupBounds: newGroupBounds
-        };
-      });
-    }, 0);
+    const newGroupBounds = calculateGroupBounds(state.selectedObjects, lines, images);
+    
+    console.log('Select2: Updated group bounds after position changes', { 
+      oldBounds: state.groupBounds, 
+      newBounds: newGroupBounds,
+      offset: { dx, dy }
+    });
+    
+    updateGroupBounds(lines, images);
   }, [state.dragOffset, state.selectedObjects, lines, images, onUpdateLine, onUpdateImage, setState, calculateGroupBounds]);
 
   // Stage 2: Store selected objects in ref to preserve them during transform
@@ -578,10 +555,8 @@ export const useSelect2EventHandlers = ({
           }
         });
         
-        // Update group bounds after transform
-        setTimeout(() => {
-          updateGroupBounds(lines, images);
-        }, 0);
+        // Update group bounds immediately after transform
+        updateGroupBounds(lines, images);
       }
       
       endTransform();
@@ -947,10 +922,8 @@ export const useSelect2EventHandlers = ({
           }
         });
         
-        // Update group bounds after transform
-        setTimeout(() => {
-          updateGroupBounds(lines, images);
-        }, 0);
+        // Update group bounds immediately after transform
+        updateGroupBounds(lines, images);
       }
       
       endTransform();
