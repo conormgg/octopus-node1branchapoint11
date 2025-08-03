@@ -7,15 +7,13 @@ interface TransformControlsProps {
   isVisible: boolean;
   onHandleMouseDown: (handleType: string, e: any) => void;
   zoom: number;
-  rotation?: number;
 }
 
 export const TransformControls: React.FC<TransformControlsProps> = ({
   bounds,
   isVisible,
   onHandleMouseDown,
-  zoom,
-  rotation = 0
+  zoom
 }) => {
   if (!isVisible || !bounds) return null;
 
@@ -84,7 +82,10 @@ export const TransformControls: React.FC<TransformControlsProps> = ({
     <Group listening={false}>
       {/* Selection border */}
       <Rect
-        {...groupProps}
+        x={0}
+        y={0}
+        width={bounds.width}
+        height={bounds.height}
         fill="transparent"
         stroke="hsl(var(--primary))"
         strokeWidth={1 / zoom}
@@ -98,29 +99,27 @@ export const TransformControls: React.FC<TransformControlsProps> = ({
 
       {/* Resize handles */}
       {handles.map((handle) => (
-        <Rect
-          key={handle.type}
-          x={handle.x}
-          y={handle.y}
-          width={handleSize}
-          height={handleSize}
-          fill="hsl(var(--background))"
-          stroke="hsl(var(--primary))"
-          strokeWidth={1 / zoom}
-          rotation={rotation}
-          offsetX={handleSize / 2}
-          offsetY={handleSize / 2}
-          listening={false}
-        />
+        <Group key={handle.type}>
+          <Rect
+            x={handle.x - bounds.x - handleSize / 2}
+            y={handle.y - bounds.y - handleSize / 2}
+            width={handleSize}
+            height={handleSize}
+            fill="hsl(var(--background))"
+            stroke="hsl(var(--primary))"
+            strokeWidth={1 / zoom}
+            listening={false}
+          />
+        </Group>
       ))}
 
       {/* Rotation handle line */}
       <Line
         points={[
-          rotationHandle.x,
-          rotationHandle.y,
-          centerX,
-          centerY,
+          bounds.width / 2,
+          0,
+          bounds.width / 2,
+          -rotationHandleOffset
         ]}
         stroke="hsl(var(--primary))"
         strokeWidth={1 / zoom}
