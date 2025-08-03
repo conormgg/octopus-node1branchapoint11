@@ -89,11 +89,22 @@ export const useSelect2Transform = () => {
         const originalX = line.points[i];
         const originalY = line.points[i + 1];
         
-        // Apply scale to the relative points
-        const scaledX = originalX * matrix.scaleX;
-        const scaledY = originalY * matrix.scaleY;
+        // Convert relative point to absolute coordinates
+        const absolutePoint = { x: line.x + originalX, y: line.y + originalY };
         
-        newPoints.push(scaledX, scaledY);
+        // Apply full transform (scale + rotation) to the absolute point
+        const transformedPoint = transformPoint(
+          absolutePoint,
+          groupCenter.x,
+          groupCenter.y,
+          matrix
+        );
+        
+        // Convert back to relative coordinates based on new line position
+        const relativeX = transformedPoint.x - newPosition.x;
+        const relativeY = transformedPoint.y - newPosition.y;
+        
+        newPoints.push(relativeX, relativeY);
       }
 
       return {
