@@ -75,7 +75,7 @@ export const useSelect2EventHandlers = ({
   const isDraggingRef = useRef(false);
   const hasMovedRef = useRef(false);
   const dragStartPositionRef = useRef<{ x: number; y: number } | null>(null);
-  const transformStartRef = useRef<{ x: number; y: number } | null>(null);
+  const transformStartRef = useRef<{ x: number; y: number; initialRotation?: number } | null>(null);
   const isTransformingRef = useRef(false);
   const hoveredHandleRef = useRef<string | null>(null);
 
@@ -391,19 +391,45 @@ export const useSelect2EventHandlers = ({
         const centerX = initialTransformBounds.x + initialTransformBounds.width / 2;
         const centerY = initialTransformBounds.y + initialTransformBounds.height / 2;
         
-        let angle = Math.atan2(
+        // Store initial rotation angle when transform starts
+        if (!transformStartRef.current?.initialRotation) {
+          const initialAngle = Math.atan2(
+            transformStartRef.current?.y - centerY,
+            transformStartRef.current?.x - centerX
+          ) * (180 / Math.PI);
+          transformStartRef.current = {
+            ...transformStartRef.current,
+            initialRotation: initialAngle
+          };
+          console.log('Select2: Stored initial rotation', { initialAngle });
+        }
+        
+        // Calculate current angle
+        const currentAngle = Math.atan2(
           worldPoint.y - centerY,
           worldPoint.x - centerX
         ) * (180 / Math.PI);
+        
+        // Calculate relative rotation from initial angle
+        let relativeRotation = currentAngle - transformStartRef.current.initialRotation;
+        
+        // Normalize rotation to -180 to 180 range
+        while (relativeRotation > 180) relativeRotation -= 360;
+        while (relativeRotation < -180) relativeRotation += 360;
 
         // Apply rotation snapping
-        angle = transform.snapRotation(angle);
+        relativeRotation = transform.snapRotation(relativeRotation);
         
-        console.log('Select2: Rotation calculated', { angle, center: { x: centerX, y: centerY } });
+        console.log('Select2: Rotation calculated', { 
+          currentAngle, 
+          initialRotation: transformStartRef.current.initialRotation,
+          relativeRotation, 
+          center: { x: centerX, y: centerY } 
+        });
         
         // For rotation, bounds stay the same but rotation changes
         // This will trigger the Select2Renderer to show rotated preview
-        updateTransform(initialTransformBounds, angle);
+        updateTransform(initialTransformBounds, relativeRotation);
       }
       return; // CRITICAL: Early return prevents drag operations during transform
     }

@@ -41,7 +41,7 @@ export const useSelect2Transform = () => {
     let x = point.x - centerX;
     let y = point.y - centerY;
 
-    // Apply rotation
+    // Apply rotation first
     if (matrix.rotation !== 0) {
       const rad = (matrix.rotation * Math.PI) / 180;
       const cos = Math.cos(rad);
@@ -52,15 +52,26 @@ export const useSelect2Transform = () => {
       y = rotatedY;
     }
 
-    // Apply scale
-    x *= matrix.scaleX;
-    y *= matrix.scaleY;
+    // Apply scale only if it's not a pure rotation
+    if (matrix.scaleX !== 1 || matrix.scaleY !== 1) {
+      x *= matrix.scaleX;
+      y *= matrix.scaleY;
+    }
 
-    // Translate back and apply translation
-    x += centerX + matrix.translateX;
-    y += centerY + matrix.translateY;
-
-    return { x, y };
+    // Translate back to center, then apply additional translation only if needed
+    x += centerX;
+    y += centerY;
+    
+    // For pure rotation, don't apply translation offset
+    if (matrix.scaleX === 1 && matrix.scaleY === 1 && matrix.rotation !== 0) {
+      // Pure rotation: no additional translation
+      return { x, y };
+    } else {
+      // Scale/resize operations: apply translation
+      x += matrix.translateX;
+      y += matrix.translateY;
+      return { x, y };
+    }
   }, []);
 
   // Calculate new object bounds after transform
@@ -120,20 +131,34 @@ export const useSelect2Transform = () => {
       const width = image.width || 100;
       const height = image.height || 100;
 
-      // Transform image position
-      const newPosition = transformPoint(
-        { x: image.x, y: image.y },
-        groupCenter.x,
-        groupCenter.y,
-        matrix
-      );
+      // For pure rotation (no scale or translation), handle differently
+      if (matrix.rotation !== 0 && matrix.scaleX === 1 && matrix.scaleY === 1 && matrix.translateX === 0 && matrix.translateY === 0) {
+        // Pure rotation: rotate around group center without translation
+        const imageCenter = { x: image.x + width / 2, y: image.y + height / 2 };
+        const rotatedCenter = transformPoint(imageCenter, groupCenter.x, groupCenter.y, matrix);
+        
+        return {
+          x: rotatedCenter.x - width / 2,
+          y: rotatedCenter.y - height / 2,
+          width: width,
+          height: height
+        };
+      } else {
+        // Transform image position for scale/translate operations
+        const newPosition = transformPoint(
+          { x: image.x, y: image.y },
+          groupCenter.x,
+          groupCenter.y,
+          matrix
+        );
 
-      return {
-        x: newPosition.x,
-        y: newPosition.y,
-        width: width * matrix.scaleX,
-        height: height * matrix.scaleY
-      };
+        return {
+          x: newPosition.x,
+          y: newPosition.y,
+          width: width * matrix.scaleX,
+          height: height * matrix.scaleY
+        };
+      }
     }
 
     return null;
