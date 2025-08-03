@@ -179,13 +179,10 @@ export const Select2Renderer: React.FC<Select2RendererProps> = ({
           <Image
             key={`transform-preview-${obj.id}`}
             image={img}
-            x={transformedBounds.x + transformedBounds.width / 2}
-            y={transformedBounds.y + transformedBounds.height / 2}
+            x={transformedBounds.x}
+            y={transformedBounds.y}
             width={transformedBounds.width}
             height={transformedBounds.height}
-            rotation={transformedBounds.rotation}
-            offsetX={transformedBounds.width / 2}
-            offsetY={transformedBounds.height / 2}
             opacity={0.5}
             listening={false}
           />

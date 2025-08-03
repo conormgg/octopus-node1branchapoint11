@@ -96,13 +96,6 @@ export const useSelect2State = () => {
 
     // Add extra padding for easier interaction
     const extraPadding = 10;
-    const finalRotation = imageCount > 0 ? totalRotation / imageCount : 0;
-
-    const width = (maxX - minX) + (extraPadding * 2);
-    const height = (maxY - minY) + (extraPadding * 2);
-    const x = minX - extraPadding + width / 2;
-    const y = minY - extraPadding + height / 2;
-
     return {
       x: minX - extraPadding,
       y: minY - extraPadding,
