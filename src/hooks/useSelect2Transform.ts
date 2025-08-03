@@ -119,39 +119,26 @@ export const useSelect2Transform = () => {
     
       const width = image.width || 100;
       const height = image.height || 100;
+    
+      // Transform image's top-left corner
+      const newPosition = transformPoint(
+        { x: image.x, y: image.y },
+        groupCenter.x,
+        groupCenter.y,
+        matrix
+      );
+    
+      // Calculate new rotation by adding the transform rotation to the image's initial rotation
       const initialRotation = image.rotation || 0;
+      const newRotation = initialRotation + matrix.rotation;
     
-      // Check if this is a pure rotation (no scale or translation)
-      const isPureRotation = matrix.scaleX === 1 && matrix.scaleY === 1 && 
-                            matrix.translateX === 0 && matrix.translateY === 0 && 
-                            matrix.rotation !== 0;
-    
-      if (isPureRotation) {
-        // For pure rotation, keep the original position and only update rotation
-        return {
-          x: image.x,
-          y: image.y,
-          width: width,
-          height: height,
-          rotation: initialRotation + matrix.rotation,
-        };
-      } else {
-        // For scale/move operations, transform the position
-        const newPosition = transformPoint(
-          { x: image.x, y: image.y },
-          groupCenter.x,
-          groupCenter.y,
-          matrix
-        );
-    
-        return {
-          x: newPosition.x,
-          y: newPosition.y,
-          width: width * matrix.scaleX,
-          height: height * matrix.scaleY,
-          rotation: initialRotation + matrix.rotation,
-        };
-      }
+      return {
+        x: newPosition.x,
+        y: newPosition.y,
+        width: width * matrix.scaleX,
+        height: height * matrix.scaleY,
+        rotation: newRotation,
+      };
     }
 
     return null;
