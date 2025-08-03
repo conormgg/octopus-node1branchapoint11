@@ -36,15 +36,45 @@ export const calculateGroupBounds = (
     }
   }
 
-  // Process selected images - simplified to only handle x, y, width, height
+  // Process selected images - handle rotation for proper bounds
   for (const image of selectedImages) {
     const width = image.width || 100;
     const height = image.height || 100;
+    const rotation = image.rotation || 0;
     
-    minX = Math.min(minX, image.x);
-    minY = Math.min(minY, image.y);
-    maxX = Math.max(maxX, image.x + width);
-    maxY = Math.max(maxY, image.y + height);
+    if (rotation === 0) {
+      // No rotation - use simple bounds
+      minX = Math.min(minX, image.x);
+      minY = Math.min(minY, image.y);
+      maxX = Math.max(maxX, image.x + width);
+      maxY = Math.max(maxY, image.y + height);
+    } else {
+      // Calculate rotated bounds - get all four corners of rotated image
+      const centerX = image.x + width / 2;
+      const centerY = image.y + height / 2;
+      const rad = (rotation * Math.PI) / 180;
+      const cos = Math.cos(rad);
+      const sin = Math.sin(rad);
+      
+      // Calculate the four corners relative to center
+      const corners = [
+        { x: -width / 2, y: -height / 2 }, // top-left
+        { x: width / 2, y: -height / 2 },  // top-right
+        { x: width / 2, y: height / 2 },   // bottom-right
+        { x: -width / 2, y: height / 2 }   // bottom-left
+      ];
+      
+      // Rotate each corner and find min/max bounds
+      for (const corner of corners) {
+        const rotatedX = centerX + (corner.x * cos - corner.y * sin);
+        const rotatedY = centerY + (corner.x * sin + corner.y * cos);
+        
+        minX = Math.min(minX, rotatedX);
+        minY = Math.min(minY, rotatedY);
+        maxX = Math.max(maxX, rotatedX);
+        maxY = Math.max(maxY, rotatedY);
+      }
+    }
   }
 
   // If no objects were found or bounds are invalid
