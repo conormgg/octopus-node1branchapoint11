@@ -37,41 +37,30 @@ export const useSelect2Transform = () => {
     centerY: number,
     matrix: TransformMatrix
   ) => {
-    // Translate to origin
+    // Translate point to be relative to the center
     let x = point.x - centerX;
     let y = point.y - centerY;
-
-    // Apply rotation first
+  
+    // Apply scaling
+    x *= matrix.scaleX;
+    y *= matrix.scaleY;
+  
+    // Apply rotation
     if (matrix.rotation !== 0) {
       const rad = (matrix.rotation * Math.PI) / 180;
       const cos = Math.cos(rad);
       const sin = Math.sin(rad);
-      const rotatedX = x * cos - y * sin;
-      const rotatedY = x * sin + y * cos;
-      x = rotatedX;
-      y = rotatedY;
+      const newX = x * cos - y * sin;
+      const newY = x * sin + y * cos;
+      x = newX;
+      y = newY;
     }
-
-    // Apply scale only if it's not a pure rotation
-    if (matrix.scaleX !== 1 || matrix.scaleY !== 1) {
-      x *= matrix.scaleX;
-      y *= matrix.scaleY;
-    }
-
-    // Translate back to center, then apply additional translation only if needed
-    x += centerX;
-    y += centerY;
-    
-    // For pure rotation, don't apply translation offset
-    if (matrix.scaleX === 1 && matrix.scaleY === 1 && matrix.rotation !== 0) {
-      // Pure rotation: no additional translation
-      return { x, y };
-    } else {
-      // Scale/resize operations: apply translation
-      x += matrix.translateX;
-      y += matrix.translateY;
-      return { x, y };
-    }
+  
+    // Translate back to original position and add matrix translation
+    x += centerX + matrix.translateX;
+    y += centerY + matrix.translateY;
+  
+    return { x, y };
   }, []);
 
   // Calculate new object bounds after transform
@@ -127,38 +116,29 @@ export const useSelect2Transform = () => {
     } else if (object.type === 'image') {
       const image = images.find(i => i.id === object.id);
       if (!image) return null;
-
+    
       const width = image.width || 100;
       const height = image.height || 100;
-
-      // For pure rotation (no scale or translation), handle differently
-      if (matrix.rotation !== 0 && matrix.scaleX === 1 && matrix.scaleY === 1 && matrix.translateX === 0 && matrix.translateY === 0) {
-        // Pure rotation: rotate around group center without translation
-        const imageCenter = { x: image.x + width / 2, y: image.y + height / 2 };
-        const rotatedCenter = transformPoint(imageCenter, groupCenter.x, groupCenter.y, matrix);
-        
-        return {
-          x: rotatedCenter.x - width / 2,
-          y: rotatedCenter.y - height / 2,
-          width: width,
-          height: height
-        };
-      } else {
-        // Transform image position for scale/translate operations
-        const newPosition = transformPoint(
-          { x: image.x, y: image.y },
-          groupCenter.x,
-          groupCenter.y,
-          matrix
-        );
-
-        return {
-          x: newPosition.x,
-          y: newPosition.y,
-          width: width * matrix.scaleX,
-          height: height * matrix.scaleY
-        };
-      }
+    
+      // Transform image's top-left corner
+      const newPosition = transformPoint(
+        { x: image.x, y: image.y },
+        groupCenter.x,
+        groupCenter.y,
+        matrix
+      );
+    
+      // Calculate new rotation by adding the transform rotation to the image's initial rotation
+      const initialRotation = image.rotation || 0;
+      const newRotation = initialRotation + matrix.rotation;
+    
+      return {
+        x: newPosition.x,
+        y: newPosition.y,
+        width: width * matrix.scaleX,
+        height: height * matrix.scaleY,
+        rotation: newRotation,
+      };
     }
 
     return null;

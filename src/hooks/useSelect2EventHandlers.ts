@@ -579,11 +579,12 @@ export const useSelect2EventHandlers = ({
                 to: { x: transformedBounds.x, y: transformedBounds.y, w: transformedBounds.width, h: transformedBounds.height }
               });
               
-              onUpdateImage(obj.id, { 
-                x: transformedBounds.x, 
-                y: transformedBounds.y, 
-                width: Math.max(10, transformedBounds.width), 
-                height: Math.max(10, transformedBounds.height) 
+              onUpdateImage(obj.id, {
+                x: transformedBounds.x,
+                y: transformedBounds.y,
+                width: Math.max(10, transformedBounds.width),
+                height: Math.max(10, transformedBounds.height),
+                rotation: transformedBounds.rotation,
               });
             }
           }

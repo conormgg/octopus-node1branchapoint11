@@ -18,6 +18,7 @@ export interface ImageObject {
   src: string;
   width?: number;
   height?: number;
+  rotation?: number;
   locked?: boolean;
 }
 
