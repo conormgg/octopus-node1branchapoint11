@@ -120,23 +120,37 @@ export const useSelect2Transform = () => {
       const width = image.width || 100;
       const height = image.height || 100;
     
-      // Transform image's top-left corner
-      const newPosition = transformPoint(
-        { x: image.x, y: image.y },
+      // Calculate the image's visual center (which is where it actually renders)
+      const imageCenter = {
+        x: image.x + width / 2,
+        y: image.y + height / 2
+      };
+    
+      // Transform the image's center
+      const newCenter = transformPoint(
+        imageCenter,
         groupCenter.x,
         groupCenter.y,
         matrix
       );
+    
+      // Convert the new center back to top-left corner coordinates for storage
+      const newWidth = width * matrix.scaleX;
+      const newHeight = height * matrix.scaleY;
+      const newTopLeft = {
+        x: newCenter.x - newWidth / 2,
+        y: newCenter.y - newHeight / 2
+      };
     
       // Calculate new rotation by adding the transform rotation to the image's initial rotation
       const initialRotation = image.rotation || 0;
       const newRotation = initialRotation + matrix.rotation;
     
       return {
-        x: newPosition.x,
-        y: newPosition.y,
-        width: width * matrix.scaleX,
-        height: height * matrix.scaleY,
+        x: newTopLeft.x,
+        y: newTopLeft.y,
+        width: newWidth,
+        height: newHeight,
         rotation: newRotation,
       };
     }
