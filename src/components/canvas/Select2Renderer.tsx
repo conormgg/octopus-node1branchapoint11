@@ -117,14 +117,21 @@ export const Select2Renderer: React.FC<Select2RendererProps> = ({
         const img = new window.Image();
         img.src = image.src;
 
+        const width = image.width || 100;
+        const height = image.height || 100;
+        const rotation = image.rotation || 0;
+
         return (
           <Image
             key={`preview-${obj.id}`}
             image={img}
             x={image.x + dragOffset.x}
             y={image.y + dragOffset.y}
-            width={image.width}
-            height={image.height}
+            width={width}
+            height={height}
+            rotation={rotation}
+            offsetX={rotation !== 0 ? width / 2 : 0}
+            offsetY={rotation !== 0 ? height / 2 : 0}
             opacity={0.5}
             listening={false}
           />
@@ -178,6 +185,10 @@ export const Select2Renderer: React.FC<Select2RendererProps> = ({
         const img = new window.Image();
         img.src = image.src;
 
+        // For transform previews, we need to include the original rotation plus any additional transform rotation
+        const originalRotation = image.rotation || 0;
+        const totalRotation = originalRotation + (transformedBounds.rotation || 0);
+
         return (
           <Image
             key={`transform-preview-${obj.id}`}
@@ -186,6 +197,9 @@ export const Select2Renderer: React.FC<Select2RendererProps> = ({
             y={transformedBounds.y}
             width={transformedBounds.width}
             height={transformedBounds.height}
+            rotation={totalRotation}
+            offsetX={totalRotation !== 0 ? transformedBounds.width / 2 : 0}
+            offsetY={totalRotation !== 0 ? transformedBounds.height / 2 : 0}
             opacity={0.5}
             listening={false}
           />
