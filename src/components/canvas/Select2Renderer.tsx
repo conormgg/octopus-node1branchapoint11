@@ -268,6 +268,11 @@ export const Select2Renderer: React.FC<Select2RendererProps> = ({
         isVisible={!isSelecting && !isDraggingObjects && selectedObjects.length > 0}
         onHandleMouseDown={onTransformHandleMouseDown || (() => {})}
         zoom={zoom}
+        rotation={
+          selectedObjects.length === 1 && selectedObjects[0].type === 'image'
+            ? images.find(img => img.id === selectedObjects[0].id)?.rotation || 0
+            : 0
+        }
       />
     </>
   );

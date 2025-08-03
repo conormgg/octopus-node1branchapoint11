@@ -7,13 +7,15 @@ interface TransformControlsProps {
   isVisible: boolean;
   onHandleMouseDown: (handleType: string, e: any) => void;
   zoom: number;
+  rotation?: number;
 }
 
 export const TransformControls: React.FC<TransformControlsProps> = ({
   bounds,
   isVisible,
   onHandleMouseDown,
-  zoom
+  zoom,
+  rotation = 0
 }) => {
   if (!isVisible || !bounds) return null;
 
@@ -61,11 +63,18 @@ export const TransformControls: React.FC<TransformControlsProps> = ({
   };
 
   return (
-    <Group listening={false}>
+    <Group 
+      listening={false}
+      x={bounds.x + bounds.width / 2}
+      y={bounds.y + bounds.height / 2}
+      rotation={rotation}
+      offsetX={bounds.width / 2}
+      offsetY={bounds.height / 2}
+    >
       {/* Selection border */}
       <Rect
-        x={bounds.x}
-        y={bounds.y}
+        x={0}
+        y={0}
         width={bounds.width}
         height={bounds.height}
         fill="transparent"
@@ -79,8 +88,8 @@ export const TransformControls: React.FC<TransformControlsProps> = ({
       {handles.map((handle) => (
         <Group key={handle.type}>
           <Rect
-            x={handle.x - handleSize / 2}
-            y={handle.y - handleSize / 2}
+            x={handle.x - bounds.x - handleSize / 2}
+            y={handle.y - bounds.y - handleSize / 2}
             width={handleSize}
             height={handleSize}
             fill="hsl(var(--background))"
@@ -94,10 +103,10 @@ export const TransformControls: React.FC<TransformControlsProps> = ({
       {/* Rotation handle line */}
       <Line
         points={[
-          bounds.x + bounds.width / 2,
-          bounds.y,
-          rotationHandle.x,
-          rotationHandle.y
+          bounds.width / 2,
+          0,
+          bounds.width / 2,
+          -rotationHandleOffset
         ]}
         stroke="hsl(var(--primary))"
         strokeWidth={1 / zoom}
@@ -106,8 +115,8 @@ export const TransformControls: React.FC<TransformControlsProps> = ({
 
       {/* Rotation handle - remove event handlers, they'll be handled at stage level */}
       <Circle
-        x={rotationHandle.x}
-        y={rotationHandle.y}
+        x={bounds.width / 2}
+        y={-rotationHandleOffset}
         radius={handleSize / 2}
         fill="hsl(var(--background))"
         stroke="hsl(var(--primary))"
