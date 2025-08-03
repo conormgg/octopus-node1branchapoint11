@@ -51,8 +51,51 @@ export const useSelect2State = () => {
     transformGroupRotation: 0
   });
 
-  // Calculate group bounds for selected objects
-  const calculateGroupBounds = useCallback((
+  // Calculate oriented bounding box for rotated objects
+  const calculateOrientedGroupBounds = useCallback((
+    selectedObjects: SelectedObject[],
+    lines: LineObject[],
+    images: ImageObject[]
+  ): SelectionBounds | null => {
+    if (selectedObjects.length === 0) return null;
+
+    // For single rotated image, use oriented bounding box
+    if (selectedObjects.length === 1 && selectedObjects[0].type === 'image') {
+      const image = images.find(i => i.id === selectedObjects[0].id);
+      if (!image) return null;
+      
+      const width = image.width || 100;
+      const height = image.height || 100;
+      const rotation = image.rotation || 0;
+      
+      // For rotated single images, return the oriented bounds
+      if (rotation !== 0) {
+        // Add padding for easier interaction
+        const padding = 10;
+        return {
+          x: image.x - padding,
+          y: image.y - padding,
+          width: width + (padding * 2),
+          height: height + (padding * 2)
+        };
+      } else {
+        // Non-rotated image
+        const padding = 10;
+        return {
+          x: image.x - padding,
+          y: image.y - padding,
+          width: width + (padding * 2),
+          height: height + (padding * 2)
+        };
+      }
+    }
+
+    // For multiple objects or mixed types, fall back to axis-aligned bounding box
+    return calculateAxisAlignedGroupBounds(selectedObjects, lines, images);
+  }, []);
+
+  // Calculate axis-aligned bounding box (original logic)
+  const calculateAxisAlignedGroupBounds = useCallback((
     selectedObjects: SelectedObject[],
     lines: LineObject[],
     images: ImageObject[]
@@ -96,7 +139,7 @@ export const useSelect2State = () => {
           maxX = Math.max(maxX, image.x + width);
           maxY = Math.max(maxY, image.y + height);
         } else {
-          // Calculate rotated bounds
+          // Calculate rotated bounds (axis-aligned bounding box of rotated rectangle)
           const centerX = image.x + width / 2;
           const centerY = image.y + height / 2;
           const rad = (rotation * Math.PI) / 180;
@@ -134,6 +177,15 @@ export const useSelect2State = () => {
       height: (maxY - minY) + (extraPadding * 2)
     };
   }, []);
+
+  // Main group bounds calculation - uses oriented bounds for single rotated images
+  const calculateGroupBounds = useCallback((
+    selectedObjects: SelectedObject[],
+    lines: LineObject[],
+    images: ImageObject[]
+  ): SelectionBounds | null => {
+    return calculateOrientedGroupBounds(selectedObjects, lines, images);
+  }, [calculateOrientedGroupBounds]);
   // Calculate group rotation for selected objects
   const calculateGroupRotation = useCallback((
     selectedObjects: SelectedObject[],
@@ -173,15 +225,45 @@ export const useSelect2State = () => {
     });
   }, [calculateGroupBounds]);
 
-  // Check if point is within group bounds
+  // Check if point is within group bounds (handles rotation)
   const isPointInGroupBounds = useCallback((point: { x: number; y: number }): boolean => {
     if (!state.groupBounds) return false;
     
+    // For single rotated images, use rotated bounds checking
+    if (state.selectedObjects.length === 1 && state.selectedObjects[0].type === 'image') {
+      const rotation = state.transformGroupRotation || 0;
+      
+      if (rotation !== 0) {
+        // Transform the point to the rotated rectangle's local coordinate system
+        const centerX = state.groupBounds.x + state.groupBounds.width / 2;
+        const centerY = state.groupBounds.y + state.groupBounds.height / 2;
+        
+        // Translate point to be relative to rectangle center
+        const relativeX = point.x - centerX;
+        const relativeY = point.y - centerY;
+        
+        // Apply inverse rotation to get point in rectangle's local coordinates
+        const rad = (-rotation * Math.PI) / 180; // Negative for inverse rotation
+        const cos = Math.cos(rad);
+        const sin = Math.sin(rad);
+        
+        const localX = relativeX * cos - relativeY * sin;
+        const localY = relativeX * sin + relativeY * cos;
+        
+        // Check if the local point is within the unrotated rectangle bounds
+        return localX >= -state.groupBounds.width / 2 && 
+               localX <= state.groupBounds.width / 2 && 
+               localY >= -state.groupBounds.height / 2 && 
+               localY <= state.groupBounds.height / 2;
+      }
+    }
+    
+    // For non-rotated or multiple objects, use simple axis-aligned bounds check
     return point.x >= state.groupBounds.x && 
            point.x <= state.groupBounds.x + state.groupBounds.width && 
            point.y >= state.groupBounds.y && 
            point.y <= state.groupBounds.y + state.groupBounds.height;
-  }, [state.groupBounds]);
+  }, [state.groupBounds, state.selectedObjects, state.transformGroupRotation]);
 
   // Simple hit detection for lines
   const isPointOnLine = useCallback((point: { x: number; y: number }, line: LineObject): boolean => {

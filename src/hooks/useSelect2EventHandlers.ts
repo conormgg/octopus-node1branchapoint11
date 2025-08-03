@@ -56,6 +56,7 @@ export const useSelect2EventHandlers = ({
     setHoveredObject,
     findObjectsAtPoint,
     calculateGroupBounds,
+    calculateGroupRotation,
     updateGroupBounds,
     isPointInGroupBounds,
     isObjectLocked,
@@ -219,7 +220,8 @@ export const useSelect2EventHandlers = ({
       const freshGroupBounds = calculateGroupBounds(state.selectedObjects, lines, images);
       
       if (freshGroupBounds) {
-        const handle = handleDetection.getHandleAtPoint(worldPoint, freshGroupBounds);
+        const groupRotation = calculateGroupRotation(state.selectedObjects, images);
+        const handle = handleDetection.getHandleAtPoint(worldPoint, freshGroupBounds, groupRotation);
         
         if (handle) {
           console.log('Select2: TRANSFORM MODE ACTIVATED', { 
@@ -539,7 +541,8 @@ export const useSelect2EventHandlers = ({
     } else {
       // STAGE 6: Enhanced cursor feedback for transform handles
       if (!isDraggingRef.current && state.selectedObjects.length > 0 && !state.isTransforming) {
-        const handle = handleDetection.getHandleAtPoint(worldPoint, state.groupBounds);
+        const groupRotation = calculateGroupRotation(state.selectedObjects, images);
+        const handle = handleDetection.getHandleAtPoint(worldPoint, state.groupBounds, groupRotation);
         const newHoveredHandle = handle?.type || null;
         
         if (hoveredHandleRef.current !== newHoveredHandle) {

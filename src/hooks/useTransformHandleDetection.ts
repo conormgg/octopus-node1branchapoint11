@@ -9,27 +9,54 @@ export interface TransformHandle {
 }
 
 export const useTransformHandleDetection = (zoom: number) => {
-  // Calculate handle positions and hit areas
-  const getTransformHandles = useCallback((bounds: SelectionBounds): TransformHandle[] => {
+  // Calculate handle positions and hit areas (supports rotation)
+  const getTransformHandles = useCallback((bounds: SelectionBounds, rotation: number = 0): TransformHandle[] => {
     const handleSize = Math.max(8, 12 / zoom);
     const rotationHandleOffset = Math.max(20, 30 / zoom);
 
-    const handles: TransformHandle[] = [
-      { type: 'nw', x: bounds.x, y: bounds.y, cursor: 'nw-resize' },
-      { type: 'n', x: bounds.x + bounds.width / 2, y: bounds.y, cursor: 'ns-resize' },
-      { type: 'ne', x: bounds.x + bounds.width, y: bounds.y, cursor: 'ne-resize' },
-      { type: 'e', x: bounds.x + bounds.width, y: bounds.y + bounds.height / 2, cursor: 'ew-resize' },
-      { type: 'se', x: bounds.x + bounds.width, y: bounds.y + bounds.height, cursor: 'nw-resize' },
-      { type: 's', x: bounds.x + bounds.width / 2, y: bounds.y + bounds.height, cursor: 'ns-resize' },
-      { type: 'sw', x: bounds.x, y: bounds.y + bounds.height, cursor: 'ne-resize' },
-      { type: 'w', x: bounds.x, y: bounds.y + bounds.height / 2, cursor: 'ew-resize' },
+    // Calculate center of the bounds
+    const centerX = bounds.x + bounds.width / 2;
+    const centerY = bounds.y + bounds.height / 2;
+
+    // Define handle positions relative to the center (before rotation)
+    const relativeHandles = [
+      { type: 'nw', x: -bounds.width / 2, y: -bounds.height / 2, cursor: 'nw-resize' },
+      { type: 'n', x: 0, y: -bounds.height / 2, cursor: 'ns-resize' },
+      { type: 'ne', x: bounds.width / 2, y: -bounds.height / 2, cursor: 'ne-resize' },
+      { type: 'e', x: bounds.width / 2, y: 0, cursor: 'ew-resize' },
+      { type: 'se', x: bounds.width / 2, y: bounds.height / 2, cursor: 'nw-resize' },
+      { type: 's', x: 0, y: bounds.height / 2, cursor: 'ns-resize' },
+      { type: 'sw', x: -bounds.width / 2, y: bounds.height / 2, cursor: 'ne-resize' },
+      { type: 'w', x: -bounds.width / 2, y: 0, cursor: 'ew-resize' },
       { 
         type: 'rotate', 
-        x: bounds.x + bounds.width / 2, 
-        y: bounds.y - rotationHandleOffset, 
+        x: 0, 
+        y: -bounds.height / 2 - rotationHandleOffset, 
         cursor: 'grab' 
       }
     ];
+
+    // Apply rotation to each handle position
+    const rad = (rotation * Math.PI) / 180;
+    const cos = Math.cos(rad);
+    const sin = Math.sin(rad);
+
+    const handles: TransformHandle[] = relativeHandles.map(handle => {
+      // Rotate the relative position
+      const rotatedX = handle.x * cos - handle.y * sin;
+      const rotatedY = handle.x * sin + handle.y * cos;
+      
+      // Translate to world coordinates
+      const worldX = centerX + rotatedX;
+      const worldY = centerY + rotatedY;
+
+      return {
+        type: handle.type,
+        x: worldX,
+        y: worldY,
+        cursor: handle.cursor
+      };
+    });
 
     return handles.map(handle => ({
       ...handle,
@@ -58,11 +85,12 @@ export const useTransformHandleDetection = (zoom: number) => {
   // Find which handle (if any) is at the given point
   const getHandleAtPoint = useCallback((
     point: { x: number; y: number },
-    bounds: SelectionBounds | null
+    bounds: SelectionBounds | null,
+    rotation: number = 0
   ): (TransformHandle & { hitArea: any }) | null => {
     if (!bounds) return null;
 
-    const handles = getTransformHandles(bounds) as any;
+    const handles = getTransformHandles(bounds, rotation) as any;
     
     // Check handles in reverse order so rotation handle has priority if overlapping
     for (let i = handles.length - 1; i >= 0; i--) {
