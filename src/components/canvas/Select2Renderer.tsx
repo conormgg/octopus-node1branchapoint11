@@ -225,6 +225,20 @@ export const Select2Renderer: React.FC<Select2RendererProps> = ({
             ? images.find(img => img.id === selectedObjects[0].id)?.rotation || 0
             : 0
         }
+        imageCenter={
+          selectedObjects.length === 1 && selectedObjects[0].type === 'image' 
+            ? (() => {
+                const image = images.find(img => img.id === selectedObjects[0].id);
+                if (image) {
+                  return {
+                    x: image.x + (image.width || 100) / 2,
+                    y: image.y + (image.height || 100) / 2
+                  };
+                }
+                return undefined;
+              })()
+            : undefined
+        }
       />
 
       {/* Visual feedback for hovered object (only when not selected) */}
