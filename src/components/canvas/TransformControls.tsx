@@ -71,18 +71,7 @@ export const TransformControls: React.FC<TransformControlsProps> = ({
       offsetX={bounds.width / 2}
       offsetY={bounds.height / 2}
     >
-      {/* Selection border */}
-      <Rect
-        x={0}
-        y={0}
-        width={bounds.width}
-        height={bounds.height}
-        fill="transparent"
-        stroke="hsl(var(--primary))"
-        strokeWidth={1 / zoom}
-        dash={[4 / zoom, 4 / zoom]}
-        listening={false}
-      />
+      {/* Selection border removed - handled by SelectionRect component */}
 
       {/* Resize handles - remove event handlers, they'll be handled at stage level */}
       {handles.map((handle) => (

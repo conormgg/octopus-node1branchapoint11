@@ -100,15 +100,21 @@ export const useSelectionState = () => {
     return false;
   }, []);
 
-  // Simplified hit detection for images - only handles x, y, width, height
+  // Hit detection for images - handles center-based positioning
   const isPointOnImage = useCallback((point: { x: number; y: number }, image: ImageObject): boolean => {
     const width = image.width || 100;
     const height = image.height || 100;
     
-    return point.x >= image.x && 
-           point.x <= image.x + width && 
-           point.y >= image.y && 
-           point.y <= image.y + height;
+    // Images use center-based positioning
+    const left = image.x - width / 2;
+    const right = image.x + width / 2;
+    const top = image.y - height / 2;
+    const bottom = image.y + height / 2;
+    
+    return point.x >= left && 
+           point.x <= right && 
+           point.y >= top && 
+           point.y <= bottom;
   }, []);
 
   // Find objects at point
@@ -144,15 +150,21 @@ export const useSelectionState = () => {
   ): SelectedObject[] => {
     const foundObjects: SelectedObject[] = [];
 
-    // Check images
+    // Check images - using center-based positioning
     for (const image of images) {
       const imageWidth = image.width || 100;
       const imageHeight = image.height || 100;
       
-      if (image.x < bounds.x + bounds.width &&
-          image.x + imageWidth > bounds.x &&
-          image.y < bounds.y + bounds.height &&
-          image.y + imageHeight > bounds.y) {
+      // Calculate image bounds (center-based)
+      const left = image.x - imageWidth / 2;
+      const right = image.x + imageWidth / 2;
+      const top = image.y - imageHeight / 2;
+      const bottom = image.y + imageHeight / 2;
+      
+      if (left < bounds.x + bounds.width &&
+          right > bounds.x &&
+          top < bounds.y + bounds.height &&
+          bottom > bounds.y) {
         foundObjects.push({ id: image.id, type: 'image' });
       }
     }
@@ -234,7 +246,7 @@ export const useSelectionState = () => {
       }
     }
     
-    // Process selected images
+    // Process selected images - using center-based positioning with rotation
     const selectedImages = selectedObjects
       .filter(obj => obj.type === 'image')
       .map(obj => images.find(img => img.id === obj.id))
@@ -243,11 +255,48 @@ export const useSelectionState = () => {
     for (const image of selectedImages) {
       const width = image.width || 100;
       const height = image.height || 100;
+      const rotation = image.rotation || 0;
       
-      minX = Math.min(minX, image.x);
-      minY = Math.min(minY, image.y);
-      maxX = Math.max(maxX, image.x + width);
-      maxY = Math.max(maxY, image.y + height);
+      if (rotation === 0) {
+        // No rotation - simple bounds calculation
+        const left = image.x - width / 2;
+        const right = image.x + width / 2;
+        const top = image.y - height / 2;
+        const bottom = image.y + height / 2;
+        
+        minX = Math.min(minX, left);
+        minY = Math.min(minY, top);
+        maxX = Math.max(maxX, right);
+        maxY = Math.max(maxY, bottom);
+      } else {
+        // Rotation - calculate all 4 corners and find extent
+        const centerX = image.x;
+        const centerY = image.y;
+        const halfWidth = width / 2;
+        const halfHeight = height / 2;
+        
+        const radians = (rotation * Math.PI) / 180;
+        const cos = Math.cos(radians);
+        const sin = Math.sin(radians);
+        
+        // Calculate the 4 corners
+        const corners = [
+          { x: -halfWidth, y: -halfHeight },
+          { x: halfWidth, y: -halfHeight },
+          { x: halfWidth, y: halfHeight },
+          { x: -halfWidth, y: halfHeight }
+        ];
+        
+        for (const corner of corners) {
+          const rotatedX = centerX + (corner.x * cos - corner.y * sin);
+          const rotatedY = centerY + (corner.x * sin + corner.y * cos);
+          
+          minX = Math.min(minX, rotatedX);
+          minY = Math.min(minY, rotatedY);
+          maxX = Math.max(maxX, rotatedX);
+          maxY = Math.max(maxY, rotatedY);
+        }
+      }
     }
     
     // If no objects were found or bounds are invalid
