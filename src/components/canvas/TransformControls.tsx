@@ -23,23 +23,33 @@ export const TransformControls: React.FC<TransformControlsProps> = ({
   const handleSize = Math.max(8, 12 / zoom);
   const rotationHandleOffset = Math.max(20, 30 / zoom);
 
-  // Calculate handle positions
+  const centerX = bounds.x + bounds.width / 2;
+  const centerY = bounds.y + bounds.height / 2;
+  const rad = (rotation * Math.PI) / 180;
+
+  const rotatePoint = (x: number, y: number) => {
+    const dx = x - centerX;
+    const dy = y - centerY;
+    const newX = dx * Math.cos(rad) - dy * Math.sin(rad) + centerX;
+    const newY = dx * Math.sin(rad) + dy * Math.cos(rad) + centerY;
+    return { x: newX, y: newY };
+  };
+
   const handles = [
-    { type: 'nw', x: bounds.x, y: bounds.y },
-    { type: 'n', x: bounds.x + bounds.width / 2, y: bounds.y },
-    { type: 'ne', x: bounds.x + bounds.width, y: bounds.y },
-    { type: 'e', x: bounds.x + bounds.width, y: bounds.y + bounds.height / 2 },
-    { type: 'se', x: bounds.x + bounds.width, y: bounds.y + bounds.height },
-    { type: 's', x: bounds.x + bounds.width / 2, y: bounds.y + bounds.height },
-    { type: 'sw', x: bounds.x, y: bounds.y + bounds.height },
-    { type: 'w', x: bounds.x, y: bounds.y + bounds.height / 2 }
+    { type: 'nw', ...rotatePoint(bounds.x, bounds.y) },
+    { type: 'n', ...rotatePoint(bounds.x + bounds.width / 2, bounds.y) },
+    { type: 'ne', ...rotatePoint(bounds.x + bounds.width, bounds.y) },
+    { type: 'e', ...rotatePoint(bounds.x + bounds.width, bounds.y + bounds.height / 2) },
+    { type: 'se', ...rotatePoint(bounds.x + bounds.width, bounds.y + bounds.height) },
+    { type: 's', ...rotatePoint(bounds.x + bounds.width / 2, bounds.y + bounds.height) },
+    { type: 'sw', ...rotatePoint(bounds.x, bounds.y + bounds.height) },
+    { type: 'w', ...rotatePoint(bounds.x, bounds.y + bounds.height / 2) }
   ];
 
-  // Rotation handle position (above the selection)
-  const rotationHandle = {
-    x: bounds.x + bounds.width / 2,
-    y: bounds.y - rotationHandleOffset
-  };
+  const rotationHandle = rotatePoint(
+    bounds.x + bounds.width / 2,
+    bounds.y - rotationHandleOffset
+  );
 
   const getCursor = (handleType: string) => {
     switch (handleType) {
@@ -62,61 +72,65 @@ export const TransformControls: React.FC<TransformControlsProps> = ({
     }
   };
 
+  const groupProps = {
+    x: bounds.x,
+    y: bounds.y,
+    width: bounds.width,
+    height: bounds.height,
+    rotation: rotation,
+  };
+
   return (
-    <Group 
-      listening={false}
-      x={bounds.x + bounds.width / 2}
-      y={bounds.y + bounds.height / 2}
-      rotation={rotation}
-      offsetX={bounds.width / 2}
-      offsetY={bounds.height / 2}
-    >
+    <Group listening={false}>
       {/* Selection border */}
       <Rect
-        x={0}
-        y={0}
-        width={bounds.width}
-        height={bounds.height}
+        {...groupProps}
         fill="transparent"
         stroke="hsl(var(--primary))"
         strokeWidth={1 / zoom}
         dash={[4 / zoom, 4 / zoom]}
         listening={false}
+        offsetX={bounds.width / 2}
+        offsetY={bounds.height / 2}
+        x={bounds.x + bounds.width / 2}
+        y={bounds.y + bounds.height / 2}
       />
 
-      {/* Resize handles - remove event handlers, they'll be handled at stage level */}
+      {/* Resize handles */}
       {handles.map((handle) => (
-        <Group key={handle.type}>
-          <Rect
-            x={handle.x - bounds.x - handleSize / 2}
-            y={handle.y - bounds.y - handleSize / 2}
-            width={handleSize}
-            height={handleSize}
-            fill="hsl(var(--background))"
-            stroke="hsl(var(--primary))"
-            strokeWidth={1 / zoom}
-            listening={false}
-          />
-        </Group>
+        <Rect
+          key={handle.type}
+          x={handle.x}
+          y={handle.y}
+          width={handleSize}
+          height={handleSize}
+          fill="hsl(var(--background))"
+          stroke="hsl(var(--primary))"
+          strokeWidth={1 / zoom}
+          rotation={rotation}
+          offsetX={handleSize / 2}
+          offsetY={handleSize / 2}
+          listening={false}
+        />
       ))}
 
       {/* Rotation handle line */}
       <Line
         points={[
-          bounds.width / 2,
-          0,
-          bounds.width / 2,
-          -rotationHandleOffset
+          rotationHandle.x,
+          rotationHandle.y,
+          centerX,
+          centerY,
         ]}
         stroke="hsl(var(--primary))"
         strokeWidth={1 / zoom}
         listening={false}
       />
 
-      {/* Rotation handle - remove event handlers, they'll be handled at stage level */}
+      {/* Rotation handle */}
       <Circle
-        x={bounds.width / 2}
-        y={-rotationHandleOffset}
+        x={rotationHandle.x}
+        y={rotationHandle.y}
         radius={handleSize / 2}
         fill="hsl(var(--background))"
         stroke="hsl(var(--primary))"
