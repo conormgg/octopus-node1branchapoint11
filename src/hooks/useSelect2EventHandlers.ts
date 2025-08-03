@@ -561,9 +561,31 @@ export const useSelect2EventHandlers = ({
           }
         });
         
-        // Update group bounds after transform
+        const transformedLines = lines.map(line => {
+          const transformed = transform.transformObjectBounds(
+            { id: line.id, type: 'line' },
+            lines,
+            images,
+            groupCenter,
+            matrix
+          );
+          return transformed ? { ...line, ...transformed } : line;
+        });
+
+        const transformedImages = images.map(image => {
+          const transformed = transform.transformObjectBounds(
+            { id: image.id, type: 'image' },
+            lines,
+            images,
+            groupCenter,
+            matrix
+          );
+          return transformed ? { ...image, ...transformed } : image;
+        });
+
+        // Update group bounds after transform with the new data
         setTimeout(() => {
-          updateGroupBounds(lines, images);
+          updateGroupBounds(transformedLines, transformedImages);
         }, 0);
       }
       
