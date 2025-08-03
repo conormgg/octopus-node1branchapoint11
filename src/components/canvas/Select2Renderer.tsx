@@ -120,10 +120,12 @@ export const Select2Renderer: React.FC<Select2RendererProps> = ({
           <Image
             key={`preview-${obj.id}`}
             image={img}
-            x={image.x + dragOffset.x}
-            y={image.y + dragOffset.y}
+            x={image.x + (image.width || 100) / 2 + dragOffset.x}
+            y={image.y + (image.height || 100) / 2 + dragOffset.y}
             width={image.width}
             height={image.height}
+            offsetX={(image.width || 100) / 2}
+            offsetY={(image.height || 100) / 2}
             rotation={image.rotation || 0}
             opacity={0.5}
             listening={false}
