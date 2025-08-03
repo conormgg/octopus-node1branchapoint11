@@ -211,144 +211,63 @@ export const useSelect2EventHandlers = ({
     selectedObjectsRef.current = state.selectedObjects;
   }, [state.selectedObjects]);
 
-  // STAGE 1 & 3: Fixed state variable conflicts and event handler priority
+  // REFACTORED: Simplified handlePointerDown to prioritize transform handle detection
   const handlePointerDown = useCallback((worldX: number, worldY: number, ctrlKey: boolean = false, button: number = 0) => {
-    // Ignore pointer events during pan/zoom gestures
-    if (panZoom.isGestureActive()) {
-      console.log('Select2: Ignoring pointer down during pan/zoom gesture');
-      return;
-    }
-
-    // Only handle left mouse button (0) for selection, ignore right-click (2) for panning
-    if (button !== 0) {
-      console.log('Select2: Ignoring non-left-click event', { button });
-      return;
+    if (panZoom.isGestureActive() || button !== 0) {
+      return; // Ignore gestures and non-left clicks
     }
 
     const worldPoint = { x: worldX, y: worldY };
-    
-    console.log('Select2: Pointer down - entry', { worldPoint, ctrlKey, isTransforming: state.isTransforming });
+    console.log('Select2: Pointer down', { worldPoint, ctrlKey });
 
-    // STAGE 1: Calculate fresh groupBounds immediately before handle detection
-    let currentGroupBounds = state.groupBounds;
-    if (state.selectedObjects.length > 0 && !currentGroupBounds) {
-      const selectedLines = state.selectedObjects
-        .filter(obj => obj.type === 'line')
-        .map(obj => lines.find(line => line.id === obj.id))
-        .filter(Boolean) as LineObject[];
+    // --- PRIORITY 1: Transform Handle Detection ---
+    if (state.selectedObjects.length > 0 && state.groupBounds) {
+      const handle = handleDetection.getHandleAtPoint(worldPoint, state.groupBounds);
       
-      const selectedImages = state.selectedObjects
-        .filter(obj => obj.type === 'image')
-        .map(obj => images.find(image => image.id === obj.id))
-        .filter(Boolean) as ImageObject[];
-      
-      currentGroupBounds = calculateGroupBounds(state.selectedObjects, selectedLines, selectedImages);
-      console.log('Select2: Calculated fresh groupBounds for handle detection', { currentGroupBounds });
-    }
-
-    // PRIORITY 1: Transform handle detection with robust retry logic
-    let handle = handleDetection.getHandleAtPoint(worldPoint, currentGroupBounds);
-    
-    // STAGE 3: Retry with fallback bounds calculation if first attempt fails
-    if (!handle && state.selectedObjects.length > 0) {
-      console.log('Select2: First handle detection failed, retrying with fallback bounds');
-      
-      // Fallback: Calculate bounds directly from objects
-      const selectedLines = state.selectedObjects
-        .filter(obj => obj.type === 'line')
-        .map(obj => lines.find(line => line.id === obj.id))
-        .filter(Boolean) as LineObject[];
-      
-      const selectedImages = state.selectedObjects
-        .filter(obj => obj.type === 'image')
-        .map(obj => images.find(image => image.id === obj.id))
-        .filter(Boolean) as ImageObject[];
-      
-      const fallbackBounds = calculateGroupBounds(state.selectedObjects, selectedLines, selectedImages);
-      handle = handleDetection.getHandleAtPoint(worldPoint, fallbackBounds);
-      
-      console.log('Select2: Retry handle detection result', { 
-        handle: handle?.type || 'none', 
-        fallbackBounds, 
-        selectedCount: state.selectedObjects.length 
-      });
-    }
-    
-    if (handle && state.selectedObjects.length > 0) {
-      console.log('Select2: TRANSFORM MODE ACTIVATED', { 
-        handleType: handle.type, 
-        groupBounds: currentGroupBounds,
-        selectedCount: state.selectedObjects.length 
-      });
-      
-      // STAGE 2: Preserve selectedObjects in ref before starting transform
-      selectedObjectsRef.current = [...state.selectedObjects];
-      
-      // Set ONLY transform state - no drag state contamination
-      isTransformingRef.current = true;
-      transformStartRef.current = worldPoint;
-      
-      const mode = handle.type === 'rotate' ? 'rotate' : 'resize';
-      startTransform(mode, handle.type, currentGroupBounds!);
-      
-      console.log('Select2: Transform initiated successfully', { 
-        mode, 
-        anchor: handle.type, 
-        startPoint: worldPoint,
-        preservedObjectsCount: selectedObjectsRef.current.length
-      });
-      // CRITICAL: Early return prevents any drag state initialization
-      return;
-    }
-
-    console.log('Select2: No transform handle detected, proceeding with drag/selection logic');
-
-    // PRIORITY 2 & 3: Only set drag state if NOT transforming
-    if (!state.isTransforming) {
-      isDraggingRef.current = true;
-      hasMovedRef.current = false;
-      dragStartPositionRef.current = worldPoint;
-      console.log('Select2: Drag state initialized', { worldPoint });
-    } else {
-      console.log('Select2: BLOCKED drag state initialization - transform in progress');
-      return;
-    }
-
-    // Check if clicking on a selected object or within group bounds first
-    if (isPointOnSelectedObject(worldPoint)) {
-      // Check if any selected objects are locked before allowing drag
-      const hasLockedObjects = state.selectedObjects.some(obj => 
-        isObjectLocked(obj.id, obj.type, lines, images)
-      );
-      
-      if (hasLockedObjects) {
-        console.log('Select2: Cannot drag - selection contains locked objects');
-        return;
+      if (handle) {
+        console.log('Select2: Transform handle detected', { type: handle.type });
+        
+        selectedObjectsRef.current = [...state.selectedObjects];
+        isTransformingRef.current = true;
+        transformStartRef.current = worldPoint;
+        
+        const mode = handle.type === 'rotate' ? 'rotate' : 'resize';
+        startTransform(mode, handle.type, state.groupBounds);
+        
+        console.log('Select2: Transform initiated', { mode, anchor: handle.type });
+        return; // CRITICAL: Stop further processing
       }
-      
-      // Start dragging selected objects
-      console.log('Select2: Starting drag of selected objects');
-      startDraggingObjects(worldPoint);
+    }
+
+    console.log('Select2: No transform handle detected, proceeding with selection/drag logic');
+
+    // --- PRIORITY 2: Drag/Selection Logic ---
+    isDraggingRef.current = true;
+    hasMovedRef.current = false;
+    dragStartPositionRef.current = worldPoint;
+
+    // Check if clicking on an already selected object or its group bounds
+    if (isPointOnSelectedObject(worldPoint)) {
+      const hasLockedObjects = state.selectedObjects.some(obj => isObjectLocked(obj.id, obj.type, lines, images));
+      if (!hasLockedObjects) {
+        console.log('Select2: Initiating drag for selected objects');
+        startDraggingObjects(worldPoint);
+      } else {
+        console.log('Select2: Drag prevented, selection contains locked objects');
+      }
       return;
     }
 
-    // Check if clicking on an object
+    // Check if clicking on a new, unselected object
     const objectsAtPoint = findObjectsAtPoint(worldPoint, lines, images);
-    
     if (objectsAtPoint.length > 0) {
-      // Clicking on an object
-      console.log('Select2: Selecting object at point', { objectsAtPoint });
+      console.log('Select2: Selecting new object at point');
       selectObjectsAtPoint(worldPoint, lines, images, ctrlKey);
-      // Sync with main selection state
-      const newSelection = ctrlKey ? 
-        [...state.selectedObjects, objectsAtPoint[0]] : 
-        [objectsAtPoint[0]];
-      syncSelectionWithMainState(newSelection);
-      // Ensure container has focus for keyboard events
+      syncSelectionWithMainState(state.selectedObjects); // Sync with the updated selection
       ensureContainerFocus();
     } else {
-      // Clicking on empty space - start drag selection
-      console.log('Select2: Starting drag selection');
+      // Clicking on empty space, start drag selection
+      console.log('Select2: Initiating drag selection');
       if (!ctrlKey) {
         clearSelection();
         clearMainSelection();
@@ -356,7 +275,26 @@ export const useSelect2EventHandlers = ({
       startDragSelection(worldPoint);
       syncSelectionBoundsWithMainState({ x: worldX, y: worldY, width: 0, height: 0 }, true);
     }
-  }, [panZoom, isPointOnSelectedObject, startDraggingObjects, findObjectsAtPoint, selectObjectsAtPoint, clearSelection, startDragSelection, lines, images, ensureContainerFocus, state.selectedObjects, syncSelectionWithMainState, clearMainSelection, syncSelectionBoundsWithMainState]);
+  }, [
+    panZoom, 
+    state.selectedObjects, 
+    state.groupBounds, 
+    handleDetection, 
+    startTransform, 
+    isPointOnSelectedObject, 
+    isObjectLocked, 
+    lines, 
+    images, 
+    startDraggingObjects, 
+    findObjectsAtPoint, 
+    selectObjectsAtPoint, 
+    clearSelection, 
+    startDragSelection, 
+    syncSelectionWithMainState, 
+    clearMainSelection, 
+    syncSelectionBoundsWithMainState, 
+    ensureContainerFocus
+  ]);
 
   const handlePointerMove = useCallback((worldX: number, worldY: number) => {
     // Ignore pointer events during pan/zoom gestures
