@@ -234,9 +234,22 @@ export const useSelect2EventHandlers = ({
           transformStartRef.current = worldPoint;
           
           const mode = handle.type === 'rotate' ? 'rotate' : 'resize';
-          startTransform(mode, handle.type, freshGroupBounds);
           
-          console.log('Select2: Transform initiated successfully', { mode, anchor: handle.type, startPoint: worldPoint });
+          // Get initial rotation from the selected object (if single image)
+          let initialRotation = 0;
+          if (state.selectedObjects.length === 1 && state.selectedObjects[0].type === 'image') {
+            const image = images.find(img => img.id === state.selectedObjects[0].id);
+            initialRotation = image?.rotation || 0;
+          }
+          
+          startTransform(mode, handle.type, freshGroupBounds, initialRotation);
+          
+          console.log('Select2: Transform initiated successfully', { 
+            mode, 
+            anchor: handle.type, 
+            startPoint: worldPoint,
+            initialRotation 
+          });
           return; // CRITICAL: Immediate return - no other logic runs
         }
       }
@@ -411,8 +424,11 @@ export const useSelect2EventHandlers = ({
         ) * (180 / Math.PI);
         
         // Calculate relative rotation from initial angle
-        let relativeRotation = currentAngle - transformStartRef.current.initialRotation;
+        let relativeRotation = currentAngle - (transformStartRef.current.initialRotation || 0);
         
+        // Add the group's initial rotation
+        relativeRotation += state.transformGroupRotation;
+
         // Normalize rotation to -180 to 180 range
         while (relativeRotation > 180) relativeRotation -= 360;
         while (relativeRotation < -180) relativeRotation += 360;

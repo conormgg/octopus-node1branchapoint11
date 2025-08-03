@@ -23,6 +23,7 @@ interface Select2State {
   initialTransformBounds: SelectionBounds | null;
   currentTransformBounds: SelectionBounds | null;
   transformRotation: number;
+  transformGroupRotation: number;
 }
 
 export const useSelect2State = () => {
@@ -46,7 +47,8 @@ export const useSelect2State = () => {
     transformAnchor: null,
     initialTransformBounds: null,
     currentTransformBounds: null,
-    transformRotation: 0
+    transformRotation: 0,
+    transformGroupRotation: 0
   });
 
   // Calculate group bounds for selected objects
@@ -578,7 +580,8 @@ export const useSelect2State = () => {
   const startTransform = useCallback((
     mode: 'resize' | 'rotate',
     anchor: string,
-    initialBounds: SelectionBounds
+    initialBounds: SelectionBounds,
+    initialRotation: number = 0
   ) => {
     setState(prev => ({
       ...prev,
@@ -587,7 +590,8 @@ export const useSelect2State = () => {
       transformAnchor: anchor,
       initialTransformBounds: initialBounds,
       currentTransformBounds: { ...initialBounds },
-      transformRotation: 0,
+      transformRotation: 0, // Relative rotation starts at 0
+      transformGroupRotation: initialRotation, // Set the initial absolute rotation
       // Reset dragging state to prevent conflicts
       isDraggingObjects: false,
       dragStartPoint: null,
@@ -615,6 +619,7 @@ export const useSelect2State = () => {
       initialTransformBounds: null,
       currentTransformBounds: null,
       transformRotation: 0,
+      transformGroupRotation: 0,
       // Also reset dragging state
       isDraggingObjects: false,
       dragStartPoint: null,
@@ -630,7 +635,8 @@ export const useSelect2State = () => {
       transformAnchor: null,
       initialTransformBounds: null,
       currentTransformBounds: null,
-      transformRotation: 0
+      transformRotation: 0,
+      transformGroupRotation: 0
     }));
   }, []);
 
