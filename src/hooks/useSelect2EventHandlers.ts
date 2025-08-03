@@ -1,7 +1,7 @@
 
-import { useCallback, useRef } from 'react';
+import { useCallback, useRef, useEffect } from 'react';
 import Konva from 'konva';
-import { LineObject, ImageObject } from '@/types/whiteboard';
+import { LineObject, ImageObject, SelectedObject } from '@/types/whiteboard';
 import { useSelect2State } from './useSelect2State';
 import { useStageCoordinates } from './useStageCoordinates';
 import { useSelect2Transform } from './useSelect2Transform';
@@ -203,6 +203,14 @@ export const useSelect2EventHandlers = ({
     }, 0);
   }, [state.dragOffset, state.selectedObjects, lines, images, onUpdateLine, onUpdateImage, setState, calculateGroupBounds]);
 
+  // Stage 2: Store selected objects in ref to preserve them during transform
+  const selectedObjectsRef = useRef<SelectedObject[]>([]);
+  
+  // Keep the ref in sync with state
+  useEffect(() => {
+    selectedObjectsRef.current = state.selectedObjects;
+  }, [state.selectedObjects]);
+
   // STAGE 1 & 3: Fixed state variable conflicts and event handler priority
   const handlePointerDown = useCallback((worldX: number, worldY: number, ctrlKey: boolean = false, button: number = 0) => {
     // Ignore pointer events during pan/zoom gestures
@@ -222,15 +230,7 @@ export const useSelect2EventHandlers = ({
     console.log('Select2: Pointer down - entry', { worldPoint, ctrlKey, isTransforming: state.isTransforming });
 
     // PRIORITY 1: Transform handle detection (blocks all other operations)
-    // FIXED: Ensure groupBounds are calculated before handle detection
-    let currentGroupBounds = state.groupBounds;
-    if (!currentGroupBounds && state.selectedObjects.length > 0) {
-      currentGroupBounds = calculateGroupBounds(state.selectedObjects, lines, images);
-      // Update state synchronously for immediate use
-      setState(prev => ({ ...prev, groupBounds: currentGroupBounds }));
-    }
-
-    const handle = handleDetection.getHandleAtPoint(worldPoint, currentGroupBounds);
+    const handle = handleDetection.getHandleAtPoint(worldPoint, state.groupBounds);
     if (handle && state.selectedObjects.length > 0) {
       console.log('Select2: TRANSFORM MODE ACTIVATED', { 
         handleType: handle.type, 
@@ -238,17 +238,21 @@ export const useSelect2EventHandlers = ({
         selectedCount: state.selectedObjects.length 
       });
       
+      // STAGE 2: Preserve selectedObjects in ref before starting transform
+      selectedObjectsRef.current = [...state.selectedObjects];
+      
       // Set ONLY transform state - no drag state contamination
       isTransformingRef.current = true;
       transformStartRef.current = worldPoint;
       
       const mode = handle.type === 'rotate' ? 'rotate' : 'resize';
-      startTransform(mode, handle.type, state.groupBounds!);
+      startTransform(mode, handle.type, currentGroupBounds!);
       
       console.log('Select2: Transform initiated successfully', { 
         mode, 
         anchor: handle.type, 
-        startPoint: worldPoint 
+        startPoint: worldPoint,
+        preservedObjectsCount: selectedObjectsRef.current.length
       });
       // CRITICAL: Early return prevents any drag state initialization
       return;
@@ -517,8 +521,8 @@ export const useSelect2EventHandlers = ({
           y: initialBounds.y + initialBounds.height / 2
         };
         
-        // Ensure we have the latest selectedObjects from state
-        const currentSelectedObjects = state.selectedObjects;
+        // STAGE 2: Use preserved selectedObjects from ref if state is cleared
+        const currentSelectedObjects = state.selectedObjects.length > 0 ? state.selectedObjects : selectedObjectsRef.current;
         
         console.log('Select2: Applying matrix-based transform to objects', { 
           initialBounds, 
