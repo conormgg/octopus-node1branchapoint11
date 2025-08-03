@@ -72,14 +72,11 @@ export const Select2Renderer: React.FC<Select2RendererProps> = ({
       const image = images.find(i => i.id === obj.id);
       if (!image) return null;
       
-      const width = image.width || 100;
-      const height = image.height || 100;
-      
       return {
-        x: image.x - width / 2,
-        y: image.y - height / 2,
-        width: width,
-        height: height
+        x: image.x,
+        y: image.y,
+        width: image.width || 100,
+        height: image.height || 100
       };
     }
     return null;
@@ -125,9 +122,6 @@ export const Select2Renderer: React.FC<Select2RendererProps> = ({
             y={image.y + dragOffset.y}
             width={image.width}
             height={image.height}
-            rotation={image.rotation || 0}
-            offsetX={image.width / 2}
-            offsetY={image.height / 2}
             opacity={0.5}
             listening={false}
           />
@@ -189,9 +183,6 @@ export const Select2Renderer: React.FC<Select2RendererProps> = ({
             y={transformedBounds.y}
             width={transformedBounds.width}
             height={transformedBounds.height}
-            rotation={transformedBounds.rotation || 0}
-            offsetX={transformedBounds.width / 2}
-            offsetY={transformedBounds.height / 2}
             opacity={0.5}
             listening={false}
           />
@@ -273,31 +264,10 @@ export const Select2Renderer: React.FC<Select2RendererProps> = ({
 
       {/* Transform controls */}
       <TransformControls
-        bounds={(() => {
-          // For single selected images, use image-specific bounds
-          if (selectedObjects.length === 1 && selectedObjects[0].type === 'image') {
-            const image = images.find(img => img.id === selectedObjects[0].id);
-            if (image) {
-              const width = image.width || 100;
-              const height = image.height || 100;
-              return {
-                x: image.x - width / 2,
-                y: image.y - height / 2,
-                width: width,
-                height: height
-              };
-            }
-          }
-          return currentTransformBounds || groupBounds;
-        })()}
+        bounds={currentTransformBounds || groupBounds}
         isVisible={!isSelecting && !isDraggingObjects && selectedObjects.length > 0}
         onHandleMouseDown={onTransformHandleMouseDown || (() => {})}
         zoom={zoom}
-        rotation={
-          selectedObjects.length === 1 && selectedObjects[0].type === 'image'
-            ? images.find(img => img.id === selectedObjects[0].id)?.rotation || 0
-            : 0
-        }
       />
     </>
   );
