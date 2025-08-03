@@ -21,33 +21,23 @@ export const TransformControls: React.FC<TransformControlsProps> = ({
   const handleSize = Math.max(8, 12 / zoom);
   const rotationHandleOffset = Math.max(20, 30 / zoom);
 
-  const centerX = bounds.x + bounds.width / 2;
-  const centerY = bounds.y + bounds.height / 2;
-  const rad = (rotation * Math.PI) / 180;
-
-  const rotatePoint = (x: number, y: number) => {
-    const dx = x - centerX;
-    const dy = y - centerY;
-    const newX = dx * Math.cos(rad) - dy * Math.sin(rad) + centerX;
-    const newY = dx * Math.sin(rad) + dy * Math.cos(rad) + centerY;
-    return { x: newX, y: newY };
-  };
-
+  // Calculate handle positions
   const handles = [
-    { type: 'nw', ...rotatePoint(bounds.x, bounds.y) },
-    { type: 'n', ...rotatePoint(bounds.x + bounds.width / 2, bounds.y) },
-    { type: 'ne', ...rotatePoint(bounds.x + bounds.width, bounds.y) },
-    { type: 'e', ...rotatePoint(bounds.x + bounds.width, bounds.y + bounds.height / 2) },
-    { type: 'se', ...rotatePoint(bounds.x + bounds.width, bounds.y + bounds.height) },
-    { type: 's', ...rotatePoint(bounds.x + bounds.width / 2, bounds.y + bounds.height) },
-    { type: 'sw', ...rotatePoint(bounds.x, bounds.y + bounds.height) },
-    { type: 'w', ...rotatePoint(bounds.x, bounds.y + bounds.height / 2) }
+    { type: 'nw', x: bounds.x, y: bounds.y },
+    { type: 'n', x: bounds.x + bounds.width / 2, y: bounds.y },
+    { type: 'ne', x: bounds.x + bounds.width, y: bounds.y },
+    { type: 'e', x: bounds.x + bounds.width, y: bounds.y + bounds.height / 2 },
+    { type: 'se', x: bounds.x + bounds.width, y: bounds.y + bounds.height },
+    { type: 's', x: bounds.x + bounds.width / 2, y: bounds.y + bounds.height },
+    { type: 'sw', x: bounds.x, y: bounds.y + bounds.height },
+    { type: 'w', x: bounds.x, y: bounds.y + bounds.height / 2 }
   ];
 
-  const rotationHandle = rotatePoint(
-    bounds.x + bounds.width / 2,
-    bounds.y - rotationHandleOffset
-  );
+  // Rotation handle position (above the selection)
+  const rotationHandle = {
+    x: bounds.x + bounds.width / 2,
+    y: bounds.y - rotationHandleOffset
+  };
 
   const getCursor = (handleType: string) => {
     switch (handleType) {
@@ -70,20 +60,12 @@ export const TransformControls: React.FC<TransformControlsProps> = ({
     }
   };
 
-  const groupProps = {
-    x: bounds.x,
-    y: bounds.y,
-    width: bounds.width,
-    height: bounds.height,
-    rotation: rotation,
-  };
-
   return (
     <Group listening={false}>
       {/* Selection border */}
       <Rect
-        x={0}
-        y={0}
+        x={bounds.x}
+        y={bounds.y}
         width={bounds.width}
         height={bounds.height}
         fill="transparent"
@@ -91,18 +73,14 @@ export const TransformControls: React.FC<TransformControlsProps> = ({
         strokeWidth={1 / zoom}
         dash={[4 / zoom, 4 / zoom]}
         listening={false}
-        offsetX={bounds.width / 2}
-        offsetY={bounds.height / 2}
-        x={bounds.x + bounds.width / 2}
-        y={bounds.y + bounds.height / 2}
       />
 
-      {/* Resize handles */}
+      {/* Resize handles - remove event handlers, they'll be handled at stage level */}
       {handles.map((handle) => (
         <Group key={handle.type}>
           <Rect
-            x={handle.x - bounds.x - handleSize / 2}
-            y={handle.y - bounds.y - handleSize / 2}
+            x={handle.x - handleSize / 2}
+            y={handle.y - handleSize / 2}
             width={handleSize}
             height={handleSize}
             fill="hsl(var(--background))"
@@ -116,17 +94,17 @@ export const TransformControls: React.FC<TransformControlsProps> = ({
       {/* Rotation handle line */}
       <Line
         points={[
-          bounds.width / 2,
-          0,
-          bounds.width / 2,
-          -rotationHandleOffset
+          bounds.x + bounds.width / 2,
+          bounds.y,
+          rotationHandle.x,
+          rotationHandle.y
         ]}
         stroke="hsl(var(--primary))"
         strokeWidth={1 / zoom}
         listening={false}
       />
 
-      {/* Rotation handle */}
+      {/* Rotation handle - remove event handlers, they'll be handled at stage level */}
       <Circle
         x={rotationHandle.x}
         y={rotationHandle.y}
