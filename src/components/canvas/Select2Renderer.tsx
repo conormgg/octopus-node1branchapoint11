@@ -216,15 +216,18 @@ export const Select2Renderer: React.FC<Select2RendererProps> = ({
 
   return (
     <>
-      {/* Use the same SelectionRect component as the original select tool */}
+      {/* Selection rectangle for drag-to-select */}
       <SelectionRect
         selectionBounds={selectionBounds}
         isVisible={isSelecting}
-        rotation={
-          selectedObjects.length === 1 && selectedObjects[0].type === 'image'
-            ? images.find(img => img.id === selectedObjects[0].id)?.rotation || 0
-            : 0
-        }
+      />
+
+      {/* Bounding box for selected objects (groupBounds) */}
+      <TransformControls
+        bounds={currentTransformBounds || groupBounds}
+        isVisible={!isSelecting && !isDraggingObjects && selectedObjects.length > 0}
+        onHandleMouseDown={onTransformHandleMouseDown || (() => {})}
+        zoom={zoom}
       />
 
       {/* Visual feedback for hovered object (only when not selected) */}
@@ -262,13 +265,13 @@ export const Select2Renderer: React.FC<Select2RendererProps> = ({
       {/* Preview objects during transform */}
       {renderTransformPreviewObjects()}
 
-      {/* Transform controls */}
-      <TransformControls
-        bounds={currentTransformBounds || groupBounds}
-        isVisible={!isSelecting && !isDraggingObjects && selectedObjects.length > 0}
-        onHandleMouseDown={onTransformHandleMouseDown || (() => {})}
-        zoom={zoom}
-      />
+      {/* Visual feedback for group bounds */}
+      {groupBounds && !isTransforming && (
+        <SelectionRect
+          selectionBounds={groupBounds}
+          isVisible={!isSelecting && selectedObjects.length > 0}
+        />
+      )}
     </>
   );
 };

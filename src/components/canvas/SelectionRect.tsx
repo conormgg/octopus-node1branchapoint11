@@ -5,27 +5,27 @@ import { SelectionBounds } from '@/types/whiteboard';
 interface SelectionRectProps {
   selectionBounds: SelectionBounds | null;
   isVisible: boolean;
-  rotation?: number;
 }
 
 const SelectionRect: React.FC<SelectionRectProps> = ({
   selectionBounds,
   isVisible,
-  rotation = 0
 }) => {
   if (!isVisible || !selectionBounds) {
     return null;
   }
 
+  const { x, y, width, height, rotation = 0 } = selectionBounds;
+
   return (
     <Rect
-      x={selectionBounds.x}
-      y={selectionBounds.y}
-      width={selectionBounds.width}
-      height={selectionBounds.height}
+      x={x}
+      y={y}
+      width={width}
+      height={height}
       rotation={rotation}
-      offsetX={rotation !== 0 ? selectionBounds.width / 2 : 0}
-      offsetY={rotation !== 0 ? selectionBounds.height / 2 : 0}
+      offsetX={width / 2}
+      offsetY={height / 2}
       fill="rgba(0, 123, 255, 0.1)"
       stroke="rgba(0, 123, 255, 0.8)"
       strokeWidth={1}

@@ -58,6 +58,8 @@ export const useSelect2State = () => {
     if (selectedObjects.length === 0) return null;
 
     let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+    let totalRotation = 0;
+    let imageCount = 0;
 
     selectedObjects.forEach(obj => {
       if (obj.type === 'line') {
@@ -73,7 +75,6 @@ export const useSelect2State = () => {
           maxY = Math.max(maxY, y);
         }
         
-        // Add padding for stroke width
         const padding = line.strokeWidth / 2 + 5;
         minX -= padding;
         minY -= padding;
@@ -85,22 +86,61 @@ export const useSelect2State = () => {
         
         const width = image.width || 100;
         const height = image.height || 100;
-        minX = Math.min(minX, image.x);
-        minY = Math.min(minY, image.y);
-        maxX = Math.max(maxX, image.x + width);
-        maxY = Math.max(maxY, image.y + height);
+        const rotation = image.rotation || 0;
+        
+        totalRotation += rotation;
+        imageCount++;
+
+        if (rotation === 0) {
+          minX = Math.min(minX, image.x);
+          minY = Math.min(minY, image.y);
+          maxX = Math.max(maxX, image.x + width);
+          maxY = Math.max(maxY, image.y + height);
+        } else {
+          const rad = (rotation * Math.PI) / 180;
+          const cos = Math.cos(rad);
+          const sin = Math.sin(rad);
+
+          const cx = image.x + width / 2;
+          const cy = image.y + height / 2;
+
+          const corners = [
+            { x: image.x, y: image.y },
+            { x: image.x + width, y: image.y },
+            { x: image.x, y: image.y + height },
+            { x: image.x + width, y: image.y + height }
+          ];
+
+          corners.forEach(corner => {
+            const translatedX = corner.x - cx;
+            const translatedY = corner.y - cy;
+            const rotatedX = translatedX * cos - translatedY * sin;
+            const rotatedY = translatedX * sin + translatedY * cos;
+            minX = Math.min(minX, rotatedX + cx);
+            minY = Math.min(minY, rotatedY + cy);
+            maxX = Math.max(maxX, rotatedX + cx);
+            maxY = Math.max(maxY, rotatedY + cy);
+          });
+        }
       }
     });
 
     if (minX === Infinity) return null;
 
-    // Add extra padding for easier interaction
     const extraPadding = 10;
+    const finalRotation = imageCount > 0 ? totalRotation / imageCount : 0;
+
+    const width = (maxX - minX) + (extraPadding * 2);
+    const height = (maxY - minY) + (extraPadding * 2);
+    const x = minX - extraPadding + width / 2;
+    const y = minY - extraPadding + height / 2;
+
     return {
-      x: minX - extraPadding,
-      y: minY - extraPadding,
-      width: (maxX - minX) + (extraPadding * 2),
-      height: (maxY - minY) + (extraPadding * 2)
+      x,
+      y,
+      width,
+      height,
+      rotation: finalRotation
     };
   }, []);
 
