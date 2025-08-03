@@ -100,15 +100,36 @@ export const useSelectionState = () => {
     return false;
   }, []);
 
-  // Simplified hit detection for images - only handles x, y, width, height
+  // Hit detection for images - handles center-based rotation
   const isPointOnImage = useCallback((point: { x: number; y: number }, image: ImageObject): boolean => {
     const width = image.width || 100;
     const height = image.height || 100;
+    const rotation = image.rotation || 0;
     
-    return point.x >= image.x && 
-           point.x <= image.x + width && 
-           point.y >= image.y && 
-           point.y <= image.y + height;
+    if (rotation === 0) {
+      // No rotation - use simple bounds
+      return point.x >= image.x && 
+             point.x <= image.x + width && 
+             point.y >= image.y && 
+             point.y <= image.y + height;
+    } else {
+      // Handle rotation - transform point to image's local coordinate system
+      const centerX = image.x + width / 2;
+      const centerY = image.y + height / 2;
+      const rad = (-rotation * Math.PI) / 180; // Negative for inverse transform
+      const cos = Math.cos(rad);
+      const sin = Math.sin(rad);
+      
+      // Transform point to image's local coordinate system
+      const localX = (point.x - centerX) * cos - (point.y - centerY) * sin;
+      const localY = (point.x - centerX) * sin + (point.y - centerY) * cos;
+      
+      // Check if point is within image bounds in local coordinates
+      return localX >= -width / 2 && 
+             localX <= width / 2 && 
+             localY >= -height / 2 && 
+             localY <= height / 2;
+    }
   }, []);
 
   // Find objects at point
@@ -144,16 +165,50 @@ export const useSelectionState = () => {
   ): SelectedObject[] => {
     const foundObjects: SelectedObject[] = [];
 
-    // Check images
+    // Check images - handle rotation for proper bounds intersection
     for (const image of images) {
       const imageWidth = image.width || 100;
       const imageHeight = image.height || 100;
+      const rotation = image.rotation || 0;
       
-      if (image.x < bounds.x + bounds.width &&
-          image.x + imageWidth > bounds.x &&
-          image.y < bounds.y + bounds.height &&
-          image.y + imageHeight > bounds.y) {
-        foundObjects.push({ id: image.id, type: 'image' });
+      if (rotation === 0) {
+        // No rotation - use simple bounds check
+        if (image.x < bounds.x + bounds.width &&
+            image.x + imageWidth > bounds.x &&
+            image.y < bounds.y + bounds.height &&
+            image.y + imageHeight > bounds.y) {
+          foundObjects.push({ id: image.id, type: 'image' });
+        }
+      } else {
+        // Handle rotation - check if any corner of rotated image intersects with bounds
+        const centerX = image.x + imageWidth / 2;
+        const centerY = image.y + imageHeight / 2;
+        const rad = (rotation * Math.PI) / 180;
+        const cos = Math.cos(rad);
+        const sin = Math.sin(rad);
+        
+        const corners = [
+          { x: -imageWidth / 2, y: -imageHeight / 2 },
+          { x: imageWidth / 2, y: -imageHeight / 2 },
+          { x: imageWidth / 2, y: imageHeight / 2 },
+          { x: -imageWidth / 2, y: imageHeight / 2 }
+        ];
+        
+        let intersects = false;
+        for (const corner of corners) {
+          const rotatedX = centerX + (corner.x * cos - corner.y * sin);
+          const rotatedY = centerY + (corner.x * sin + corner.y * cos);
+          
+          if (rotatedX >= bounds.x && rotatedX <= bounds.x + bounds.width &&
+              rotatedY >= bounds.y && rotatedY <= bounds.y + bounds.height) {
+            intersects = true;
+            break;
+          }
+        }
+        
+        if (intersects) {
+          foundObjects.push({ id: image.id, type: 'image' });
+        }
       }
     }
 
@@ -243,11 +298,39 @@ export const useSelectionState = () => {
     for (const image of selectedImages) {
       const width = image.width || 100;
       const height = image.height || 100;
+      const rotation = image.rotation || 0;
       
-      minX = Math.min(minX, image.x);
-      minY = Math.min(minY, image.y);
-      maxX = Math.max(maxX, image.x + width);
-      maxY = Math.max(maxY, image.y + height);
+      if (rotation === 0) {
+        // No rotation - use simple bounds
+        minX = Math.min(minX, image.x);
+        minY = Math.min(minY, image.y);
+        maxX = Math.max(maxX, image.x + width);
+        maxY = Math.max(maxY, image.y + height);
+      } else {
+        // Handle rotation - calculate bounds from all four corners
+        const centerX = image.x + width / 2;
+        const centerY = image.y + height / 2;
+        const rad = (rotation * Math.PI) / 180;
+        const cos = Math.cos(rad);
+        const sin = Math.sin(rad);
+        
+        const corners = [
+          { x: -width / 2, y: -height / 2 },
+          { x: width / 2, y: -height / 2 },
+          { x: width / 2, y: height / 2 },
+          { x: -width / 2, y: height / 2 }
+        ];
+        
+        for (const corner of corners) {
+          const rotatedX = centerX + (corner.x * cos - corner.y * sin);
+          const rotatedY = centerY + (corner.x * sin + corner.y * cos);
+          
+          minX = Math.min(minX, rotatedX);
+          minY = Math.min(minY, rotatedY);
+          maxX = Math.max(maxX, rotatedX);
+          maxY = Math.max(maxY, rotatedY);
+        }
+      }
     }
     
     // If no objects were found or bounds are invalid

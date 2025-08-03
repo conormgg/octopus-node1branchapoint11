@@ -38,9 +38,11 @@ const ImageRenderer: React.FC<ImageRendererProps> = React.memo(({
 
 
   const handleDragEnd = (e: Konva.KonvaEventObject<DragEvent>) => {
+    const width = imageObject.width || 100;
+    const height = imageObject.height || 100;
     onChange({
-      x: e.target.x(),
-      y: e.target.y(),
+      x: e.target.x() - width / 2,
+      y: e.target.y() - height / 2,
     });
     onUpdateState();
   };
@@ -77,8 +79,10 @@ const ImageRenderer: React.FC<ImageRendererProps> = React.memo(({
         onContextMenu={handleRightClick}
         ref={imageRef}
         image={image}
-        x={imageObject.x}
-        y={imageObject.y}
+        x={imageObject.x + (imageObject.width || 100) / 2}
+        y={imageObject.y + (imageObject.height || 100) / 2}
+        offsetX={(imageObject.width || 100) / 2}
+        offsetY={(imageObject.height || 100) / 2}
         rotation={imageObject.rotation || 0}
         
         draggable={(currentTool === 'select' || currentTool === 'select2') && isSelected && !isLocked}

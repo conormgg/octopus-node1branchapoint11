@@ -50,6 +50,7 @@ export const calculateGroupBounds = (
       maxY = Math.max(maxY, image.y + height);
     } else {
       // Calculate rotated bounds - get all four corners of rotated image
+      // Match the center-based positioning used in ImageRenderer
       const centerX = image.x + width / 2;
       const centerY = image.y + height / 2;
       const rad = (rotation * Math.PI) / 180;
