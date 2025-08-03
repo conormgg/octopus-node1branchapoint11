@@ -222,11 +222,19 @@ export const useSelect2EventHandlers = ({
     console.log('Select2: Pointer down - entry', { worldPoint, ctrlKey, isTransforming: state.isTransforming });
 
     // PRIORITY 1: Transform handle detection (blocks all other operations)
-    const handle = handleDetection.getHandleAtPoint(worldPoint, state.groupBounds);
+    // FIXED: Ensure groupBounds are calculated before handle detection
+    let currentGroupBounds = state.groupBounds;
+    if (!currentGroupBounds && state.selectedObjects.length > 0) {
+      currentGroupBounds = calculateGroupBounds(state.selectedObjects, lines, images);
+      // Update state synchronously for immediate use
+      setState(prev => ({ ...prev, groupBounds: currentGroupBounds }));
+    }
+
+    const handle = handleDetection.getHandleAtPoint(worldPoint, currentGroupBounds);
     if (handle && state.selectedObjects.length > 0) {
       console.log('Select2: TRANSFORM MODE ACTIVATED', { 
         handleType: handle.type, 
-        groupBounds: state.groupBounds,
+        groupBounds: currentGroupBounds,
         selectedCount: state.selectedObjects.length 
       });
       
