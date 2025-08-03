@@ -43,15 +43,15 @@ export const calculateGroupBounds = (
     const rotation = image.rotation || 0;
     
     if (rotation === 0) {
-      // No rotation - use simple bounds
-      minX = Math.min(minX, image.x);
-      minY = Math.min(minY, image.y);
-      maxX = Math.max(maxX, image.x + width);
-      maxY = Math.max(maxY, image.y + height);
+      // No rotation - use center-based bounds
+      minX = Math.min(minX, image.x - width / 2);
+      minY = Math.min(minY, image.y - height / 2);
+      maxX = Math.max(maxX, image.x + width / 2);
+      maxY = Math.max(maxY, image.y + height / 2);
     } else {
-      // Calculate rotated bounds - get all four corners of rotated image
-      const centerX = image.x + width / 2;
-      const centerY = image.y + height / 2;
+      // Calculate rotated bounds - image rotates around its center position
+      const centerX = image.x;
+      const centerY = image.y;
       const rad = (rotation * Math.PI) / 180;
       const cos = Math.cos(rad);
       const sin = Math.sin(rad);

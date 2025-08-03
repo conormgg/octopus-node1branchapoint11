@@ -72,11 +72,14 @@ export const Select2Renderer: React.FC<Select2RendererProps> = ({
       const image = images.find(i => i.id === obj.id);
       if (!image) return null;
       
+      const width = image.width || 100;
+      const height = image.height || 100;
+      
       return {
-        x: image.x,
-        y: image.y,
-        width: image.width || 100,
-        height: image.height || 100
+        x: image.x - width / 2,
+        y: image.y - height / 2,
+        width: width,
+        height: height
       };
     }
     return null;
@@ -264,7 +267,23 @@ export const Select2Renderer: React.FC<Select2RendererProps> = ({
 
       {/* Transform controls */}
       <TransformControls
-        bounds={currentTransformBounds || groupBounds}
+        bounds={(() => {
+          // For single selected images, use image-specific bounds
+          if (selectedObjects.length === 1 && selectedObjects[0].type === 'image') {
+            const image = images.find(img => img.id === selectedObjects[0].id);
+            if (image) {
+              const width = image.width || 100;
+              const height = image.height || 100;
+              return {
+                x: image.x - width / 2,
+                y: image.y - height / 2,
+                width: width,
+                height: height
+              };
+            }
+          }
+          return currentTransformBounds || groupBounds;
+        })()}
         isVisible={!isSelecting && !isDraggingObjects && selectedObjects.length > 0}
         onHandleMouseDown={onTransformHandleMouseDown || (() => {})}
         zoom={zoom}
