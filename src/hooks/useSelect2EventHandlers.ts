@@ -555,10 +555,8 @@ export const useSelect2EventHandlers = ({
           }
         });
         
-        // Update group bounds after transform
-        setTimeout(() => {
-          updateGroupBounds(lines, images);
-        }, 0);
+        // Update group bounds immediately after transform
+        updateGroupBounds(lines, images);
       }
       
       endTransform();
