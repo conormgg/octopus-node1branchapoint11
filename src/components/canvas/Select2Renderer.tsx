@@ -216,16 +216,38 @@ export const Select2Renderer: React.FC<Select2RendererProps> = ({
 
   return (
     <>
-      {/* Use the same SelectionRect component as the original select tool */}
+      {/* Selection rectangle for drag-to-select */}
       <SelectionRect
         selectionBounds={selectionBounds}
         isVisible={isSelecting}
-        rotation={
-          selectedObjects.length === 1 && selectedObjects[0].type === 'image'
-            ? images.find(img => img.id === selectedObjects[0].id)?.rotation || 0
-            : 0
-        }
+        rotation={0}
       />
+
+      {/* Selection rectangle for selected objects */}
+      {!isSelecting && groupBounds && selectedObjects.length > 0 && (
+        <SelectionRect
+          selectionBounds={
+            selectedObjects.length === 1 && selectedObjects[0].type === 'image'
+              ? (() => {
+                  const image = images.find(img => img.id === selectedObjects[0].id);
+                  if (!image) return groupBounds;
+                  return {
+                    x: image.x,
+                    y: image.y,
+                    width: image.width || 100,
+                    height: image.height || 100
+                  };
+                })()
+              : groupBounds
+          }
+          isVisible={true}
+          rotation={
+            selectedObjects.length === 1 && selectedObjects[0].type === 'image'
+              ? images.find(img => img.id === selectedObjects[0].id)?.rotation || 0
+              : 0
+          }
+        />
+      )}
 
       {/* Visual feedback for hovered object (only when not selected) */}
       {hoveredObjectId && !selectedObjects.some(obj => obj.id === hoveredObjectId) && (
