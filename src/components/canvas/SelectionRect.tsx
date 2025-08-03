@@ -17,15 +17,18 @@ const SelectionRect: React.FC<SelectionRectProps> = ({
     return null;
   }
 
+  const x = selectionBounds.x + selectionBounds.width / 2;
+  const y = selectionBounds.y + selectionBounds.height / 2;
+
   return (
     <Rect
-      x={selectionBounds.x}
-      y={selectionBounds.y}
+      x={x}
+      y={y}
       width={selectionBounds.width}
       height={selectionBounds.height}
       rotation={rotation}
-      offsetX={rotation !== 0 ? selectionBounds.width / 2 : 0}
-      offsetY={rotation !== 0 ? selectionBounds.height / 2 : 0}
+      offsetX={selectionBounds.width / 2}
+      offsetY={selectionBounds.height / 2}
       fill="rgba(0, 123, 255, 0.1)"
       stroke="rgba(0, 123, 255, 0.8)"
       strokeWidth={1}

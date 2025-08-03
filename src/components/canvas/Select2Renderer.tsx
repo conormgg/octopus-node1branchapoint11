@@ -23,6 +23,7 @@ interface Select2RendererProps {
   transformRotation: number;
   onTransformHandleMouseDown?: (handleType: string, e: any) => void;
   zoom: number;
+  transformGroupRotation?: number;
 }
 
 export const Select2Renderer: React.FC<Select2RendererProps> = ({
@@ -41,7 +42,8 @@ export const Select2Renderer: React.FC<Select2RendererProps> = ({
   initialTransformBounds,
   transformRotation,
   onTransformHandleMouseDown,
-  zoom
+  zoom,
+  transformGroupRotation = 0
 }) => {
   const { calculateTransformMatrix, transformObjectBounds } = useSelect2Transform();
   // Helper function to get object bounds for individual hover feedback
@@ -268,6 +270,7 @@ export const Select2Renderer: React.FC<Select2RendererProps> = ({
         isVisible={!isSelecting && !isDraggingObjects && selectedObjects.length > 0}
         onHandleMouseDown={onTransformHandleMouseDown || (() => {})}
         zoom={zoom}
+        rotation={transformGroupRotation}
       />
     </>
   );

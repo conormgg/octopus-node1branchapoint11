@@ -7,13 +7,15 @@ interface TransformControlsProps {
   isVisible: boolean;
   onHandleMouseDown: (handleType: string, e: any) => void;
   zoom: number;
+  rotation?: number;
 }
 
 export const TransformControls: React.FC<TransformControlsProps> = ({
   bounds,
   isVisible,
   onHandleMouseDown,
-  zoom
+  zoom,
+  rotation = 0
 }) => {
   if (!isVisible || !bounds) return null;
 
@@ -21,22 +23,26 @@ export const TransformControls: React.FC<TransformControlsProps> = ({
   const handleSize = Math.max(8, 12 / zoom);
   const rotationHandleOffset = Math.max(20, 30 / zoom);
 
-  // Calculate handle positions
+  // Center of the bounding box
+  const centerX = bounds.width / 2;
+  const centerY = bounds.height / 2;
+
+  // Calculate handle positions relative to the center
   const handles = [
-    { type: 'nw', x: bounds.x, y: bounds.y },
-    { type: 'n', x: bounds.x + bounds.width / 2, y: bounds.y },
-    { type: 'ne', x: bounds.x + bounds.width, y: bounds.y },
-    { type: 'e', x: bounds.x + bounds.width, y: bounds.y + bounds.height / 2 },
-    { type: 'se', x: bounds.x + bounds.width, y: bounds.y + bounds.height },
-    { type: 's', x: bounds.x + bounds.width / 2, y: bounds.y + bounds.height },
-    { type: 'sw', x: bounds.x, y: bounds.y + bounds.height },
-    { type: 'w', x: bounds.x, y: bounds.y + bounds.height / 2 }
+    { type: 'nw', x: 0, y: 0 },
+    { type: 'n', x: centerX, y: 0 },
+    { type: 'ne', x: bounds.width, y: 0 },
+    { type: 'e', x: bounds.width, y: centerY },
+    { type: 'se', x: bounds.width, y: bounds.height },
+    { type: 's', x: centerX, y: bounds.height },
+    { type: 'sw', x: 0, y: bounds.height },
+    { type: 'w', x: 0, y: centerY }
   ];
 
   // Rotation handle position (above the selection)
   const rotationHandle = {
-    x: bounds.x + bounds.width / 2,
-    y: bounds.y - rotationHandleOffset
+    x: centerX,
+    y: -rotationHandleOffset
   };
 
   const getCursor = (handleType: string) => {
@@ -61,11 +67,17 @@ export const TransformControls: React.FC<TransformControlsProps> = ({
   };
 
   return (
-    <Group listening={false}>
+    <Group
+      x={bounds.x + bounds.width / 2}
+      y={bounds.y + bounds.height / 2}
+      rotation={rotation}
+      offsetX={bounds.width / 2}
+      offsetY={bounds.height / 2}
+    >
       {/* Selection border */}
       <Rect
-        x={bounds.x}
-        y={bounds.y}
+        x={0}
+        y={0}
         width={bounds.width}
         height={bounds.height}
         fill="transparent"
@@ -75,36 +87,31 @@ export const TransformControls: React.FC<TransformControlsProps> = ({
         listening={false}
       />
 
-      {/* Resize handles - remove event handlers, they'll be handled at stage level */}
+      {/* Resize handles */}
       {handles.map((handle) => (
-        <Group key={handle.type}>
-          <Rect
-            x={handle.x - handleSize / 2}
-            y={handle.y - handleSize / 2}
-            width={handleSize}
-            height={handleSize}
-            fill="hsl(var(--background))"
-            stroke="hsl(var(--primary))"
-            strokeWidth={1 / zoom}
-            listening={false}
-          />
-        </Group>
+        <Rect
+          key={handle.type}
+          x={handle.x - handleSize / 2}
+          y={handle.y - handleSize / 2}
+          width={handleSize}
+          height={handleSize}
+          fill="hsl(var(--background))"
+          stroke="hsl(var(--primary))"
+          strokeWidth={1 / zoom}
+          listening={false}
+          rotation={-rotation} // Counter-rotate handles to keep them upright
+        />
       ))}
 
       {/* Rotation handle line */}
       <Line
-        points={[
-          bounds.x + bounds.width / 2,
-          bounds.y,
-          rotationHandle.x,
-          rotationHandle.y
-        ]}
+        points={[centerX, 0, rotationHandle.x, rotationHandle.y]}
         stroke="hsl(var(--primary))"
         strokeWidth={1 / zoom}
         listening={false}
       />
 
-      {/* Rotation handle - remove event handlers, they'll be handled at stage level */}
+      {/* Rotation handle */}
       <Circle
         x={rotationHandle.x}
         y={rotationHandle.y}
