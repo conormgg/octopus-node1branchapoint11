@@ -19,9 +19,9 @@ export const useTransformHandleDetection = (zoom: number) => {
       { type: 'n', x: bounds.x + bounds.width / 2, y: bounds.y, cursor: 'ns-resize' },
       { type: 'ne', x: bounds.x + bounds.width, y: bounds.y, cursor: 'ne-resize' },
       { type: 'e', x: bounds.x + bounds.width, y: bounds.y + bounds.height / 2, cursor: 'ew-resize' },
-      { type: 'se', x: bounds.x + bounds.width, y: bounds.y + bounds.height, cursor: 'se-resize' },
+      { type: 'se', x: bounds.x + bounds.width, y: bounds.y + bounds.height, cursor: 'nw-resize' },
       { type: 's', x: bounds.x + bounds.width / 2, y: bounds.y + bounds.height, cursor: 'ns-resize' },
-      { type: 'sw', x: bounds.x, y: bounds.y + bounds.height, cursor: 'sw-resize' },
+      { type: 'sw', x: bounds.x, y: bounds.y + bounds.height, cursor: 'ne-resize' },
       { type: 'w', x: bounds.x, y: bounds.y + bounds.height / 2, cursor: 'ew-resize' },
       { 
         type: 'rotate', 
