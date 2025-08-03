@@ -108,19 +108,27 @@ export const useSelect2EventHandlers = ({
     }
   }, [containerRef]);
 
-  // Check if point is on any selected object OR within group bounds
+  // Check if point is on any selected object OR within group bounds OR on transform handles
   const isPointOnSelectedObject = useCallback((point: { x: number; y: number }) => {
-    // First check if we're within the group bounds (for easy dragging)
+    // Priority 1: Check if we're on a transform handle (extends beyond selection bounds)
+    if (state.selectedObjects.length > 0 && state.groupBounds) {
+      const handle = handleDetection.getHandleAtPoint(point, state.groupBounds);
+      if (handle) {
+        return true; // Transform handles count as "on selected object"
+      }
+    }
+    
+    // Priority 2: Check if we're within the group bounds (for easy dragging)
     if (state.selectedObjects.length > 0 && isPointInGroupBounds(point)) {
       return true;
     }
     
-    // Fallback: check if clicking directly on a selected object
+    // Priority 3: Fallback - check if clicking directly on a selected object
     const objectsAtPoint = findObjectsAtPoint(point, lines, images);
     return objectsAtPoint.some(obj => 
       state.selectedObjects.some(selected => selected.id === obj.id)
     );
-  }, [findObjectsAtPoint, lines, images, state.selectedObjects, isPointInGroupBounds]);
+  }, [findObjectsAtPoint, lines, images, state.selectedObjects, isPointInGroupBounds, state.groupBounds, handleDetection]);
 
   // FIXED: Apply drag offset with proper coordinate handling - now ensures single application and respects locked state
   const applyDragOffset = useCallback(() => {
@@ -167,40 +175,17 @@ export const useSelect2EventHandlers = ({
       }
     });
 
-    // FIXED: Update group bounds synchronously after applying position changes
+    // Update group bounds immediately after applying position changes
     // This ensures the visual feedback matches the actual object positions
-    setTimeout(() => {
-      setState(prev => {
-        const updatedLines = lines.map(line => {
-          const selectedObj = prev.selectedObjects.find(obj => obj.id === line.id && obj.type === 'line');
-          if (selectedObj) {
-            return { ...line, x: line.x + dx, y: line.y + dy };
-          }
-          return line;
-        });
-
-        const updatedImages = images.map(image => {
-          const selectedObj = prev.selectedObjects.find(obj => obj.id === image.id && obj.type === 'image');
-          if (selectedObj) {
-            return { ...image, x: image.x + dx, y: image.y + dy };
-          }
-          return image;
-        });
-
-        const newGroupBounds = calculateGroupBounds(prev.selectedObjects, updatedLines, updatedImages);
-        
-        console.log('Select2: Updated group bounds after position changes', { 
-          oldBounds: prev.groupBounds, 
-          newBounds: newGroupBounds,
-          offset: { dx, dy }
-        });
-        
-        return {
-          ...prev,
-          groupBounds: newGroupBounds
-        };
-      });
-    }, 0);
+    const newGroupBounds = calculateGroupBounds(state.selectedObjects, lines, images);
+    
+    console.log('Select2: Updated group bounds after position changes', { 
+      oldBounds: state.groupBounds, 
+      newBounds: newGroupBounds,
+      offset: { dx, dy }
+    });
+    
+    updateGroupBounds(lines, images);
   }, [state.dragOffset, state.selectedObjects, lines, images, onUpdateLine, onUpdateImage, setState, calculateGroupBounds]);
 
   // Stage 2: Store selected objects in ref to preserve them during transform
@@ -211,42 +196,50 @@ export const useSelect2EventHandlers = ({
     selectedObjectsRef.current = state.selectedObjects;
   }, [state.selectedObjects]);
 
-  // REFACTORED: Simplified handlePointerDown to prioritize transform handle detection
+  // ENHANCED: Prioritize transform handle detection with immediate bounds calculation
   const handlePointerDown = useCallback((worldX: number, worldY: number, ctrlKey: boolean = false, button: number = 0) => {
     if (panZoom.isGestureActive() || button !== 0) {
       return; // Ignore gestures and non-left clicks
     }
 
     const worldPoint = { x: worldX, y: worldY };
-    console.log('Select2: Pointer down', { worldPoint, ctrlKey });
+    console.log('Select2: Pointer down - entry', { worldPoint, ctrlKey, isTransforming: state.isTransforming });
 
-    // --- PRIORITY 1: Transform Handle Detection ---
-    if (state.selectedObjects.length > 0 && state.groupBounds) {
-      const handle = handleDetection.getHandleAtPoint(worldPoint, state.groupBounds);
+    // --- PRIORITY 1: Transform Handle Detection (Fully Preemptive) ---
+    if (state.selectedObjects.length > 0) {
+      // Calculate fresh bounds immediately to avoid stale state
+      const freshGroupBounds = calculateGroupBounds(state.selectedObjects, lines, images);
       
-      if (handle) {
-        console.log('Select2: Transform handle detected', { type: handle.type });
+      if (freshGroupBounds) {
+        const handle = handleDetection.getHandleAtPoint(worldPoint, freshGroupBounds);
         
-        selectedObjectsRef.current = [...state.selectedObjects];
-        isTransformingRef.current = true;
-        transformStartRef.current = worldPoint;
-        
-        const mode = handle.type === 'rotate' ? 'rotate' : 'resize';
-        startTransform(mode, handle.type, state.groupBounds);
-        
-        console.log('Select2: Transform initiated', { mode, anchor: handle.type });
-        return; // CRITICAL: Stop further processing
+        if (handle) {
+          console.log('Select2: TRANSFORM MODE ACTIVATED', { 
+            handleType: handle.type, 
+            groupBounds: freshGroupBounds,
+            selectedCount: state.selectedObjects.length 
+          });
+          
+          // Preserve selection state for transform
+          selectedObjectsRef.current = [...state.selectedObjects];
+          isTransformingRef.current = true;
+          transformStartRef.current = worldPoint;
+          
+          const mode = handle.type === 'rotate' ? 'rotate' : 'resize';
+          startTransform(mode, handle.type, freshGroupBounds);
+          
+          console.log('Select2: Transform initiated successfully', { mode, anchor: handle.type, startPoint: worldPoint });
+          return; // CRITICAL: Immediate return - no other logic runs
+        }
       }
     }
 
-    console.log('Select2: No transform handle detected, proceeding with selection/drag logic');
+    console.log('Select2: No transform handle detected, proceeding with drag/selection logic');
 
     // --- PRIORITY 2: Drag/Selection Logic ---
-    if (!state.isTransforming) {
-      isDraggingRef.current = true;
-      hasMovedRef.current = false;
-      dragStartPositionRef.current = worldPoint;
-    }
+    isDraggingRef.current = true;
+    hasMovedRef.current = false;
+    dragStartPositionRef.current = worldPoint;
 
     // Check if clicking on an already selected object or its group bounds
     if (isPointOnSelectedObject(worldPoint)) {
@@ -280,7 +273,8 @@ export const useSelect2EventHandlers = ({
   }, [
     panZoom, 
     state.selectedObjects, 
-    state.groupBounds, 
+    state.isTransforming,
+    calculateGroupBounds,
     handleDetection, 
     startTransform, 
     isPointOnSelectedObject, 
@@ -561,31 +555,9 @@ export const useSelect2EventHandlers = ({
           }
         });
         
-        const transformedLines = lines.map(line => {
-          const transformed = transform.transformObjectBounds(
-            { id: line.id, type: 'line' },
-            lines,
-            images,
-            groupCenter,
-            matrix
-          );
-          return transformed ? { ...line, ...transformed } : line;
-        });
-
-        const transformedImages = images.map(image => {
-          const transformed = transform.transformObjectBounds(
-            { id: image.id, type: 'image' },
-            lines,
-            images,
-            groupCenter,
-            matrix
-          );
-          return transformed ? { ...image, ...transformed } : image;
-        });
-
-        // Update group bounds after transform with the new data
+        // Update group bounds after transform
         setTimeout(() => {
-          updateGroupBounds(transformedLines, transformedImages);
+          updateGroupBounds(lines, images);
         }, 0);
       }
       
@@ -952,10 +924,8 @@ export const useSelect2EventHandlers = ({
           }
         });
         
-        // Update group bounds after transform
-        setTimeout(() => {
-          updateGroupBounds(lines, images);
-        }, 0);
+        // Update group bounds immediately after transform
+        updateGroupBounds(lines, images);
       }
       
       endTransform();
