@@ -18,32 +18,15 @@ export const useFetchSessionStudents = () => {
 
     setIsLoading(true);
     try {
+      // Use secure function that handles email masking at database level
       const { data, error } = await supabase
-        .from('session_participants')
-        .select('*')
-        .eq('session_id', activeSession.id)
-        .order('assigned_board_suffix');
+        .rpc('get_session_participants_with_privacy', { session_uuid: activeSession.id });
 
       if (error) throw error;
       debugLog('fetchStudents', `Fetched ${data?.length || 0} students`);
       
       // Cast the data to SessionParticipant[] to handle sync_direction type
-      let participants = (data || []) as SessionParticipant[];
-      
-      // Check if current user is the teacher of this session
-      const isTeacher = activeSession.teacher_id === user?.id;
-      
-      // If user is not the teacher, mask email addresses of other students
-      if (!isTeacher && user?.email) {
-        participants = participants.map(participant => ({
-          ...participant,
-          student_email: participant.student_email === user.email 
-            ? participant.student_email // Show own email
-            : null // Hide other students' emails
-        }));
-      }
-      
-      setSessionStudents(participants);
+      setSessionStudents((data || []) as SessionParticipant[]);
     } catch (error) {
       console.error('Error fetching session students:', error);
       setSessionStudents([]);

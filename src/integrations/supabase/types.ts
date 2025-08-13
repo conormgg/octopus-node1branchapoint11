@@ -264,6 +264,19 @@ export type Database = {
           duration_minutes: number
         }[]
       }
+      get_session_participants_with_privacy: {
+        Args: { session_uuid: string }
+        Returns: {
+          id: number
+          session_id: string
+          student_name: string
+          student_email: string
+          assigned_board_suffix: string
+          joined_at: string
+          last_ping_at: string
+          sync_direction: string
+        }[]
+      }
       update_session_activity: {
         Args: { session_uuid: string }
         Returns: undefined
