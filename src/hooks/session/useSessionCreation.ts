@@ -5,6 +5,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
 import { Student } from '@/types/student';
 import { logError } from '@/utils/debug/debugConfig';
+import { useEmailInvitations } from './useEmailInvitations';
 
 interface UseSessionCreationProps {
   title: string;
@@ -25,6 +26,7 @@ export const useSessionCreation = ({
 }: UseSessionCreationProps) => {
   const { user } = useAuth();
   const { toast } = useToast();
+  const { sendMultipleInvitations } = useEmailInvitations();
 
   const handleSubmit = async (e: React.FormEvent, onSessionCreated: (sessionId: string) => void) => {
     e.preventDefault();
@@ -77,6 +79,23 @@ export const useSessionCreation = ({
           .insert(participantsToInsert);
 
         if (participantsError) throw participantsError;
+      }
+
+      // Send email invitations to students with email addresses
+      const studentsWithEmails = students.filter(student => student.email && student.email.trim());
+      if (studentsWithEmails.length > 0) {
+        const teacherName = user?.user_metadata?.full_name || user?.email || 'Your Teacher';
+        const invitations = studentsWithEmails.map(student => ({
+          studentEmail: student.email,
+          studentName: student.name,
+          sessionTitle: sessionData.title,
+          teacherName,
+          sessionSlug: sessionData.unique_url_slug,
+          sessionId: sessionData.id
+        }));
+        
+        // Send invitations (don't await to avoid blocking UI)
+        sendMultipleInvitations(invitations);
       }
 
       toast({

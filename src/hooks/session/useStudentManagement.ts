@@ -4,12 +4,16 @@ import { supabase } from '@/integrations/supabase/client';
 import { Session } from '@/types/session';
 import { SessionParticipant } from '@/types/student';
 import { useToast } from '@/hooks/use-toast';
+import { useEmailInvitations } from './useEmailInvitations';
+import { useAuth } from '@/hooks/useAuth';
 
 export const useStudentManagement = (
   activeSession: Session | null | undefined,
   sessionStudents: SessionParticipant[]
 ) => {
   const { toast } = useToast();
+  const { sendSessionInvitation } = useEmailInvitations();
+  const { user } = useAuth();
 
   // Add individual student with name and email
   const handleAddIndividualStudent = useCallback(async (name: string, email: string) => {
@@ -57,6 +61,19 @@ export const useStudentManagement = (
         });
 
       if (error) throw error;
+
+      // Send email invitation if email is provided
+      if (email && email.trim() && activeSession) {
+        const teacherName = user?.user_metadata?.full_name || user?.email || 'Your Teacher';
+        sendSessionInvitation({
+          studentEmail: email.trim(),
+          studentName: name,
+          sessionTitle: activeSession.title,
+          teacherName,
+          sessionSlug: activeSession.unique_url_slug,
+          sessionId: activeSession.id
+        });
+      }
 
       toast({
         title: "Student Added",

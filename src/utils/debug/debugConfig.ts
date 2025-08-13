@@ -56,6 +56,9 @@ export interface DebugConfig {
   
   // Tool synchronization
   toolSync: boolean;
+  
+  // Email invitations
+  'email-invitations': boolean;
 }
 
 // Default configuration - most debugging disabled by default
@@ -110,7 +113,10 @@ const DEFAULT_DEBUG_CONFIG: DebugConfig = {
   'session-students': false,
   
   // Tool synchronization - disabled by default
-  toolSync: false
+  toolSync: false,
+  
+  // Email invitations - disabled by default
+  'email-invitations': false
 };
 
 // Environment-based configuration
