@@ -277,6 +277,10 @@ export type Database = {
           sync_direction: string
         }[]
       }
+      is_session_participant: {
+        Args: { session_uuid: string; user_email: string }
+        Returns: boolean
+      }
       update_session_activity: {
         Args: { session_uuid: string }
         Returns: undefined
