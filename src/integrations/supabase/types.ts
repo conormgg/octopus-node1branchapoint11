@@ -10,7 +10,7 @@ export type Database = {
   // Allows to automatically instanciate createClient with right options
   // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
   __InternalSupabase: {
-    PostgrestVersion: "12.2.3 (519615d)"
+    PostgrestVersion: "12.2.12 (cd3cf9e)"
   }
   public: {
     Tables: {
@@ -252,6 +252,17 @@ export type Database = {
       generate_unique_slug: {
         Args: Record<PropertyKey, never>
         Returns: string
+      }
+      get_session_by_slug: {
+        Args: { slug: string }
+        Returns: {
+          id: string
+          title: string
+          unique_url_slug: string
+          status: string
+          created_at: string
+          duration_minutes: number
+        }[]
       }
       update_session_activity: {
         Args: { session_uuid: string }

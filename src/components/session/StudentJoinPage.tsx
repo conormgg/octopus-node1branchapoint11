@@ -39,11 +39,9 @@ const StudentJoinPage: React.FC = () => {
 
   const fetchSessionData = async () => {
     try {
-      // Fetch session details
+      // Fetch session details using secure function
       const { data: sessionData, error: sessionError } = await supabase
-        .from('sessions')
-        .select('id, title, status')
-        .eq('unique_url_slug', sessionSlug)
+        .rpc('get_session_by_slug', { slug: sessionSlug })
         .single();
 
       if (sessionError) throw sessionError;
