@@ -42,9 +42,16 @@ const StudentJoinPage: React.FC = () => {
       // Fetch session details using secure function
       const { data: sessionData, error: sessionError } = await supabase
         .rpc('get_session_by_slug', { slug: sessionSlug })
-        .single();
+        .maybeSingle();
 
       if (sessionError) throw sessionError;
+
+      // Handle case where session is not found
+      if (!sessionData) {
+        setSession(null);
+        setSessionLoading(false);
+        return;
+      }
 
       if (sessionData.status !== 'active') {
         toast({
@@ -52,7 +59,8 @@ const StudentJoinPage: React.FC = () => {
           description: "This session is no longer active.",
           variant: "destructive",
         });
-        navigate('/');
+        setSession(null);
+        setSessionLoading(false);
         return;
       }
 
