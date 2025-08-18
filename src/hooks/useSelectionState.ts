@@ -126,7 +126,22 @@ export const useSelectionState = () => {
            point.y <= bounds.y + bounds.height;
   }, [selectionState.selectionBounds, selectionState.selectedObjects]);
 
-  // Minimal functions for drag rectangle state only (used by select2 sync)
+  // Minimal functions for select2 compatibility
+  const clearSelection = useCallback(() => {
+    setSelectionState(prev => ({
+      ...prev,
+      selectedObjects: [],
+      selectionBounds: null
+    }));
+  }, []);
+
+  const selectObjects = useCallback((objects: SelectedObject[]) => {
+    setSelectionState(prev => ({
+      ...prev,
+      selectedObjects: objects
+    }));
+  }, []);
+
   const setSelectionBounds = useCallback((bounds: SelectionBounds | null) => {
     setSelectionState(prev => ({
       ...prev,
@@ -150,7 +165,9 @@ export const useSelectionState = () => {
     isPointInSelectionBounds,
     hoveredObjectId,
     setHoveredObjectId,
-    // Minimal functions for drag rectangle state (used by select2 sync)
+    // Minimal functions for select2 compatibility
+    clearSelection,
+    selectObjects,
     setSelectionBounds,
     setIsSelecting
   };
