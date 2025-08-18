@@ -37,7 +37,8 @@ export const useSharedPointerHandlers = (
       // 2. Check if clicking on individual objects
       // 3. Start new selection or clear existing selection
       
-      if (selection.isPointInSelectionBounds && selection.findObjectsAtPoint && selection.selectObjects && selection.setIsSelecting && selection.setSelectionBounds && selection.clearSelection) {
+      if (selection.isPointInSelectionBounds && selection.findObjectsAtPoint) {
+        // NOTE: Original select tool functions removed, this code path only runs for legacy 'select' tool
         const isInSelectionBounds = selection.isPointInSelectionBounds({ x, y });
         
         if (isInSelectionBounds && stableSelectionState?.selectedObjects?.length > 0) {
@@ -50,16 +51,8 @@ export const useSharedPointerHandlers = (
         // Check for individual objects
         const foundObjects = selection.findObjectsAtPoint({ x, y }, stableLines, stableImages);
         
-        if (foundObjects.length > 0) {
-          // Select the first found object
-          selection.selectObjects([foundObjects[0]]);
-        } else {
-          // Clear selection when clicking on empty space
-          selection.clearSelection();
-          // Start drag-to-select
-          selection.setIsSelecting(true);
-          selection.setSelectionBounds({ x, y, width: 0, height: 0 });
-        }
+        // NOTE: Original select tool selection logic disabled - functions removed
+        // Use select2 tool for selection functionality
       }
     }
   }, [stableCurrentTool, stableLines, stableImages, stableSelectionState?.selectedObjects?.length, startDrawing, startErasing, isReceiveOnly, panZoom, selection]);
@@ -74,17 +67,8 @@ export const useSharedPointerHandlers = (
     } else if (stableCurrentTool === 'eraser') {
       continueErasing(x, y);
     } else if (stableCurrentTool === 'select' && selection && stableSelectionState?.isSelecting) {
-      // Update drag-to-select rectangle with safety checks
-      if (selection.setSelectionBounds && stableSelectionState.selectionBounds) {
-        const bounds = stableSelectionState.selectionBounds;
-        const newBounds = {
-          x: Math.min(bounds.x, x),
-          y: Math.min(bounds.y, y),
-          width: Math.abs(x - bounds.x),
-          height: Math.abs(y - bounds.y)
-        };
-        selection.setSelectionBounds(newBounds);
-      }
+      // NOTE: Original select tool drag-to-select logic disabled - functions removed
+      // Use select2 tool for selection functionality
     }
   }, [stableCurrentTool, stableSelectionState?.isSelecting, stableSelectionState?.selectionBounds, continueDrawing, continueErasing, isReceiveOnly, panZoom, selection]);
 
@@ -98,19 +82,8 @@ export const useSharedPointerHandlers = (
     } else if (stableCurrentTool === 'eraser') {
       stopErasing();
     } else if (stableCurrentTool === 'select' && selection && stableSelectionState?.isSelecting) {
-      // Complete drag-to-select with safety checks
-      if (selection.setIsSelecting && selection.setSelectionBounds && selection.findObjectsInBounds && selection.selectObjects) {
-        const bounds = stableSelectionState.selectionBounds;
-        if (bounds && (bounds.width > 5 || bounds.height > 5)) {
-          // Find objects within selection bounds
-          const objectsInBounds = selection.findObjectsInBounds(bounds, stableLines, stableImages);
-          selection.selectObjects(objectsInBounds);
-        }
-        
-        // End selection
-        selection.setIsSelecting(false);
-        selection.setSelectionBounds(null);
-      }
+      // NOTE: Original select tool drag-to-select completion logic disabled - functions removed
+      // Use select2 tool for selection functionality
     }
   }, [stableCurrentTool, stableLines, stableImages, stableSelectionState?.isSelecting, stableSelectionState?.selectionBounds, stopDrawing, stopErasing, isReceiveOnly, selection]);
 

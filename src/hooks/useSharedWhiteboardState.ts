@@ -132,7 +132,11 @@ export const useSharedWhiteboardState = (syncConfig?: SyncConfig, whiteboardId?:
       const selectedObjects = customSelectedObjects || selection?.selectionState?.selectedObjects;
       if (selectedObjects && operations.deleteSelectedObjects) {
         operations.deleteSelectedObjects(selectedObjects);
-        selection?.clearSelection();
+        // NOTE: Original clearSelection removed - function may not exist
+        const selectionWithClear = selection as any;
+        if (selectionWithClear?.clearSelection && typeof selectionWithClear.clearSelection === 'function') {
+          selectionWithClear.clearSelection();
+        }
       }
     },
     operations, // Expose operations for additional functionality

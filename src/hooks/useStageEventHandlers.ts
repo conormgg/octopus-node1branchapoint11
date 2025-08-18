@@ -40,12 +40,12 @@ interface UseStageEventHandlersProps {
   onUpdateLine?: (lineId: string, updates: any) => void;
   onUpdateImage?: (imageId: string, updates: any) => void;
   onDeleteObjects?: (selectedObjects?: Array<{id: string, type: 'line' | 'image'}>) => void;
-  // Main selection state for select2 integration
+  // Main selection state for select2 integration - original select functions may not exist
   mainSelection?: {
-    selectObjects: (objects: Array<{id: string, type: 'line' | 'image'}>) => void;
-    clearSelection: () => void;
-    setSelectionBounds: (bounds: any) => void;
-    setIsSelecting: (selecting: boolean) => void;
+    selectObjects?: (objects: Array<{id: string, type: 'line' | 'image'}>) => void;
+    clearSelection?: () => void;
+    setSelectionBounds?: (bounds: any) => void;
+    setIsSelecting?: (selecting: boolean) => void;
     selectionState: {
       selectedObjects: Array<{id: string, type: 'line' | 'image'}>;
       isSelecting: boolean;
@@ -97,7 +97,7 @@ export const useStageEventHandlers = ({
     onUpdateImage,
     onDeleteObjects,
     containerRef,
-    mainSelection // Pass main selection state for integration
+    mainSelection: mainSelection as any // Pass main selection state for integration (original functions removed)
   });
 
   // Update current tool ref when currentTool prop changes

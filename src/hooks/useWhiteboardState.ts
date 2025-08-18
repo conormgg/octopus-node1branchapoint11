@@ -111,7 +111,7 @@ export const useWhiteboardState = () => {
     redo,
     canUndo,
     canRedo
-  } = useHistoryState(state, setState, selection.updateSelectionState);
+  } = useHistoryState(state, setState); // NOTE: updateSelectionState removed
 
   const addToHistory = useCallback(() => {
     baseAddToHistory({
@@ -164,10 +164,7 @@ export const useWhiteboardState = () => {
       };
     });
 
-    // Clear selection after deletion (only if using default selection state)
-    if (!customSelectedObjects) {
-      selection.clearSelection();
-    }
+    // NOTE: Original clearSelection removed, select2 handles its own selection clearing
     
     // Add to history
     addToHistory();

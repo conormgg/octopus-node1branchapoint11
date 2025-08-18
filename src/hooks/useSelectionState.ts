@@ -10,54 +10,8 @@ export const useSelectionState = () => {
   
   const [hoveredObjectId, setHoveredObjectId] = useState<string | null>(null);
 
-  // Select objects
-  const selectObjects = useCallback((objects: SelectedObject[]) => {
-    setSelectionState(prev => ({
-      ...prev,
-      selectedObjects: objects
-    }));
-  }, []);
-
-  // Add object to selection
-  const addToSelection = useCallback((object: SelectedObject) => {
-    setSelectionState(prev => ({
-      ...prev,
-      selectedObjects: [...prev.selectedObjects.filter(obj => obj.id !== object.id), object]
-    }));
-  }, []);
-
-  // Remove object from selection
-  const removeFromSelection = useCallback((objectId: string) => {
-    setSelectionState(prev => ({
-      ...prev,
-      selectedObjects: prev.selectedObjects.filter(obj => obj.id !== objectId)
-    }));
-  }, []);
-
-  // Clear selection
-  const clearSelection = useCallback(() => {
-    setSelectionState(prev => ({
-      ...prev,
-      selectedObjects: [],
-      selectionBounds: null
-    }));
-  }, []);
-
-  // Set selection bounds (for drag-to-select rectangle)
-  const setSelectionBounds = useCallback((bounds: SelectionBounds | null) => {
-    setSelectionState(prev => ({
-      ...prev,
-      selectionBounds: bounds
-    }));
-  }, []);
-
-  // Set selecting state
-  const setIsSelecting = useCallback((isSelecting: boolean) => {
-    setSelectionState(prev => ({
-      ...prev,
-      isSelecting
-    }));
-  }, []);
+  // NOTE: Original select tool's core state management functions removed
+  // Use select2 tool for selection functionality
 
   // Simplified hit detection for lines - only handles x, y positioning
   const isPointOnLine = useCallback((point: { x: number; y: number }, line: LineObject, tolerance: number = 10): boolean => {
@@ -246,15 +200,12 @@ export const useSelectionState = () => {
     return selectionState.selectedObjects.map(obj => obj.id);
   }, [selectionState.selectedObjects]);
 
-  // Select all objects
+  // NOTE: selectAll function disabled - original select tool function selectObjects removed
+  // Use select2 tool for selection functionality
   const selectAll = useCallback((lines: LineObject[], images: ImageObject[]) => {
-    const allObjects: SelectedObject[] = [
-      ...lines.map(line => ({ id: line.id, type: 'line' as const })),
-      ...images.map(image => ({ id: image.id, type: 'image' as const }))
-    ];
-    
-    selectObjects(allObjects);
-  }, [selectObjects]);
+    // Function disabled - use select2 tool for selection
+    console.warn('selectAll: Original select tool disabled, use select2 tool');
+  }, []);
 
   // Simplified selection bounds calculation - only handles basic x, y positioning
   const calculateSelectionBounds = useCallback((
@@ -359,40 +310,14 @@ export const useSelectionState = () => {
            point.y <= bounds.y + bounds.height;
   }, [selectionState.selectionBounds, selectionState.selectedObjects]);
 
-  // Update selection state from history (for undo/redo)
-  const updateSelectionState = useCallback((newSelectionState: SelectionState) => {
-    setSelectionState(newSelectionState);
-  }, []);
-
-  // Auto-update selection bounds when objects are selected (but not during drag-to-select)
-  const updateSelectionBounds = useCallback((
-    selectedObjects: SelectedObject[],
-    lines: LineObject[],
-    images: ImageObject[]
-  ) => {
-    if (selectedObjects.length > 0 && !selectionState.isSelecting) {
-      const bounds = calculateSelectionBounds(selectedObjects, lines, images);
-      setSelectionState(prev => ({
-        ...prev,
-        selectionBounds: bounds
-      }));
-    } else if (selectedObjects.length === 0) {
-      setSelectionState(prev => ({
-        ...prev,
-        selectionBounds: null
-      }));
-    }
-  }, [calculateSelectionBounds, selectionState.isSelecting]);
+  // NOTE: updateSelectionState and updateSelectionBounds removed
+  // Use select2 tool for selection functionality
 
   return {
     selectionState,
-    selectObjects,
-    addToSelection,
-    removeFromSelection,
-    clearSelection,
-    setSelectionBounds,
-    setIsSelecting,
-    updateSelectionState,
+    // NOTE: Removed original select tool functions (selectObjects, addToSelection, removeFromSelection, 
+    // clearSelection, setSelectionBounds, setIsSelecting, updateSelectionState, updateSelectionBounds)
+    // Use select2 tool for selection functionality
     findObjectsAtPoint,
     findObjectsInBounds,
     isObjectSelected,
@@ -400,7 +325,6 @@ export const useSelectionState = () => {
     selectAll,
     calculateSelectionBounds,
     isPointInSelectionBounds,
-    updateSelectionBounds,
     hoveredObjectId,
     setHoveredObjectId
   };

@@ -112,7 +112,11 @@ const KonvaStage: React.FC<KonvaStageProps> = ({
         'deleteSelectedObjects' in whiteboardState.operations &&
         typeof (whiteboardState.operations as any).deleteSelectedObjects === 'function') {
       (whiteboardState.operations as any).deleteSelectedObjects(objectsToDelete);
-      selection?.clearSelection();
+      // NOTE: Original clearSelection removed - function may not exist
+      const selectionWithClear = selection as any;
+      if (selectionWithClear?.clearSelection && typeof selectionWithClear.clearSelection === 'function') {
+        selectionWithClear.clearSelection();
+      }
     } else if ('deleteSelectedObjects' in whiteboardState && typeof whiteboardState.deleteSelectedObjects === 'function') {
       whiteboardState.deleteSelectedObjects(objectsToDelete);
     } else {
@@ -247,7 +251,11 @@ const KonvaStage: React.FC<KonvaStageProps> = ({
           onStageClick={(e) => {
             const clickedOnEmpty = e.target === e.target.getStage();
             if (clickedOnEmpty && selection) {
-              selection.clearSelection();
+              // NOTE: Original clearSelection removed - function may not exist  
+              const selectionWithClear = selection as any;
+              if (selectionWithClear?.clearSelection && typeof selectionWithClear.clearSelection === 'function') {
+                selectionWithClear.clearSelection();
+              }
             }
           }}
           selectionBounds={selection?.selectionState?.selectionBounds || null}

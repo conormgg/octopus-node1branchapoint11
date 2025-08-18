@@ -64,8 +64,12 @@ export const useKonvaKeyboardHandlers = ({
       }
 
       // Escape key - clear selection
-      if (e.key === 'Escape' && selection?.clearSelection) {
-        selection.clearSelection();
+      if (e.key === 'Escape' && selection) {
+        // NOTE: Original clearSelection may not exist - function removed
+        const selectionWithClear = selection as any;
+        if (selectionWithClear?.clearSelection && typeof selectionWithClear.clearSelection === 'function') {
+          selectionWithClear.clearSelection();
+        }
         e.preventDefault();
       }
       
