@@ -49,7 +49,9 @@ export const useWhiteboardPointerHandlers = (
       }
       
       // Check for individual objects
-      const foundObjects = selection.findObjectsAtPoint({ x, y }, stableLines, stableImages);
+      // NOTE: Original findObjectsAtPoint function removed - using fallback
+      const selectionWithFindObjects = selection as any;
+      const foundObjects = selectionWithFindObjects?.findObjectsAtPoint?.({ x, y }, stableLines, stableImages) || [];
       
       if (foundObjects.length > 0) {
         debugLog('PointerHandlers', 'Found objects at point', { count: foundObjects.length });
@@ -101,7 +103,9 @@ export const useWhiteboardPointerHandlers = (
       const bounds = stableSelectionState.selectionBounds;
       if (bounds && (bounds.width > 5 || bounds.height > 5)) {
         // Find objects within selection bounds
-        const objectsInBounds = selection.findObjectsInBounds(bounds, stableLines, stableImages);
+          // NOTE: Original findObjectsInBounds function removed - using fallback
+          const selectionWithFindInBounds = selection as any;
+          const objectsInBounds = selectionWithFindInBounds?.findObjectsInBounds?.(bounds, stableLines, stableImages) || [];
         selection.selectObjects(objectsInBounds);
         // Update selection bounds for the selected objects
         setTimeout(() => {

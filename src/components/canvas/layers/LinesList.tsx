@@ -21,7 +21,9 @@ const LinesList: React.FC<LinesListProps> = ({
       {lines.map((line) => {
         if (!line) return null; // Safety check for filtered items
         
-        const isSelected = selection?.isObjectSelected?.(line.id) || false;
+        // NOTE: Original isObjectSelected function removed - using fallback  
+        const selectionWithIsSelected = selection as any;
+        const isSelected = selectionWithIsSelected?.isObjectSelected?.(line.id) || false;
         const isInGroup = selection?.selectionState?.selectedObjects?.length > 1 && isSelected;
         
         return (

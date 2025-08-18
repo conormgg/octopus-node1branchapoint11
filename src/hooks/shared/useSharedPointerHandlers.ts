@@ -37,8 +37,8 @@ export const useSharedPointerHandlers = (
       // 2. Check if clicking on individual objects
       // 3. Start new selection or clear existing selection
       
-      if (selection.isPointInSelectionBounds && selection.findObjectsAtPoint) {
-        // NOTE: Original select tool functions removed, this code path only runs for legacy 'select' tool
+      if (selection.isPointInSelectionBounds) {
+        // NOTE: Original select tool hit detection functions removed - findObjectsAtPoint no longer exists
         const isInSelectionBounds = selection.isPointInSelectionBounds({ x, y });
         
         if (isInSelectionBounds && stableSelectionState?.selectedObjects?.length > 0) {
@@ -48,8 +48,9 @@ export const useSharedPointerHandlers = (
           return;
         }
         
-        // Check for individual objects
-        const foundObjects = selection.findObjectsAtPoint({ x, y }, stableLines, stableImages);
+        // Check for individual objects - original findObjectsAtPoint function removed
+        // const foundObjects = selection.findObjectsAtPoint({ x, y }, stableLines, stableImages);
+        // Original select tool object finding disabled - use select2 tool for selection
         
         // NOTE: Original select tool selection logic disabled - functions removed
         // Use select2 tool for selection functionality

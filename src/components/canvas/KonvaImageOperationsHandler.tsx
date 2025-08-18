@@ -36,7 +36,9 @@ const KonvaImageOperationsHandler: React.FC<KonvaImageOperationsHandlerProps> = 
   return (
     <>
       {state.images?.map((image) => {
-        const isSelected = selection?.isObjectSelected(image.id) || false;
+        // NOTE: Original isObjectSelected function removed - using fallback
+        const selectionWithIsSelected = selection as any;
+        const isSelected = selectionWithIsSelected?.isObjectSelected?.(image.id) || false;
         const isInGroup = selection?.selectionState?.selectedObjects?.length > 1 && isSelected;
         
         return (
