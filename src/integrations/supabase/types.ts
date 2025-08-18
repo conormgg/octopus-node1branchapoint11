@@ -253,6 +253,15 @@ export type Database = {
         Args: Record<PropertyKey, never>
         Returns: string
       }
+      get_public_session_participants: {
+        Args: { session_uuid: string }
+        Returns: {
+          assigned_board_suffix: string
+          id: number
+          joined_at: string
+          student_name: string
+        }[]
+      }
       get_session_by_slug: {
         Args: { slug: string }
         Returns: {
@@ -280,6 +289,14 @@ export type Database = {
       is_session_participant: {
         Args: { session_uuid: string; user_email: string }
         Returns: boolean
+      }
+      public_mark_participant_joined: {
+        Args: { p_participant_id: number }
+        Returns: {
+          assigned_board_suffix: string
+          id: number
+          session_id: string
+        }[]
       }
       update_session_activity: {
         Args: { session_uuid: string }

@@ -58,11 +58,9 @@ const StudentJoinPage: React.FC = () => {
 
       setSession(sessionData);
 
-      // Fetch participants with join status
+      // Fetch participants using the new public function
       const { data: participantsData, error: participantsError } = await supabase
-        .from('session_participants')
-        .select('id, student_name, assigned_board_suffix, joined_at')
-        .eq('session_id', sessionData.id);
+        .rpc('get_public_session_participants', { session_uuid: sessionData.id });
 
       if (participantsError) throw participantsError;
       setParticipants(participantsData || []);
@@ -85,42 +83,58 @@ const StudentJoinPage: React.FC = () => {
     setIsLoading(true);
 
     try {
-      // Check if student name matches any participant
-      const matchingParticipant = participants.find(
-        p => p.student_name.toLowerCase() === studentName.trim().toLowerCase()
+      // Normalize student name for case-insensitive matching
+      const normalizedInputName = studentName.trim().toLowerCase();
+      
+      // Find matching participants (case-insensitive)
+      const matchingParticipants = participants.filter(
+        p => p.student_name.toLowerCase() === normalizedInputName
       );
 
-      if (!matchingParticipant) {
+      if (matchingParticipants.length === 0) {
         toast({
           title: "Name Not Found",
-          description: "Your name is not in the class list. Please check with your teacher.",
+          description: "Your name is not in the class list. Please check with your teacher or make sure you've entered it exactly as provided.",
           variant: "destructive",
         });
         return;
       }
 
-      // Update joined_at timestamp to mark student as joined
-      const { error: updateError } = await supabase
-        .from('session_participants')
-        .update({ 
-          joined_at: new Date().toISOString() 
-        })
-        .eq('id', matchingParticipant.id);
+      // Handle multiple matches - use the first unjoined one, or first one if all are joined
+      let selectedParticipant = matchingParticipants.find(p => !p.joined_at) || matchingParticipants[0];
 
-      if (updateError) throw updateError;
+      // Use the new public function to mark participant as joined
+      const { data: joinData, error: joinError } = await supabase
+        .rpc('public_mark_participant_joined', { p_participant_id: selectedParticipant.id });
 
-      // Navigate to student view
+      if (joinError) throw joinError;
+
+      if (!joinData || joinData.length === 0) {
+        throw new Error('Failed to join session');
+      }
+
+      const joinResult = joinData[0];
+
+      toast({
+        title: "Successfully Joined!",
+        description: `Welcome to ${session.title}`,
+        variant: "default",
+      });
+
+      // Navigate to student view with the original case-preserved name
       navigate(`/session/${sessionSlug}/student`, {
         state: {
           sessionId: session.id,
-          studentName: studentName.trim(),
-          boardSuffix: matchingParticipant.assigned_board_suffix,
+          studentName: selectedParticipant.student_name, // Use original name from database
+          boardSuffix: joinResult.assigned_board_suffix,
         }
       });
+
     } catch (error: any) {
+      console.error('Join error:', error);
       toast({
         title: "Error Joining Session",
-        description: error.message,
+        description: error.message || "Failed to join the session. Please try again.",
         variant: "destructive",
       });
     } finally {
@@ -181,7 +195,7 @@ const StudentJoinPage: React.FC = () => {
                 required
               />
               <p className="text-xs text-gray-500">
-                Enter your name exactly as your teacher added it to the class
+                Enter your name exactly as your teacher added it to the class (case doesn't matter)
               </p>
             </div>
             
@@ -194,7 +208,7 @@ const StudentJoinPage: React.FC = () => {
           {participants.length > 0 && (
             <div className="mt-6">
               <h4 className="text-sm font-medium mb-2">Students in this session:</h4>
-              <div className="text-xs text-gray-600 space-y-1">
+              <div className="text-xs text-gray-600 space-y-1 max-h-32 overflow-y-auto">
                 {participants.map((participant, index) => (
                   <div key={index} className="flex items-center justify-between">
                     <span>• {participant.student_name}</span>
