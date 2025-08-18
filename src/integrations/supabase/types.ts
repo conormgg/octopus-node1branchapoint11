@@ -262,6 +262,14 @@ export type Database = {
           student_name: string
         }[]
       }
+      get_public_session_status: {
+        Args: { session_uuid: string }
+        Returns: {
+          created_at: string
+          duration_minutes: number
+          status: string
+        }[]
+      }
       get_session_by_slug: {
         Args: { slug: string }
         Returns: {

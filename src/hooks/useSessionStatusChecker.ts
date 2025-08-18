@@ -7,17 +7,18 @@ export const useSessionStatusChecker = () => {
   const fetchSessionData = useCallback(async (sessionId: string): Promise<SessionData | null> => {
     try {
       const { data, error } = await supabase
-        .from('sessions')
-        .select('created_at, duration_minutes, status')
-        .eq('id', sessionId)
-        .single();
+        .rpc('get_public_session_status', { session_uuid: sessionId });
 
       if (error) {
-        console.error(`Error fetching session: ${error.message}`);
+        console.error(`Error fetching session (RPC): ${error.message}`);
         return null;
       }
 
-      return data;
+      const result = Array.isArray(data) ? data[0] : data;
+      if (!result) return null;
+
+      return result as SessionData;
+
     } catch (err) {
       console.error('Error checking session:', err);
       return null;
