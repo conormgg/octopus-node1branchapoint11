@@ -39,21 +39,38 @@ const StudentJoinPage: React.FC = () => {
 
   const fetchSessionData = async () => {
     try {
-      // Fetch session details using secure function
+      console.log('Fetching session data for slug:', sessionSlug);
+      
+      // Fetch session details using secure function - handle as array since it's an RPC
       const { data: sessionData, error: sessionError } = await supabase
-        .rpc('get_session_by_slug', { slug: sessionSlug })
-        .maybeSingle();
+        .rpc('get_session_by_slug', { slug: sessionSlug });
 
-      if (sessionError) throw sessionError;
+      console.log('Session RPC response:', { sessionData, sessionError });
 
-      // Handle case where session is not found
-      if (!sessionData) {
+      if (sessionError) {
+        // Handle the specific "JSON object requested" error
+        if (sessionError.message?.includes('JSON object requested')) {
+          console.log('Session not found (JSON object requested error)');
+          setSession(null);
+          setSessionLoading(false);
+          return;
+        }
+        throw sessionError;
+      }
+
+      // Handle case where session is not found (empty array or null)
+      if (!sessionData || (Array.isArray(sessionData) && sessionData.length === 0)) {
+        console.log('Session not found (no data returned)');
         setSession(null);
         setSessionLoading(false);
         return;
       }
 
-      if (sessionData.status !== 'active') {
+      // Get the first result if it's an array
+      const session = Array.isArray(sessionData) ? sessionData[0] : sessionData;
+      console.log('Parsed session:', session);
+
+      if (session.status !== 'active') {
         toast({
           title: "Session Not Available",
           description: "This session is no longer active.",
@@ -64,11 +81,11 @@ const StudentJoinPage: React.FC = () => {
         return;
       }
 
-      setSession(sessionData);
+      setSession(session);
 
       // Fetch participants using the new public function
       const { data: participantsData, error: participantsError } = await supabase
-        .rpc('get_public_session_participants', { session_uuid: sessionData.id });
+        .rpc('get_public_session_participants', { session_uuid: session.id });
 
       if (participantsError) throw participantsError;
       setParticipants(participantsData || []);
