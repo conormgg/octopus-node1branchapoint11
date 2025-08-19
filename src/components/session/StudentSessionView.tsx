@@ -123,14 +123,27 @@ const StudentSessionView: React.FC = () => {
     const verifySession = async () => {
       try {
         const { data, error } = await supabase
-          .from('sessions')
-          .select('status')
-          .eq('id', state.sessionId)
-          .single();
+          .rpc('get_public_session_status', { session_uuid: state.sessionId });
 
-        if (error) throw error;
+        if (error) {
+          console.error('Session verification error:', error);
+          throw error;
+        }
 
-        if (data.status !== 'active') {
+        // RPC returns an array, get the first result
+        const sessionData = Array.isArray(data) ? data[0] : data;
+        
+        if (!sessionData) {
+          toast({
+            title: "Session Not Found",
+            description: "This session could not be found.",
+            variant: "destructive",
+          });
+          navigate('/');
+          return;
+        }
+
+        if (sessionData.status !== 'active') {
           toast({
             title: "Session Ended",
             description: "This session is no longer active.",
@@ -142,6 +155,7 @@ const StudentSessionView: React.FC = () => {
 
         setIsLoading(false);
       } catch (error: any) {
+        console.error('Session verification failed:', error);
         toast({
           title: "Error Loading Session",
           description: error.message,
