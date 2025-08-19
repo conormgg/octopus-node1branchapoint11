@@ -14,21 +14,29 @@ export const useStudentParticipant = (sessionId: string, boardSuffix: string) =>
     if (!sessionId || !boardSuffix) return;
 
     try {
+      // Use public RPC to get participants (bypasses RLS for students)
       const { data, error } = await supabase
-        .from('session_participants')
-        .select('*')
-        .eq('session_id', sessionId)
-        .eq('assigned_board_suffix', boardSuffix.toUpperCase())
-        .single();
+        .rpc('get_public_session_participants', { session_uuid: sessionId });
 
       if (error) {
-        debugLog('fetch', `Error fetching participant: ${error.message}`);
+        debugLog('fetch', `Error fetching participants: ${error.message}`);
         setParticipant(null);
         return;
       }
 
-      debugLog('fetch', `Fetched participant:`, data);
-      setParticipant(data as SessionParticipant);
+      // Filter for the specific board suffix since RPC returns all participants
+      const participantData = Array.isArray(data) ? 
+        data.find(p => p.assigned_board_suffix === boardSuffix.toUpperCase()) : 
+        null;
+
+      if (!participantData) {
+        debugLog('fetch', `No participant found for board suffix: ${boardSuffix}`);
+        setParticipant(null);
+        return;
+      }
+
+      debugLog('fetch', `Fetched participant:`, participantData);
+      setParticipant(participantData as SessionParticipant);
     } catch (error) {
       debugLog('fetch', `Exception fetching participant: ${error}`);
       setParticipant(null);

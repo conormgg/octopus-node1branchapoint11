@@ -306,6 +306,19 @@ export type Database = {
           session_id: string
         }[]
       }
+      public_save_whiteboard_operation: {
+        Args: {
+          p_action_type: string
+          p_board_id: string
+          p_object_data: Json
+          p_session_id: string
+          p_user_id?: string
+        }
+        Returns: {
+          created_at: string
+          id: string
+        }[]
+      }
       update_session_activity: {
         Args: { session_uuid: string }
         Returns: undefined
