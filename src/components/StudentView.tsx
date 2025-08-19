@@ -25,6 +25,9 @@ const StudentView: React.FC<StudentViewProps> = ({ sessionId, boardSuffix, sende
 
   // Generate dynamic board ID for student's personal board
   const personalBoardId = `student-personal-view-${boardSuffix.toLowerCase()}`;
+  
+  // Create a unique sender ID for this student session
+  const uniqueSenderId = `student_${senderId}_${boardSuffix}_${sessionId.slice(-8)}`;
 
   return (
     <div className="min-h-screen bg-gray-100">
@@ -74,7 +77,7 @@ const StudentView: React.FC<StudentViewProps> = ({ sessionId, boardSuffix, sende
                   onMaximize={() => handleMaximize("student-shared-teacher")}
                   onMinimize={handleMinimize}
                   sessionId={sessionId}
-                  senderId={senderId}
+                  senderId={uniqueSenderId}
                   currentUserRole="student"
                 />
               </div>
@@ -106,7 +109,7 @@ const StudentView: React.FC<StudentViewProps> = ({ sessionId, boardSuffix, sende
                   onMaximize={() => handleMaximize(personalBoardId)}
                   onMinimize={handleMinimize}
                   sessionId={sessionId}
-                  senderId={senderId}
+                  senderId={uniqueSenderId}
                   participant={participant}
                   currentUserRole="student"
                 />
