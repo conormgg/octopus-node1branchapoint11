@@ -298,6 +298,17 @@ export type Database = {
         Args: { session_uuid: string; user_email: string }
         Returns: boolean
       }
+      public_get_whiteboard_operations: {
+        Args: { p_board_id: string; p_limit?: number; p_session_id: string }
+        Returns: {
+          action_type: string
+          board_id: string
+          created_at: string
+          id: string
+          object_data: Json
+          user_id: string
+        }[]
+      }
       public_mark_participant_joined: {
         Args: { p_participant_id: number }
         Returns: {

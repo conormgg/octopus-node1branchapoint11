@@ -98,49 +98,66 @@ export class Connection {
     
     debugLog('Send', `Sending ${fullOperation.operation_type} to database from ${this.originalConfig.senderId}`);
     
-    // Use public RPC for anonymous students or direct insert for authenticated users
-    const sessionUuid = this.originalConfig.sessionId;
-    const isAnonymousUser = !this.originalConfig.senderId || this.originalConfig.senderId.startsWith('anonymous_');
-    
-    if (isAnonymousUser) {
-      // Use public RPC for anonymous students (bypasses RLS)
-      supabase
-        .rpc('public_save_whiteboard_operation', {
-          p_session_id: sessionUuid,
-          p_board_id: fullOperation.whiteboard_id,
-          p_action_type: fullOperation.operation_type,
-          p_object_data: fullOperation.data,
-          p_user_id: fullOperation.sender_id
-        })
-        .then(({ error, data }) => {
-          if (error) {
-            logError('Connection', 'Error sending operation via RPC', error);
-          } else {
-            debugLog('Send', 'Successfully sent operation via RPC', data);
-            this.info.lastActivity = Date.now();
-          }
-        });
-    } else {
-      // Use direct insert for authenticated users
-      const dbRecord = PayloadConverter.toDatabaseRecord(
-        fullOperation, 
-        this.originalConfig.sessionId
-      );
-      
-      supabase
-        .from('whiteboard_data')
-        .insert(dbRecord)
-        .then(({ error, data }) => {
-          if (error) {
-            logError('Connection', 'Error sending operation', error);
-          } else {
-            debugLog('Send', 'Successfully sent operation', data);
-            this.info.lastActivity = Date.now();
-          }
-        });
-    }
+    // Check authentication status and use appropriate method
+    this.sendOperationWithAuth(fullOperation);
     
     return fullOperation;
+  }
+
+  /**
+   * Send operation with proper authentication detection
+   */
+  private async sendOperationWithAuth(fullOperation: WhiteboardOperation): Promise<void> {
+    const sessionUuid = this.originalConfig.sessionId;
+    
+    try {
+      // Check if user is authenticated by getting current session
+      const { data: { session }, error: authError } = await supabase.auth.getSession();
+      
+      if (authError) {
+        debugLog('Auth', 'Error checking session, assuming anonymous user', authError);
+      }
+      
+      const isAuthenticated = session?.user?.id;
+      
+      if (isAuthenticated) {
+        // Use direct insert for authenticated users
+        const dbRecord = PayloadConverter.toDatabaseRecord(
+          fullOperation, 
+          this.originalConfig.sessionId
+        );
+        
+        const { error, data } = await supabase
+          .from('whiteboard_data')
+          .insert(dbRecord);
+          
+        if (error) {
+          logError('Connection', 'Error sending operation via direct insert', error);
+        } else {
+          debugLog('Send', 'Successfully sent operation via direct insert', data);
+          this.info.lastActivity = Date.now();
+        }
+      } else {
+        // Use public RPC for anonymous users (bypasses RLS)
+        const { error, data } = await supabase
+          .rpc('public_save_whiteboard_operation', {
+            p_session_id: sessionUuid,
+            p_board_id: fullOperation.whiteboard_id,
+            p_action_type: fullOperation.operation_type,
+            p_object_data: fullOperation.data,
+            p_user_id: fullOperation.sender_id
+          });
+          
+        if (error) {
+          logError('Connection', 'Error sending operation via public RPC', error);
+        } else {
+          debugLog('Send', 'Successfully sent operation via public RPC', data);
+          this.info.lastActivity = Date.now();
+        }
+      }
+    } catch (err) {
+      logError('Connection', 'Error in sendOperationWithAuth', err);
+    }
   }
   
   /**

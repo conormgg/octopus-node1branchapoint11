@@ -198,12 +198,32 @@ export const useWhiteboardPersistence = ({
       
       console.log(`[Persistence] Fetching data for whiteboard: ${whiteboardId}, session: ${sessionId}`);
 
-      // Fetch all whiteboard operations for this whiteboard and session
-      const { data, error } = await supabase
-        .from('whiteboard_data')
-        .select('*')
-        .eq('board_id', whiteboardId)
-        .order('created_at', { ascending: true });
+      // Check authentication and use appropriate method to fetch data
+      const { data: { session }, error: authError } = await supabase.auth.getSession();
+      
+      let data, error;
+      
+      if (session?.user?.id) {
+        // Authenticated user - use direct table access
+        const response = await supabase
+          .from('whiteboard_data')
+          .select('*')
+          .eq('board_id', whiteboardId)
+          .eq('session_id', sessionId)
+          .order('created_at', { ascending: true });
+        data = response.data;
+        error = response.error;
+      } else {
+        // Anonymous user - use public RPC function
+        const response = await supabase
+          .rpc('public_get_whiteboard_operations', {
+            p_session_id: sessionId,
+            p_board_id: whiteboardId,
+            p_limit: 500 // Set a reasonable limit
+          });
+        data = response.data;
+        error = response.error;
+      }
 
       if (error) {
         throw new Error(`Error fetching whiteboard data: ${error.message}`);
