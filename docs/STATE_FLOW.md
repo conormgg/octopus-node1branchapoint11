@@ -313,6 +313,89 @@ debugLog('Manager', `Keeping original config for ${connectionId} to prevent send
 debugLog('Manager', `Reusing existing connection for ${connectionId}`);
 ```
 
+## Database Real-time Subscriptions
+
+### Hybrid Real-time Architecture
+
+The application uses a multi-layered real-time system combining three approaches:
+
+1. **Connection-based Sync**: Traditional peer-to-peer sync with sender filtering
+2. **Database Real-time**: Direct Supabase subscriptions for teacher-to-student updates  
+3. **Broadcast Channels**: Instant sync direction changes bypassing RLS
+
+### Database Real-time Flow
+
+```
+Teacher Action (Main Board):
+Teacher draws → Operation sent via connection → Database insert → Real-time trigger
+    ↓
+Student Reception (Anonymous):
+Supabase real-time subscription → Operation received → State update → UI refresh
+    ↓
+Benefits:
+- No authentication required for students
+- Instant teacher updates
+- Reduced connection complexity
+```
+
+### Anonymous Access Pattern
+
+**RLS Policy for Real-time:**
+```sql
+CREATE POLICY "Allow anonymous reads for real-time streaming" 
+ON "public"."whiteboard_data" 
+AS PERMISSIVE 
+FOR SELECT 
+TO anon 
+USING (true);
+```
+
+**Implementation:**
+```typescript
+// Students can subscribe without authentication
+const channel = supabase
+  .channel('schema-db-changes')
+  .on('postgres_changes', {
+    event: 'INSERT',
+    schema: 'public',
+    table: 'whiteboard_data',
+    filter: `session_id=eq.${sessionId}&board_id=eq.teacher-main`
+  }, handleRealtimeUpdate);
+```
+
+### Sync Direction Broadcasting
+
+```
+Teacher Control Toggle:
+UI toggle → Database update → Broadcast channel → All students notified
+    ↓
+Student UI Response:
+Broadcast received → Override sync direction → Toolbar hide/show → UX update
+    ↓
+Flow Benefits:
+- Instant feedback (no database round-trip)
+- Bypasses RLS restrictions
+- Maintains UI responsiveness
+```
+
+### Debugging Real-time Issues
+
+**Common Problems:**
+1. **Missing real-time updates**: Check anonymous RLS policy
+2. **Broadcast not received**: Verify channel names match
+3. **Authentication errors**: Ensure anonymous access configured
+
+**Debug Logging:**
+```typescript
+// Database real-time debugging
+debugLog('realtime-setup', `Subscribing to ${boardId} updates`);
+debugLog('realtime-received', `Operation: ${operation.action_type}`);
+
+// Broadcast debugging  
+debugLog('broadcast-send', `Broadcasting to session ${sessionId}`);
+debugLog('broadcast-received', `Participant ${participantId} direction: ${direction}`);
+```
+
 ## Split View System State Flow
 
 ### Split View Mode Management

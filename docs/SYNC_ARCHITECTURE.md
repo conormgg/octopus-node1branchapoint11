@@ -304,6 +304,71 @@ Before modifying any sync-related files, ensure:
 - [ ] I've tested operation echo-back prevention
 - [ ] I've documented any changes to this file
 
+## Broadcast Channel Architecture
+
+### Real-time Sync Direction Updates
+
+The application uses Supabase broadcast channels to instantly propagate sync direction changes (teacher control toggles) to all participants, bypassing RLS restrictions.
+
+#### Broadcast Channel Components
+
+**useSyncDirectionBroadcastListener** (`src/hooks/useSyncDirectionBroadcastListener.ts`)
+- Listens for sync direction changes via broadcast channels
+- Bypasses RLS policies for instant updates
+- Updates student UI state immediately when teacher toggles control
+
+**Key Implementation:**
+```typescript
+const channel = supabase.channel(`sync-direction-broadcast-${sessionId}`, {
+  config: { broadcast: { self: false } }
+});
+
+channel.on('broadcast', { event: 'sync_direction_changed' }, handleBroadcast);
+```
+
+**Broadcast Payload:**
+```typescript
+{
+  participantId: number;
+  syncDirection: SyncDirection;
+  boardSuffix: string;
+  timestamp: number;
+}
+```
+
+### Database Real-time Subscriptions
+
+**Anonymous Access for Real-time Updates:**
+Students can now receive real-time whiteboard updates via Supabase real-time subscriptions using an anonymous RLS policy:
+
+```sql
+-- Allow anonymous reads for real-time streaming
+CREATE POLICY "Allow anonymous reads for real-time streaming" 
+ON "public"."whiteboard_data" 
+AS PERMISSIVE 
+FOR SELECT 
+TO anon 
+USING (true);
+```
+
+**Hybrid Architecture Benefits:**
+1. **Connection-based sync**: For user-generated operations with sender filtering
+2. **Database real-time**: For receiving teacher updates without authentication
+3. **Broadcast channels**: For instant sync direction changes bypassing RLS
+
+### Debugging Broadcast Channels
+
+**Enable broadcast debugging:**
+```typescript
+const debugLog = createDebugLogger('sync');
+
+// In broadcast sender
+debugLog('broadcast-send', `Broadcasting sync direction change: ${participantId} -> ${direction}`);
+
+// In broadcast listener
+debugLog('broadcast-received', `Received sync direction change: participant ${participantId} -> ${syncDirection}`);
+```
+
 ## Files Requiring Expert Understanding
 
 - `src/utils/sync/Connection.ts` - Core connection and filtering logic
@@ -311,5 +376,7 @@ Before modifying any sync-related files, ensure:
 - `src/hooks/useSyncState.ts` - Hook integration with connection manager
 - `src/hooks/useRemoteOperationHandler.ts` - Remote operation processing
 - `src/hooks/shared/useSharedOperationsCoordinator.ts` - Operation coordination
+- `src/hooks/useSyncDirectionBroadcastListener.ts` - Real-time sync direction updates
+- `src/hooks/useSyncDirectionManager.ts` - Sync direction state management
 
 **Remember: This architecture has caused production outages when modified incorrectly. When in doubt, don't modify it.**

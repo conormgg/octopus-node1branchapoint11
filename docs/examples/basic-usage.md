@@ -111,6 +111,77 @@ function TeacherApp() {
 }
 ```
 
+## Real-time Sync Direction Handling
+
+```tsx
+import { useSyncDirectionBroadcastListener } from '@/hooks';
+
+function StudentViewWithBroadcastSync() {
+  const [overrideSyncDirection, setOverrideSyncDirection] = useState<SyncDirection | null>(null);
+  
+  // Listen for sync direction broadcasts from teacher
+  useSyncDirectionBroadcastListener(
+    sessionId,
+    (participantId, newDirection, boardSuffix) => {
+      if (participantId === currentParticipant.id) {
+        setOverrideSyncDirection(newDirection);
+        console.log('Sync direction updated via broadcast:', newDirection);
+      }
+    }
+  );
+
+  const effectiveSyncDirection = overrideSyncDirection || participant.sync_direction;
+  const isReadOnly = effectiveSyncDirection === 'teacher_active';
+
+  return (
+    <SyncWhiteboard 
+      syncConfig={syncConfig}
+      isReadOnly={isReadOnly}
+      // Toolbar automatically hidden when teacher is in control
+    />
+  );
+}
+```
+
+## Database Real-time Subscriptions
+
+```tsx
+import { useEffect } from 'react';
+import { supabase } from '@/integrations/supabase/client';
+
+function StudentRealtimeUpdates() {
+  const [operations, setOperations] = useState([]);
+
+  useEffect(() => {
+    // Subscribe to teacher's main board updates (anonymous access)
+    const channel = supabase
+      .channel('schema-db-changes')
+      .on('postgres_changes', {
+        event: 'INSERT',
+        schema: 'public', 
+        table: 'whiteboard_data',
+        filter: `session_id=eq.${sessionId}&board_id=eq.teacher-main`
+      }, (payload) => {
+        console.log('Received teacher update:', payload.new);
+        const operation = convertToWhiteboardOperation(payload.new);
+        handleTeacherOperation(operation);
+      })
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [sessionId]);
+
+  return (
+    <div>
+      <h3>Receiving live updates from teacher</h3>
+      {/* Your whiteboard component */}
+    </div>
+  );
+}
+```
+
 ## Event Handling Customization
 
 ```tsx
@@ -141,5 +212,39 @@ function CustomEventHandling() {
       {/* Your canvas content */}
     </div>
   );
+}
+```
+
+## Debug Logging for Real-time Features
+
+```tsx
+import { createDebugLogger } from '@/utils/debug/debugConfig';
+
+function DebuggingRealtime() {
+  const debugLog = createDebugLogger('sync');
+
+  // Debug broadcast reception
+  useSyncDirectionBroadcastListener(sessionId, (participantId, direction, boardSuffix) => {
+    debugLog('broadcast-received', `Participant ${participantId} -> ${direction} for ${boardSuffix}`);
+  });
+
+  // Debug real-time subscription  
+  useEffect(() => {
+    const channel = supabase.channel('schema-db-changes');
+    
+    channel.on('postgres_changes', {
+      event: 'INSERT',
+      schema: 'public',
+      table: 'whiteboard_data'
+    }, (payload) => {
+      debugLog('realtime-received', `Operation: ${payload.new.action_type} from ${payload.new.user_id}`);
+    });
+
+    debugLog('realtime-setup', `Subscribed to real-time updates for session ${sessionId}`);
+    
+    return () => supabase.removeChannel(channel);
+  }, [sessionId]);
+
+  return <div>Check console for real-time debug logs</div>;
 }
 ```

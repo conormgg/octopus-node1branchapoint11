@@ -170,19 +170,94 @@ supabase
 - Loading states during operations
 - Clear error messages with guidance
 
+## Sync Direction Broadcasting
+
+### Real-time Control Updates
+
+Teachers can instantly toggle between "student control" and "teacher control" modes, with changes propagated immediately to all students via broadcast channels.
+
+### Broadcast System Architecture
+
+**Teacher Control Toggle Flow:**
+```
+1. Teacher clicks sync direction toggle
+2. Database updated (session_participants.sync_direction)
+3. Broadcast sent to all session participants
+4. Students receive broadcast → UI updates instantly
+5. Student toolbars show/hide based on new direction
+```
+
+**Implementation:**
+```typescript
+// Broadcasting sync direction changes
+const broadcastSyncDirectionChange = async (
+  participantId: number, 
+  newDirection: SyncDirection, 
+  boardSuffix: string
+) => {
+  const channel = supabase.channel(`sync-direction-broadcast-${sessionId}`);
+  
+  await channel.send({
+    type: 'broadcast',
+    event: 'sync_direction_changed',
+    payload: { participantId, syncDirection: newDirection, boardSuffix, timestamp: Date.now() }
+  });
+};
+```
+
+**Student Reception:**
+```typescript
+// useSyncDirectionBroadcastListener
+const handleBroadcast = useCallback((payload) => {
+  const { participantId, syncDirection, boardSuffix } = payload.payload;
+  onSyncDirectionChange(participantId, syncDirection, boardSuffix);
+}, [onSyncDirectionChange]);
+```
+
+### Override Sync Direction
+
+Students maintain local `overrideSyncDirection` state that takes precedence over database values:
+
+**Priority Order:**
+1. `overrideSyncDirection` (from broadcasts) - Highest priority
+2. `participant.sync_direction` (from database) - Fallback
+3. Default behavior - Lowest priority
+
+**UI Integration:**
+```typescript
+// Student toolbar visibility
+const effectiveDirection = overrideSyncDirection || participant.sync_direction;
+const isReadOnly = effectiveDirection === 'teacher_active';
+
+<SyncWhiteboard 
+  isReadOnly={isReadOnly}
+  // Toolbar automatically hidden when isReadOnly=true
+/>
+```
+
+### Benefits
+
+- **Instant Feedback**: No database round-trip delay
+- **Bypasses RLS**: Broadcasts work without authentication  
+- **Consistent UX**: All students see changes simultaneously
+- **Reliable Fallback**: Database state as backup if broadcasts fail
+
 ## Best Practices
 
 ### Performance
 - Efficient real-time subscriptions
 - Minimal re-renders on state changes
 - Proper cleanup of subscriptions
+- Broadcast channels for instant updates
 
 ### User Experience
 - Immediate feedback for all actions
 - Clear visual status indicators
 - Intuitive management interface
+- Instant sync direction changes
 
 ### Data Integrity
 - Proper foreign key relationships
 - Cascade deletion handling
 - Atomic operations for data consistency
+- Broadcast payload validation
