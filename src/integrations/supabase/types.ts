@@ -325,10 +325,7 @@ export type Database = {
           p_session_id: string
           p_user_id?: string
         }
-        Returns: {
-          created_at: string
-          id: string
-        }[]
+        Returns: undefined
       }
       update_session_activity: {
         Args: { session_uuid: string }
