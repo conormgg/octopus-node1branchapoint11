@@ -63,9 +63,44 @@ export const useSyncDirectionManager = (
           ...prev,
           [participantId]: newDirection
         }));
+
+        // Broadcast change to all clients (bypasses RLS for instant updates)
+        broadcastSyncDirectionChange(participantId, newDirection, newRecord.assigned_board_suffix);
       }
     }
   }, []);
+
+  // Broadcast sync direction changes to all session participants
+  const broadcastSyncDirectionChange = useCallback((participantId: number, newDirection: SyncDirection, boardSuffix: string) => {
+    if (!sessionId) return;
+    
+    debugLog('broadcast', `Broadcasting sync direction change: participant ${participantId} -> ${newDirection}`);
+    
+    const broadcastChannel = supabase.channel(`sync-direction-broadcast-${sessionId}`, {
+      config: { broadcast: { self: true } }
+    });
+    
+    broadcastChannel
+      .subscribe((status) => {
+        if (status === 'SUBSCRIBED') {
+          broadcastChannel.send({
+            type: 'broadcast',
+            event: 'sync_direction_changed',
+            payload: {
+              participantId,
+              syncDirection: newDirection,
+              boardSuffix,
+              timestamp: Date.now()
+            }
+          });
+          
+          // Clean up the broadcast channel after sending
+          setTimeout(() => {
+            supabase.removeChannel(broadcastChannel);
+          }, 1000);
+        }
+      });
+  }, [sessionId]);
 
   // Set up real-time subscription
   useEffect(() => {
@@ -127,13 +162,14 @@ export const useSyncDirectionManager = (
     }));
 
     try {
-      // Step 3: Make async database call
-      const result = await updateParticipantSyncDirection(participantId, newDirection);
-      
-      if (result.success) {
-        debugLog('toggle', `Successfully toggled participant ${participantId} to ${newDirection}`);
-        // Success - the real-time listener will confirm the state, no need to update again
-        return true;
+        // Step 3: Make async database call
+        const result = await updateParticipantSyncDirection(participantId, newDirection);
+        
+        if (result.success) {
+          debugLog('toggle', `Successfully toggled participant ${participantId} to ${newDirection}`);
+          // Success - real-time listener will handle the database update, 
+          // but also broadcast immediately for instant UI updates
+          return true;
       } else {
         debugLog('toggle', `Failed to toggle participant ${participantId}: ${result.error}`);
         

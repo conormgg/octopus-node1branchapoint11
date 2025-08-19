@@ -4,6 +4,8 @@ import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from '@/componen
 import WhiteboardPlaceholder from './WhiteboardPlaceholder';
 import { GraduationCap, User } from 'lucide-react';
 import { useStudentParticipant } from '@/hooks/session/useStudentParticipant';
+import { useSyncDirectionBroadcastListener } from '@/hooks/useSyncDirectionBroadcastListener';
+import { SyncDirection } from '@/types/student';
 
 interface StudentViewProps {
   sessionId: string;
@@ -13,7 +15,19 @@ interface StudentViewProps {
 
 const StudentView: React.FC<StudentViewProps> = ({ sessionId, boardSuffix, senderId }) => {
   const [maximizedBoard, setMaximizedBoard] = useState<string | null>(null);
+  const [overrideSyncDirection, setOverrideSyncDirection] = useState<{ [participantId: number]: SyncDirection }>({});
   const { participant } = useStudentParticipant(sessionId, boardSuffix);
+
+  // Listen for sync direction broadcasts for instant UI updates
+  useSyncDirectionBroadcastListener(sessionId, (participantId, newDirection, affectedBoardSuffix) => {
+    // Update override only if this student is affected
+    if (affectedBoardSuffix === boardSuffix && participant?.id === participantId) {
+      setOverrideSyncDirection(prev => ({
+        ...prev,
+        [participantId]: newDirection
+      }));
+    }
+  });
 
   const handleMaximize = (boardId: string) => {
     setMaximizedBoard(boardId);
@@ -112,6 +126,7 @@ const StudentView: React.FC<StudentViewProps> = ({ sessionId, boardSuffix, sende
                   senderId={uniqueSenderId}
                   participant={participant}
                   currentUserRole="student"
+                  overrideSyncDirection={participant?.id ? overrideSyncDirection[participant.id] : undefined}
                 />
               </div>
             </div>

@@ -26,6 +26,7 @@ interface WhiteboardPlaceholderProps {
   participant?: SessionParticipant | null;
   currentUserRole?: 'teacher' | 'student';
   currentSyncDirection?: SyncDirection;
+  overrideSyncDirection?: SyncDirection;
   // Sync direction toggle props for maximized view
   onToggleSyncDirection?: (participantId: number) => Promise<boolean>;
   isParticipantUpdating?: boolean;
@@ -46,6 +47,7 @@ const WhiteboardPlaceholder: React.FC<WhiteboardPlaceholderProps> = ({
   participant,
   currentUserRole,
   currentSyncDirection,
+  overrideSyncDirection,
   onToggleSyncDirection,
   isParticipantUpdating,
   studentName
@@ -79,7 +81,7 @@ const WhiteboardPlaceholder: React.FC<WhiteboardPlaceholderProps> = ({
     senderId || 'unknown-sender',
     participant,
     userRole,
-    currentSyncDirection // NEW: Pass override sync direction
+    overrideSyncDirection || currentSyncDirection // Use override if available, otherwise fall back to currentSyncDirection
   );
 
   const handleMaximizeClick = () => {
