@@ -209,6 +209,7 @@ export const useStageEventHandlers = ({
       select2State: select2Handlers.select2State,
       clearSelect2Selection: select2Handlers.clearSelection,
       deleteSelectedObjects: select2Handlers.deleteSelectedObjects,
+      selectAll: select2Handlers.selectAll,
       handleTransformHandleMouseDown: select2Handlers.handleTransformHandleMouseDown,
       handleTransformMouseMove: select2Handlers.handleTransformMouseMove,
       handleTransformMouseUp: select2Handlers.handleTransformMouseUp,

@@ -786,6 +786,24 @@ export const useSelect2State = () => {
     }));
   }, []);
 
+  // Select all objects on the canvas
+  const selectAll = useCallback((lines: LineObject[], images: ImageObject[]) => {
+    const allObjects: SelectedObject[] = [
+      ...lines.map(line => ({ id: line.id, type: 'line' as const })),
+      ...images.map(image => ({ id: image.id, type: 'image' as const }))
+    ];
+    
+    const groupBounds = calculateGroupBounds(allObjects, lines, images);
+    const groupRotation = calculateGroupRotation(allObjects, images);
+    
+    setState(prev => ({
+      ...prev,
+      selectedObjects: allObjects,
+      groupBounds,
+      transformGroupRotation: groupRotation
+    }));
+  }, [calculateGroupBounds, calculateGroupRotation]);
+
   return {
     state,
     setState,
@@ -807,6 +825,7 @@ export const useSelect2State = () => {
     showContextMenu,
     hideContextMenu,
     updateContextMenuPosition,
+    selectAll,
     // Transform methods
     startTransform,
     updateTransform,

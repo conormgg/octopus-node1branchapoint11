@@ -12,6 +12,7 @@ interface UseKonvaKeyboardHandlersProps {
     select2State: any;
     deleteSelectedObjects: () => void;
     clearSelection: () => void;
+    selectAll: (lines: any[], images: any[]) => void;
   };
 }
 
@@ -56,9 +57,14 @@ export const useKonvaKeyboardHandlers = ({
         return;
       }
 
-      // Ctrl+A - select all objects (only when select tool is active)
-      if (e.ctrlKey && e.key === 'a' && state.currentTool === 'select' && selection?.selectAll) {
-        selection.selectAll(state.lines || [], state.images || []);
+      // Ctrl+A - select all objects
+      if (e.ctrlKey && e.key === 'a') {
+        if (state.currentTool === 'select2' && select2Handlers?.selectAll) {
+          select2Handlers.selectAll(state.lines || [], state.images || []);
+          e.preventDefault();
+          return;
+        }
+        // Original select tool no longer has selectAll functionality
         e.preventDefault();
         return;
       }

@@ -16,12 +16,7 @@ export const useSelectionState = () => {
   // NOTE: Original select tool hit detection functions removed
   // Use select2 tool for hit detection functionality
 
-  // NOTE: selectAll function disabled - original select tool function selectObjects removed
-  // Use select2 tool for selection functionality
-  const selectAll = useCallback((lines: LineObject[], images: ImageObject[]) => {
-    // Function disabled - use select2 tool for selection
-    console.warn('selectAll: Original select tool disabled, use select2 tool');
-  }, []);
+  // selectAll function removed - use select2 tool for selection functionality
 
   // Simplified selection bounds calculation - only handles basic x, y positioning
   const calculateSelectionBounds = useCallback((
@@ -160,7 +155,6 @@ export const useSelectionState = () => {
     selectionState,
     // NOTE: Hit detection functions removed (isPointOnLine, isPointOnImage, findObjectsAtPoint, 
     // findObjectsInBounds, isObjectSelected, getSelectedObjectIds) - use select2 tool
-    selectAll,
     calculateSelectionBounds,
     isPointInSelectionBounds,
     hoveredObjectId,

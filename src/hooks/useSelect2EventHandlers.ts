@@ -65,7 +65,8 @@ export const useSelect2EventHandlers = ({
     startTransform,
     updateTransform,
     endTransform,
-    cancelTransform
+    cancelTransform,
+    selectAll
   } = useSelect2State();
 
   const { getRelativePointerPosition } = useStageCoordinates(panZoomState);
@@ -1099,6 +1100,7 @@ export const useSelect2EventHandlers = ({
       
       endTransform();
       console.log('Transform ended');
-    }
+    },
+    selectAll
   };
 };

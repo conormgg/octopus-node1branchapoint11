@@ -165,7 +165,8 @@ const KonvaStage: React.FC<KonvaStageProps> = ({
     select2Handlers: state.currentTool === 'select2' && stageEventHandlers ? {
       select2State: stageEventHandlers.select2State,
       deleteSelectedObjects: stageEventHandlers.deleteSelectedObjects || (() => {}),
-      clearSelection: stageEventHandlers.clearSelect2Selection || (() => {})
+      clearSelection: stageEventHandlers.clearSelect2Selection || (() => {}),
+      selectAll: stageEventHandlers.selectAll || (() => {})
     } : undefined
   });
 
