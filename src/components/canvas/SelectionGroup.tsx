@@ -39,11 +39,11 @@ const SelectionGroup: React.FC<SelectionGroupProps> = ({
     .map(obj => images.find(image => image.id === obj.id))
     .filter(Boolean) as ImageObject[];
 
-  // Only show group if multiple objects are selected and tool is select or select2
-  const shouldShowGroup = isVisible && ((currentTool === 'select2' && selectedObjects.length > 0) || (currentTool === 'select' && selectedObjects.length > 1));
+  // Show group when objects are selected (select2 behavior only)
+  const shouldShowGroup = isVisible && selectedObjects.length > 0;
 
-  // FIXED: Disable dragging for select2 tool to prevent double movement
-  const isDraggable = shouldShowGroup && currentTool === 'select';
+  // Dragging disabled to prevent conflicts with select2 transform system
+  const isDraggable = false;
 
   // Calculate group bounds for the background - recalculate whenever objects change
   const groupBounds = shouldShowGroup ? calculateGroupBounds(selectedObjects, selectedLines, selectedImages) : null;

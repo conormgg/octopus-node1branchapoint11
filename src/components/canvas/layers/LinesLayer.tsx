@@ -95,18 +95,7 @@ const LinesLayer: React.FC<LinesLayerProps> = ({
         onUpdateLine={onUpdateLine}
       />
       
-      {/* Selection Group - handles multiple selected objects as one entity */}
-      {selection?.selectionState?.selectedObjects && (
-        <SelectionGroup
-          selectedObjects={selection.selectionState.selectedObjects}
-          lines={allLinesToRender} // Use all lines for selection, not culled ones
-          images={imagesToUse}
-          onUpdateLine={onUpdateLine}
-          onUpdateImage={onUpdateImage}
-          currentTool={currentTool}
-          isVisible={!isSelecting} // Hide during drag-to-select
-        />
-      )}
+      {/* Selection Group removed - now handled by select2 in KonvaStage.tsx */}
       
       {/* Selection rectangle - rendered on top of everything */}
       <SelectionRect
