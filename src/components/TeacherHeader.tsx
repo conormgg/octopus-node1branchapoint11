@@ -173,17 +173,25 @@ const TeacherHeader: React.FC<TeacherHeaderProps> = ({
     });
   };
 
-  // Monitor window state with improved closure detection
+  // Monitor window state with grace period to prevent premature closure detection
   useEffect(() => {
     if (!monitorWindow) return;
 
     console.log('[TeacherHeader] Setting up window closure detection for Split View 2');
-
+    
+    // Grace period to allow window to fully load before enabling closure detection
+    const GRACE_PERIOD = 2000; // 2 seconds
+    let isGracePeriodActive = true;
+    
     const handleWindowClosure = () => {
+      if (isGracePeriodActive) {
+        console.log('[TeacherHeader] Ignoring closure during grace period');
+        return;
+      }
+      
       console.log('[TeacherHeader] Monitor window closed - reverting to original layout');
       setIsSplitView2Active(false);
       setMonitorWindow(null);
-      // Notify parent component about state change
       onSplitView2StateChange?.(false);
       
       toast({
@@ -192,26 +200,13 @@ const TeacherHeader: React.FC<TeacherHeaderProps> = ({
       });
     };
 
-    // Add event listeners for immediate closure detection
-    const handleBeforeUnload = () => {
-      console.log('[TeacherHeader] Monitor window beforeunload event fired');
-      handleWindowClosure();
-    };
+    // Disable grace period after window has had time to load
+    const graceTimeout = setTimeout(() => {
+      isGracePeriodActive = false;
+      console.log('[TeacherHeader] Grace period ended - closure detection active');
+    }, GRACE_PERIOD);
 
-    const handleUnload = () => {
-      console.log('[TeacherHeader] Monitor window unload event fired');
-      handleWindowClosure();
-    };
-
-    // Attach event listeners to the monitor window
-    try {
-      monitorWindow.addEventListener('beforeunload', handleBeforeUnload);
-      monitorWindow.addEventListener('unload', handleUnload);
-    } catch (error) {
-      console.warn('[TeacherHeader] Could not attach unload listeners:', error);
-    }
-
-    // Fallback polling with shorter interval for better responsiveness
+    // Use only polling for reliable closure detection
     const checkWindow = () => {
       if (monitorWindow.closed) {
         console.log('[TeacherHeader] Monitor window detected as closed via polling');
@@ -219,19 +214,13 @@ const TeacherHeader: React.FC<TeacherHeaderProps> = ({
       }
     };
 
-    const interval = setInterval(checkWindow, 250); // Reduced from 1000ms to 250ms
+    const interval = setInterval(checkWindow, 500);
 
     return () => {
       console.log('[TeacherHeader] Cleaning up window closure detection');
+      clearTimeout(graceTimeout);
       clearInterval(interval);
-      try {
-        if (monitorWindow && !monitorWindow.closed) {
-          monitorWindow.removeEventListener('beforeunload', handleBeforeUnload);
-          monitorWindow.removeEventListener('unload', handleUnload);
-        }
-      } catch (error) {
-        console.warn('[TeacherHeader] Error during cleanup:', error);
-      }
+      isGracePeriodActive = false;
     };
   }, [monitorWindow, onSplitView2StateChange, toast]);
 
