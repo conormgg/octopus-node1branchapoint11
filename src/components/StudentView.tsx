@@ -80,15 +80,15 @@ const StudentView: React.FC<StudentViewProps> = ({ sessionId, boardSuffix, sende
               </div>
               <div 
                 className={`h-[calc(100%-4rem)] ${
-                  maximizedBoard === "student-shared-teacher" 
+                  maximizedBoard === "teacher-main" 
                     ? "fixed inset-4 z-50 bg-gray-100" 
                     : ""
                 }`}
               >
                 <WhiteboardPlaceholder
-                  id="student-shared-teacher"
-                  isMaximized={maximizedBoard === "student-shared-teacher"}
-                  onMaximize={() => handleMaximize("student-shared-teacher")}
+                  id="teacher-main"
+                  isMaximized={maximizedBoard === "teacher-main"}
+                  onMaximize={() => handleMaximize("teacher-main")}
                   onMinimize={handleMinimize}
                   sessionId={sessionId}
                   senderId={uniqueSenderId}
