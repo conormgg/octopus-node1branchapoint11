@@ -113,8 +113,8 @@ export const useStageEventHandlers = ({
       // Update touch-action when tool changes
       const container = containerRef.current;
       if (container) {
-        // For select tool, allow native touch behavior; for others, prevent it
-        container.style.touchAction = currentTool === 'select' ? 'manipulation' : 'none';
+        // For select2 tool, allow native touch behavior; for others, prevent it
+        container.style.touchAction = currentTool === 'select2' ? 'manipulation' : 'none';
         debugLog('StageEventHandlers', 'Updated touch-action via prop', {
           tool: currentTool,
           touchAction: container.style.touchAction

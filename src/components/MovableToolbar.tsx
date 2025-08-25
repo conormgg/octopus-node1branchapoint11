@@ -1,7 +1,7 @@
 
 import React from 'react';
 import { Card } from '@/components/ui/card';
-import { Pen, Eraser, MousePointer, Highlighter, Undo, Redo, MousePointer2 } from 'lucide-react';
+import { Pen, Eraser, Highlighter, Undo, Redo, MousePointer2 } from 'lucide-react';
 import { Tool } from '@/types/whiteboard';
 import { useToolbarDrag } from '@/hooks/useToolbarDrag';
 import { ToolDropdown } from './toolbar/ToolDropdown';
@@ -125,13 +125,6 @@ const MovableToolbar: React.FC<MovableToolbarProps> = ({
             isReadOnly={isReadOnly}
           />
           
-          <ToolButton
-            icon={<MousePointer className="h-4 w-4" />}
-            isActive={currentTool === 'select'}
-            onClick={() => onToolChange('select')}
-            isReadOnly={isReadOnly}
-          />
-
           <ToolButton
             icon={<MousePointer2 className="h-4 w-4" />}
             isActive={currentTool === 'select2'}
