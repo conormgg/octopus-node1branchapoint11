@@ -12,7 +12,7 @@ interface UseStageCursorProps {
 export const useStageCursor = ({ currentTool, selection }: UseStageCursorProps) => {
   const cursor = useMemo(() => {
     if (currentTool === 'eraser') return 'crosshair';
-    if (currentTool === 'select' && selection?.hoveredObjectId) return 'pointer';
+    // Original select tool removed
     return 'default';
   }, [currentTool, selection?.hoveredObjectId]);
 

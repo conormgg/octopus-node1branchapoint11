@@ -85,7 +85,7 @@ const ImageRenderer: React.FC<ImageRendererProps> = React.memo(({
         offsetY={(imageObject.height || 100) / 2}
         rotation={imageObject.rotation || 0}
         
-        draggable={(currentTool === 'select' || currentTool === 'select2') && isSelected && !isLocked}
+        draggable={currentTool === 'select2' && isSelected && !isLocked}
         onDragStart={onSelect}
         onDragEnd={handleDragEnd}
         

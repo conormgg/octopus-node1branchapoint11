@@ -33,21 +33,9 @@ const LinesList: React.FC<LinesListProps> = ({
             isSelected={isSelected && !isInGroup} // Hide individual selection when in group
             isHovered={selection?.hoveredObjectId === line.id}
             currentTool={currentTool}
-            onSelect={currentTool === 'select' ? () => {
-              if (selection) {
-                selection.selectObjects([{ id: line.id, type: 'line' }]);
-              }
-            } : undefined}
-            onMouseEnter={currentTool === 'select' ? () => {
-              if (selection?.setHoveredObjectId) {
-                selection.setHoveredObjectId(line.id);
-              }
-            } : undefined}
-            onMouseLeave={currentTool === 'select' ? () => {
-              if (selection?.setHoveredObjectId) {
-                selection.setHoveredObjectId(null);
-              }
-            } : undefined}
+            onSelect={undefined}
+            onMouseEnter={undefined}
+            onMouseLeave={undefined}
             onDragEnd={(newPosition) => {
               if (onUpdateLine) {
                 onUpdateLine(line.id, newPosition);

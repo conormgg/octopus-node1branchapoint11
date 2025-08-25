@@ -85,8 +85,8 @@ const LineRenderer: React.FC<LineRendererProps> = React.memo(({
         x={line.x}
         y={line.y}
         perfectDrawEnabled={false}
-        listening={onSelect || onMouseEnter || onMouseLeave || ((currentTool === 'select' || currentTool === 'select2') && isSelected) ? true : false}
-        draggable={(currentTool === 'select' || currentTool === 'select2') && isSelected}
+        listening={onSelect || onMouseEnter || onMouseLeave || (currentTool === 'select2' && isSelected) ? true : false}
+        draggable={currentTool === 'select2' && isSelected}
         onClick={onSelect}
         onTap={onSelect}
         onMouseEnter={onMouseEnter}

@@ -67,19 +67,8 @@ export const useMouseEventHandlers = ({
           return;
         }
         
-        // Handle selection tool clicks
-        if (stableCurrentTool === 'select' && selection && !stableIsReadOnly) {
-          // Check if we clicked on a line or image
-          const clickedShape = e.target;
-          if (clickedShape && clickedShape !== e.target.getStage()) {
-            // Don't handle the click here - let the shape's onClick handler deal with it
-            // This allows dragging to work properly
-            return;
-          }
-          // For empty space clicks with select tool, let handlePointerDown handle it
-          // so that drag-to-select can work
-        } else if (onStageClick && stableCurrentTool !== 'select') {
-          // Call the stage click handler for other tools
+        // Call the stage click handler for tools that need it
+        if (onStageClick) {
           onStageClick(e);
         }
         

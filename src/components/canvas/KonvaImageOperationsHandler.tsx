@@ -48,13 +48,7 @@ const KonvaImageOperationsHandler: React.FC<KonvaImageOperationsHandlerProps> = 
             isSelected={isSelected && !isInGroup}
             isHovered={selection?.hoveredObjectId === image.id}
             onSelect={() => {
-              if (selection && state.currentTool === 'select') {
-                // NOTE: Original selectObjects removed - function may not exist
-                const selectionWithSelectObjects = selection as any;
-                if (selectionWithSelectObjects?.selectObjects && typeof selectionWithSelectObjects.selectObjects === 'function') {
-                  selectionWithSelectObjects.selectObjects([{ id: image.id, type: 'image' }]);
-                }
-              }
+              // No-op - original select tool removed
             }}
             onChange={(newAttrs) => {
               if (updateImage) {
@@ -69,16 +63,8 @@ const KonvaImageOperationsHandler: React.FC<KonvaImageOperationsHandlerProps> = 
               }
             }}
             currentTool={state.currentTool}
-            onMouseEnter={state.currentTool === 'select' ? () => {
-              if (selection?.setHoveredObjectId) {
-                selection.setHoveredObjectId(image.id);
-              }
-            } : undefined}
-            onMouseLeave={state.currentTool === 'select' ? () => {
-              if (selection?.setHoveredObjectId) {
-                selection.setHoveredObjectId(null);
-              }
-            } : undefined}
+            onMouseEnter={undefined}
+            onMouseLeave={undefined}
             onToggleLock={() => handleToggleLock(image.id)}
             onContextMenu={onImageContextMenu}
           />

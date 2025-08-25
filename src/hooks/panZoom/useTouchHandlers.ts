@@ -64,7 +64,7 @@ export const useTouchHandlers = (
       debugLog('TouchHandlers', 'Single touch - should be handled by pointer events', {
         touches: e.touches.length,
         currentTool,
-        shouldBeSelection: currentTool === 'select'
+        shouldBeSelection: false
       });
     }
     // Single touches are completely ignored - handled by pointer events

@@ -59,8 +59,6 @@ export const usePointerEventCore = (
     // Route to appropriate handler
     if (currentTool === 'pencil' || currentTool === 'highlighter' || currentTool === 'eraser') {
       drawingCoordination.handleDrawingStart(stagePos.x, stagePos.y);
-    } else if (currentTool === 'select' && selection) {
-      selection.handlePointerDown(stagePos.x, stagePos.y);
     }
   }, [multiTouch, eventDeduplication, drawingCoordination, stageCoordinates, currentTool, selection, updateDrawingSequence]);
 
@@ -90,8 +88,6 @@ export const usePointerEventCore = (
     // Route to appropriate handler
     if (currentTool === 'pencil' || currentTool === 'highlighter' || currentTool === 'eraser') {
       drawingCoordination.handleDrawingContinue(stagePos.x, stagePos.y);
-    } else if (currentTool === 'select' && selection) {
-      selection.handlePointerMove(stagePos.x, stagePos.y);
     }
   }, [multiTouch, eventDeduplication, drawingCoordination, stageCoordinates, currentTool, selection, updateDrawingSequence, isInDrawingSequence]);
 
@@ -114,8 +110,6 @@ export const usePointerEventCore = (
     // Route to appropriate handler
     if (currentTool === 'pencil' || currentTool === 'highlighter' || currentTool === 'eraser') {
       drawingCoordination.handleDrawingEnd();
-    } else if (currentTool === 'select' && selection) {
-      selection.handlePointerUp();
     }
   }, [multiTouch, eventDeduplication, drawingCoordination, currentTool, selection]);
 
@@ -131,8 +125,6 @@ export const usePointerEventCore = (
     // End drawing operations
     if (currentTool === 'pencil' || currentTool === 'highlighter' || currentTool === 'eraser') {
       drawingCoordination.handleDrawingEnd();
-    } else if (currentTool === 'select' && selection) {
-      selection.handlePointerUp();
     }
   }, [multiTouch, drawingCoordination, currentTool, selection]);
 
