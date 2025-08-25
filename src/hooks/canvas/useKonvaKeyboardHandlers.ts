@@ -93,13 +93,6 @@ export const useKonvaKeyboardHandlers = ({
           if (select2Handlers.clearSelection) {
             select2Handlers.clearSelection();
           }
-        } else if (selection?.selectionState?.selectedObjects?.length > 0) {
-          // Fallback to regular selection
-          console.log(`[${whiteboardId}] Delete key pressed - selected objects:`, selection.selectionState.selectedObjects);
-          
-          if (unifiedDeleteFunction) {
-            unifiedDeleteFunction(selection.selectionState.selectedObjects);
-          }
         }
         
         e.preventDefault();

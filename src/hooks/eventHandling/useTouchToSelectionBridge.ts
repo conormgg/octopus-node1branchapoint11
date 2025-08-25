@@ -72,7 +72,7 @@ export const useTouchToSelectionBridge = ({
       currentTool,
       effectiveTool,
       stageTool: stage?.getAttr('currentTool'),
-      toolIsSelect: effectiveTool === 'select' || effectiveTool === 'select2',
+      toolIsSelect2: effectiveTool === 'select2',
       isReadOnly,
       touchCount,
       totalTouches,
@@ -80,12 +80,12 @@ export const useTouchToSelectionBridge = ({
       toolType: typeof effectiveTool
     });
 
-    // FIXED: Bridge for both select and select2 tools, only single-finger touches
-    if ((effectiveTool !== 'select' && effectiveTool !== 'select2') || isReadOnly) {
+    // Bridge for select2 tool only, single-finger touches
+    if (effectiveTool !== 'select2' || isReadOnly) {
       debugLog('TouchToSelectionBridge', 'Bridge conditions not met', {
         currentTool,
         effectiveTool,
-        toolNotSelect: effectiveTool !== 'select' && effectiveTool !== 'select2',
+        toolNotSelect2: effectiveTool !== 'select2',
         isReadOnly,
         touchCount,
         totalTouches

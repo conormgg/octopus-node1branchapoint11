@@ -31,30 +31,6 @@ export const useSharedPointerHandlers = (
       startDrawing(x, y);
     } else if (stableCurrentTool === 'eraser') {
       startErasing(x, y);
-    } else if (stableCurrentTool === 'select' && selection) {
-      // Handle selection logic with priority and safety checks:
-      // 1. Check if clicking within existing selection bounds (for group dragging)
-      // 2. Check if clicking on individual objects
-      // 3. Start new selection or clear existing selection
-      
-      if (selection.isPointInSelectionBounds) {
-        // NOTE: Original select tool hit detection functions removed - findObjectsAtPoint no longer exists
-        const isInSelectionBounds = selection.isPointInSelectionBounds({ x, y });
-        
-        if (isInSelectionBounds && stableSelectionState?.selectedObjects?.length > 0) {
-          // Clicking within selection bounds - this will allow dragging the entire group
-          // The actual dragging logic will be handled by the SelectionGroup component
-          // We don't need to change the selection here, just maintain it
-          return;
-        }
-        
-        // Check for individual objects - original findObjectsAtPoint function removed
-        // const foundObjects = selection.findObjectsAtPoint({ x, y }, stableLines, stableImages);
-        // Original select tool object finding disabled - use select2 tool for selection
-        
-        // NOTE: Original select tool selection logic disabled - functions removed
-        // Use select2 tool for selection functionality
-      }
     }
   }, [stableCurrentTool, stableLines, stableImages, stableSelectionState?.selectedObjects?.length, startDrawing, startErasing, isReceiveOnly, panZoom, selection]);
 
@@ -67,9 +43,6 @@ export const useSharedPointerHandlers = (
       continueDrawing(x, y);
     } else if (stableCurrentTool === 'eraser') {
       continueErasing(x, y);
-    } else if (stableCurrentTool === 'select' && selection && stableSelectionState?.isSelecting) {
-      // NOTE: Original select tool drag-to-select logic disabled - functions removed
-      // Use select2 tool for selection functionality
     }
   }, [stableCurrentTool, stableSelectionState?.isSelecting, stableSelectionState?.selectionBounds, continueDrawing, continueErasing, isReceiveOnly, panZoom, selection]);
 
@@ -82,9 +55,6 @@ export const useSharedPointerHandlers = (
       stopDrawing();
     } else if (stableCurrentTool === 'eraser') {
       stopErasing();
-    } else if (stableCurrentTool === 'select' && selection && stableSelectionState?.isSelecting) {
-      // NOTE: Original select tool drag-to-select completion logic disabled - functions removed
-      // Use select2 tool for selection functionality
     }
   }, [stableCurrentTool, stableLines, stableImages, stableSelectionState?.isSelecting, stableSelectionState?.selectionBounds, stopDrawing, stopErasing, isReceiveOnly, selection]);
 
