@@ -1,5 +1,6 @@
+
 import React from 'react';
-import { Whiteboard } from './Whiteboard';
+import Whiteboard from './Whiteboard';
 import { useSyncWhiteboardState } from '@/hooks/useSyncWhiteboardState';
 import { cn } from '@/lib/utils';
 
@@ -20,7 +21,7 @@ export const SyncWhiteboard: React.FC<SyncWhiteboardProps> = ({
   showToolbar = true,
   className
 }) => {
-  const { syncManager } = useSyncWhiteboardState({
+  const whiteboardState = useSyncWhiteboardState({
     whiteboardId,
     sessionId,
     senderId,
@@ -32,7 +33,7 @@ export const SyncWhiteboard: React.FC<SyncWhiteboardProps> = ({
       <Whiteboard 
         whiteboardId={whiteboardId}
         showToolbar={showToolbar}
-        syncManager={syncManager}
+        whiteboardState={whiteboardState}
       />
     </div>
   );

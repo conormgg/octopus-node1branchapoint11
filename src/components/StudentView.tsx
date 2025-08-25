@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { SyncWhiteboard } from './SyncWhiteboard';
 import { useSessionStudents } from '@/hooks/useSessionStudents';
@@ -9,7 +10,7 @@ interface StudentViewProps {
 }
 
 export const StudentView = ({ whiteboardId, sessionId, studentId }: StudentViewProps) => {
-  const { data: sessionStudents } = useSessionStudents(sessionId);
+  const { sessionStudents } = useSessionStudents(null); // Pass null since we're using sessionId directly
   const currentStudent = sessionStudents?.find(s => s.id === parseInt(studentId));
 
   if (!currentStudent) {
@@ -17,7 +18,7 @@ export const StudentView = ({ whiteboardId, sessionId, studentId }: StudentViewP
   }
 
   const studentBoardId = `student-${currentStudent.assigned_board_suffix}`;
-  const sharedBoardId = "student-shared-teacher"; // Reverted back to original
+  const sharedBoardId = "student-shared-teacher";
 
   return (
     <div className="h-screen flex flex-col bg-background">
@@ -69,3 +70,5 @@ export const StudentView = ({ whiteboardId, sessionId, studentId }: StudentViewP
     </div>
   );
 };
+
+export default StudentView;

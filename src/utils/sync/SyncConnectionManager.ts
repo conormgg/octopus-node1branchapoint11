@@ -1,3 +1,4 @@
+
 import { Connection } from './Connection';
 import { OperationHandler } from './types';
 import { SyncConfig } from '@/types/sync';
@@ -5,7 +6,7 @@ import { createDebugLogger, logError } from '@/utils/debug/debugConfig';
 import { RealtimeChannel } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
 
-const debugLog = createDebugLogger('sync-connection-manager');
+const debugLog = createDebugLogger('sync');
 
 export class SyncConnectionManager {
   private static instance: SyncConnectionManager | null = null;
@@ -75,7 +76,7 @@ export class SyncConnectionManager {
 
     debugLog('Channel', `Creating new channel for whiteboard ${whiteboardId}`);
     
-    // Create channel with board_id filter (reverted - removed session_id filter)
+    // Create channel with board_id filter
     channel = supabase
       .channel(`whiteboard_${whiteboardId}`)
       .on(
@@ -187,16 +188,17 @@ export class SyncConnectionManager {
           reject(new Error('Channel unsubscription timeout'));
         }, 10000);
 
-        channel.unsubscribe((status) => {
-          clearTimeout(timeout);
-          if (status === 'OK') {
-            debugLog('Channel', `Successfully unsubscribed from channel for whiteboard ${whiteboardId}`);
-            resolve();
-          } else {
-            debugLog('Channel', `Channel unsubscription failed for whiteboard ${whiteboardId}: ${status}`);
-            reject(new Error(`Channel unsubscription failed: ${status}`));
-          }
-        });
+        // Fix: unsubscribe method doesn't take a callback parameter
+        const result = channel.unsubscribe();
+        clearTimeout(timeout);
+        
+        if (result === 'ok') {
+          debugLog('Channel', `Successfully unsubscribed from channel for whiteboard ${whiteboardId}`);
+          resolve();
+        } else {
+          debugLog('Channel', `Channel unsubscription failed for whiteboard ${whiteboardId}: ${result}`);
+          reject(new Error(`Channel unsubscription failed: ${result}`));
+        }
       });
 
       await unsubscribePromise;

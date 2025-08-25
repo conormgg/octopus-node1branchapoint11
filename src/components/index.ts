@@ -216,7 +216,7 @@ export { default as WindowContentRenderer } from './WindowContentRenderer';
  * Student-specific whiteboard view
  * Simplified interface optimized for student interaction
  */
-export { default as StudentView } from './StudentView';
+export { StudentView } from './StudentView';
 
 /**
  * Navigation controls that persist across page changes
