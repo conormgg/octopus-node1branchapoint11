@@ -9,7 +9,7 @@ interface TeacherSessionViewHeaderProps {
   availableLayouts: any[];
   selectedLayoutId: string;
   gridOrientation: 'columns-first' | 'rows-first';
-  isSplitViewActive: boolean;
+  
   isSplitView2Active?: boolean;
   isControlsCollapsed: boolean;
   activeSession: {
@@ -23,7 +23,7 @@ interface TeacherSessionViewHeaderProps {
   sessionStudents?: SessionParticipant[];
   onLayoutChange: (layoutId: string) => void;
   onOrientationChange: (orientation: 'columns-first' | 'rows-first') => void;
-  onToggleSplitView: () => void;
+  
   onToggleControlsCollapse: () => void;
   onEndSession: () => void;
   onSignOut: () => void;
@@ -38,14 +38,14 @@ const TeacherSessionViewHeader: React.FC<TeacherSessionViewHeaderProps> = ({
   availableLayouts,
   selectedLayoutId,
   gridOrientation,
-  isSplitViewActive,
+  
   isSplitView2Active = false,
   isControlsCollapsed,
   activeSession,
   sessionStudents,
   onLayoutChange,
   onOrientationChange,
-  onToggleSplitView,
+  
   onToggleControlsCollapse,
   onEndSession,
   onSignOut,
@@ -70,8 +70,6 @@ const TeacherSessionViewHeader: React.FC<TeacherSessionViewHeaderProps> = ({
         gridOrientation={gridOrientation}
         onLayoutChange={onLayoutChange}
         onOrientationChange={onOrientationChange}
-        onToggleSplitView={onToggleSplitView}
-        isSplitViewActive={isSplitViewActive}
         isCollapsed={isControlsCollapsed}
         onToggleCollapse={onToggleControlsCollapse}
         activeSession={activeSession}

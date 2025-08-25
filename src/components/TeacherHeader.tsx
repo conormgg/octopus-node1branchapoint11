@@ -28,8 +28,6 @@ interface TeacherHeaderProps {
   gridOrientation: GridOrientation;
   onLayoutChange: (layoutId: string) => void;
   onOrientationChange: (orientation: GridOrientation) => void;
-  onToggleSplitView?: () => void;
-  isSplitViewActive?: boolean;
   isCollapsed?: boolean;
   onToggleCollapse?: () => void;
   activeSession?: Session | null;
@@ -51,8 +49,6 @@ const TeacherHeader: React.FC<TeacherHeaderProps> = ({
   gridOrientation,
   onLayoutChange,
   onOrientationChange,
-  onToggleSplitView,
-  isSplitViewActive = false,
   isCollapsed = false,
   onToggleCollapse,
   activeSession,
@@ -151,10 +147,6 @@ const TeacherHeader: React.FC<TeacherHeaderProps> = ({
         description: "Monitor window opened successfully. Student boards will display there.",
       });
 
-      // Close Split View 1 if it's active (mutually exclusive)
-      if (isSplitViewActive && onToggleSplitView) {
-        onToggleSplitView();
-      }
 
     } catch (error) {
       toast({
@@ -198,16 +190,6 @@ const TeacherHeader: React.FC<TeacherHeaderProps> = ({
     return () => clearInterval(interval);
   }, [monitorWindow]);
 
-  // Handle Split View 1 toggle with mutual exclusivity
-  const handleSplitView1Toggle = () => {
-    if (onToggleSplitView) {
-      // Close Split View 2 if it's active (mutually exclusive)
-      if (isSplitView2Active) {
-        closeSplitView2();
-      }
-      onToggleSplitView();
-    }
-  };
 
   return (
     <>
@@ -280,34 +262,20 @@ const TeacherHeader: React.FC<TeacherHeaderProps> = ({
                 </div>
               )}
               
-              {/* Split View Buttons */}
-              {onToggleSplitView && (
-                <div className="flex items-center space-x-2">
-                  <Button
-                    variant={isSplitViewActive ? "default" : "outline"}
-                    size="sm"
-                    onClick={handleSplitView1Toggle}
-                    disabled={isSplitView2Active}
-                    className="flex items-center space-x-2"
-                    title="Split view with teacher board and students in same window"
-                  >
-                    <Monitor className="w-4 h-4" />
-                    <span>Split View</span>
-                  </Button>
-                  
-                  <Button
-                    variant={isSplitView2Active ? "default" : "outline"}
-                    size="sm"
-                    onClick={isSplitView2Active ? closeSplitView2 : openSplitView2}
-                    disabled={!activeSession || isSplitViewActive}
-                    className="flex items-center space-x-2"
-                    title="Open student boards in separate window (ideal for dual monitors)"
-                  >
-                    <ExternalLink className="w-4 h-4" />
-                    <span>{isSplitView2Active ? 'Close Monitor' : 'Split View 2'}</span>
-                  </Button>
-                </div>
-              )}
+              {/* Split View 2 Button */}
+              <div className="flex items-center space-x-2">
+                <Button
+                  variant={isSplitView2Active ? "default" : "outline"}
+                  size="sm"
+                  onClick={isSplitView2Active ? closeSplitView2 : openSplitView2}
+                  disabled={!activeSession}
+                  className="flex items-center space-x-2"
+                  title="Open student boards in separate window (ideal for dual monitors)"
+                >
+                  <ExternalLink className="w-4 h-4" />
+                  <span>{isSplitView2Active ? 'Close Monitor' : 'Split View 2'}</span>
+                </Button>
+              </div>
 
               {/* Session Options Dropdown */}
               {activeSession && (

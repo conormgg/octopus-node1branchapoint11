@@ -7,7 +7,7 @@ export const useTeacherViewState = (studentCount: number) => {
   const [maximizedBoard, setMaximizedBoard] = useState<string | null>(null);
   const [currentPage, setCurrentPage] = useState(0);
   const [selectedLayoutId, setSelectedLayoutId] = useState<string>('2x2');
-  const [isSplitViewActive, setIsSplitViewActive] = useState(false);
+  
   const [isSplitView2Active, setIsSplitView2Active] = useState(false);
   const [gridOrientation, setGridOrientation] = useState<GridOrientation>('columns-first');
   const [isControlsCollapsed, setIsControlsCollapsed] = useState(false);
@@ -61,13 +61,6 @@ export const useTeacherViewState = (studentCount: number) => {
     setGridOrientation(orientation);
   }, []);
 
-  const handleToggleSplitView = useCallback(() => {
-    setIsSplitViewActive(prev => !prev);
-  }, []);
-
-  const handleCloseSplitView = useCallback(() => {
-    setIsSplitViewActive(false);
-  }, []);
 
   const handleToggleControlsCollapse = useCallback(() => {
     setIsControlsCollapsed(prev => !prev);
@@ -89,7 +82,7 @@ export const useTeacherViewState = (studentCount: number) => {
     maximizedBoard,
     currentPage,
     selectedLayoutId,
-    isSplitViewActive,
+    
     isSplitView2Active,
     gridOrientation,
     isControlsCollapsed,
@@ -100,8 +93,6 @@ export const useTeacherViewState = (studentCount: number) => {
     handleMinimize,
     handleLayoutChange,
     handleOrientationChange,
-    handleToggleSplitView,
-    handleCloseSplitView,
     handleToggleControlsCollapse,
     handlePreviousPage,
     handleNextPage,

@@ -30,7 +30,7 @@ interface TeacherSessionViewProps {
   maximizedBoard: string | null;
   currentPage: number;
   selectedLayoutId: string;
-  isSplitViewActive: boolean;
+  
   isSplitView2Active?: boolean;
   gridOrientation: GridOrientation;
   isControlsCollapsed: boolean;
@@ -41,8 +41,6 @@ interface TeacherSessionViewProps {
   onMinimize: () => void;
   onLayoutChange: (layoutId: string) => void;
   onOrientationChange: (orientation: GridOrientation) => void;
-  onToggleSplitView: () => void;
-  onCloseSplitView: () => void;
   onToggleControlsCollapse: () => void;
   onPreviousPage: () => void;
   onNextPage: () => void;
@@ -69,7 +67,7 @@ const TeacherSessionView: React.FC<TeacherSessionViewProps> = ({
   maximizedBoard,
   currentPage,
   selectedLayoutId,
-  isSplitViewActive,
+  
   isSplitView2Active = false,
   gridOrientation,
   isControlsCollapsed,
@@ -80,8 +78,6 @@ const TeacherSessionView: React.FC<TeacherSessionViewProps> = ({
   onMinimize,
   onLayoutChange,
   onOrientationChange,
-  onToggleSplitView,
-  onCloseSplitView,
   onToggleControlsCollapse,
   onPreviousPage,
   onNextPage,
@@ -127,14 +123,13 @@ const TeacherSessionView: React.FC<TeacherSessionViewProps> = ({
         availableLayouts={availableLayouts}
         selectedLayoutId={selectedLayoutId}
         gridOrientation={gridOrientation}
-        isSplitViewActive={isSplitViewActive}
         isSplitView2Active={isSplitView2Active}
         isControlsCollapsed={isControlsCollapsed}
         activeSession={activeSession}
         sessionStudents={sessionStudents}
         onLayoutChange={onLayoutChange}
         onOrientationChange={onOrientationChange}
-        onToggleSplitView={onToggleSplitView}
+        
         onToggleControlsCollapse={onToggleControlsCollapse}
         onEndSession={onEndSession}
         onSignOut={onSignOut}
@@ -157,14 +152,14 @@ const TeacherSessionView: React.FC<TeacherSessionViewProps> = ({
         gridOrientation={gridOrientation}
         maximizedBoard={maximizedBoard}
         isControlsCollapsed={isControlsCollapsed}
-        isSplitViewActive={isSplitViewActive}
+        
         onMaximize={onMaximize}
         onMinimize={onMinimize}
         onPreviousPage={onPreviousPage}
         onNextPage={onNextPage}
         onLayoutChange={onLayoutChange}
         onOrientationChange={onOrientationChange}
-        onCloseSplitView={onCloseSplitView}
+        
         teacherSenderId={teacherSenderId}
         onToggleSyncDirection={onToggleSyncDirection}
         getSyncDirection={getSyncDirection}

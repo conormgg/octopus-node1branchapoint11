@@ -45,7 +45,7 @@ const TeacherView: React.FC<TeacherViewProps> = ({
     maximizedBoard,
     currentPage,
     selectedLayoutId,
-    isSplitViewActive,
+    
     isSplitView2Active,
     gridOrientation,
     isControlsCollapsed,
@@ -56,8 +56,6 @@ const TeacherView: React.FC<TeacherViewProps> = ({
     handleMinimize,
     handleLayoutChange,
     handleOrientationChange,
-    handleToggleSplitView,
-    handleCloseSplitView,
     handleToggleControlsCollapse,
     handlePreviousPage,
     handleNextPage,
@@ -107,7 +105,7 @@ const TeacherView: React.FC<TeacherViewProps> = ({
         maximizedBoard={maximizedBoard}
         currentPage={currentPage}
         selectedLayoutId={selectedLayoutId}
-        isSplitViewActive={isSplitViewActive}
+        
         isSplitView2Active={isSplitView2Active}
         gridOrientation={gridOrientation}
         isControlsCollapsed={isControlsCollapsed}
@@ -118,8 +116,6 @@ const TeacherView: React.FC<TeacherViewProps> = ({
         onMinimize={handleMinimize}
         onLayoutChange={handleLayoutChange}
         onOrientationChange={handleOrientationChange}
-        onToggleSplitView={handleToggleSplitView}
-        onCloseSplitView={handleCloseSplitView}
         onToggleControlsCollapse={handleToggleControlsCollapse}
         onPreviousPage={handlePreviousPage}
         onNextPage={handleNextPage}

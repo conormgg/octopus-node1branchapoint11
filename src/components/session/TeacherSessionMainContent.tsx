@@ -1,6 +1,6 @@
 
 import React from 'react';
-import TeacherSessionSplitView from './TeacherSessionSplitView';
+
 import TeacherSessionResizablePanels from './TeacherSessionResizablePanels';
 import { GridOrientation } from '../TeacherView';
 import { StudentBoardInfo } from '@/utils/studentBoardGenerator';
@@ -27,7 +27,7 @@ interface TeacherSessionMainContentProps {
   gridOrientation: GridOrientation;
   maximizedBoard: string | null;
   isControlsCollapsed: boolean;
-  isSplitViewActive: boolean;
+  
   isSplitView2Active?: boolean;
   teacherSenderId?: string;
   onMaximize: (boardId: string) => void;
@@ -36,7 +36,7 @@ interface TeacherSessionMainContentProps {
   onNextPage: () => void;
   onLayoutChange: (layoutId: string) => void;
   onOrientationChange: (orientation: GridOrientation) => void;
-  onCloseSplitView: () => void;
+  
   // Add sync direction props
   onToggleSyncDirection?: (participantId: number) => Promise<boolean>;
   getSyncDirection?: (participantId: number) => SyncDirection;
@@ -57,7 +57,7 @@ const TeacherSessionMainContent: React.FC<TeacherSessionMainContentProps> = ({
   gridOrientation,
   maximizedBoard,
   isControlsCollapsed,
-  isSplitViewActive,
+  
   isSplitView2Active = false,
   teacherSenderId,
   onMaximize,
@@ -66,64 +66,35 @@ const TeacherSessionMainContent: React.FC<TeacherSessionMainContentProps> = ({
   onNextPage,
   onLayoutChange,
   onOrientationChange,
-  onCloseSplitView,
+  
   onToggleSyncDirection,
   getSyncDirection,
   isParticipantUpdating,
 }) => {
   return (
     <div className={`flex-1 ${isControlsCollapsed ? 'h-screen' : 'h-[calc(100vh-5rem)]'} p-4`}>
-      {isSplitViewActive ? (
-        <TeacherSessionSplitView
-          activeSession={activeSession}
-          studentCount={studentCount}
-          activeStudentCount={activeStudentCount}
-          currentLayout={currentLayout}
-          availableLayouts={availableLayouts}
-          selectedLayoutId={selectedLayoutId}
-          currentStudentBoards={currentStudentBoards}
-          currentStudentBoardsInfo={currentStudentBoardsInfo}
-          currentPage={currentPage}
-          totalPages={totalPages}
-          gridOrientation={gridOrientation}
-          maximizedBoard={maximizedBoard}
-          isControlsCollapsed={isControlsCollapsed}
-          teacherSenderId={teacherSenderId}
-          onMaximize={onMaximize}
-          onMinimize={onMinimize}
-          onPreviousPage={onPreviousPage}
-          onNextPage={onNextPage}
-          onLayoutChange={onLayoutChange}
-          onOrientationChange={onOrientationChange}
-          onCloseSplitView={onCloseSplitView}
-          onToggleSyncDirection={onToggleSyncDirection}
-          getSyncDirection={getSyncDirection}
-          isParticipantUpdating={isParticipantUpdating}
-        />
-      ) : (
-        <TeacherSessionResizablePanels
-          activeSession={activeSession}
-          studentCount={studentCount}
-          activeStudentCount={activeStudentCount}
-          currentLayout={currentLayout}
-          currentStudentBoards={currentStudentBoards}
-          currentStudentBoardsInfo={currentStudentBoardsInfo}
-          currentPage={currentPage}
-          totalPages={totalPages}
-          gridOrientation={gridOrientation}
-          maximizedBoard={maximizedBoard}
-          isControlsCollapsed={isControlsCollapsed}
-          isSplitView2Active={isSplitView2Active}
-          teacherSenderId={teacherSenderId}
-          onMaximize={onMaximize}
-          onMinimize={onMinimize}
-          onPreviousPage={onPreviousPage}
-          onNextPage={onNextPage}
-          onToggleSyncDirection={onToggleSyncDirection}
-          getSyncDirection={getSyncDirection}
-          isParticipantUpdating={isParticipantUpdating}
-        />
-      )}
+      <TeacherSessionResizablePanels
+        activeSession={activeSession}
+        studentCount={studentCount}
+        activeStudentCount={activeStudentCount}
+        currentLayout={currentLayout}
+        currentStudentBoards={currentStudentBoards}
+        currentStudentBoardsInfo={currentStudentBoardsInfo}
+        currentPage={currentPage}
+        totalPages={totalPages}
+        gridOrientation={gridOrientation}
+        maximizedBoard={maximizedBoard}
+        isControlsCollapsed={isControlsCollapsed}
+        isSplitView2Active={isSplitView2Active}
+        teacherSenderId={teacherSenderId}
+        onMaximize={onMaximize}
+        onMinimize={onMinimize}
+        onPreviousPage={onPreviousPage}
+        onNextPage={onNextPage}
+        onToggleSyncDirection={onToggleSyncDirection}
+        getSyncDirection={getSyncDirection}
+        isParticipantUpdating={isParticipantUpdating}
+      />
     </div>
   );
 };
