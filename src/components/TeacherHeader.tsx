@@ -173,22 +173,67 @@ const TeacherHeader: React.FC<TeacherHeaderProps> = ({
     });
   };
 
-  // Monitor window state
+  // Monitor window state with improved closure detection
   useEffect(() => {
     if (!monitorWindow) return;
 
+    console.log('[TeacherHeader] Setting up window closure detection for Split View 2');
+
+    const handleWindowClosure = () => {
+      console.log('[TeacherHeader] Monitor window closed - reverting to original layout');
+      setIsSplitView2Active(false);
+      setMonitorWindow(null);
+      // Notify parent component about state change
+      onSplitView2StateChange?.(false);
+      
+      toast({
+        title: "Monitor Closed",
+        description: "Reverted to original layout.",
+      });
+    };
+
+    // Add event listeners for immediate closure detection
+    const handleBeforeUnload = () => {
+      console.log('[TeacherHeader] Monitor window beforeunload event fired');
+      handleWindowClosure();
+    };
+
+    const handleUnload = () => {
+      console.log('[TeacherHeader] Monitor window unload event fired');
+      handleWindowClosure();
+    };
+
+    // Attach event listeners to the monitor window
+    try {
+      monitorWindow.addEventListener('beforeunload', handleBeforeUnload);
+      monitorWindow.addEventListener('unload', handleUnload);
+    } catch (error) {
+      console.warn('[TeacherHeader] Could not attach unload listeners:', error);
+    }
+
+    // Fallback polling with shorter interval for better responsiveness
     const checkWindow = () => {
       if (monitorWindow.closed) {
-        setIsSplitView2Active(false);
-        setMonitorWindow(null);
-        // Notify parent component about state change
-        onSplitView2StateChange?.(false);
+        console.log('[TeacherHeader] Monitor window detected as closed via polling');
+        handleWindowClosure();
       }
     };
 
-    const interval = setInterval(checkWindow, 1000);
-    return () => clearInterval(interval);
-  }, [monitorWindow]);
+    const interval = setInterval(checkWindow, 250); // Reduced from 1000ms to 250ms
+
+    return () => {
+      console.log('[TeacherHeader] Cleaning up window closure detection');
+      clearInterval(interval);
+      try {
+        if (monitorWindow && !monitorWindow.closed) {
+          monitorWindow.removeEventListener('beforeunload', handleBeforeUnload);
+          monitorWindow.removeEventListener('unload', handleUnload);
+        }
+      } catch (error) {
+        console.warn('[TeacherHeader] Error during cleanup:', error);
+      }
+    };
+  }, [monitorWindow, onSplitView2StateChange, toast]);
 
 
   return (
