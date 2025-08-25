@@ -3,7 +3,7 @@ import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { GraduationCap, User } from 'lucide-react';
 import TeacherView from './TeacherView';
-import { StudentView } from './StudentView';
+import StudentView from './StudentView';
 
 const ViewSwitcher: React.FC = () => {
   const [currentView, setCurrentView] = useState<'teacher' | 'student'>('teacher');
@@ -37,9 +37,9 @@ const ViewSwitcher: React.FC = () => {
         <TeacherView />
       ) : (
         <StudentView 
-          whiteboardId="demo-whiteboard"
           sessionId="demo-session" 
-          studentId="demo-student"
+          boardSuffix="A"
+          senderId="Demo Student"
         />
       )}
     </div>

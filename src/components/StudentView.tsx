@@ -1,71 +1,137 @@
 
-import React from 'react';
-import { SyncWhiteboard } from './SyncWhiteboard';
-import { useSessionStudents } from '@/hooks/useSessionStudents';
+import React, { useState } from 'react';
+import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from '@/components/ui/resizable';
+import WhiteboardPlaceholder from './WhiteboardPlaceholder';
+import { GraduationCap, User } from 'lucide-react';
+import { useStudentParticipant } from '@/hooks/session/useStudentParticipant';
+import { useSyncDirectionBroadcastListener } from '@/hooks/useSyncDirectionBroadcastListener';
+import { SyncDirection } from '@/types/student';
 
 interface StudentViewProps {
-  whiteboardId: string;
   sessionId: string;
-  studentId: string;
+  boardSuffix: string;
+  senderId: string;
 }
 
-export const StudentView = ({ whiteboardId, sessionId, studentId }: StudentViewProps) => {
-  const { sessionStudents } = useSessionStudents(null); // Pass null since we're using sessionId directly
-  const currentStudent = sessionStudents?.find(s => s.id === parseInt(studentId));
+const StudentView: React.FC<StudentViewProps> = ({ sessionId, boardSuffix, senderId }) => {
+  const [maximizedBoard, setMaximizedBoard] = useState<string | null>(null);
+  const [overrideSyncDirection, setOverrideSyncDirection] = useState<{ [participantId: number]: SyncDirection }>({});
+  const { participant } = useStudentParticipant(sessionId, boardSuffix);
 
-  if (!currentStudent) {
-    return <div>Loading student information...</div>;
-  }
+  // Listen for sync direction broadcasts for instant UI updates
+  useSyncDirectionBroadcastListener(sessionId, (participantId, newDirection, affectedBoardSuffix) => {
+    // Update override only if this student is affected
+    if (affectedBoardSuffix === boardSuffix && participant?.id === participantId) {
+      setOverrideSyncDirection(prev => ({
+        ...prev,
+        [participantId]: newDirection
+      }));
+    }
+  });
 
-  const studentBoardId = `student-${currentStudent.assigned_board_suffix}`;
-  const sharedBoardId = "student-shared-teacher";
+  const handleMaximize = (boardId: string) => {
+    setMaximizedBoard(boardId);
+  };
+
+  const handleMinimize = () => {
+    setMaximizedBoard(null);
+  };
+
+  // Generate dynamic board ID for student's personal board
+  const personalBoardId = `student-personal-view-${boardSuffix.toLowerCase()}`;
+  
+  // Create a unique sender ID for this student session
+  const uniqueSenderId = `student_${senderId}_${boardSuffix}_${sessionId.slice(-8)}`;
 
   return (
-    <div className="h-screen flex flex-col bg-background">
+    <div className="min-h-screen bg-gray-100">
       {/* Header */}
-      <div className="p-4 border-b border-border bg-muted/50">
-        <h2 className="text-lg font-semibold">Student View</h2>
-        <p className="text-sm text-muted-foreground">
-          Viewing as: {currentStudent.student_name} ({currentStudent.student_email})
-        </p>
+      <div className="bg-white border-b border-gray-200 px-6 py-4">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center space-x-3">
+            <div className="w-8 h-8 bg-blue-500 rounded-lg flex items-center justify-center">
+              <GraduationCap className="w-5 h-5 text-white" />
+            </div>
+            <div>
+              <h1 className="text-xl font-semibold text-gray-900">Student Workspace</h1>
+              <p className="text-sm text-gray-500">Collaborative Whiteboard Session</p>
+            </div>
+          </div>
+          <div className="flex items-center space-x-2 px-3 py-2 bg-gray-50 rounded-lg">
+            <User className="w-4 h-4 text-gray-600" />
+            <span className="text-sm font-medium text-gray-700">Student View</span>
+          </div>
+        </div>
       </div>
-      
-      <div className="flex-1 flex">
-        {/* Left side - Shared board with teacher */}
-        <div className="w-1/2 border-r border-border">
-          <div className="p-4 border-b border-border bg-muted/50">
-            <h3 className="text-sm font-medium text-muted-foreground">
-              Shared with Teacher
-            </h3>
-          </div>
-          <div className="h-[calc(100vh-140px)]">
-            <SyncWhiteboard
-              whiteboardId={sharedBoardId}
-              sessionId={sessionId}
-              senderId={studentId}
-              isReceiveOnly={false}
-              showToolbar={true}
-            />
-          </div>
-        </div>
 
-        {/* Right side - Personal student board */}
-        <div className="w-1/2">
-          <div className="p-4 border-b border-border bg-muted/50">
-            <h3 className="text-sm font-medium text-muted-foreground">
-              Personal Workspace
-            </h3>
-          </div>
-          <div className="h-[calc(100vh-140px)]">
-            <SyncWhiteboard
-              whiteboardId={studentBoardId}
-              sessionId={sessionId}
-              senderId={studentId}
-              isReceiveOnly={false}
-              showToolbar={true}
-            />
-          </div>
-        </div>
+      {/* Main Content */}
+      <div className="h-[calc(100vh-5rem)] p-4 relative">
+        {/* Normal Layout */}
+        <ResizablePanelGroup direction="horizontal" className="rounded-lg overflow-hidden">
+          {/* Left Pane - Teacher's Shared Board */}
+          <ResizablePanel defaultSize={50} minSize={30}>
+            <div className="h-full p-2 relative">
+              <div className="mb-3">
+                <h2 className="text-lg font-semibold text-gray-800 flex items-center">
+                  <GraduationCap className="w-5 h-5 mr-2 text-blue-500" />
+                  Teacher's Board
+                </h2>
+                <p className="text-sm text-gray-600">Shared content from your instructor</p>
+              </div>
+              <div 
+                className={`h-[calc(100%-4rem)] ${
+                  maximizedBoard === "student-shared-teacher" 
+                    ? "fixed inset-4 z-50 bg-gray-100" 
+                    : ""
+                }`}
+              >
+                <WhiteboardPlaceholder
+                  id="student-shared-teacher"
+                  isMaximized={maximizedBoard === "student-shared-teacher"}
+                  onMaximize={() => handleMaximize("student-shared-teacher")}
+                  onMinimize={handleMinimize}
+                  sessionId={sessionId}
+                  senderId={uniqueSenderId}
+                  currentUserRole="student"
+                />
+              </div>
+            </div>
+          </ResizablePanel>
+
+          <ResizableHandle className="w-2 bg-gray-200 hover:bg-gray-300 transition-colors duration-150" />
+
+          {/* Right Pane - Student's Personal Board */}
+          <ResizablePanel defaultSize={50} minSize={30}>
+            <div className="h-full p-2 relative">
+              <div className="mb-3">
+                <h2 className="text-lg font-semibold text-gray-800 flex items-center">
+                  <User className="w-5 h-5 mr-2 text-green-500" />
+                  Your Personal Board
+                </h2>
+                <p className="text-sm text-gray-600">Your private workspace for notes and practice</p>
+              </div>
+              <div 
+                className={`h-[calc(100%-4rem)] ${
+                  maximizedBoard === personalBoardId
+                    ? "fixed inset-4 z-50 bg-gray-100" 
+                    : ""
+                }`}
+              >
+                <WhiteboardPlaceholder
+                  id={personalBoardId}
+                  isMaximized={maximizedBoard === personalBoardId}
+                  onMaximize={() => handleMaximize(personalBoardId)}
+                  onMinimize={handleMinimize}
+                  sessionId={sessionId}
+                  senderId={uniqueSenderId}
+                  participant={participant}
+                  currentUserRole="student"
+                  overrideSyncDirection={participant?.id ? overrideSyncDirection[participant.id] : undefined}
+                />
+              </div>
+            </div>
+          </ResizablePanel>
+        </ResizablePanelGroup>
       </div>
     </div>
   );
