@@ -32,20 +32,9 @@ export const SyncWhiteboard: React.FC<SyncWhiteboardProps> = ({
   const whiteboardState = useSharedWhiteboardState(syncConfig, whiteboardId, width, height);
   const isReadOnly = whiteboardState.isReadOnly;
   
-  // Track first payload reception for debugging
-  const firstPayloadReceived = useRef(false);
-  
   // Enhanced logging for sync config changes and toolbar visibility
   const prevSyncConfigRef = useRef<SyncConfig | undefined>(undefined);
   const prevReadOnlyRef = useRef<boolean | null>(null);
-  
-  // Debug: Log first operation received
-  useEffect(() => {
-    if (whiteboardState.state && whiteboardState.state.lines.length > 0 && !firstPayloadReceived.current) {
-      console.log(`[SyncWhiteboard] First operation received for board: ${whiteboardId}`);
-      firstPayloadReceived.current = true;
-    }
-  }, [whiteboardState.state?.lines.length, whiteboardId]);
   
   if (JSON.stringify(prevSyncConfigRef.current) !== JSON.stringify(syncConfig)) {
     debugLog('Component', 'Sync config changed', {
@@ -188,15 +177,6 @@ export const SyncWhiteboard: React.FC<SyncWhiteboardProps> = ({
       {isReadOnly && (
         <div className="absolute top-2 right-2 bg-gray-800/80 text-white text-xs px-2 py-1 rounded">
           Read Only
-        </div>
-      )}
-      
-      {/* Debug info badge - development only */}
-      {process.env.NODE_ENV === 'development' && syncConfig && (
-        <div className="absolute top-2 left-2 bg-blue-800/80 text-white text-xs px-2 py-1 rounded space-y-1">
-          <div>Board: {syncConfig.whiteboardId}</div>
-          <div>Connected: {whiteboardState.syncState?.isConnected ? '✓' : '✗'}</div>
-          <div>Last Activity: {whiteboardState.getLastActivity?.()?.timestamp ? new Date(whiteboardState.getLastActivity?.()?.timestamp || 0).toLocaleTimeString() : 'None'}</div>
         </div>
       )}
     </div>

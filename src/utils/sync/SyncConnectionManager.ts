@@ -52,7 +52,7 @@ class SyncConnectionManager {
             event: 'INSERT',
             schema: 'public',
             table: 'whiteboard_data',
-            filter: `board_id=eq.${config.whiteboardId},session_id=eq.${config.sessionId}`
+            filter: `board_id=eq.${config.whiteboardId}`
           },
           (payload) => this.handleChannelPayload(payload, config.whiteboardId)
         )
