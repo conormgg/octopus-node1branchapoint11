@@ -40,6 +40,7 @@ interface TeacherHeaderProps {
   // Split View 2 props
   isSplitView2Active?: boolean;
   onSplitView2StateChange?: (isActive: boolean) => void;
+  onMonitorWindowOpened?: (newWindow: Window) => void;
 }
 
 const TeacherHeader: React.FC<TeacherHeaderProps> = ({
@@ -60,12 +61,12 @@ const TeacherHeader: React.FC<TeacherHeaderProps> = ({
   onRemoveIndividualStudent,
   isSplitView2Active = false,
   onSplitView2StateChange,
+  onMonitorWindowOpened,
 }) => {
   const [isHovered, setIsHovered] = useState(false);
   const [copied, setCopied] = useState(false);
   const [showAddStudentDialog, setShowAddStudentDialog] = useState(false);
   const [showRemoveStudentDialog, setShowRemoveStudentDialog] = useState(false);
-  const [monitorWindow, setMonitorWindow] = useState<Window | null>(null);
   const { toast } = useToast();
 
   const shouldShowHeader = !isCollapsed || isHovered;
@@ -137,11 +138,9 @@ const TeacherHeader: React.FC<TeacherHeaderProps> = ({
         return;
       }
 
-      setMonitorWindow(newWindow);
-      
-      // Notify parent component about state change
-      onSplitView2StateChange?.(true);
-      console.log('[TeacherHeader] Split View 2 opened, notifying parent');
+      // Notify parent about the new window
+      onMonitorWindowOpened?.(newWindow);
+      console.log('[TeacherHeader] Split View 2 opened, window passed to parent');
 
       toast({
         title: "Student Monitor Opened",
@@ -159,14 +158,9 @@ const TeacherHeader: React.FC<TeacherHeaderProps> = ({
   };
 
   const closeSplitView2 = () => {
-    if (monitorWindow && !monitorWindow.closed) {
-      monitorWindow.close();
-    }
-    setMonitorWindow(null);
-    
-    // Notify parent component about state change
+    // Notify parent component to close the window
     onSplitView2StateChange?.(false);
-    console.log('[TeacherHeader] Split View 2 closed manually, notifying parent');
+    console.log('[TeacherHeader] Split View 2 close requested, notifying parent');
     
     toast({
       title: "Monitor Closed",
@@ -174,56 +168,7 @@ const TeacherHeader: React.FC<TeacherHeaderProps> = ({
     });
   };
 
-  // Monitor window state with grace period to prevent premature closure detection
-  useEffect(() => {
-    if (!monitorWindow) return;
-
-    console.log('[TeacherHeader] Setting up window closure detection for Split View 2');
-    
-    // Grace period to allow window to fully load before enabling closure detection
-    const GRACE_PERIOD = 2000; // 2 seconds
-    let isGracePeriodActive = true;
-    
-    const handleWindowClosure = () => {
-      if (isGracePeriodActive) {
-        console.log('[TeacherHeader] Ignoring closure during grace period');
-        return;
-      }
-      
-      console.log('[TeacherHeader] Monitor window closed - reverting to original layout');
-      setMonitorWindow(null);
-      onSplitView2StateChange?.(false);
-      console.log('[TeacherHeader] Split View 2 closed via window closure, notifying parent');
-      
-      toast({
-        title: "Monitor Closed",
-        description: "Reverted to original layout.",
-      });
-    };
-
-    // Disable grace period after window has had time to load
-    const graceTimeout = setTimeout(() => {
-      isGracePeriodActive = false;
-      console.log('[TeacherHeader] Grace period ended - closure detection active');
-    }, GRACE_PERIOD);
-
-    // Use only polling for reliable closure detection
-    const checkWindow = () => {
-      if (monitorWindow.closed) {
-        console.log('[TeacherHeader] Monitor window detected as closed via polling');
-        handleWindowClosure();
-      }
-    };
-
-    const interval = setInterval(checkWindow, 500);
-
-    return () => {
-      console.log('[TeacherHeader] Cleaning up window closure detection');
-      clearTimeout(graceTimeout);
-      clearInterval(interval);
-      isGracePeriodActive = false;
-    };
-  }, [monitorWindow, onSplitView2StateChange, toast]);
+  // Remove local polling - window management is now handled by parent
 
 
   return (

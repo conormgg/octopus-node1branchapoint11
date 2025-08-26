@@ -91,6 +91,40 @@ const StudentMonitor: React.FC = () => {
     };
   }, [sessionId, toast]);
 
+  // Send ready message to parent window
+  useEffect(() => {
+    if (window.opener && sessionId) {
+      console.log('[StudentMonitor] Sending ready message to parent window');
+      window.opener.postMessage({
+        source: 'student-monitor',
+        type: 'ready',
+        sessionId
+      }, window.location.origin);
+    }
+  }, [sessionId]);
+
+  // Handle window close events
+  useEffect(() => {
+    const handleBeforeUnload = () => {
+      if (window.opener && sessionId) {
+        console.log('[StudentMonitor] Sending closing message to parent window');
+        window.opener.postMessage({
+          source: 'student-monitor',
+          type: 'closing',
+          sessionId
+        }, window.location.origin);
+      }
+    };
+
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    window.addEventListener('unload', handleBeforeUnload);
+
+    return () => {
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+      window.removeEventListener('unload', handleBeforeUnload);
+    };
+  }, [sessionId]);
+
   const {
     sessionStudents,
     studentsWithStatus,
@@ -141,8 +175,16 @@ const StudentMonitor: React.FC = () => {
   );
 
   const handleCloseMonitor = useCallback(() => {
+    if (window.opener && sessionId) {
+      console.log('[StudentMonitor] Sending closing message before window.close()');
+      window.opener.postMessage({
+        source: 'student-monitor',
+        type: 'closing',
+        sessionId
+      }, window.location.origin);
+    }
     window.close();
-  }, []);
+  }, [sessionId]);
 
   // Sync direction management functions
   const handleToggleSyncDirection = useCallback(async (participantId: number): Promise<boolean> => {

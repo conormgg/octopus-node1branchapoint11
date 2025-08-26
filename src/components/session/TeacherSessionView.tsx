@@ -56,6 +56,7 @@ interface TeacherSessionViewProps {
   isParticipantUpdating?: (participantId: number) => boolean;
   // Split View 2 callback
   onSplitView2StateChange?: (isActive: boolean) => void;
+  onMonitorWindowOpened?: (newWindow: Window) => void;
 }
 
 const TeacherSessionView: React.FC<TeacherSessionViewProps> = ({
@@ -90,6 +91,7 @@ const TeacherSessionView: React.FC<TeacherSessionViewProps> = ({
   getSyncDirection,
   isParticipantUpdating,
   onSplitView2StateChange,
+  onMonitorWindowOpened,
 }) => {
   // Memoize expensive computations to prevent unnecessary re-renders
   const allStudentBoards = useMemo(() => 
@@ -136,6 +138,7 @@ const TeacherSessionView: React.FC<TeacherSessionViewProps> = ({
         onAddIndividualStudent={onAddIndividualStudent}
         onRemoveIndividualStudent={onRemoveIndividualStudent}
         onSplitView2StateChange={onSplitView2StateChange}
+        onMonitorWindowOpened={onMonitorWindowOpened}
       />
 
       <TeacherSessionMainContent

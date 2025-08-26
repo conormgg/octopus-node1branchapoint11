@@ -30,6 +30,7 @@ interface TeacherSessionViewHeaderProps {
   onAddIndividualStudent?: (name: string, email: string) => Promise<void>;
   onRemoveIndividualStudent?: (participantId: number) => Promise<void>;
   onSplitView2StateChange?: (isActive: boolean) => void;
+  onMonitorWindowOpened?: (newWindow: Window) => void;
 }
 
 const TeacherSessionViewHeader: React.FC<TeacherSessionViewHeaderProps> = ({
@@ -52,6 +53,7 @@ const TeacherSessionViewHeader: React.FC<TeacherSessionViewHeaderProps> = ({
   onAddIndividualStudent,
   onRemoveIndividualStudent,
   onSplitView2StateChange,
+  onMonitorWindowOpened,
 }) => {
   return (
     <>
@@ -80,6 +82,7 @@ const TeacherSessionViewHeader: React.FC<TeacherSessionViewHeaderProps> = ({
         onRemoveIndividualStudent={onRemoveIndividualStudent}
         isSplitView2Active={isSplitView2Active}
         onSplitView2StateChange={onSplitView2StateChange}
+        onMonitorWindowOpened={onMonitorWindowOpened}
       />
     </>
   );
