@@ -78,6 +78,7 @@ const TeacherSessionViewHeader: React.FC<TeacherSessionViewHeaderProps> = ({
         onSignOut={onSignOut}
         onAddIndividualStudent={onAddIndividualStudent}
         onRemoveIndividualStudent={onRemoveIndividualStudent}
+        isSplitView2Active={isSplitView2Active}
         onSplitView2StateChange={onSplitView2StateChange}
       />
     </>

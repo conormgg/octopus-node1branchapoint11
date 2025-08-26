@@ -38,6 +38,7 @@ interface TeacherHeaderProps {
   onAddIndividualStudent?: (name: string, email: string) => Promise<void>;
   onRemoveIndividualStudent?: (participantId: number) => Promise<void>;
   // Split View 2 props
+  isSplitView2Active?: boolean;
   onSplitView2StateChange?: (isActive: boolean) => void;
 }
 
@@ -57,13 +58,13 @@ const TeacherHeader: React.FC<TeacherHeaderProps> = ({
   sessionStudents = [],
   onAddIndividualStudent,
   onRemoveIndividualStudent,
+  isSplitView2Active = false,
   onSplitView2StateChange,
 }) => {
   const [isHovered, setIsHovered] = useState(false);
   const [copied, setCopied] = useState(false);
   const [showAddStudentDialog, setShowAddStudentDialog] = useState(false);
   const [showRemoveStudentDialog, setShowRemoveStudentDialog] = useState(false);
-  const [isSplitView2Active, setIsSplitView2Active] = useState(false);
   const [monitorWindow, setMonitorWindow] = useState<Window | null>(null);
   const { toast } = useToast();
 
@@ -137,10 +138,10 @@ const TeacherHeader: React.FC<TeacherHeaderProps> = ({
       }
 
       setMonitorWindow(newWindow);
-      setIsSplitView2Active(true);
-
+      
       // Notify parent component about state change
       onSplitView2StateChange?.(true);
+      console.log('[TeacherHeader] Split View 2 opened, notifying parent');
 
       toast({
         title: "Student Monitor Opened",
@@ -162,10 +163,10 @@ const TeacherHeader: React.FC<TeacherHeaderProps> = ({
       monitorWindow.close();
     }
     setMonitorWindow(null);
-    setIsSplitView2Active(false);
     
     // Notify parent component about state change
     onSplitView2StateChange?.(false);
+    console.log('[TeacherHeader] Split View 2 closed manually, notifying parent');
     
     toast({
       title: "Monitor Closed",
@@ -190,9 +191,9 @@ const TeacherHeader: React.FC<TeacherHeaderProps> = ({
       }
       
       console.log('[TeacherHeader] Monitor window closed - reverting to original layout');
-      setIsSplitView2Active(false);
       setMonitorWindow(null);
       onSplitView2StateChange?.(false);
+      console.log('[TeacherHeader] Split View 2 closed via window closure, notifying parent');
       
       toast({
         title: "Monitor Closed",
