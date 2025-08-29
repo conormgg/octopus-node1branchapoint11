@@ -22,11 +22,12 @@ export const useStateContextSync = (
   const updateContextOnLoad = (
     whiteboardId: string,
     lines: any[],
+    images: any[] = [],
     hasData: boolean
   ) => {
-    if (whiteboardId && updateWhiteboardState && !hasData && lines.length > 0) {
-      console.log(`[StateContextSync] Updating shared context for ${whiteboardId} with ${lines.length} lines`);
-      updateWhiteboardState(whiteboardId, lines);
+    if (whiteboardId && updateWhiteboardState && !hasData && (lines.length > 0 || images.length > 0)) {
+      console.log(`[StateContextSync] Updating shared context for ${whiteboardId} with ${lines.length} lines and ${images.length} images`);
+      updateWhiteboardState(whiteboardId, lines, images);
     }
   };
 
@@ -35,30 +36,34 @@ export const useStateContextSync = (
     previousLineCount.current = count;
   };
 
-  // Update shared state only for additions, not deletions (to prevent race condition)
+  // Update shared state for significant changes (less aggressive deletion detection)
   useEffect(() => {
     if (whiteboardId && updateWhiteboardState) {
       const currentLineCount = state.lines.length;
+      const currentImageCount = state.images.length;
+      const totalObjects = currentLineCount + currentImageCount;
+      const previousTotal = previousLineCount.current;
       
-      // Detect if this is a deletion operation
-      if (currentLineCount < previousLineCount.current) {
-        console.log(`[StateContextSync] Detected deletion: ${previousLineCount.current} -> ${currentLineCount} lines. NOT updating shared context to prevent race condition.`);
+      // Only skip updates for major deletions (>50% reduction) to prevent data loss
+      const significantDeletion = totalObjects < previousTotal * 0.5 && previousTotal > 5;
+      
+      if (significantDeletion) {
+        console.log(`[StateContextSync] Detected significant deletion: ${previousTotal} -> ${totalObjects} objects. Skipping context update to prevent race condition.`);
         isProcessingDelete.current = true;
         
         // Clear the delete flag after a short delay
         setTimeout(() => {
           isProcessingDelete.current = false;
-        }, 100);
-      } else if (currentLineCount > previousLineCount.current && !isProcessingDelete.current) {
-        // Only update shared context for additions, not deletions
-        console.log(`[StateContextSync] Detected addition: ${previousLineCount.current} -> ${currentLineCount} lines. Updating shared context.`);
-        updateWhiteboardState(whiteboardId, state.lines);
+        }, 200);
+      } else if (!isProcessingDelete.current) {
+        console.log(`[StateContextSync] Updating shared context: ${currentLineCount} lines, ${currentImageCount} images`);
+        updateWhiteboardState(whiteboardId, state.lines, state.images);
       }
       
-      // Update the previous count
-      previousLineCount.current = currentLineCount;
+      // Update the previous count (track total objects)
+      previousLineCount.current = totalObjects;
     }
-  }, [state.lines, whiteboardId, updateWhiteboardState]);
+  }, [state.lines, state.images, whiteboardId, updateWhiteboardState]);
 
   return {
     updateContextOnLoad,

@@ -16,6 +16,7 @@ export const useWhiteboardCleanup = () => {
         
       if (whiteboardData) {
         const boardIds = [...new Set(whiteboardData.map(item => item.board_id))];
+        console.log(`[WhiteboardCleanup] Clearing ${boardIds.length} whiteboard states for session ${sessionId}`);
         boardIds.forEach(boardId => {
           clearWhiteboardState(boardId);
         });

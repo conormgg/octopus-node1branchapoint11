@@ -29,12 +29,11 @@ export const useSharedPersistenceIntegration = (
       console.log(`[PersistenceIntegration] Found ${persistence.orderedOperations?.length || 0} operations for history replay`);
       
       setState(prevState => {
-        // Only load persisted data if we don't have any lines yet
-        if (prevState.lines.length === 0) {
-          console.log(`[PersistenceIntegration] Applying persisted data and replaying history for ${whiteboardId}`);
-          
-          // Mark that we've loaded initial data
-          hasLoadedInitialData.current = true;
+        // Load persisted data and merge with current state to prevent data loss
+        console.log(`[PersistenceIntegration] Merging persisted data for ${whiteboardId}. Current: ${prevState.lines.length} lines, ${prevState.images.length} images. Persisted: ${persistence.lines.length} lines, ${persistence.images?.length || 0} images`);
+        
+        // Mark that we've loaded initial data
+        hasLoadedInitialData.current = true;
           
           // If we have operations to replay, use the pure history replay system
           if (persistence.orderedOperations && persistence.orderedOperations.length > 0) {
@@ -47,10 +46,21 @@ export const useSharedPersistenceIntegration = (
             // Set the final line count for tracking
             setInitialLineCount(finalState.lines.length);
             
+            // Merge persisted and current state with deduplication
+            const mergedLines = [...prevState.lines, ...finalState.lines];
+            const mergedImages = [...prevState.images, ...finalState.images];
+            
+            const uniqueLines = mergedLines.filter((line, index, arr) => 
+              arr.findIndex(l => l.id === line.id) === index
+            );
+            const uniqueImages = mergedImages.filter((img, index, arr) => 
+              arr.findIndex(i => i.id === img.id) === index
+            );
+            
             return {
               ...prevState,
-              lines: [...finalState.lines],
-              images: [...finalState.images],
+              lines: uniqueLines,
+              images: uniqueImages,
               history: [...historyStack], // Use the correctly simulated history stack
               historyIndex: finalHistoryIndex // Use the correct history index
             };
@@ -64,18 +74,29 @@ export const useSharedPersistenceIntegration = (
             
             setInitialLineCount(persistence.lines.length);
             
+            // Merge fallback data with current state
+            const mergedLines = [...prevState.lines, ...finalState.lines];
+            const mergedImages = [...prevState.images, ...finalState.images];
+            
+            const uniqueLines = mergedLines.filter((line, index, arr) => 
+              arr.findIndex(l => l.id === line.id) === index
+            );
+            const uniqueImages = mergedImages.filter((img, index, arr) => 
+              arr.findIndex(i => i.id === img.id) === index
+            );
+            
             return {
               ...finalState,
+              lines: uniqueLines,
+              images: uniqueImages,
               history: historyStack,
               historyIndex: finalHistoryIndex
             };
           }
-        }
-        return prevState;
       });
       
-      // Also update the shared state context if available and we don't have data
-      updateContextOnLoad(whiteboardId || '', persistence.lines, state.lines.length > 0);
+      // Also update the shared state context with both lines and images
+      updateContextOnLoad(whiteboardId || '', persistence.lines, persistence.images || [], state.lines.length > 0 || state.images.length > 0);
     }
   }, [persistence.isLoading, persistence.lines, persistence.images, persistence.lastActivity, persistence.orderedOperations, whiteboardId, setState, state.lines.length, processHistoryReplay, processFallbackLoad, updateContextOnLoad, setInitialLineCount]);
 
