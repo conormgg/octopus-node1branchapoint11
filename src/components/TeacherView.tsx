@@ -25,7 +25,6 @@ const TeacherView: React.FC<TeacherViewProps> = ({
 }) => {
   const [isUrlModalOpen, setIsUrlModalOpen] = useState(showUrlModal);
   const monitorWindowRef = useRef<Window | null>(null);
-  const closingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const { toast } = useToast();
 
   const { 
@@ -100,13 +99,6 @@ const TeacherView: React.FC<TeacherViewProps> = ({
     const checkWindow = () => {
       if (monitorWindowRef.current?.closed) {
         console.log('[TeacherView] Monitor window detected as closed via polling');
-        
-        // Cancel any pending close timeout since the window is actually closed
-        if (closingTimeoutRef.current) {
-          clearTimeout(closingTimeoutRef.current);
-          closingTimeoutRef.current = null;
-        }
-        
         monitorWindowRef.current = null;
         handleSplitView2StateChange(false);
         
@@ -123,9 +115,9 @@ const TeacherView: React.FC<TeacherViewProps> = ({
       console.log('[TeacherView] Cleaning up monitor window polling');
       clearInterval(interval);
     };
-  }, [isSplitView2Active, handleSplitView2StateChange, toast]);
+  }, [monitorWindowRef.current, handleSplitView2StateChange, toast]);
 
-  // Message listener with verification timeout for resilience
+  // Message listener for immediate close detection
   useEffect(() => {
     const handleMessage = (event: MessageEvent) => {
       if (event.origin !== window.location.origin) return;
@@ -135,30 +127,16 @@ const TeacherView: React.FC<TeacherViewProps> = ({
       if (source === 'student-monitor' && sessionId === activeSession?.id) {
         if (type === 'ready') {
           console.log('[TeacherView] Monitor window ready message received');
-          
-          // Cancel any pending close operation
-          if (closingTimeoutRef.current) {
-            clearTimeout(closingTimeoutRef.current);
-            closingTimeoutRef.current = null;
-            console.log('[TeacherView] Cancelled pending close due to ready signal');
-          }
-          
           handleSplitView2StateChange(true);
         } else if (type === 'closing') {
-          console.log('[TeacherView] Monitor window closing message received, starting verification timeout');
+          console.log('[TeacherView] Monitor window closing message received');
+          monitorWindowRef.current = null;
+          handleSplitView2StateChange(false);
           
-          // Set a timeout to verify the close - if we get a "ready" signal within 2 seconds, cancel the close
-          closingTimeoutRef.current = setTimeout(() => {
-            console.log('[TeacherView] Closing timeout completed, closing monitor');
-            monitorWindowRef.current = null;
-            handleSplitView2StateChange(false);
-            closingTimeoutRef.current = null;
-            
-            toast({
-              title: "Monitor Closed",
-              description: "Reverted to original layout.",
-            });
-          }, 2000);
+          toast({
+            title: "Monitor Closed",
+            description: "Reverted to original layout.",
+          });
         }
       }
     };
@@ -167,9 +145,6 @@ const TeacherView: React.FC<TeacherViewProps> = ({
     
     return () => {
       window.removeEventListener('message', handleMessage);
-      if (closingTimeoutRef.current) {
-        clearTimeout(closingTimeoutRef.current);
-      }
     };
   }, [activeSession?.id, handleSplitView2StateChange, toast]);
 

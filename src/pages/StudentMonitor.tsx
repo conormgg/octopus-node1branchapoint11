@@ -103,27 +103,16 @@ const StudentMonitor: React.FC = () => {
     }
   }, [sessionId]);
 
-  // Handle window close events with debouncing
+  // Handle window close events
   useEffect(() => {
-    let closeTimeout: NodeJS.Timeout | null = null;
-    
     const handleBeforeUnload = () => {
       if (window.opener && sessionId) {
-        console.log('[StudentMonitor] Scheduling closing message to parent window');
-        
-        // Debounce the closing signal to prevent false positives during HMR/reload
-        if (closeTimeout) {
-          clearTimeout(closeTimeout);
-        }
-        
-        closeTimeout = setTimeout(() => {
-          console.log('[StudentMonitor] Sending closing message to parent window');
-          window.opener.postMessage({
-            source: 'student-monitor',
-            type: 'closing',
-            sessionId
-          }, window.location.origin);
-        }, 100);
+        console.log('[StudentMonitor] Sending closing message to parent window');
+        window.opener.postMessage({
+          source: 'student-monitor',
+          type: 'closing',
+          sessionId
+        }, window.location.origin);
       }
     };
 
@@ -133,9 +122,6 @@ const StudentMonitor: React.FC = () => {
     return () => {
       window.removeEventListener('beforeunload', handleBeforeUnload);
       window.removeEventListener('unload', handleBeforeUnload);
-      if (closeTimeout) {
-        clearTimeout(closeTimeout);
-      }
     };
   }, [sessionId]);
 
