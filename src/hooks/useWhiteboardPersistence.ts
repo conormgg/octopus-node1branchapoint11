@@ -21,12 +21,12 @@ interface WhiteboardPersistenceResult {
 
 // Performance configuration constants
 const PERFORMANCE_WARNING_THRESHOLD = 1000; // Warn when operations exceed this count
-const MAX_OPERATIONS_FOR_HISTORY = 2000; // Soft limit for history reconstruction (increased from 50)
+const MAX_OPERATIONS_FOR_HISTORY = 10000; // Increased from 2000 to handle large boards
 const MAX_HISTORY_SIZE = 10; // Maximum history entries to maintain
 
-// Operation fetch limits
-const AUTHENTICATED_USER_LIMIT = 10000; // High limit for authenticated users to override PostgREST default
-const ANONYMOUS_USER_LIMIT = 5000; // Increased from 500 to match RPC function capability
+// Operation fetch limits - both use RPC function for reliability
+const AUTHENTICATED_USER_LIMIT = 10000; // High limit for authenticated users
+const ANONYMOUS_USER_LIMIT = 5000; // Standard limit for anonymous users
 
 // Helper function to calculate image bounds
 const calculateImageBounds = (image: ImageObject) => {
@@ -208,28 +208,17 @@ export const useWhiteboardPersistence = ({
       
       let data, error;
       
-      if (session?.user?.id) {
-        // Authenticated user - use direct table access with explicit high limit
-        const response = await supabase
-          .from('whiteboard_data')
-          .select('*')
-          .eq('board_id', whiteboardId)
-          .eq('session_id', sessionId)
-          .order('created_at', { ascending: true })
-          .limit(AUTHENTICATED_USER_LIMIT); // Override PostgREST's 1000 default
-        data = response.data;
-        error = response.error;
-      } else {
-        // Anonymous user - use public RPC function with increased limit
-        const response = await supabase
-          .rpc('public_get_whiteboard_operations', {
-            p_session_id: sessionId,
-            p_board_id: whiteboardId,
-            p_limit: ANONYMOUS_USER_LIMIT // Increased from 500 to 5000
-          });
-        data = response.data;
-        error = response.error;
-      }
+      // Use RPC function for both authenticated and anonymous users for reliability
+      // The RPC function bypasses PostgREST limits and provides consistent behavior
+      const limit = session?.user?.id ? AUTHENTICATED_USER_LIMIT : ANONYMOUS_USER_LIMIT;
+      const response = await supabase
+        .rpc('public_get_whiteboard_operations', {
+          p_session_id: sessionId,
+          p_board_id: whiteboardId,
+          p_limit: limit
+        });
+      data = response.data;
+      error = response.error;
 
       if (error) {
         throw new Error(`Error fetching whiteboard data: ${error.message}`);
