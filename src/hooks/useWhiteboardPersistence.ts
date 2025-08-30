@@ -24,6 +24,10 @@ const PERFORMANCE_WARNING_THRESHOLD = 1000; // Warn when operations exceed this 
 const MAX_OPERATIONS_FOR_HISTORY = 2000; // Soft limit for history reconstruction (increased from 50)
 const MAX_HISTORY_SIZE = 10; // Maximum history entries to maintain
 
+// Operation fetch limits
+const AUTHENTICATED_USER_LIMIT = 10000; // High limit for authenticated users to override PostgREST default
+const ANONYMOUS_USER_LIMIT = 5000; // Increased from 500 to match RPC function capability
+
 // Helper function to calculate image bounds
 const calculateImageBounds = (image: ImageObject) => {
   const width = image.width || 100;
@@ -205,22 +209,23 @@ export const useWhiteboardPersistence = ({
       let data, error;
       
       if (session?.user?.id) {
-        // Authenticated user - use direct table access
+        // Authenticated user - use direct table access with explicit high limit
         const response = await supabase
           .from('whiteboard_data')
           .select('*')
           .eq('board_id', whiteboardId)
           .eq('session_id', sessionId)
-          .order('created_at', { ascending: true });
+          .order('created_at', { ascending: true })
+          .limit(AUTHENTICATED_USER_LIMIT); // Override PostgREST's 1000 default
         data = response.data;
         error = response.error;
       } else {
-        // Anonymous user - use public RPC function
+        // Anonymous user - use public RPC function with increased limit
         const response = await supabase
           .rpc('public_get_whiteboard_operations', {
             p_session_id: sessionId,
             p_board_id: whiteboardId,
-            p_limit: 500 // Set a reasonable limit
+            p_limit: ANONYMOUS_USER_LIMIT // Increased from 500 to 5000
           });
         data = response.data;
         error = response.error;
@@ -234,8 +239,17 @@ export const useWhiteboardPersistence = ({
 
       // Performance monitoring and warnings
       const totalOperations = data?.length || 0;
+      const isAuthenticated = !!session?.user?.id;
+      const currentLimit = isAuthenticated ? AUTHENTICATED_USER_LIMIT : ANONYMOUS_USER_LIMIT;
+      
       if (totalOperations > PERFORMANCE_WARNING_THRESHOLD) {
         console.warn(`[Persistence] High operation count detected: ${totalOperations} operations. Consider performance optimization.`);
+      }
+      
+      // Check if we hit the fetch limit and warn user
+      if (totalOperations >= currentLimit) {
+        console.error(`[Persistence] CRITICAL: Hit operation fetch limit (${currentLimit}). Some operations may be missing! This will cause data inconsistencies.`);
+        setError(new Error(`Operation limit reached (${currentLimit}). Please contact support for boards with more than ${currentLimit} operations.`));
       }
 
       // Apply configurable history limits with better logging
