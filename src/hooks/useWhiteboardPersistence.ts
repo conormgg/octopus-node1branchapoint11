@@ -19,8 +19,9 @@ interface WhiteboardPersistenceResult {
   orderedOperations: WhiteboardOperation[]; // NEW: Return ordered operations for history reconstruction
 }
 
-// History configuration constants
-const MAX_OPERATIONS_FOR_HISTORY = 50; // Limit operations used for history reconstruction
+// Performance configuration constants
+const PERFORMANCE_WARNING_THRESHOLD = 1000; // Warn when operations exceed this count
+const MAX_OPERATIONS_FOR_HISTORY = 2000; // Soft limit for history reconstruction (increased from 50)
 const MAX_HISTORY_SIZE = 10; // Maximum history entries to maintain
 
 // Helper function to calculate image bounds
@@ -231,13 +232,24 @@ export const useWhiteboardPersistence = ({
 
       console.log(`[Persistence] Retrieved ${data?.length || 0} operations from database`);
 
-      // NEW: Apply history size limits and convert operations for history reconstruction
-      const recentOperations = data ? data.slice(-MAX_OPERATIONS_FOR_HISTORY) : [];
-      const convertedOperations = recentOperations.map(convertDbOperationToWhiteboardOperation);
-      
-      console.log(`[Persistence] Using ${convertedOperations.length} recent operations for history reconstruction (limited from ${data?.length || 0})`);
+      // Performance monitoring and warnings
+      const totalOperations = data?.length || 0;
+      if (totalOperations > PERFORMANCE_WARNING_THRESHOLD) {
+        console.warn(`[Persistence] High operation count detected: ${totalOperations} operations. Consider performance optimization.`);
+      }
 
-      // Process operations to rebuild the whiteboard state
+      // Apply configurable history limits with better logging
+      const operationsForHistory = data ? (totalOperations > MAX_OPERATIONS_FOR_HISTORY ? data.slice(-MAX_OPERATIONS_FOR_HISTORY) : data) : [];
+      const convertedOperations = operationsForHistory.map(convertDbOperationToWhiteboardOperation);
+      
+      // Enhanced logging to track history vs total operations
+      if (totalOperations > MAX_OPERATIONS_FOR_HISTORY) {
+        console.log(`[Persistence] History limited: Using last ${convertedOperations.length} of ${totalOperations} operations for undo/redo functionality`);
+      } else {
+        console.log(`[Persistence] Full history available: Using all ${convertedOperations.length} operations for undo/redo functionality`);
+      }
+
+      // Process ALL operations to rebuild the complete whiteboard state
       const linesMap = new Map<string, LineObject>();
       const imagesMap = new Map<string, ImageObject>();
       const deletedLineIds = new Set<string>();
