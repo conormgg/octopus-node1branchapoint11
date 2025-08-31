@@ -94,6 +94,7 @@ const StudentBoardsGrid: React.FC<StudentBoardsGridProps> = ({
                 currentSyncDirection={currentSyncDirection}
                 isParticipantUpdating={isUpdating}
                 isTeacher={isTeacher}
+                gridOrientation={gridOrientation}
               />
             </div>
           );

@@ -22,6 +22,7 @@ interface StudentBoardCardProps {
   currentSyncDirection?: SyncDirection;
   isParticipantUpdating?: boolean;
   isTeacher?: boolean;
+  gridOrientation?: string;
 }
 
 const StudentBoardCard: React.FC<StudentBoardCardProps> = ({
@@ -38,6 +39,7 @@ const StudentBoardCard: React.FC<StudentBoardCardProps> = ({
   currentSyncDirection = 'student_active',
   isParticipantUpdating = false,
   isTeacher = false,
+  gridOrientation,
 }) => {
   // Empty slot - compressed/hidden for now, can be expanded later for "add student" functionality
   if (!boardInfo) {
@@ -142,6 +144,7 @@ const StudentBoardCard: React.FC<StudentBoardCardProps> = ({
         isParticipantUpdating={isParticipantUpdating}
         isTeacher={isTeacher}
         studentName={boardInfo.studentName}
+        gridOrientation={gridOrientation}
       />
     </div>
   );

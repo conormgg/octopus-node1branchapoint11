@@ -31,6 +31,7 @@ interface WhiteboardPlaceholderProps {
   onToggleSyncDirection?: (participantId: number) => Promise<boolean>;
   isParticipantUpdating?: boolean;
   studentName?: string;
+  gridOrientation?: string;
 }
 
 const WhiteboardPlaceholder: React.FC<WhiteboardPlaceholderProps> = ({
@@ -50,7 +51,8 @@ const WhiteboardPlaceholder: React.FC<WhiteboardPlaceholderProps> = ({
   overrideSyncDirection,
   onToggleSyncDirection,
   isParticipantUpdating,
-  studentName
+  studentName,
+  gridOrientation
 }) => {
   const [syncState, setSyncState] = useState<{ isConnected: boolean; isReceiveOnly: boolean } | null>(null);
   
@@ -68,7 +70,7 @@ const WhiteboardPlaceholder: React.FC<WhiteboardPlaceholderProps> = ({
   const { isExpired, expiresAt, sessionEndReason, isRedirecting } = useSessionExpirationContext();
 
   // Custom hooks for focused functionality
-  const { containerRef, whiteboardWidth, whiteboardHeight } = useWhiteboardDimensions(initialWidth, initialHeight, isMaximized);
+  const { containerRef, whiteboardWidth, whiteboardHeight } = useWhiteboardDimensions(initialWidth, initialHeight, isMaximized, gridOrientation);
   useEscapeKeyHandler(isMaximized, onMinimize);
   const { shouldShowEyeButton, handleEyeClick, handleLastActivityUpdate, handleCenterCallbackUpdate, hasLastActivity } = useEyeButtonLogic(id);
   
